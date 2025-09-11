@@ -1,0 +1,293 @@
+name: Deploy Backend to UAT2 Staging
+
+on:
+  push:
+    branches: [ development ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend-staging.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'rollback'
+        type: choice
+        options:
+        - rollback
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: 📦 Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: 📥 Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🔧 Setup test environment
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-testing-only
+        DEBUG: True
+      run: |
+        python manage.py check
+        python manage.py migrate
+
+    - name: 🧪 Run tests
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-testing-only
+        DEBUG: True
+      run: |
+        # Run tests for apps only (excludes root-level test files like test_allowed_hosts_fix.py)
+        python manage.py test apps/
+
+    - name: 🔍 Run code quality checks
+      working-directory: ./backend
+      continue-on-error: true  # Don't fail deployment on linting issues
+      run: |
+        # Run flake8 if available (non-blocking)
+        if pip show flake8 >/dev/null 2>&1; then
+          echo "Running flake8 linting..."
+          flake8 . --exclude=migrations --max-line-length=120 || echo "⚠️ Flake8 found style issues (non-blocking)"
+        fi
+        
+        # Run black check if available (non-blocking)  
+        if pip show black >/dev/null 2>&1; then
+          echo "Running black formatting check..."
+          black --check . --exclude=migrations || echo "⚠️ Black found formatting issues (non-blocking)"
+        fi
+        
+        echo "✅ Code quality checks completed (issues are non-blocking for deployment)"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: uat2-backend  # Uses uat2-backend environment secrets
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        # Install sshpass for password authentication
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        
+        # Add host to known_hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 🚀 Deploy to UAT2 staging server
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      run: |
+        # Create deployment script with GitHub token
+        cat > deploy_script.sh << DEPLOY_SCRIPT
+        #!/bin/bash
+        set -e
+        
+        echo "🔄 Starting UAT2 Backend deployment..."
+        
+        # Navigate to project directory
+        cd /home/django/ProjectMeats
+        
+        # Create backup of current deployment
+        echo "📦 Creating backup..."
+        if [ -d "backend_backup" ]; then
+          rm -rf backend_backup
+        fi
+        cp -r backend backend_backup
+        
+        # Configure git with token authentication
+        echo "🔐 Configuring git authentication..."
+        git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats3.git
+        
+        # Pull latest changes from development branch
+        echo "📥 Pulling latest changes..."
+        
+        # Clean up any local changes and untracked files
+        echo "🧹 Cleaning local changes..."
+        git stash push -m "Deployment backup $(date)" || true
+        git clean -fd
+        
+        # Fetch and reset to latest development
+        git fetch origin development
+        git checkout development
+        git reset --hard origin/development
+        
+        echo "✅ Successfully updated to latest development branch"
+        
+        # Navigate to backend directory and activate virtual environment
+        echo "🐍 Activating virtual environment..."
+        cd backend
+        source venv/bin/activate
+        
+        # Install/update dependencies
+        echo "📦 Installing dependencies..."
+        pip install -r requirements.txt
+        
+        # Run migrations
+        echo "🗃️ Running database migrations..."
+        python manage.py migrate
+        
+        # Collect static files
+        echo "📁 Collecting static files..."
+        python manage.py collectstatic --noinput
+        
+        # Test Django configuration
+        echo "🧪 Testing Django configuration..."
+        python manage.py check
+        
+        echo "✅ Backend deployment completed successfully!"
+        DEPLOY_SCRIPT
+        
+        # Upload and execute deployment script
+        sshpass -e scp deploy_script.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+
+    - name: 🔄 Restart backend services
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'RESTART_SCRIPT'
+        echo "🔄 Restarting backend services..."
+        
+        # Restart gunicorn via supervisor
+        sudo supervisorctl restart projectmeats-staging
+        
+        # Wait a moment for service to start
+        sleep 5
+        
+        # Check service status
+        sudo supervisorctl status projectmeats-staging
+        
+        # Restart nginx
+        sudo systemctl reload nginx
+        
+        echo "✅ Services restarted successfully!"
+        RESTART_SCRIPT
+
+    - name: 🏥 Health check
+      run: |
+        echo "🏥 Performing health check..."
+        sleep 15  # Wait for services to fully start
+        
+        # Health check with retry logic
+        for i in {1..5}; do
+          echo "Health check attempt $i/5..."
+          if curl -f -s "${{ secrets.STAGING_API_URL }}/api/v1/health/" > /dev/null; then
+            echo "✅ UAT2 Backend is healthy!"
+            break
+          else
+            if [ $i -eq 5 ]; then
+              echo "❌ UAT2 Backend health check failed after 5 attempts"
+              exit 1
+            fi
+            echo "Retrying in 10 seconds..."
+            sleep 10
+          fi
+        done
+
+    - name: 📧 Deployment notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ UAT2 Backend deployment successful!"
+          echo "🌐 API URL: ${{ secrets.STAGING_API_URL }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+        else
+          echo "❌ UAT2 Backend deployment failed!"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+          echo "🔍 Check the logs above for details"
+        fi
+
+  # Rollback job (manual trigger)
+  rollback:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: uat2-backend
+    
+    steps:
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+    - name: ⏪ Rollback to previous version
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ROLLBACK_SCRIPT'
+        set -e
+        
+        echo "🔄 Starting rollback process..."
+        
+        cd /home/django/ProjectMeats
+        
+        # Check if backup exists
+        if [ ! -d "backend_backup" ]; then
+          echo "❌ No backup found for rollback!"
+          exit 1
+        fi
+        
+        echo "📦 Rolling back to previous version..."
+        
+        # Stop services
+        sudo supervisorctl stop projectmeats-staging
+        
+        # Restore backup
+        rm -rf backend
+        mv backend_backup backend
+        
+        # Restart services
+        sudo supervisorctl start projectmeats-staging
+        sleep 10
+        sudo systemctl reload nginx
+        
+        echo "✅ Rollback completed successfully!"
+        ROLLBACK_SCRIPT
