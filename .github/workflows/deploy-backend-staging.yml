@@ -118,9 +118,10 @@ jobs:
     - name: 🚀 Deploy to UAT2 staging server
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
-        # Create deployment script
-        cat > deploy_script.sh << 'DEPLOY_SCRIPT'
+        # Create deployment script with GitHub token
+        cat > deploy_script.sh << DEPLOY_SCRIPT
         #!/bin/bash
         set -e
         
@@ -135,6 +136,10 @@ jobs:
           rm -rf backend_backup
         fi
         cp -r backend backend_backup
+        
+        # Configure git with token authentication
+        echo "🔐 Configuring git authentication..."
+        git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats3.git
         
         # Pull latest changes
         echo "📥 Pulling latest changes..."
