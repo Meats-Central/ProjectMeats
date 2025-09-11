@@ -141,11 +141,20 @@ jobs:
         echo "🔐 Configuring git authentication..."
         git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats3.git
         
-        # Pull latest changes
+        # Pull latest changes from development branch
         echo "📥 Pulling latest changes..."
-        git fetch origin
+        
+        # Clean up any local changes and untracked files
+        echo "🧹 Cleaning local changes..."
+        git stash push -m "Deployment backup $(date)" || true
+        git clean -fd
+        
+        # Fetch and reset to latest development
+        git fetch origin development
         git checkout development
-        git pull origin development
+        git reset --hard origin/development
+        
+        echo "✅ Successfully updated to latest development branch"
         
         # Navigate to backend directory and activate virtual environment
         echo "🐍 Activating virtual environment..."
