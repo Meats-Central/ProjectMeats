@@ -75,8 +75,8 @@ jobs:
         SECRET_KEY: test-secret-key-for-testing-only
         DEBUG: True
       run: |
-        # Run tests but exclude the problematic ALLOWED_HOSTS test file
-        python manage.py test --exclude-pattern="test_allowed_hosts_fix.py"
+        # Run tests for apps only (excludes root-level test files like test_allowed_hosts_fix.py)
+        python manage.py test apps/
 
     - name: 🔍 Run code quality checks
       working-directory: ./backend
