@@ -17,7 +17,7 @@ const App: React.FC = () => {
       <Header>
         <Logo>
           <LogoIcon>🥩</LogoIcon>
-          <LogoText>ProjectMeats3 test</LogoText>
+          <LogoText>ProjectMeats3</LogoText>
         </Logo>
         <HeaderSubtitle>AI-Powered Meat Market Operations</HeaderSubtitle>
       </Header>
