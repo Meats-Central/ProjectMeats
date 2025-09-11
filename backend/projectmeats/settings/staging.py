@@ -53,3 +53,6 @@ HEALTH_CHECK = {
     "DISK_USAGE_MAX": 95,  # percent
     "MEMORY_MIN": 50,      # MB
 }
+
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
