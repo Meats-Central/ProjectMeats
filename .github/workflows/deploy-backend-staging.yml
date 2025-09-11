@@ -139,7 +139,7 @@ jobs:
         
         # Configure git with token authentication
         echo "🔐 Configuring git authentication..."
-        git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats3.git
+        git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
         
         # Pull latest changes from development branch
         echo "📥 Pulling latest changes..."
