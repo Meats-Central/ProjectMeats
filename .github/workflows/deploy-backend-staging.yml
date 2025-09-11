@@ -6,6 +6,15 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-backend-staging.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'rollback'
+        type: choice
+        options:
+        - rollback
 
 jobs:
   test:
@@ -262,15 +271,3 @@ jobs:
         
         echo "✅ Rollback completed successfully!"
         ROLLBACK_SCRIPT
-
-# Manual workflow dispatch for rollbacks
-on:
-  workflow_dispatch:
-    inputs:
-      action:
-        description: 'Action to perform'
-        required: true
-        default: 'rollback'
-        type: choice
-        options:
-        - rollback
