@@ -11,6 +11,15 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface SignUpCredentials {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  company?: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: UserProfile;
@@ -49,6 +58,31 @@ export class AuthService {
       return user;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Login failed');
+    }
+  }
+
+  async signUp(credentials: SignUpCredentials): Promise<UserProfile> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/signup/`, {
+        username: credentials.username,
+        email: credentials.email,
+        password: credentials.password,
+        firstName: credentials.firstName,
+        lastName: credentials.lastName
+      });
+      
+      const { token, user } = response.data;
+
+      this.token = token;
+      this.user = user;
+
+      // Store in localStorage
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      return user;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Sign up failed');
     }
   }
 

@@ -9,10 +9,10 @@ from .models import Supplier
 class SupplierAdmin(admin.ModelAdmin):
     """Admin interface for Supplier model."""
     
-    list_display = ('name', 'contact_person', 'email', 'phone', 'city', 'status', 'created_at')
-    list_filter = ('status', 'country', 'created_at')
+    list_display = ('name', 'contact_person', 'email', 'phone', 'city', 'created_on')
+    list_filter = ('country', 'created_on')
     search_fields = ('name', 'contact_person', 'email', 'phone')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_on', 'modified_on')
     
     fieldsets = (
         ('Company Information', {
@@ -21,11 +21,8 @@ class SupplierAdmin(admin.ModelAdmin):
         ('Address', {
             'fields': ('address', 'city', 'state', 'zip_code', 'country')
         }),
-        ('Status', {
-            'fields': ('status',)
-        }),
         ('Metadata', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_on', 'modified_on'),
             'classes': ('collapse',)
         }),
     )
