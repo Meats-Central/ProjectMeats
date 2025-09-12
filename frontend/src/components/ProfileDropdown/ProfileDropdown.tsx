@@ -51,8 +51,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   };
 
   const handleAdminClick = () => {
-    // Open Django admin in new tab
-    const adminUrl = window.location.origin.replace(':3001', ':8000') + '/admin/';
+    // Open Django admin in new tab using the API base URL
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+    // Remove '/api/v1' from the end to get the base backend URL, then add '/admin/'
+    const baseBackendUrl = apiBaseUrl.replace('/api/v1', '');
+    const adminUrl = `${baseBackendUrl}/admin/`;
     window.open(adminUrl, '_blank');
     setIsOpen(false);
   };
