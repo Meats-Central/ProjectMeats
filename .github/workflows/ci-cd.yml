@@ -188,22 +188,20 @@ jobs:
           EOF
 
       - name: Upload env files to DEV server
-        shell: bash
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY:  ${{ secrets.SSH_KEY }}
-          ENV_NAME: dev
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+            SSH_KEY:  ${{ secrets.SSH_KEY }}
+            ENV_NAME: dev
         run: |
-          set -euo pipefail
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+            set -euo pipefail
+            # Write key to a file
+            echo "$SSH_KEY" > id_rsa
+            chmod 600 id_rsa
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
+            scp -i id_rsa -o StrictHostKeyChecking=no ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
+            scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
 
       - name: Deploy to DEV (SSH → compose up)
         env:
