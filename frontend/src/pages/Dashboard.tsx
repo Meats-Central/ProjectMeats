@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { apiService } from '../services/apiService';
 
 interface DashboardStats {
   suppliers: number;
@@ -8,28 +10,91 @@ interface DashboardStats {
   accountsReceivables: number;
 }
 
+interface RecentActivity {
+  type: 'supplier' | 'customer' | 'purchase_order' | 'accounts_receivable';
+  title: string;
+  description: string;
+  timestamp: string;
+}
+
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     suppliers: 0,
     customers: 0,
     purchaseOrders: 0,
     accountsReceivables: 0
   });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // In a real app, you'd have a dedicated stats endpoint
-        // For now, we'll simulate this
+        setError(null);
+        
+        // Fetch data from all endpoints to get real counts
+        const [
+          suppliersData,
+          customersData,
+          purchaseOrdersData,
+          accountsReceivablesData
+        ] = await Promise.all([
+          apiService.getSuppliers().catch(() => []),
+          apiService.getCustomers().catch(() => []),
+          apiService.getPurchaseOrders().catch(() => []),
+          apiService.getAccountsReceivables().catch(() => [])
+        ]);
+
+        // Set real stats
         setStats({
-          suppliers: 45,
-          customers: 128,
-          purchaseOrders: 73,
-          accountsReceivables: 32
+          suppliers: suppliersData.length,
+          customers: customersData.length,
+          purchaseOrders: purchaseOrdersData.length,
+          accountsReceivables: accountsReceivablesData.length
         });
+
+        // Generate recent activity from the data
+        const activities: RecentActivity[] = [];
+        
+        // Add recent suppliers
+        suppliersData.slice(-3).forEach(supplier => {
+          activities.push({
+            type: 'supplier',
+            title: `New Supplier: ${supplier.name}`,
+            description: supplier.contact_person ? `Contact: ${supplier.contact_person}` : 'No contact person',
+            timestamp: supplier.created_at || new Date().toISOString()
+          });
+        });
+
+        // Add recent customers
+        customersData.slice(-3).forEach(customer => {
+          activities.push({
+            type: 'customer',
+            title: `New Customer: ${customer.name}`,
+            description: customer.contact_person ? `Contact: ${customer.contact_person}` : 'No contact person',
+            timestamp: customer.created_at || new Date().toISOString()
+          });
+        });
+
+        // Add recent purchase orders
+        purchaseOrdersData.slice(-2).forEach(order => {
+          activities.push({
+            type: 'purchase_order',
+            title: `Purchase Order: ${order.order_number}`,
+            description: `Amount: $${order.total_amount.toLocaleString()} - Status: ${order.status}`,
+            timestamp: order.created_at || new Date().toISOString()
+          });
+        });
+
+        // Sort by timestamp and take the most recent
+        activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setRecentActivity(activities.slice(0, 8));
+
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
+        setError('Failed to load dashboard data. Please check your connection.');
       } finally {
         setLoading(false);
       }
@@ -38,8 +103,74 @@ const Dashboard: React.FC = () => {
     fetchStats();
   }, []);
 
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'add-supplier':
+        navigate('/suppliers');
+        break;
+      case 'add-customer':
+        navigate('/customers');
+        break;
+      case 'create-purchase-order':
+        navigate('/purchase-orders');
+        break;
+      case 'ask-ai':
+        navigate('/ai-assistant');
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
+  };
+
+  const getActivityIcon = (type: RecentActivity['type']) => {
+    switch (type) {
+      case 'supplier':
+        return '🏭';
+      case 'customer':
+        return '👥';
+      case 'purchase_order':
+        return '📋';
+      case 'accounts_receivable':
+        return '💰';
+      default:
+        return '📄';
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) {
+      return `${diffMins}m ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   if (loading) {
     return <LoadingContainer>Loading dashboard...</LoadingContainer>;
+  }
+
+  if (error) {
+    return (
+      <ErrorContainer>
+        <ErrorIcon>⚠️</ErrorIcon>
+        <ErrorTitle>Error Loading Dashboard</ErrorTitle>
+        <ErrorMessage>{error}</ErrorMessage>
+        <RetryButton onClick={() => window.location.reload()}>
+          Retry
+        </RetryButton>
+      </ErrorContainer>
+    );
   }
 
   return (
@@ -86,28 +217,65 @@ const Dashboard: React.FC = () => {
       <ChartsContainer>
         <ChartCard>
           <ChartTitle>Recent Activity</ChartTitle>
-          <ChartPlaceholder>
-            <ChartIcon>📈</ChartIcon>
-            <ChartText>Sales trends and analytics coming soon</ChartText>
-          </ChartPlaceholder>
+          {recentActivity.length > 0 ? (
+            <ActivityList>
+              {recentActivity.map((activity, index) => (
+                <ActivityItem key={index}>
+                  <ActivityIcon>{getActivityIcon(activity.type)}</ActivityIcon>
+                  <ActivityContent>
+                    <ActivityTitle>{activity.title}</ActivityTitle>
+                    <ActivityDescription>{activity.description}</ActivityDescription>
+                  </ActivityContent>
+                  <ActivityTime>{formatTimestamp(activity.timestamp)}</ActivityTime>
+                </ActivityItem>
+              ))}
+            </ActivityList>
+          ) : (
+            <ChartPlaceholder>
+              <ChartIcon>📈</ChartIcon>
+              <ChartText>No recent activity to display</ChartText>
+            </ChartPlaceholder>
+          )}
         </ChartCard>
 
         <ChartCard>
-          <ChartTitle>Top Suppliers</ChartTitle>
-          <ChartPlaceholder>
-            <ChartIcon>🏭</ChartIcon>
-            <ChartText>Supplier performance metrics coming soon</ChartText>
-          </ChartPlaceholder>
+          <ChartTitle>Quick Stats</ChartTitle>
+          <StatsOverview>
+            <OverviewStat>
+              <OverviewLabel>Total Entities</OverviewLabel>
+              <OverviewNumber>{stats.suppliers + stats.customers + stats.purchaseOrders + stats.accountsReceivables}</OverviewNumber>
+            </OverviewStat>
+            <OverviewStat>
+              <OverviewLabel>Active POs</OverviewLabel>
+              <OverviewNumber>{stats.purchaseOrders}</OverviewNumber>
+            </OverviewStat>
+            <OverviewStat>
+              <OverviewLabel>Outstanding AR</OverviewLabel>
+              <OverviewNumber>{stats.accountsReceivables}</OverviewNumber>
+            </OverviewStat>
+            <OverviewStat>
+              <OverviewLabel>Business Partners</OverviewLabel>
+              <OverviewNumber>{stats.suppliers + stats.customers}</OverviewNumber>
+            </OverviewStat>
+          </StatsOverview>
         </ChartCard>
       </ChartsContainer>
 
       <QuickActions>
         <QuickActionTitle>Quick Actions</QuickActionTitle>
         <ActionButtons>
-          <ActionButton>+ Add Supplier</ActionButton>
-          <ActionButton>+ Add Customer</ActionButton>
-          <ActionButton>+ Create Purchase Order</ActionButton>
-          <ActionButton>💬 Ask AI Assistant</ActionButton>
+          <ActionButton onClick={() => handleQuickAction('add-supplier')}>
+            + Add Supplier
+          </ActionButton>
+          <ActionButton onClick={() => handleQuickAction('add-customer')}>
+            + Add Customer
+          </ActionButton>
+          <ActionButton onClick={() => handleQuickAction('create-purchase-order')}>
+            + Create Purchase Order
+          </ActionButton>
+          <ActionButton onClick={() => handleQuickAction('ask-ai')}>
+            💬 Ask AI Assistant
+          </ActionButton>
         </ActionButtons>
       </QuickActions>
     </DashboardContainer>
@@ -272,6 +440,124 @@ const ActionButton = styled.button`
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
   }
+`;
+
+// Error components
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
+`;
+
+const ErrorTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  color: #e74c3c;
+  margin: 0 0 8px 0;
+`;
+
+const ErrorMessage = styled.p`
+  font-size: 16px;
+  color: #6c757d;
+  margin: 0 0 24px 0;
+`;
+
+const RetryButton = styled.button`
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+  }
+`;
+
+// Activity components
+const ActivityList = styled.div`
+  max-height: 300px;
+  overflow-y: auto;
+`;
+
+const ActivityItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f4;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ActivityIcon = styled.div`
+  font-size: 20px;
+  opacity: 0.8;
+`;
+
+const ActivityContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ActivityTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+`;
+
+const ActivityDescription = styled.div`
+  font-size: 12px;
+  color: #6c757d;
+`;
+
+const ActivityTime = styled.div`
+  font-size: 11px;
+  color: #95a5a6;
+  white-space: nowrap;
+`;
+
+// Stats overview components
+const StatsOverview = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+`;
+
+const OverviewStat = styled.div`
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+`;
+
+const OverviewLabel = styled.div`
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 8px;
+  font-weight: 500;
+`;
+
+const OverviewNumber = styled.div`
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
 `;
 
 export default Dashboard;

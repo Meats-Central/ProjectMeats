@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import styled from 'styled-components';
 
-interface Settings {
+// Renamed to avoid collision with component name (ESLint no-redeclare warning)
+interface UserSettings {
   notifications: {
     email: boolean;
     push: boolean;
@@ -23,7 +24,7 @@ interface Settings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  const [settings, setSettings] = useState<Settings>({
+  const [settings, setSettings] = useState<UserSettings>({
     notifications: {
       email: true,
       push: true,
@@ -75,7 +76,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleNotificationChange = (key: keyof Settings['notifications']) => {
+  const handleNotificationChange = (key: keyof UserSettings['notifications']) => {
     setSettings(prev => ({
       ...prev,
       notifications: {
@@ -86,7 +87,7 @@ const Settings: React.FC = () => {
     if (message) setMessage(null);
   };
 
-  const handlePreferenceChange = (key: keyof Settings['preferences'], value: string) => {
+  const handlePreferenceChange = (key: keyof UserSettings['preferences'], value: string) => {
     setSettings(prev => ({
       ...prev,
       preferences: {
@@ -97,7 +98,7 @@ const Settings: React.FC = () => {
     if (message) setMessage(null);
   };
 
-  const handlePrivacyChange = (key: keyof Settings['privacy']) => {
+  const handlePrivacyChange = (key: keyof UserSettings['privacy']) => {
     setSettings(prev => ({
       ...prev,
       privacy: {
