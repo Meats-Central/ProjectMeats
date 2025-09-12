@@ -176,8 +176,15 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardContainer>
       <DashboardHeader>
-        <Title>Dashboard</Title>
-        <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
+        <HeaderTop>
+          <TitleSection>
+            <Title>Dashboard</Title>
+            <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
+          </TitleSection>
+          <RefreshButton onClick={() => window.location.reload()}>
+            🔄 Refresh Data
+          </RefreshButton>
+        </HeaderTop>
       </DashboardHeader>
 
       <StatsGrid>
@@ -297,6 +304,46 @@ const LoadingContainer = styled.div`
 
 const DashboardHeader = styled.div`
   margin-bottom: 30px;
+`;
+
+const HeaderTop = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+`;
+
+const TitleSection = styled.div`
+  flex: 1;
+`;
+
+const RefreshButton = styled.button`
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const Title = styled.h1`
