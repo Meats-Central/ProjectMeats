@@ -160,7 +160,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
-          DJANGO_SETTINGS_MODULE=projectmeats.settings.devlopment
+          DJANGO_SETTINGS_MODULE=projectmeats.settings.development
           DJANGO_DEBUG=1
           DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}

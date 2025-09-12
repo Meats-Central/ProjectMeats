@@ -44,9 +44,9 @@ services:
     env_file:
       - env/dev.env
       - env/image.env
-    depends_on:
-      - postgres
-      - valkey
+    # depends_on:
+    #   - postgres
+    #   - valkey
     labels:
       - "traefik.enable=true"
       # Route /api/* to backend, strip prefix
