@@ -151,6 +151,70 @@ resource "digitalocean_ssh_key" "deploy_key" {
   public_key = var.ssh_public_key
 }
 
+# PostgreSQL 15 database for UAT
+resource "digitalocean_database_cluster" "projectmeats_uat_db" {
+  name            = "projectmeats-uat-db"
+  engine          = "pg"
+  version         = "15"
+  size            = "db-s-1vcpu-1gb"
+  region          = var.region
+  node_count      = 1
+  storage_size_mib = 10240  # 10 GiB
+  timeouts {
+    create = "90m"  # Extended timeout for provisioning
+  }
+}
+
+resource "digitalocean_database_db" "projectmeats_uat_db_name" {
+  cluster_id = digitalocean_database_cluster.projectmeats_uat_db.id
+  name       = "projectmeats"
+}
+
+resource "digitalocean_database_user" "projectmeats_uat_db_user" {
+  cluster_id = digitalocean_database_cluster.projectmeats_uat_db.id
+  name       = "meatsuser"
+}
+
+resource "digitalocean_database_firewall" "projectmeats_uat_db_firewall" {
+  cluster_id = digitalocean_database_cluster.projectmeats_uat_db.id
+  rule {
+    type  = "ip_addr"
+    value = digitalocean_droplet.projectmeats_uat.ipv4_address
+  }
+}
+
+# PostgreSQL 15 database for PROD
+resource "digitalocean_database_cluster" "projectmeats_prod_db" {
+  name            = "projectmeats-prod-db"
+  engine          = "pg"
+  version         = "15"
+  size            = "db-s-1vcpu-1gb"
+  region          = var.region
+  node_count      = 1
+  storage_size_mib = 10240  # 10 GiB
+  timeouts {
+    create = "90m"  # Extended timeout for provisioning
+  }
+}
+
+resource "digitalocean_database_db" "projectmeats_prod_db_name" {
+  cluster_id = digitalocean_database_cluster.projectmeats_prod_db.id
+  name       = "projectmeats"
+}
+
+resource "digitalocean_database_user" "projectmeats_prod_db_user" {
+  cluster_id = digitalocean_database_cluster.projectmeats_prod_db.id
+  name       = "meatsuser"
+}
+
+resource "digitalocean_database_firewall" "projectmeats_prod_db_firewall" {
+  cluster_id = digitalocean_database_cluster.projectmeats_prod_db.id
+  rule {
+    type  = "ip_addr"
+    value = digitalocean_droplet.projectmeats_prod.ipv4_address
+  }
+}
+
 # Configure DNS records (ensure domain is added in DO DNS)
 resource "digitalocean_record" "dev_dns" {
   domain = var.domain_name
@@ -171,7 +235,7 @@ resource "digitalocean_record" "uat_dns" {
 resource "digitalocean_record" "prod_dns" {
   domain = var.domain_name
   type   = "A"
-  name   = "prod"
+  name   = "@"
   value  = digitalocean_droplet.projectmeats_prod.ipv4_address
   ttl    = 300
 }

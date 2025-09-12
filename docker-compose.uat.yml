@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  api:
+    image: ${IMAGE_TAG_BACKEND}
+    restart: unless-stopped
+    env_file:
+      - env/uat.env
+    ports: ["127.0.0.1:8000:8000"]
+  web:
+    image: ${IMAGE_TAG_FRONTEND}
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:3000"]

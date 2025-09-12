@@ -25,5 +25,17 @@ output "uat_domain" {
 
 output "prod_domain" {
   description = "PROD subdomain"
-  value       = "prod.${var.domain_name}"
+  value       = "${var.domain_name}"
+}
+
+output "uat_db_connection_string" {
+  description = "Connection string for UAT database"
+  value       = "postgres://${digitalocean_database_user.projectmeats_uat_db_user.name}:${digitalocean_database_user.projectmeats_uat_db_user.password}@${digitalocean_database_cluster.projectmeats_uat_db.host}:${digitalocean_database_cluster.projectmeats_uat_db.port}/${digitalocean_database_db.projectmeats_uat_db_name.name}"
+  sensitive   = true
+}
+
+output "prod_db_connection_string" {
+  description = "Connection string for PROD database"
+  value       = "postgres://${digitalocean_database_user.projectmeats_prod_db_user.name}:${digitalocean_database_user.projectmeats_prod_db_user.password}@${digitalocean_database_cluster.projectmeats_prod_db.host}:${digitalocean_database_cluster.projectmeats_prod_db.port}/${digitalocean_database_db.projectmeats_prod_db_name.name}"
+  sensitive   = true
 }
