@@ -1,0 +1,238 @@
+name: Deploy Frontend to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend-production.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - rollback
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: 📥 Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: 🧪 Run tests
+      working-directory: ./frontend
+      run: npm run test:ci
+
+    - name: 🔍 Run type check
+      working-directory: ./frontend
+      run: npm run type-check
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: prod2-frontend  # Uses prod2-frontend environment secrets
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: 📥 Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: 🏗️ Create production .env file
+      working-directory: ./frontend
+      run: |
+        cat > .env.production << EOF
+        REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
+        NODE_ENV=production
+        REACT_APP_ENVIRONMENT=production
+        REACT_APP_AI_ASSISTANT_ENABLED=${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}
+        REACT_APP_ENABLE_DOCUMENT_UPLOAD=${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}
+        REACT_APP_ENABLE_CHAT_EXPORT=${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}
+        REACT_APP_MAX_FILE_SIZE=${{ secrets.REACT_APP_MAX_FILE_SIZE }}
+        REACT_APP_SUPPORTED_FILE_TYPES=${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}
+        REACT_APP_ENABLE_DEBUG=false
+        REACT_APP_ENABLE_DEVTOOLS=false
+        EOF
+
+    - name: 🏗️ Build React app for production
+      working-directory: ./frontend
+      run: |
+        echo "Building React application for PRODUCTION..."
+        npm run build
+
+    - name: 📦 Create deployment archive
+      run: |
+        cd frontend/build
+        tar -czf ../../frontend-build.tar.gz .
+
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        # Install sshpass for password authentication
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        
+        # Add host to known_hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 🚀 Deploy to Production frontend server
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        # Upload build to server
+        sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
+        
+        # Deploy via SSH
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'DEPLOY_SCRIPT'
+        set -e
+        
+        echo "🔄 Starting PRODUCTION Frontend deployment..."
+        
+        # Create backup
+        if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
+          echo "📦 Creating backup..."
+          sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
+        fi
+        
+        # Deploy new build
+        echo "🚀 Deploying new production build..."
+        cd /tmp
+        mkdir -p frontend-build-new
+        tar -xzf frontend-build.tar.gz -C frontend-build-new/
+        
+        sudo rm -rf /var/www/ProjectMeats/frontend/build
+        sudo mkdir -p /var/www/ProjectMeats/frontend/build
+        sudo cp -r frontend-build-new/* /var/www/ProjectMeats/frontend/build/
+        
+        # Set permissions
+        sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+        sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+        
+        # Test nginx and reload
+        sudo nginx -t && sudo systemctl reload nginx
+        
+        # Cleanup
+        rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
+        
+        echo "✅ PRODUCTION Frontend deployment completed!"
+        DEPLOY_SCRIPT
+
+    - name: 🏥 Health check
+      run: |
+        echo "🏥 Performing production health check..."
+        sleep 15  # Wait for services to start
+        
+        # Health check with retry logic
+        for i in {1..8}; do
+          echo "Health check attempt $i/8..."
+          if curl -f -s "${{ secrets.PRODUCTION_URL }}" > /dev/null; then
+            echo "✅ PRODUCTION Frontend is healthy!"
+            break
+          else
+            if [ $i -eq 8 ]; then
+              echo "❌ PRODUCTION Frontend health check failed after 8 attempts"
+              echo "🚨 PRODUCTION DEPLOYMENT MAY HAVE FAILED!"
+              exit 1
+            fi
+            echo "Retrying in 10 seconds..."
+            sleep 10
+          fi
+        done
+
+    - name: 🧹 Cleanup
+      if: always()
+      run: rm -f frontend-build.tar.gz
+
+    - name: 📧 Production deployment notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "🎉 PRODUCTION Frontend deployment SUCCESSFUL! 🎉"
+          echo "🌐 Production URL: ${{ secrets.PRODUCTION_URL }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+          echo "🚀 Production website is now live with latest changes!"
+        else
+          echo "🚨 PRODUCTION Frontend deployment FAILED! 🚨"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+          echo "⚠️ Please check logs and potentially rollback!"
+        fi
+
+  # Emergency rollback job (manual trigger)
+  rollback:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    environment: prod2-frontend
+    
+    steps:
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+    - name: ⏪ EMERGENCY: Rollback production frontend
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ROLLBACK_SCRIPT'
+        set -e
+        
+        echo "🚨 Starting EMERGENCY PRODUCTION frontend rollback..."
+        
+        # Find the most recent backup
+        BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+        
+        if [ -z "$BACKUP_DIR" ]; then
+          echo "❌ No backup found for rollback!"
+          echo "🚨 CRITICAL: Cannot rollback production frontend!"
+          exit 1
+        fi
+        
+        echo "📦 Rolling back to: $BACKUP_DIR"
+        
+        # Remove current build
+        sudo rm -rf /var/www/ProjectMeats/frontend/build
+        
+        # Restore backup
+        sudo cp -r "$BACKUP_DIR" /var/www/ProjectMeats/frontend/build
+        
+        # Set permissions
+        sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+        sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+        
+        # Reload nginx
+        sudo systemctl reload nginx
+        
+        echo "✅ PRODUCTION frontend rollback completed!"
+        ROLLBACK_SCRIPT
