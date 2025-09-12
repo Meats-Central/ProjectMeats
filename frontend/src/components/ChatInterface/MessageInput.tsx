@@ -212,7 +212,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      isDragOver={isDragOver}
+      $isDragOver={isDragOver}
     >
       {/* Hidden file input */}
       <HiddenFileInput
@@ -259,7 +259,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Main input form */}
       <InputForm onSubmit={handleSubmit}>
-        <InputWrapper isDragOver={isDragOver}>
+        <InputWrapper $isDragOver={isDragOver}>
           <AttachmentButton
             type="button"
             onClick={handleAttachmentClick}
@@ -312,12 +312,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
 };
 
 // Styled Components
-const InputContainer = styled.div<{isDragOver?: boolean}>`
+const InputContainer = styled.div<{$isDragOver?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
-  ${props => props.isDragOver && `
+  ${props => props.$isDragOver && `
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     border-radius: 12px;
   `}
@@ -469,13 +469,13 @@ const InputForm = styled.form`
   gap: 8px;
 `;
 
-const InputWrapper = styled.div<{isDragOver?: boolean}>`
+const InputWrapper = styled.div<{$isDragOver?: boolean}>`
   display: flex;
   align-items: flex-end;
   gap: 12px;
   padding: 12px;
   background: white;
-  border: 2px solid ${props => props.isDragOver ? '#667eea' : '#e5e7eb'};
+  border: 2px solid ${props => props.$isDragOver ? '#667eea' : '#e5e7eb'};
   border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
@@ -485,7 +485,7 @@ const InputWrapper = styled.div<{isDragOver?: boolean}>`
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
   
-  ${props => props.isDragOver && `
+  ${props => props.$isDragOver && `
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   `}
 `;
