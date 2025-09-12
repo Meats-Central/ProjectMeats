@@ -187,8 +187,13 @@ export class ApiService {
 
   // Purchase Orders
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    const response = await apiClient.get('/purchase-orders/');
-    return response.data.results || response.data;
+    try {
+      const response = await apiClient.get('/purchase-orders/');
+      return response.data.results || response.data;
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw new Error('Purchase orders data unavailable. Please check your connection and try again.');
+    }
   }
 
   async getPurchaseOrder(id: number): Promise<PurchaseOrder> {

@@ -83,6 +83,38 @@ jobs:
         cd backend
         python manage.py test
 
+    - name: Validate API endpoints (404 regression test)
+      run: |
+        cd backend
+        # Start Django server for API testing
+        python manage.py runserver 8000 &
+        SERVER_PID=$!
+        sleep 5
+        
+        # Test purchase orders endpoint specifically
+        echo "Testing purchase orders API endpoint..."
+        RESPONSE=$(curl -s -w "%{http_code}" http://localhost:8000/api/v1/purchase-orders/)
+        HTTP_CODE=$(echo "$RESPONSE" | tail -c 4)
+        
+        if [ "$HTTP_CODE" != "200" ]; then
+          echo "❌ Purchase orders endpoint returned HTTP $HTTP_CODE (expected 200)"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        echo "✅ Purchase orders endpoint working correctly"
+        
+        # Test redirect behavior
+        REDIRECT_CODE=$(curl -s -w "%{http_code}" -o /dev/null http://localhost:8000/api/v1/purchase-orders)
+        if [ "$REDIRECT_CODE" != "301" ]; then
+          echo "❌ Purchase orders redirect returned HTTP $REDIRECT_CODE (expected 301)"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        echo "✅ URL trailing slash redirect working correctly"
+        kill $SERVER_PID 2>/dev/null || true
+
     - name: Run code quality checks
       run: |
         cd backend
