@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService } from '../services/apiService';
+import SupplierPerformanceChart from '../components/Visualization/SupplierPerformanceChart';
+import PurchaseOrderTrends from '../components/Visualization/PurchaseOrderTrends';
 
 interface DashboardStats {
   suppliers: number;
@@ -28,6 +30,23 @@ const Dashboard: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Sample data for charts - in real app this would come from API
+  const supplierPerformanceData = [
+    { name: 'ABC Meats', orders: 24, revenue: 125000, rating: 4.2 },
+    { name: 'Prime Cuts', orders: 18, revenue: 98000, rating: 4.8 },
+    { name: 'Quality Foods', orders: 32, revenue: 167000, rating: 3.9 },
+    { name: 'Farm Fresh', orders: 15, revenue: 75000, rating: 4.5 },
+  ];
+  
+  const purchaseOrderTrendData = [
+    { date: '2024-01', orders: 45, value: 235000, averageValue: 5222 },
+    { date: '2024-02', orders: 52, value: 278000, averageValue: 5346 },
+    { date: '2024-03', orders: 48, value: 265000, averageValue: 5521 },
+    { date: '2024-04', orders: 61, value: 325000, averageValue: 5328 },
+    { date: '2024-05', orders: 58, value: 312000, averageValue: 5379 },
+    { date: '2024-06', orders: 67, value: 385000, averageValue: 5746 },
+  ];
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -220,6 +239,11 @@ const Dashboard: React.FC = () => {
           </StatContent>
         </StatCard>
       </StatsGrid>
+
+      <ChartsContainer>
+        <SupplierPerformanceChart data={supplierPerformanceData} />
+        <PurchaseOrderTrends data={purchaseOrderTrendData} />
+      </ChartsContainer>
 
       <ChartsContainer>
         <ChartCard>
