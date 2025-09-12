@@ -20,6 +20,7 @@ urlpatterns = [
     # Admin interface
     path("admin/", admin.site.urls),
     # API v1 endpoints
+    path("api/v1/", include("apps.tenants.urls")),  # Multi-tenancy endpoints
     path("api/v1/", include("apps.accounts_receivables.urls")),
     path("api/v1/", include("apps.suppliers.urls")),
     path("api/v1/", include("apps.customers.urls")),
