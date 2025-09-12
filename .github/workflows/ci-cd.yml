@@ -86,45 +86,45 @@ jobs:
             fi
           fi
       # ----- Prepare image repo -----
-      - name: Prepare lowercase image repo
+      - name: Prepare GHCR image names (lowercase owner/repo)
         id: prep
         run: |
-          # to-lowercase and replace "/" with "-"
-          repo_lower=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
-          echo "repo_image=ghcr.io/${repo_lower}" >> "$GITHUB_OUTPUT"
-          
+            owner_lower=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+            repo_name_lower=$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')
+            echo "base=ghcr.io/${owner_lower}/${repo_name_lower}" >> "$GITHUB_OUTPUT"
+
       # ----- Build and Push image GHCR -----
       - name: Login to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build backend image
         run: |
-          docker build -f Dockerfile.backend \
-            -t ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }} .
-          docker tag \
-            ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }} \
-            ${{ steps.prep.outputs.repo_image }}-backend:latest
+            docker build -f Dockerfile.backend \
+            -t ${{ steps.prep.outputs.base }}-backend:${{ github.sha }} .
+            docker tag \
+            ${{ steps.prep.outputs.base }}-backend:${{ github.sha }} \
+            ${{ steps.prep.outputs.base }}-backend:latest
 
       - name: Build frontend image
         run: |
-          docker build -f Dockerfile.frontend \
-            -t ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }} .
-          docker tag \
-            ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }} \
-            ${{ steps.prep.outputs.repo_image }}-frontend:latest
+            docker build -f Dockerfile.frontend \
+            -t ${{ steps.prep.outputs.base }}-frontend:${{ github.sha }} .
+            docker tag \
+            ${{ steps.prep.outputs.base }}-frontend:${{ github.sha }} \
+            ${{ steps.prep.outputs.base }}-frontend:latest
 
       - name: Push images
         run: |
-          docker push ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }}
-          docker push ${{ steps.prep.outputs.repo_image }}-backend:latest
-          docker push ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }}
-          docker push ${{ steps.prep.outputs.repo_image }}-frontend:latest
+            docker push ${{ steps.prep.outputs.base }}-backend:${{ github.sha }}
+            docker push ${{ steps.prep.outputs.base }}-backend:latest
+            docker push ${{ steps.prep.outputs.base }}-frontend:${{ github.sha }}
+            docker push ${{ steps.prep.outputs.base }}-frontend:latest
 
       - name: Export image tags
         id: tags
         run: |
-          echo "BACK=${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "FRONT=${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "BACK=${{ steps.prep.outputs.base }}-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "FRONT=${{ steps.prep.outputs.base }}-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy_dev:
     name: Deploy to DEV (auto)
