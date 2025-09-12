@@ -26,10 +26,6 @@ for host in STAGING_HOSTS:
 # Less restrictive CORS for staging testing
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 
-# Staging-specific logging (more verbose)
-LOGGING["loggers"]["django"]["level"] = "DEBUG"
-LOGGING["loggers"]["projectmeats"]["level"] = "DEBUG"
-
 # Email backend for staging (console or file)
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND", 
