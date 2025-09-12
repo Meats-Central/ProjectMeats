@@ -261,7 +261,7 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
-    - name: ⏪ EMERGENCY: Rollback production to previous version
+    - name: ⏪ Rollback production to previous version
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
       run: |
