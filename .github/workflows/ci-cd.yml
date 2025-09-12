@@ -160,7 +160,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
-          DJANGO_SETTINGS_MODULE=projectmeats.settings.development
+          DJANGO_SETTINGS_MODULE=projectmeats.settings.devlopment
           DJANGO_DEBUG=1
           DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
@@ -191,19 +191,18 @@ jobs:
         env:
             SSH_HOST: ${{ secrets.SSH_HOST }}
             SSH_USER: ${{ secrets.SSH_USER }}
+            SSH_KEY:  ${{ secrets.SSH_KEY }}
             ENV_NAME: dev
         run: |
             set -euo pipefail
-            ssh -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "$SSH_USER@$SSH_HOST" "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
-            scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
-            scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
-            ssh -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+            # Write key to a file
+            echo "$SSH_KEY" > id_rsa
+            chmod 600 id_rsa
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
+            scp -i id_rsa -o StrictHostKeyChecking=no ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
+            scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
 
-        # 3) Deploy to DEV (UPDATED to pass SSH_KEY_PATH)
       - name: Deploy to DEV (SSH → compose up)
         env:
             SSH_HOST: ${{ secrets.SSH_HOST }}
