@@ -97,6 +97,9 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# URL Configuration
+APPEND_SLASH = True  # Ensure trailing slash handling for API endpoints
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
