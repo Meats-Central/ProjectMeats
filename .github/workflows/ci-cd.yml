@@ -82,7 +82,7 @@ jobs:
             fi
             # Frontend tests
             if [ -f "frontend/package.json" ]; then
-              (cd frontend && npm test -- --ci --watch=false) || true
+              (cd frontend && CI=true npm test -- --watchAll=false --passWithNoTests) || true
             fi
           fi
 
