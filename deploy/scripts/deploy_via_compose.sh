@@ -135,3 +135,4 @@ if ! curl -fsS "https://${APP_DOMAIN}/healthz" >/dev/null; then
 fi
 
 echo "Deploy complete for ${ENV_NAME} on ${APP_DOMAIN}"
+REMOTE_EOF
