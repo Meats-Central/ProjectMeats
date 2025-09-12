@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import ProfileDropdown from '../ProfileDropdown';
 
 interface HeaderProps {
   // No props needed currently
@@ -11,10 +12,7 @@ const Header: React.FC<HeaderProps> = () => {
       <HeaderTitle>Business Management System</HeaderTitle>
       <HeaderActions>
         <NotificationButton>🔔</NotificationButton>
-        <UserMenu>
-          <UserAvatar>👤</UserAvatar>
-          <UserName>Admin User</UserName>
-        </UserMenu>
+        <ProfileDropdown />
       </HeaderActions>
     </HeaderContainer>
   );
@@ -56,29 +54,6 @@ const NotificationButton = styled.button`
   &:hover {
     background-color: #f8f9fa;
   }
-`;
-
-const UserMenu = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #f8f9fa;
-  }
-`;
-
-const UserAvatar = styled.div`
-  font-size: 20px;
-`;
-
-const UserName = styled.span`
-  font-weight: 500;
-  color: #2c3e50;
 `;
 
 export default Header;
