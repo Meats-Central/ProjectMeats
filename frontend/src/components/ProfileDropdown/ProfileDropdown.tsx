@@ -59,10 +59,22 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
 
   if (!user) {
     return (
-      <UserMenu>
-        <UserAvatar>👤</UserAvatar>
-        <UserName>Guest</UserName>
-      </UserMenu>
+      <DropdownContainer ref={dropdownRef}>
+        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen}>
+          <UserAvatar>👤</UserAvatar>
+          <UserName>Guest</UserName>
+          <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
+        </UserMenu>
+
+        {isOpen && (
+          <DropdownMenu>
+            <DropdownItem onClick={() => { console.log('Navigate to login'); setIsOpen(false); }}>
+              <ItemIcon>🔐</ItemIcon>
+              Login
+            </DropdownItem>
+          </DropdownMenu>
+        )}
+      </DropdownContainer>
     );
   }
 
