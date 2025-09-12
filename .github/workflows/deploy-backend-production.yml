@@ -1,0 +1,298 @@
+name: Deploy Backend to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend-production.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - rollback
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: 📦 Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: 📥 Install dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🔧 Setup test environment
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-testing-only
+        DEBUG: True
+      run: |
+        python manage.py check
+        python manage.py migrate
+
+    - name: 🧪 Run tests
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-testing-only
+        DEBUG: True
+      run: |
+        # Run tests for apps only (excludes root-level test files like test_allowed_hosts_fix.py)
+        python manage.py test apps/
+
+    - name: 🔍 Run code quality checks
+      working-directory: ./backend
+      continue-on-error: true  # Don't fail deployment on linting issues
+      run: |
+        # Run flake8 if available (non-blocking)
+        if pip show flake8 >/dev/null 2>&1; then
+          echo "Running flake8 linting..."
+          flake8 . --exclude=migrations --max-line-length=120 || echo "⚠️ Flake8 found style issues (non-blocking)"
+        fi
+        
+        # Run black check if available (non-blocking)  
+        if pip show black >/dev/null 2>&1; then
+          echo "Running black formatting check..."
+          black --check . --exclude=migrations || echo "⚠️ Black found formatting issues (non-blocking)"
+        fi
+        
+        echo "✅ Code quality checks completed (issues are non-blocking for deployment)"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: prod2-backend  # Uses prod2-backend environment secrets
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        # Install sshpass for password authentication
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        
+        # Add host to known_hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 🚀 Deploy to Production server
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      run: |
+        # Create deployment script with GitHub token
+        cat > deploy_script.sh << DEPLOY_SCRIPT
+        #!/bin/bash
+        set -e
+        
+        echo "🔄 Starting PRODUCTION Backend deployment..."
+        
+        # Navigate to project directory
+        cd /home/django/ProjectMeats
+        
+        # Create backup of current deployment
+        echo "📦 Creating backup..."
+        if [ -d "backend_backup" ]; then
+          rm -rf backend_backup
+        fi
+        cp -r backend backend_backup
+        
+        # Configure git with token authentication
+        echo "🔐 Configuring git authentication..."
+        git remote set-url origin https://oauth2:${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
+        
+        # Pull latest changes from main branch
+        echo "📥 Pulling latest changes from main branch..."
+        
+        # Clean up any local changes and untracked files
+        echo "🧹 Cleaning local changes..."
+        git stash push -m "Production deployment backup \$(date)" || true
+        git clean -fd
+        
+        # Fetch and reset to latest main branch
+        git fetch origin main
+        git checkout main
+        git reset --hard origin/main
+        
+        echo "✅ Successfully updated to latest main branch"
+        
+        # Navigate to backend directory and activate virtual environment
+        echo "🐍 Activating virtual environment..."
+        cd backend
+        source venv/bin/activate
+        
+        # Install/update dependencies
+        echo "📦 Installing dependencies..."
+        pip install -r requirements.txt
+        
+        # Run migrations
+        echo "🗃️ Running database migrations..."
+        python manage.py migrate
+        
+        # Collect static files
+        echo "📁 Collecting static files..."
+        python manage.py collectstatic --noinput
+        
+        # Test Django configuration
+        echo "🧪 Testing Django configuration..."
+        python manage.py check --deploy
+        
+        echo "✅ Production backend deployment completed successfully!"
+        DEPLOY_SCRIPT
+        
+        # Upload and execute deployment script
+        sshpass -e scp deploy_script.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+
+    - name: 🔄 Restart production services
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'RESTART_SCRIPT'
+        echo "🔄 Restarting production backend services..."
+        
+        # Restart gunicorn via supervisor
+        sudo supervisorctl restart projectmeats-production
+        
+        # Wait a moment for service to start
+        sleep 10
+        
+        # Check service status
+        sudo supervisorctl status projectmeats-production
+        
+        # Restart nginx
+        sudo systemctl reload nginx
+        
+        echo "✅ Production services restarted successfully!"
+        RESTART_SCRIPT
+
+    - name: 🏥 Health check
+      run: |
+        echo "🏥 Performing production health check..."
+        sleep 20  # Wait for services to fully start
+        
+        # Health check with retry logic
+        for i in {1..10}; do
+          echo "Health check attempt $i/10..."
+          if curl -f -s "${{ secrets.PRODUCTION_API_URL }}/api/v1/health/" > /dev/null; then
+            echo "✅ Production Backend is healthy!"
+            break
+          else
+            if [ $i -eq 10 ]; then
+              echo "❌ Production Backend health check failed after 10 attempts"
+              echo "🚨 PRODUCTION DEPLOYMENT MAY HAVE FAILED!"
+              exit 1
+            fi
+            echo "Retrying in 15 seconds..."
+            sleep 15
+          fi
+        done
+
+    - name: 📧 Production deployment notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "🎉 PRODUCTION Backend deployment SUCCESSFUL! 🎉"
+          echo "🌐 Production API URL: ${{ secrets.PRODUCTION_API_URL }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+          echo "🚀 Production is now live with latest changes!"
+        else
+          echo "🚨 PRODUCTION Backend deployment FAILED! 🚨"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "🕒 Time: $(date)"
+          echo "⚠️ Please check logs and potentially rollback!"
+        fi
+
+  # Emergency rollback job (manual trigger)
+  rollback:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    environment: prod2-backend
+    
+    steps:
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+    - name: ⏪ EMERGENCY: Rollback production to previous version
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ROLLBACK_SCRIPT'
+        set -e
+        
+        echo "🚨 Starting EMERGENCY PRODUCTION rollback process..."
+        
+        cd /home/django/ProjectMeats
+        
+        # Check if backup exists
+        if [ ! -d "backend_backup" ]; then
+          echo "❌ No backup found for rollback!"
+          echo "🚨 CRITICAL: Cannot rollback production!"
+          exit 1
+        fi
+        
+        echo "📦 Rolling back production to previous version..."
+        
+        # Stop services
+        sudo supervisorctl stop projectmeats-production
+        
+        # Restore backup
+        rm -rf backend
+        mv backend_backup backend
+        
+        # Restart services
+        sudo supervisorctl start projectmeats-production
+        sleep 15
+        sudo systemctl reload nginx
+        
+        echo "✅ PRODUCTION rollback completed successfully!"
+        echo "🔍 Please verify production is working correctly"
+        ROLLBACK_SCRIPT
