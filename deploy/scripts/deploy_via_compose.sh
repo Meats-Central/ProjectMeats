@@ -67,8 +67,16 @@ info "Deploying to $ENV_NAME on $USER@$HOST (domain: $APP_DOMAIN)"
 
 # ---------- SSH helper (inline; avoids dependency on _ssh.sh) ----------
 ssh_exec() {
+  local key_opt
+  if [[ -n "${SSH_KEY_PATH:-}" && -f "${SSH_KEY_PATH}" ]]; then
+    key_opt="-i ${SSH_KEY_PATH}"
+  else
+    # fallback to inline key (older behavior)
+    key_opt="-i <(printf '%s\n' "$KEY")"
+  fi
+
   # shellcheck disable=SC2029
-  ssh -i <(printf '%s\n' "$KEY") \
+  ssh ${key_opt} \
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
       "$USER@$HOST" "$@"
 }
