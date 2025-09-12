@@ -162,7 +162,7 @@ jobs:
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.development
           DJANGO_DEBUG=1
-          DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+          SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
           ALLOWED_HOSTS=${APP_DOMAIN}
           CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN}
