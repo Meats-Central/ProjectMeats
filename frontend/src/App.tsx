@@ -2,79 +2,57 @@
  * Main App Component
  * 
  * ProjectMeats3 React Application
- * Enhanced AI Assistant with Copilot-style UI
+ * Full Business Management System with AI Assistant
  */
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import ChatWindow from './components/ChatInterface/ChatWindow';
-import { ChatSession } from './types';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import Layout from './components/Layout/Layout';
+import Dashboard from './pages/Dashboard';
+import Suppliers from './pages/Suppliers';
+import Customers from './pages/Customers';
+import PurchaseOrders from './pages/PurchaseOrders';
+import AccountsReceivables from './pages/AccountsReceivables';
+import Contacts from './pages/Contacts';
+import Plants from './pages/Plants';
+import Carriers from './pages/Carriers';
+import AIAssistant from './pages/AIAssistant';
+import Login from './pages/Login';
+import SignUp from './pages/SignUp';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import ApiTestComponent from './components/ApiTestComponent';
 
 const App: React.FC = () => {
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
-
   return (
-    <AppContainer>
-      <Header>
-        <Logo>
-          <LogoIcon>🥩</LogoIcon>
-          <LogoText>ProjectMeats3</LogoText>
-        </Logo>
-        <HeaderSubtitle>AI-Powered Meat Market Operations</HeaderSubtitle>
-      </Header>
-      
-      <MainContent>
-        <ChatWindow 
-          sessionId={currentSession?.id}
-          onSessionChange={setCurrentSession}
-        />
-      </MainContent>
-    </AppContainer>
+    <AuthProvider>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="accounts-receivables" element={<AccountsReceivables />} />
+            <Route path="contacts" element={<Contacts />} />
+            <Route path="plants" element={<Plants />} />
+            <Route path="carriers" element={<Carriers />} />
+            <Route path="ai-assistant" element={<AIAssistant />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="api-test" element={<ApiTestComponent />} />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
-
-// Styled Components
-const AppContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: #f9fafb;
-`;
-
-const Header = styled.header`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Logo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
-`;
-
-const LogoIcon = styled.span`
-  font-size: 28px;
-`;
-
-const LogoText = styled.h1`
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-`;
-
-const HeaderSubtitle = styled.p`
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
-  color: rgba(255, 255, 255, 0.9);
-`;
-
-const MainContent = styled.main`
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-`;
 
 export default App;
