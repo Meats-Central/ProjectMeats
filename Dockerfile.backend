@@ -6,6 +6,6 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 COPY backend/ /app/
 # Collect static if project configured (whitenoise or mounted volume)
-ENV DJANGO_SETTINGS_MODULE=projectmeats.settings.
+ENV DJANGO_SETTINGS_MODULE=projectmeats.settings.development
 EXPOSE 8000
-CMD ["gunicorn", "backend.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+CMD ["gunicorn", "projectmeats.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
