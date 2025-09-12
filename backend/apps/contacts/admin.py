@@ -9,10 +9,10 @@ from .models import Contact
 class ContactAdmin(admin.ModelAdmin):
     """Admin interface for Contact model."""
     
-    list_display = ('get_full_name', 'email', 'phone', 'company', 'position', 'status', 'created_at')
-    list_filter = ('status', 'created_at')
+    list_display = ('get_full_name', 'email', 'phone', 'company', 'position', 'created_on')
+    list_filter = ('created_on',)
     search_fields = ('first_name', 'last_name', 'email', 'phone', 'company')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_on', 'modified_on')
     
     def get_full_name(self, obj):
         """Return full name of the contact."""

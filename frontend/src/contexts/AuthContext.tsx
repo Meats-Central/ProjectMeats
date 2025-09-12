@@ -3,12 +3,13 @@
  */
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { UserProfile } from '../types';
-import { authService, LoginCredentials } from '../services/authService';
+import { authService, LoginCredentials, SignUpCredentials } from '../services/authService';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  signUp: (credentials: SignUpCredentials) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -54,6 +55,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signUp = async (credentials: SignUpCredentials) => {
+    setLoading(true);
+    try {
+      const newUser = await authService.signUp(credentials);
+      setUser(newUser);
+    } catch (error) {
+      setUser(null);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -81,6 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     loading,
     login,
+    signUp,
     logout,
     isAuthenticated: !!user,
     isAdmin: authService.isAdmin(),

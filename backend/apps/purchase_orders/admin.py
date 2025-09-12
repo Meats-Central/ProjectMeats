@@ -9,10 +9,10 @@ from .models import PurchaseOrder
 class PurchaseOrderAdmin(admin.ModelAdmin):
     """Admin interface for PurchaseOrder model."""
     
-    list_display = ('order_number', 'supplier', 'total_amount', 'status', 'order_date', 'delivery_date', 'created_at')
-    list_filter = ('status', 'order_date', 'delivery_date', 'created_at')
+    list_display = ('order_number', 'supplier', 'total_amount', 'status', 'order_date', 'delivery_date', 'created_on')
+    list_filter = ('status', 'order_date', 'delivery_date', 'created_on')
     search_fields = ('order_number', 'supplier__name', 'notes')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_on', 'modified_on')
     
     fieldsets = (
         ('Order Information', {

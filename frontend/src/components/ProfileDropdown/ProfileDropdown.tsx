@@ -2,6 +2,7 @@
  * ProfileDropdown component for user profile actions.
  */
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,6 +14,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   const { user, logout, isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -39,14 +41,12 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   };
 
   const handleProfileClick = () => {
-    // TODO: Navigate to profile page
-    console.log('Navigate to profile page');
+    navigate('/profile');
     setIsOpen(false);
   };
 
   const handleSettingsClick = () => {
-    // TODO: Navigate to settings page  
-    console.log('Navigate to settings page');
+    navigate('/settings');
     setIsOpen(false);
   };
 
@@ -54,6 +54,16 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     // Open Django admin in new tab
     const adminUrl = window.location.origin.replace(':3001', ':8000') + '/admin/';
     window.open(adminUrl, '_blank');
+    setIsOpen(false);
+  };
+
+  const handleLoginClick = () => {
+    navigate('/login');
+    setIsOpen(false);
+  };
+
+  const handleSignUpClick = () => {
+    navigate('/signup');
     setIsOpen(false);
   };
 
@@ -68,9 +78,16 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
 
         {isOpen && (
           <DropdownMenu>
-            <DropdownItem onClick={() => { console.log('Navigate to login'); setIsOpen(false); }}>
+            <DropdownItem onClick={handleLoginClick}>
               <ItemIcon>🔐</ItemIcon>
               Login
+            </DropdownItem>
+            
+            <DropdownDivider />
+            
+            <DropdownItem onClick={handleSignUpClick}>
+              <ItemIcon>📝</ItemIcon>
+              Sign Up
             </DropdownItem>
           </DropdownMenu>
         )}
