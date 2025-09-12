@@ -85,33 +85,46 @@ jobs:
               (cd frontend && CI=true npm test -- --watchAll=false --passWithNoTests) || true
             fi
           fi
-
-      # ----- Build & Push Docker images -----
+      # ----- Prepare image repo -----
+      - name: Prepare lowercase image repo
+        id: prep
+        run: |
+          # to-lowercase and replace "/" with "-"
+          repo_lower=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
+          echo "repo_image=ghcr.io/${repo_lower}" >> "$GITHUB_OUTPUT"
+          
+      # ----- Build and Push image GHCR -----
       - name: Login to GHCR
-        run: echo "${{ github.token }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build backend image
         run: |
-          docker build -f Dockerfile.backend -t ${{ env.REPO_IMAGE }}-backend:${{ github.sha }} .
-          docker tag  ${{ env.REPO_IMAGE }}-backend:${{ github.sha }}  ${{ env.REPO_IMAGE }}-backend:latest
+          docker build -f Dockerfile.backend \
+            -t ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }} .
+          docker tag \
+            ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }} \
+            ${{ steps.prep.outputs.repo_image }}-backend:latest
 
       - name: Build frontend image
         run: |
-          docker build -f Dockerfile.frontend -t ${{ env.REPO_IMAGE }}-frontend:${{ github.sha }} .
-          docker tag  ${{ env.REPO_IMAGE }}-frontend:${{ github.sha }}  ${{ env.REPO_IMAGE }}-frontend:latest
+          docker build -f Dockerfile.frontend \
+            -t ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }} .
+          docker tag \
+            ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }} \
+            ${{ steps.prep.outputs.repo_image }}-frontend:latest
 
       - name: Push images
         run: |
-          docker push ${{ env.REPO_IMAGE }}-backend:${{ github.sha }}
-          docker push ${{ env.REPO_IMAGE }}-backend:latest
-          docker push ${{ env.REPO_IMAGE }}-frontend:${{ github.sha }}
-          docker push ${{ env.REPO_IMAGE }}-frontend:latest
+          docker push ${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }}
+          docker push ${{ steps.prep.outputs.repo_image }}-backend:latest
+          docker push ${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }}
+          docker push ${{ steps.prep.outputs.repo_image }}-frontend:latest
 
       - name: Export image tags
         id: tags
         run: |
-          echo "BACK=${{ env.REPO_IMAGE }}-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "FRONT=${{ env.REPO_IMAGE }}-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "BACK=${{ steps.prep.outputs.repo_image }}-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "FRONT=${{ steps.prep.outputs.repo_image }}-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy_dev:
     name: Deploy to DEV (auto)
