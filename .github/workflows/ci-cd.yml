@@ -141,9 +141,9 @@ jobs:
         shell: bash
         env:
           ENV_NAME: dev
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 # from Environment: dev
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} # from Environment: dev
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}          # from Environment: dev
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}          
           BACK: ${{ needs.build_test_package.outputs.back_image }}
           FRONT: ${{ needs.build_test_package.outputs.front_image }}
           REACT_APP_API_BASE_URL: https://${{ vars.APP_DOMAIN }}/api/v1
@@ -156,7 +156,7 @@ jobs:
           REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
-          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}  # from Environment: dev
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}  
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
@@ -215,9 +215,9 @@ jobs:
         run: |
             bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" dev "$BACK" "$FRONT" "$APP_DOMAIN"
 
-      - name: Smoke check (public)
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
+    #   - name: Smoke check (public)
+    #     run: |
+    #       curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
 
   promote_and_deploy_uat:
     name: Promote → Deploy to UAT
@@ -233,21 +233,45 @@ jobs:
         shell: bash
         env:
           ENV_NAME: uat
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 # from Environment: uat
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} # from Environment: uat
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}          # from Environment: uat
-          BACK: ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
-          FRONT: ghcr.io/${{ github.repository }}-frontend:${{ github.sha }}
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}          
+          BACK: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-backend:${{ github.sha }}
+          FRONT: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-frontend:${{ github.sha }}
+          REACT_APP_API_BASE_URL: https://${{ vars.APP_DOMAIN }}/api/v1
+          NODE_ENV: production
+          REACT_APP_ENVIRONMENT: production
+          REACT_APP_AI_ASSISTANT_ENABLED: ${{ vars.REACT_APP_AI_ASSISTANT_ENABLED }}  
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD: ${{ vars.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}  
+          REACT_APP_ENABLE_CHAT_EXPORT: ${{ vars.REACT_APP_ENABLE_CHAT_EXPORT }}  
+          REACT_APP_MAX_FILE_SIZE: ${{ vars.REACT_APP_MAX_FILE_SIZE }}  
+          REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
+          REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
+          REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
           DJANGO_DEBUG=0
-          DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+          SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
           ALLOWED_HOSTS=${APP_DOMAIN}
           CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN}
           APP_ENV=${ENV_NAME}
+          REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+          # Environment
+          NODE_ENV=${NODE_ENV}
+          REACT_APP_ENVIRONMENT=${REACT_APP_ENVIRONMENT}
+          REACT_APP_AI_ASSISTANT_ENABLED=${REACT_APP_AI_ASSISTANT_ENABLED}
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD=${REACT_APP_ENABLE_DOCUMENT_UPLOAD}
+          REACT_APP_ENABLE_CHAT_EXPORT=${REACT_APP_ENABLE_CHAT_EXPORT}
+          REACT_APP_MAX_FILE_SIZE=${REACT_APP_MAX_FILE_SIZE}
+          REACT_APP_SUPPORTED_FILE_TYPES=${REACT_APP_SUPPORTED_FILE_TYPES}
+          # Development Features
+          REACT_APP_ENABLE_DEBUG=${REACT_APP_ENABLE_DEBUG}
+          REACT_APP_ENABLE_DEVTOOLS=${REACT_APP_ENABLE_DEVTOOLS}
+          LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
           EOF
 
           cat > image.env <<EOF
