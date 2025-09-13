@@ -38,6 +38,7 @@ LOCAL_APPS = [
     "apps.carriers",
     "apps.bug_reports",
     "apps.ai_assistant",
+    "apps.tenants",  # Multi-tenancy support
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -95,6 +96,9 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+
+# URL Configuration
+APPEND_SLASH = True  # Ensure trailing slash handling for API endpoints
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
