@@ -28,6 +28,21 @@ output "prod_domain" {
   value       = "${var.domain_name}"
 }
 
+output "api_dev_domain" {
+  description = "API DEV subdomain"
+  value       = "api-dev.${var.domain_name}"
+}
+
+output "api_uat_domain" {
+  description = "API UAT subdomain"
+  value       = "api-uat.${var.domain_name}"
+}
+
+output "api_prod_domain" {
+  description = "API PROD subdomain"
+  value       = "api.${var.domain_name}"
+}
+
 output "uat_db_connection_string" {
   description = "Connection string for UAT database"
   value       = "postgres://${digitalocean_database_user.projectmeats_uat_db_user.name}:${digitalocean_database_user.projectmeats_uat_db_user.password}@${digitalocean_database_cluster.projectmeats_uat_db.host}:${digitalocean_database_cluster.projectmeats_uat_db.port}/${digitalocean_database_db.projectmeats_uat_db_name.name}"

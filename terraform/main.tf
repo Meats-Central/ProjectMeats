@@ -223,6 +223,13 @@ resource "digitalocean_record" "dev_dns" {
   value  = digitalocean_droplet.projectmeats_dev.ipv4_address
   ttl    = 300
 }
+resource "digitalocean_record" "api_dev_dns" {
+  domain = var.domain_name
+  type   = "A"
+  name   = "api-dev"
+  value  = digitalocean_droplet.projectmeats_dev.ipv4_address
+  ttl    = 300
+}
 
 resource "digitalocean_record" "uat_dns" {
   domain = var.domain_name
@@ -231,11 +238,25 @@ resource "digitalocean_record" "uat_dns" {
   value  = digitalocean_droplet.projectmeats_uat.ipv4_address
   ttl    = 300
 }
+resource "digitalocean_record" "api_uat_dns" {
+  domain = var.domain_name
+  type   = "A"
+  name   = "api-uat"
+  value  = digitalocean_droplet.projectmeats_uat.ipv4_address
+  ttl    = 300
+}
 
 resource "digitalocean_record" "prod_dns" {
   domain = var.domain_name
   type   = "A"
   name   = "@"
+  value  = digitalocean_droplet.projectmeats_prod.ipv4_address
+  ttl    = 300
+}
+resource "digitalocean_record" "api_prod_dns" {
+  domain = var.domain_name
+  type   = "A"
+  name   = "api"
   value  = digitalocean_droplet.projectmeats_prod.ipv4_address
   ttl    = 300
 }
