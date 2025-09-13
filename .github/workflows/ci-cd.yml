@@ -226,7 +226,7 @@ jobs:
   promote_and_deploy_uat:
     name: Promote → Deploy to UAT
     runs-on: ubuntu-latest
-    needs: [ deploy_dev ]
+    needs: [ deploy_dev, build_test_package ]
     environment: uat
 
     steps:
@@ -241,8 +241,8 @@ jobs:
           API_DOMAIN: ${{ vars.API_DOMAIN }}                  
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}          
-          BACK: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-backend:${{ github.sha }}
-          FRONT: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-frontend:${{ github.sha }}
+          BACK: ${{ needs.build_test_package.outputs.back_image }}
+          FRONT: ${{ needs.build_test_package.outputs.front_image }}
           REACT_APP_API_BASE_URL: https://${{ vars.API_DOMAIN }}/api/v1
           NODE_ENV: production
           REACT_APP_ENVIRONMENT: production
@@ -306,8 +306,8 @@ jobs:
             SSH_HOST: ${{ secrets.SSH_HOST }}
             SSH_USER: ${{ secrets.SSH_USER }}
             GITHUB_TOKEN: ${{ github.token }}
-            BACK: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-backend:${{ github.sha }}
-            FRONT: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-frontend:${{ github.sha }}
+            BACK: ${{ needs.build_test_package.outputs.back_image }}
+            FRONT: ${{ needs.build_test_package.outputs.front_image }}
             APP_DOMAIN: ${{ vars.APP_DOMAIN }}
             SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
