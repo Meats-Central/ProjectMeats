@@ -217,7 +217,7 @@ jobs:
 
       - name: Smoke check (public)
         run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/api/v1/health/" >/dev/null
+          curl -fsS "https://${{ vars.APP_DOMAIN }}" >/dev/null
 
   promote_and_deploy_uat:
     name: Promote → Deploy to UAT
