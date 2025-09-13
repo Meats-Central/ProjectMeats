@@ -414,9 +414,15 @@ const AccountsReceivables: React.FC = () => {
     }
   };
 
-  const getTotalAmount = () => receivables.reduce((sum, r) => sum + r.amount, 0);
-  const getPendingAmount = () => receivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0);
-  const getOverdueAmount = () => receivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0);
+  const getTotalAmount = () => Array.isArray(receivables) 
+    ? receivables.reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
+    : 0;
+  const getPendingAmount = () => Array.isArray(receivables) 
+    ? receivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
+    : 0;
+  const getOverdueAmount = () => Array.isArray(receivables) 
+    ? receivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
+    : 0;
 
   if (loading) {
     return (
@@ -477,7 +483,7 @@ const AccountsReceivables: React.FC = () => {
               <TableRow key={receivable.id}>
                 <TableCell>{receivable.invoice_number}</TableCell>
                 <TableCell>{receivable.customer}</TableCell>
-                <TableCell>${receivable.amount.toFixed(2)}</TableCell>
+                <TableCell>${(Number(receivable.amount) || 0).toFixed(2)}</TableCell>
                 <TableCell>{new Date(receivable.due_date).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <StatusBadge $color={getStatusColor(receivable.status)}>
