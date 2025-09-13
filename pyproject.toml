@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "projectmeats3"
+name = "projectmeats"
 version = "1.0.0"
 description = "Business management application for meat sales brokers"
 readme = "README.md"
@@ -63,16 +63,16 @@ production = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Meats-Central/ProjectMeats3"
-Repository = "https://github.com/Meats-Central/ProjectMeats3.git"
-Issues = "https://github.com/Meats-Central/ProjectMeats3/issues"
+Homepage = "https://github.com/Meats-Central/ProjectMeats"
+Repository = "https://github.com/Meats-Central/ProjectMeats.git"
+Issues = "https://github.com/Meats-Central/ProjectMeats/issues"
 
 [project.scripts]
 projectmeats-setup = "setup_env:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["projectmeats3*"]
+include = ["projectmeats*"]
 exclude = ["tests*", "frontend*", "backend*", "docs*", "config*"]
 
 [tool.setuptools.package-data]

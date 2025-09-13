@@ -1,7 +1,7 @@
 /**
  * Main App Component
  * 
- * ProjectMeats3 React Application
+ * ProjectMeats React Application
  * Full Business Management System with AI Assistant
  */
 import React from 'react';

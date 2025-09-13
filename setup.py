@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup.py for ProjectMeats3 - pip compatible version.
+Setup.py for ProjectMeats - pip compatible version.
 
 This file provides pip compatibility for Digital Ocean App Platform
 and other deployment platforms that expect a standard setup.py.

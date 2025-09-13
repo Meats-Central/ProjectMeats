@@ -330,7 +330,7 @@ class ProjectMeatsSetup:
     def main(self):
         """Main setup function"""
         parser = argparse.ArgumentParser(
-            description="ProjectMeats3 Cross-Platform Setup Script",
+            description="ProjectMeats Cross-Platform Setup Script",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         
@@ -344,7 +344,7 @@ class ProjectMeatsSetup:
         args = parser.parse_args()
         
         # Welcome message
-        self.log("🚀 ProjectMeats3 Setup Script", "STEP", Colors.BOLD)
+        self.log("🚀 ProjectMeats Setup Script", "STEP", Colors.BOLD)
         self.log(f"Platform: {platform.system()} {platform.release()}", "INFO")
         self.log(f"Python: {sys.version.split()[0]}", "INFO")
         self.log(f"Working directory: {self.project_root}", "INFO")

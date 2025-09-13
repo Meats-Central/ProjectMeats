@@ -1,4 +1,4 @@
-# ProjectMeats3
+# ProjectMeats
 
 A business management application for meat sales brokers, migrated from PowerApps to Django REST Framework (backend) and React TypeScript (frontend). Manages suppliers, customers, purchase orders, accounts receivables, and related business entities with an AI Assistant featuring Copilot-style UI and document processing.
 
@@ -30,7 +30,7 @@ The automated setup script configures everything needed including authentication
 ## 📁 Project Structure
 
 ```
-ProjectMeats3/
+ProjectMeats/
 ├── backend/                    # Django REST Framework API
 │   ├── apps/                  # Business entities (9 complete)
 │   │   ├── accounts_receivables/  # Customer payments
@@ -96,8 +96,8 @@ python config/manage_env.py validate           # Validate current configuration
 ### Option 1: Quick Setup (Automated)
 ```bash
 # 1. Clone and enter directory
-git clone https://github.com/Meats-Central/ProjectMeats3.git
-cd ProjectMeats3
+git clone https://github.com/Meats-Central/ProjectMeats.git
+cd ProjectMeats
 
 # 2. Run setup (handles everything automatically)
 python setup_env.py
@@ -138,7 +138,7 @@ make dev
 
 ### Project Structure
 ```
-ProjectMeats3/
+ProjectMeats/
 ├── backend/           # Django API with 9 business apps
 ├── frontend/          # React TypeScript application
 ├── Makefile          # Development commands

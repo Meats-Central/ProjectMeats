@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ProjectMeats3 Post-Deployment Health Check
+ProjectMeats Post-Deployment Health Check
 
 Quick script to verify deployment is working correctly.
 Can be run locally or in CI/CD after deployment.
@@ -79,7 +79,7 @@ def check_endpoint(base_url: str, endpoint: str, expected_status: int = 200, tim
 
 def run_health_checks(base_url: str, verbose: bool = False) -> bool:
     """Run comprehensive health checks"""
-    log(f"{Colors.BOLD}ProjectMeats3 Health Check{Colors.END}")
+    log(f"{Colors.BOLD}ProjectMeats Health Check{Colors.END}")
     log(f"Testing: {base_url}")
     log("-" * 50)
     
@@ -122,7 +122,7 @@ def run_health_checks(base_url: str, verbose: bool = False) -> bool:
     
     if all_passed:
         log(f"🎉 All checks passed! ({passed}/{total})", "SUCCESS")
-        log("Your ProjectMeats3 deployment is healthy and ready!", "SUCCESS")
+        log("Your ProjectMeats deployment is healthy and ready!", "SUCCESS")
     else:
         log(f"❌ Some checks failed ({passed}/{total})", "ERROR")
         log("Please review the errors above and check your deployment configuration.", "ERROR")
@@ -137,7 +137,7 @@ def run_health_checks(base_url: str, verbose: bool = False) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="ProjectMeats3 Post-Deployment Health Check",
+        description="ProjectMeats Post-Deployment Health Check",
         epilog="Example: python health_check.py https://your-app.ondigitalocean.app"
     )
     
