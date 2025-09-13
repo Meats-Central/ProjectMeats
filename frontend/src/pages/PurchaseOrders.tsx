@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { apiService, PurchaseOrder } from '../services/apiService';
+import PurchaseOrderWorkflow from '../components/Workflow/PurchaseOrderWorkflow';
 
 // Styled Components
 const Container = styled.div`
@@ -467,11 +468,24 @@ const PurchaseOrders: React.FC = () => {
         </StatCard>
         <StatCard>
           <StatNumber>
-            ${purchaseOrders.reduce((sum, po) => sum + po.total_amount, 0).toFixed(2)}
+            ${Array.isArray(purchaseOrders)
+              ? purchaseOrders.reduce((sum, po) => sum + (Number(po.total_amount) || 0), 0).toFixed(2)
+              : '0.00'}
           </StatNumber>
           <StatLabel>Total Value</StatLabel>
         </StatCard>
       </StatsCards>
+
+      {/* Sample Workflow Visualization */}
+      <PurchaseOrderWorkflow
+        stages={[
+          { id: 'draft', label: 'Draft', status: 'completed', description: 'Order created' },
+          { id: 'approval', label: 'Approval', status: 'completed', description: 'Management review' },
+          { id: 'processing', label: 'Processing', status: 'active', description: 'Supplier processing' },
+          { id: 'shipping', label: 'Shipping', status: 'pending', description: 'In transit' },
+          { id: 'delivered', label: 'Delivered', status: 'pending', description: 'Order complete' },
+        ]}
+      />
 
       {purchaseOrders.length === 0 ? (
         <EmptyState>
@@ -497,7 +511,7 @@ const PurchaseOrders: React.FC = () => {
               <TableRow key={purchaseOrder.id}>
                 <TableCell>{purchaseOrder.order_number}</TableCell>
                 <TableCell>{purchaseOrder.supplier}</TableCell>
-                <TableCell>${purchaseOrder.total_amount.toFixed(2)}</TableCell>
+                <TableCell>${(Number(purchaseOrder.total_amount) || 0).toFixed(2)}</TableCell>
                 <TableCell>
                   <StatusBadge $color={getStatusColor(purchaseOrder.status)}>
                     {purchaseOrder.status.toUpperCase()}
