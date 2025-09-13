@@ -1,0 +1,38 @@
+name: Create GitHub Issue
+on:
+  workflow_dispatch: # Manual trigger; adjust to schedule or push if needed
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Generate issue content with xAI API
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: |
+          # Call xAI API to generate issue content
+          RESPONSE=$(curl -s -X POST https://api.x.ai/v1/chat/completions \
+            -H "Authorization: Bearer $XAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "grok-4",
+              "messages": [
+                {"role": "system", "content": "Generate a GitHub issue description for a bug in meats-central/projectmeats where prod2.meatscentral.com/admin loads the React app instead of Django admin."},
+                {"role": "user", "content": "Create a concise issue description with reproduction steps and acceptance criteria."}
+              ],
+              "max_tokens": 500
+            }')
+          ISSUE_BODY=$(echo $RESPONSE | jq -r '.choices[0].message.content')
+          echo "ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_ENV
+      - name: Create issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create --repo meats-central/projectmeats \
+            --title "Fix Django Admin Routing Issue" \
+            --body "$ISSUE_BODY" \
+            --assignee "copilot" \
+            --label "bug,priority"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
