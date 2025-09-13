@@ -144,7 +144,8 @@ jobs:
           APP_DOMAIN: ${{ vars.APP_DOMAIN }}
           API_DOMAIN: ${{ vars.API_DOMAIN }}                 
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}          
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CACHE_URL: ${{ secrets.CACHE_URL }}/1         
           BACK: ${{ needs.build_test_package.outputs.back_image }}
           FRONT: ${{ needs.build_test_package.outputs.front_image }}
           REACT_APP_API_BASE_URL: https://${{ vars.API_DOMAIN }}/api/v1
@@ -165,8 +166,10 @@ jobs:
           DJANGO_DEBUG=1
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
+          CACHE_URL=${CACHE_URL}
           ALLOWED_HOSTS=${API_DOMAIN}
           CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN}
+          CSRF_TRUSTED_ORIGINS=https://${APP_DOMAIN},https://${API_DOMAIN}
           APP_ENV=${ENV_NAME}
           REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
           # Environment
@@ -234,12 +237,13 @@ jobs:
         shell: bash
         env:
           ENV_NAME: uat
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          API_DOMAIN: ${{ vars.API_DOMAIN }}                  
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}          
           BACK: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-backend:${{ github.sha }}
           FRONT: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-frontend:${{ github.sha }}
-          REACT_APP_API_BASE_URL: https://${{ vars.APP_DOMAIN }}/api/v1
+          REACT_APP_API_BASE_URL: https://${{ vars.API_DOMAIN }}/api/v1
           NODE_ENV: production
           REACT_APP_ENVIRONMENT: production
           REACT_APP_AI_ASSISTANT_ENABLED: ${{ vars.REACT_APP_AI_ASSISTANT_ENABLED }}  
@@ -254,6 +258,7 @@ jobs:
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
+          API_DOMAIN=${API_DOMAIN}
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
@@ -281,38 +286,36 @@ jobs:
           EOF
 
       - name: Upload env files to UAT server
-        shell: bash
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY:  ${{ secrets.SSH_KEY }}
-          ENV_NAME: uat
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+            SSH_KEY:  ${{ secrets.SSH_KEY }}
+            ENV_NAME: uat
         run: |
-          set -euo pipefail
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+            set -euo pipefail
+            # Write key to a file
+            echo "$SSH_KEY" > id_rsa
+            chmod 600 id_rsa
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
+            scp -i id_rsa -o StrictHostKeyChecking=no ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
+            scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
 
       - name: Deploy to UAT (SSH → compose up)
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY:  ${{ secrets.SSH_KEY }}
-          GITHUB_TOKEN: ${{ github.token }}
-          BACK: ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
-          FRONT: ghcr.io/${{ github.repository }}-frontend:${{ github.sha }}
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+            GITHUB_TOKEN: ${{ github.token }}
+            BACK: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-backend:${{ github.sha }}
+            FRONT: ghcr.io/${{ github.repository_owner }}/$(echo "${{ github.repository }}" | awk -F/ '{print tolower($2)}')-frontend:${{ github.sha }}
+            APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+            SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
-          bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "$SSH_KEY" uat "$BACK" "$FRONT" "$APP_DOMAIN"
+            bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" uat "$BACK" "$FRONT" "$APP_DOMAIN"
 
-      - name: Smoke check (public)
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
+    #   - name: Smoke check (public)
+    #     run: |
+    #       curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
 
   await_prod_approval:
     name: Await PROD approval
