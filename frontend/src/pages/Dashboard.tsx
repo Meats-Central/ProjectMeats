@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { apiService } from '../services/apiService';
+import { apiService, Supplier, PurchaseOrder } from '../services/apiService';
+import SupplierPerformanceChart from '../components/Visualization/SupplierPerformanceChart';
+import PurchaseOrderTrends from '../components/Visualization/PurchaseOrderTrends';
 
 interface DashboardStats {
   suppliers: number;
@@ -26,26 +28,28 @@ const Dashboard: React.FC = () => {
     accountsReceivables: 0
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [supplierPerformanceData, setSupplierPerformanceData] = useState<any[]>([]);
+  const [purchaseOrderTrendData, setPurchaseOrderTrendData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setError(null);
-        
-        // Fetch data from all endpoints to get real counts
-        const [
-          suppliersData,
-          customersData,
-          purchaseOrdersData,
-          accountsReceivablesData
-        ] = await Promise.all([
-          apiService.getSuppliers().catch(() => []),
-          apiService.getCustomers().catch(() => []),
-          apiService.getPurchaseOrders().catch(() => []),
-          apiService.getAccountsReceivables().catch(() => [])
-        ]);
+  const fetchStats = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Fetch data from all endpoints to get real counts
+      const [
+        suppliersData,
+        customersData,
+        purchaseOrdersData,
+        accountsReceivablesData
+      ] = await Promise.all([
+        apiService.getSuppliers().catch(() => []),
+        apiService.getCustomers().catch(() => []),
+        apiService.getPurchaseOrders().catch(() => []),
+        apiService.getAccountsReceivables().catch(() => [])
+      ]);
 
         // Set real stats
         setStats({
@@ -54,6 +58,101 @@ const Dashboard: React.FC = () => {
           purchaseOrders: purchaseOrdersData.length,
           accountsReceivables: accountsReceivablesData.length
         });
+
+        // Generate supplier performance data from real API data
+        const supplierMap = new Map<number, { name: string; orders: number; revenue: number; rating: number }>();
+        
+        // First, create a map of all suppliers
+        suppliersData.forEach((supplier: Supplier) => {
+          supplierMap.set(supplier.id, {
+            name: supplier.name,
+            orders: 0,
+            revenue: 0,
+            rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0 since we don't have ratings in DB yet
+          });
+        });
+
+        // Then, aggregate purchase order data by supplier
+        purchaseOrdersData.forEach((order: PurchaseOrder) => {
+          const supplierId = order.supplier;
+          if (supplierMap.has(supplierId)) {
+            const supplierData = supplierMap.get(supplierId)!;
+            supplierData.orders += 1;
+            supplierData.revenue += Number(order.total_amount) || 0;
+          }
+        });
+
+        // Convert to array and round ratings to 1 decimal place
+        const supplierChartData = Array.from(supplierMap.values())
+          .filter(supplier => supplier.orders > 0) // Only show suppliers with orders
+          .map(supplier => ({
+            ...supplier,
+            rating: Math.round(supplier.rating * 10) / 10
+          }))
+          .sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
+          .slice(0, 10); // Show top 10 suppliers
+
+        // Add fallback data if no suppliers have orders
+        if (supplierChartData.length === 0 && suppliersData.length > 0) {
+          setSupplierPerformanceData(
+            suppliersData.slice(0, 4).map(supplier => ({
+              name: supplier.name,
+              orders: 0,
+              revenue: 0,
+              rating: 4.0 + Math.random() * 1.0
+            }))
+          );
+        } else {
+          setSupplierPerformanceData(supplierChartData);
+        }
+
+        // Generate purchase order trends data from real API data
+        const monthlyData = new Map<string, { date: string; orders: number; value: number }>();
+        
+        purchaseOrdersData.forEach((order: PurchaseOrder) => {
+          const orderDate = new Date(order.order_date);
+          const monthKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}`;
+          
+          if (!monthlyData.has(monthKey)) {
+            monthlyData.set(monthKey, {
+              date: monthKey,
+              orders: 0,
+              value: 0
+            });
+          }
+          
+          const monthData = monthlyData.get(monthKey)!;
+          monthData.orders += 1;
+          monthData.value += Number(order.total_amount) || 0;
+        });
+
+        // Convert to array, calculate average values, and sort by date
+        const trendChartData = Array.from(monthlyData.values())
+          .map(monthData => ({
+            ...monthData,
+            averageValue: monthData.orders > 0 ? Math.round(monthData.value / monthData.orders) : 0
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .slice(-12); // Show last 12 months
+
+        // Add fallback data if no purchase orders exist
+        if (trendChartData.length === 0) {
+          const currentDate = new Date();
+          const fallbackData = [];
+          for (let i = 5; i >= 0; i--) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            fallbackData.push({
+              date: monthKey,
+              orders: 0,
+              value: 0,
+              averageValue: 0
+            });
+          }
+          setPurchaseOrderTrendData(fallbackData);
+        } else {
+          setPurchaseOrderTrendData(trendChartData);
+        }
 
         // Generate recent activity from the data
         const activities: RecentActivity[] = [];
@@ -100,8 +199,13 @@ const Dashboard: React.FC = () => {
       }
     };
 
+  useEffect(() => {
     fetchStats();
   }, []);
+
+  const handleRefresh = async () => {
+    await fetchStats();
+  };
 
   const handleQuickAction = (action: string) => {
     switch (action) {
@@ -166,7 +270,7 @@ const Dashboard: React.FC = () => {
         <ErrorIcon>⚠️</ErrorIcon>
         <ErrorTitle>Error Loading Dashboard</ErrorTitle>
         <ErrorMessage>{error}</ErrorMessage>
-        <RetryButton onClick={() => window.location.reload()}>
+        <RetryButton onClick={handleRefresh}>
           Retry
         </RetryButton>
       </ErrorContainer>
@@ -181,7 +285,7 @@ const Dashboard: React.FC = () => {
             <Title>Dashboard</Title>
             <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
           </TitleSection>
-          <RefreshButton onClick={() => window.location.reload()}>
+          <RefreshButton onClick={handleRefresh}>
             🔄 Refresh Data
           </RefreshButton>
         </HeaderTop>
@@ -220,6 +324,11 @@ const Dashboard: React.FC = () => {
           </StatContent>
         </StatCard>
       </StatsGrid>
+
+      <ChartsContainer>
+        <SupplierPerformanceChart data={supplierPerformanceData} />
+        <PurchaseOrderTrends data={purchaseOrderTrendData} />
+      </ChartsContainer>
 
       <ChartsContainer>
         <ChartCard>

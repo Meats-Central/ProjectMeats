@@ -11,7 +11,7 @@ interface ProfileDropdownProps {
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, loading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -69,6 +69,18 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     navigate('/signup');
     setIsOpen(false);
   };
+
+  if (loading) {
+    return (
+      <DropdownContainer ref={dropdownRef}>
+        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen}>
+          <UserAvatar>⏳</UserAvatar>
+          <UserName>Loading...</UserName>
+          <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
+        </UserMenu>
+      </DropdownContainer>
+    );
+  }
 
   if (!user) {
     return (

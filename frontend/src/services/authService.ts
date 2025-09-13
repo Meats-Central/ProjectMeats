@@ -90,7 +90,7 @@ export class AuthService {
     try {
       if (this.token) {
         await axios.post(`${API_BASE_URL}/auth/logout/`, {}, {
-          headers: { Authorization: `Bearer ${this.token}` }
+          headers: { Authorization: `Token ${this.token}` }
         });
       }
     } catch (error) {
@@ -109,21 +109,27 @@ export class AuthService {
       return null;
     }
 
-    try {
-      const response = await axios.get(`${API_BASE_URL}/auth/user/`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      });
-      
-      this.user = response.data;
-      localStorage.setItem('user', JSON.stringify(this.user));
+    // If we have a stored user, return it
+    if (this.user) {
       return this.user;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        // Token is invalid, clear auth state
-        this.logout();
-      }
-      return null;
     }
+
+    // Try to get user from localStorage if we have a token but no user in memory
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        this.user = JSON.parse(storedUser);
+        return this.user;
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('user');
+      }
+    }
+
+    // If we have a token but no user data, something went wrong - clear auth state
+    console.warn('Token exists but no user data found - clearing auth state');
+    await this.logout();
+    return null;
   }
 
   getToken(): string | null {
