@@ -127,6 +127,21 @@ if [[ ! -f "env/${ENV_NAME}.env" ]]; then
   exit 3
 fi
 
+# Run DB migrations (all envs)
+docker compose -f "$COMPOSE_FILE" \
+  --env-file "env/${ENV_NAME}.env" \
+  --env-file "env/image.env" \
+  run --rm api python manage.py migrate --noinput
+
+# For UAT/PROD, also run collectstatic into the shared volume
+if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
+  docker compose -f "$COMPOSE_FILE" \
+    --env-file "env/${ENV_NAME}.env" \
+    --env-file "env/image.env" \
+    run --rm api python manage.py collectstatic --noinput
+fi
+
+# Now bring services up on the new image
 docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" up -d

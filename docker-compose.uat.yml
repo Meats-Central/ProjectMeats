@@ -43,6 +43,8 @@ services:
     env_file:
       - env/uat.env
       - env/image.env
+    volumes:
+      - static_data:/app/staticfiles
     labels:
       - "traefik.enable=true"
       # Catch everything on the host (except api which has higher priority)

@@ -1,11 +1,20 @@
+# Dockerfile.backend
 FROM python:3.12-slim
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-RUN apt-get update && apt-get install -y build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y build-essential libpq-dev curl && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt gunicorn whitenoise
+
+# Copy project
 COPY backend/ /app/
-# Collect static if project configured (whitenoise or mounted volume)
-ENV DJANGO_SETTINGS_MODULE=projectmeats.settings.development
+
+# Use production settings for collectstatic
+ENV DJANGO_SETTINGS_MODULE=projectmeats.settings.production
+# If your settings need it, set STATIC_ROOT in production.py, e.g. BASE_DIR / "staticfiles"
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000
 CMD ["gunicorn", "projectmeats.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
