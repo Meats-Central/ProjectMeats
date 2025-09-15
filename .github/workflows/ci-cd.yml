@@ -362,21 +362,48 @@ jobs:
         shell: bash
         env:
           ENV_NAME: prod
-          APP_DOMAIN: ${{ vars.APP_DOMAIN }}                 # from Environment: prod
-          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }} # from Environment: prod
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}          # from Environment: prod
-          BACK: ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
-          FRONT: ghcr.io/${{ github.repository }}-frontend:${{ github.sha }}
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          API_DOMAIN: ${{ vars.API_DOMAIN }}                  
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}          
+          BACK: ${{ needs.build_test_package.outputs.back_image }}
+          FRONT: ${{ needs.build_test_package.outputs.front_image }}
+          REACT_APP_API_BASE_URL: https://${{ vars.API_DOMAIN }}/api/v1
+          NODE_ENV: production
+          REACT_APP_ENVIRONMENT: production
+          REACT_APP_AI_ASSISTANT_ENABLED: ${{ vars.REACT_APP_AI_ASSISTANT_ENABLED }}  
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD: ${{ vars.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}  
+          REACT_APP_ENABLE_CHAT_EXPORT: ${{ vars.REACT_APP_ENABLE_CHAT_EXPORT }}  
+          REACT_APP_MAX_FILE_SIZE: ${{ vars.REACT_APP_MAX_FILE_SIZE }}  
+          REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
+          REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
+          REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
-          DJANGO_SETTINGS_MODULE=projectmeats.settings.production
+          DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
+          API_DOMAIN=${API_DOMAIN}
           DJANGO_DEBUG=0
-          DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+          SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
           ALLOWED_HOSTS=${APP_DOMAIN}
           CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN}
+          CSRF_TRUSTED_ORIGINS=https://${APP_DOMAIN}
           APP_ENV=${ENV_NAME}
+          REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+          # Environment
+          NODE_ENV=${NODE_ENV}
+          REACT_APP_ENVIRONMENT=${REACT_APP_ENVIRONMENT}
+          REACT_APP_AI_ASSISTANT_ENABLED=${REACT_APP_AI_ASSISTANT_ENABLED}
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD=${REACT_APP_ENABLE_DOCUMENT_UPLOAD}
+          REACT_APP_ENABLE_CHAT_EXPORT=${REACT_APP_ENABLE_CHAT_EXPORT}
+          REACT_APP_MAX_FILE_SIZE=${REACT_APP_MAX_FILE_SIZE}
+          REACT_APP_SUPPORTED_FILE_TYPES=${REACT_APP_SUPPORTED_FILE_TYPES}
+          # Development Features
+          REACT_APP_ENABLE_DEBUG=${REACT_APP_ENABLE_DEBUG}
+          REACT_APP_ENABLE_DEVTOOLS=${REACT_APP_ENABLE_DEVTOOLS}
+          LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
           EOF
 
           cat > image.env <<EOF
@@ -385,22 +412,30 @@ jobs:
           EOF
 
       - name: Upload env files to PROD server
-        shell: bash
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY:  ${{ secrets.SSH_KEY }}
-          ENV_NAME: prod
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+            SSH_KEY:  ${{ secrets.SSH_KEY }}
+            ENV_NAME: uat
         run: |
-          set -euo pipefail
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
-          scp -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
-          ssh -i <(printf '%s\n' "$SSH_KEY") -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SSH_HOST" \
-            "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+            set -euo pipefail
+            # Write key to a file
+            echo "$SSH_KEY" > id_rsa
+            chmod 600 id_rsa
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "mkdir -p /opt/projectmeats/env && chmod 700 /opt/projectmeats/env"
+            scp -i id_rsa -o StrictHostKeyChecking=no ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
+            scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
+            ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+
+      - name: Upload compose file to PROD
+        env:
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+            set -euo pipefail
+            # we already have id_rsa from the previous step
+            scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            docker-compose.prod.yml "$SSH_USER@$SSH_HOST:/opt/projectmeats/docker-compose.prod.yml"
 
       - name: Deploy to PROD (SSH → compose up)
         env:
