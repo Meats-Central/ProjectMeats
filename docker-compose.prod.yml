@@ -6,7 +6,7 @@ networks:
 
 volumes:
   letsencrypt:   # Traefik ACME store
-  pg_data:
+  static_data:
 
 services:
   traefik:
@@ -48,12 +48,12 @@ services:
     labels:
       - "traefik.enable=true"
       # Catch everything on the host (except api which has higher priority)
-      - "traefik.http.routers.api-uat.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api/v1`)"
-      - "traefik.http.routers.api-uat.priority=100"
-      - "traefik.http.routers.api-uat.entrypoints=websecure"
-      - "traefik.http.routers.api-uat.tls=true"
-      - "traefik.http.routers.api-uat.tls.certresolver=le"
-      - "traefik.http.services.api-uat.loadbalancer.server.port=8000"
+      - "traefik.http.routers.api-prod.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api-prod.priority=100"
+      - "traefik.http.routers.api-prod.entrypoints=websecure"
+      - "traefik.http.routers.api-prod.tls=true"
+      - "traefik.http.routers.api-prod.tls.certresolver=le"
+      - "traefik.http.services.api-prod.loadbalancer.server.port=8000"
 
 
     healthcheck:
@@ -73,11 +73,11 @@ services:
       - env/image.env
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web-uat.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.web-uat.entrypoints=websecure"
-      - "traefik.http.routers.web-uat.tls=true"
-      - "traefik.http.routers.web-uat.tls.certresolver=le"
-      - "traefik.http.services.web-uat.loadbalancer.server.port=3000"
+      - "traefik.http.routers.web-prod.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.web-prod.entrypoints=websecure"
+      - "traefik.http.routers.web-prod.tls=true"
+      - "traefik.http.routers.web-prod.tls.certresolver=le"
+      - "traefik.http.services.web-prod.loadbalancer.server.port=3000"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/healthz"]
     networks:
