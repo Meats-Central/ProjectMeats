@@ -48,7 +48,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Catch everything on the host (except api which has higher priority)
-      - "traefik.http.routers.api-uat.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.api-uat.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api-uat.priority=100"
       - "traefik.http.routers.api-uat.entrypoints=websecure"
       - "traefik.http.routers.api-uat.tls=true"
@@ -73,7 +73,8 @@ services:
       - env/image.env
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web-uat.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.web-uat.rule=Host(`${APP_DOMAIN}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.web-uat.priority=10"
       - "traefik.http.routers.web-uat.entrypoints=websecure"
       - "traefik.http.routers.web-uat.tls=true"
       - "traefik.http.routers.web-uat.tls.certresolver=le"
