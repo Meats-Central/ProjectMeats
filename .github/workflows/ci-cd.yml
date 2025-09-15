@@ -163,6 +163,8 @@ jobs:
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.development
+          APP_DOMAIN=${APP_DOMAIN}
+          API_DOMAIN=${API_DOMAIN}
           DJANGO_DEBUG=1
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
@@ -269,6 +271,7 @@ jobs:
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
           API_DOMAIN=${API_DOMAIN}
+          APP_DOMAIN=${APP_DOMAIN}
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
@@ -384,6 +387,7 @@ jobs:
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.production
           API_DOMAIN=${APP_DOMAIN}
+          APP_DOMAIN=${APP_DOMAIN}
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
