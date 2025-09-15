@@ -1,71 +1,107 @@
-/**
- * API Service for ProjectMeats AI Assistant
- * 
- * Handles communication with the Django REST API backend.
- * Includes fixed endpoints from PR #63.
- */
-import axios from 'axios';
+// frontend/src/aiService.ts
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+// ---- Base URL (Option A: same-origin `/api/v1`) ----
+// If you still want a build-time override, set REACT_APP_API_BASE_URL during build.
+const BUILD_TIME_BASE = (process.env.REACT_APP_API_BASE_URL || '').trim();
+const SAME_ORIGIN_BASE =
+  (typeof window !== 'undefined' && window.location
+    ? `${window.location.origin}/api/v1`
+    : '/api/v1'
+  ).replace(/\/$/, '');
+export const API_BASE_URL = (BUILD_TIME_BASE || SAME_ORIGIN_BASE).replace(/\/$/, '');
 
+// ---- Axios instance ----
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor for authentication
+// ---- Interceptors ----
+// Request: attach Bearer token; drop JSON header for FormData so axios sets boundary
 apiClient.interceptors.request.use(
   (config) => {
-    // Add authentication token if available
-    const token = localStorage.getItem('authToken');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers = config.headers ?? {};
+      (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    }
+    if (config.data instanceof FormData && config.headers) {
+      // Let axios/browser set the proper multipart boundary
+      delete (config.headers as Record<string, string>)['Content-Type'];
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response: handle 401 globally; rethrow others as typed errors
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle authentication errors
+  (error: AxiosError) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // optional: keep current path for post-login redirect
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login?next=${next}`;
+      return Promise.reject(error);
     }
     return Promise.reject(error);
   }
 );
 
-// API helper function
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  };
-
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+// ---- Error shape (optional helper) ----
+export class ApiError extends Error {
+  status?: number;
+  data?: unknown;
+  constructor(message: string, opts?: { status?: number; data?: unknown }) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = opts?.status;
+    this.data = opts?.data;
   }
-  
-  return response.json();
 }
 
-// Type definitions
+// ---- Generic request helper using axios ----
+// Keeps your previous signature so call sites don't have to change.
+export async function apiRequest<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  // Prefer options.data if someone passes an axios-like config, else use body
+  // (Your existing code often passes JSON.stringify(data); that's fine.)
+  const maybeAny = options as unknown as { data?: any; params?: any };
+  const data = maybeAny.data ?? (options as any).body;
+  const params = maybeAny.params;
+
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  try {
+    const res: AxiosResponse<T> = await apiClient.request<T>({
+      url: endpoint,
+      method,
+      data,
+      params,
+      headers,
+      // If you need cookies for same-origin auth/CSRF, uncomment:
+      // withCredentials: true,
+    } as AxiosRequestConfig);
+    return res.data;
+  } catch (err) {
+    const e = err as AxiosError;
+    const status = e.response?.status;
+    const message =
+      e.message ||
+      `Request failed${status ? ` with status ${status}` : ''}: ${endpoint}`;
+    throw new ApiError(message, { status, data: e.response?.data });
+  }
+}
+
+// -------------------- Types --------------------
 export interface ChatSession {
   id: string;
   title?: string;
@@ -115,130 +151,84 @@ export interface DocumentProcessingResponse {
   message: string;
 }
 
-// Chat API
+// -------------------- API wrappers --------------------
+// Chat
 export const chatApi = {
-  /**
-   * Send a message and get AI response
-   * Fixed endpoint: /ai-assistant/ai-chat/chat/ (from PR #63)
-   */
-  sendMessage: async (data: ChatRequest): Promise<ChatResponse> => {
-    return apiRequest<ChatResponse>('/ai-assistant/ai-chat/chat/', {
+  sendMessage: async (data: ChatRequest): Promise<ChatResponse> =>
+    apiRequest<ChatResponse>('/ai-assistant/ai-chat/chat/', {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+      // Either pass the raw object (preferred)...
+      data,
+      // ...or keep your old style:
+      // body: JSON.stringify(data),
+    }),
 
-  /**
-   * Process a document with AI
-   * Fixed endpoint: /ai-assistant/ai-chat/process_document/ (from PR #63)
-   */
-  processDocument: async (data: DocumentProcessingRequest): Promise<DocumentProcessingResponse> => {
-    return apiRequest<DocumentProcessingResponse>('/ai-assistant/ai-chat/process_document/', {
+  processDocument: async (
+    data: DocumentProcessingRequest
+  ): Promise<DocumentProcessingResponse> =>
+    apiRequest<DocumentProcessingResponse>('/ai-assistant/ai-chat/process_document/', {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+      data,
+    }),
 };
 
-// Chat Sessions API
+// Chat Sessions
 export const chatSessionsApi = {
-  /**
-   * List all chat sessions for the current user
-   */
-  list: async (): Promise<ChatSession[]> => {
-    return apiRequest<ChatSession[]>('/ai-assistant/ai-sessions/');
-  },
+  list: async (): Promise<ChatSession[]> =>
+    apiRequest<ChatSession[]>('/ai-assistant/ai-sessions/'),
 
-  /**
-   * Get a specific chat session
-   */
-  get: async (sessionId: string): Promise<ChatSession> => {
-    return apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`);
-  },
+  get: async (sessionId: string): Promise<ChatSession> =>
+    apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`),
 
-  /**
-   * Create a new chat session
-   */
-  create: async (data: Partial<ChatSession>): Promise<ChatSession> => {
-    return apiRequest<ChatSession>('/ai-assistant/ai-sessions/', {
+  create: async (data: Partial<ChatSession>): Promise<ChatSession> =>
+    apiRequest<ChatSession>('/ai-assistant/ai-sessions/', {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+      data,
+    }),
 
-  /**
-   * Update a chat session
-   */
-  update: async (sessionId: string, data: Partial<ChatSession>): Promise<ChatSession> => {
-    return apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`, {
+  update: async (
+    sessionId: string,
+    data: Partial<ChatSession>
+  ): Promise<ChatSession> =>
+    apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+      data,
+    }),
 
-  /**
-   * Delete a chat session
-   */
-  delete: async (sessionId: string): Promise<void> => {
-    return apiRequest<void>(`/ai-assistant/ai-sessions/${sessionId}/`, {
+  delete: async (sessionId: string): Promise<void> =>
+    apiRequest<void>(`/ai-assistant/ai-sessions/${sessionId}/`, {
       method: 'DELETE',
-    });
-  },
+    }),
 
-  /**
-   * Get messages for a specific session
-   */
-  getMessages: async (sessionId: string): Promise<ChatMessage[]> => {
-    return apiRequest<ChatMessage[]>(`/ai-assistant/ai-sessions/${sessionId}/messages/`);
-  },
+  getMessages: async (sessionId: string): Promise<ChatMessage[]> =>
+    apiRequest<ChatMessage[]>(`/ai-assistant/ai-sessions/${sessionId}/messages/`),
 };
 
-// Documents API
+// Documents
 export const documentsApi = {
-  /**
-   * Upload a document
-   */
   upload: async (file: File, sessionId?: string): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
-    if (sessionId) {
-      formData.append('session_id', sessionId);
-    }
+    if (sessionId) formData.append('session_id', sessionId);
 
-    return apiRequest<any>('/ai-assistant/ai-documents/', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set it for FormData
-    });
+    // For FormData, we pass it directly; the request interceptor removes JSON header.
+    const res: AxiosResponse<any> = await apiClient.post(
+      '/ai-assistant/ai-documents/',
+      formData
+    );
+    return res.data;
   },
 
-  /**
-   * List uploaded documents
-   */
-  list: async (): Promise<any[]> => {
-    return apiRequest<any[]>('/ai-assistant/ai-documents/');
-  },
+  list: async (): Promise<any[]> =>
+    apiRequest<any[]>('/ai-assistant/ai-documents/'),
 
-  /**
-   * Get document processing status
-   */
-  get: async (documentId: string): Promise<any> => {
-    return apiRequest<any>(`/ai-assistant/ai-documents/${documentId}/`);
-  },
+  get: async (documentId: string): Promise<any> =>
+    apiRequest<any>(`/ai-assistant/ai-documents/${documentId}/`),
 };
 
-// AI Utils
+// Utilities
 export const aiUtils = {
-  /**
-   * Check if AI assistant is enabled
-   */
-  isEnabled: (): boolean => {
-    return process.env.REACT_APP_AI_ASSISTANT_ENABLED === 'true';
-  },
-
-  /**
-   * Get AI assistant configuration
-   */
+  isEnabled: (): boolean => process.env.REACT_APP_AI_ASSISTANT_ENABLED === 'true',
   getConfig: () => ({
     apiBaseUrl: API_BASE_URL,
     enabled: aiUtils.isEnabled(),
@@ -248,27 +238,10 @@ export const aiUtils = {
       entityExtraction: true,
     },
   }),
-
-  /**
-   * Format processing time for display
-   */
-  formatProcessingTime: (seconds: number): string => {
-    if (seconds < 1) {
-      return `${Math.round(seconds * 1000)}ms`;
-    }
-    return `${seconds.toFixed(1)}s`;
-  },
-
-  /**
-   * Generate session title from first message
-   */
-  generateSessionTitle: (message: string): string => {
-    const maxLength = 50;
-    if (message.length <= maxLength) {
-      return message;
-    }
-    return message.substring(0, maxLength - 3) + '...';
-  },
+  formatProcessingTime: (seconds: number): string =>
+    seconds < 1 ? `${Math.round(seconds * 1000)}ms` : `${seconds.toFixed(1)}s`,
+  generateSessionTitle: (message: string): string =>
+    message.length <= 50 ? message : `${message.substring(0, 47)}...`,
 };
 
 export default apiClient;
