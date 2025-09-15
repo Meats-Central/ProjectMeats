@@ -6,9 +6,16 @@
  */
 import axios from 'axios';
 
-// API Configuration
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL && process.env.REACT_APP_API_BASE_URL.trim()) ||
-  `${window.location.origin}/api/v1`;
+declare global {
+  interface Window {
+    __ENV?: { API_BASE_URL?: string };
+  }
+}
+
+const API_BASE_URL =
+  window.__ENV?.API_BASE_URL?.trim() ||
+  (process.env.REACT_APP_API_BASE_URL || '').trim() ||
+  `${window.location.origin}/api/v1`; // local dev fallback
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -47,25 +54,15 @@ apiClient.interceptors.response.use(
 );
 
 // API helper function
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  };
-
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-  }
-  
-  return response.json();
+async function apiRequest(path: string, init: RequestInit = {}) {
+  const res = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`, {
+    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
+    ...init,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
-
+export { apiRequest, API_BASE_URL };
 // Type definitions
 export interface ChatSession {
   id: string;

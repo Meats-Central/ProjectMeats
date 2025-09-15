@@ -207,6 +207,16 @@ jobs:
             scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
             ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
 
+      - name: Upload compose file to DEV
+        env:
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+            set -euo pipefail
+            # we already have id_rsa from the previous step
+            scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            docker-compose.dev.yml "$SSH_USER@$SSH_HOST:/opt/projectmeats/docker-compose.dev.yml"
+
       - name: Deploy to DEV (SSH → compose up)
         env:
             SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -262,8 +272,9 @@ jobs:
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}
-          ALLOWED_HOSTS=${APP_DOMAIN}
+          ALLOWED_HOSTS=${API_DOMAIN}
           CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN}
+          CSRF_TRUSTED_ORIGINS=https://${APP_DOMAIN},https://${API_DOMAIN}
           APP_ENV=${ENV_NAME}
           REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
           # Environment
@@ -300,6 +311,16 @@ jobs:
             scp -i id_rsa -o StrictHostKeyChecking=no ${ENV_NAME}.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/${ENV_NAME}.env"
             scp -i id_rsa -o StrictHostKeyChecking=no image.env "$SSH_USER@$SSH_HOST:/opt/projectmeats/env/image.env"
             ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" "chmod 600 /opt/projectmeats/env/${ENV_NAME}.env /opt/projectmeats/env/image.env"
+
+      - name: Upload compose file to UAT
+        env:
+            SSH_HOST: ${{ secrets.SSH_HOST }}
+            SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+            set -euo pipefail
+            # we already have id_rsa from the previous step
+            scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            docker-compose.uat.yml "$SSH_USER@$SSH_HOST:/opt/projectmeats/docker-compose.uat.yml"
 
       - name: Deploy to UAT (SSH → compose up)
         env:
