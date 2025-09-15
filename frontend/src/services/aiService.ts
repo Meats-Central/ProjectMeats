@@ -1,272 +1,128 @@
-/**
- * API Service for ProjectMeats AI Assistant
- * 
- * Handles communication with the Django REST API backend.
- * Includes fixed endpoints from PR #63.
- */
-import axios from 'axios';
+// frontend/src/aiService.ts
 
+// ----- Runtime config (for single-image, per-env config via env.js) -----
 declare global {
   interface Window {
     __ENV?: { API_BASE_URL?: string };
   }
 }
 
-const API_BASE_URL =
-  window.__ENV?.API_BASE_URL?.trim() ||
-  (process.env.REACT_APP_API_BASE_URL || '').trim() ||
-  `${window.location.origin}/api/v1`; // local dev fallback
+// Safely compute a default origin for non-browser contexts (SSR/build)
+const DEFAULT_ORIGIN =
+  typeof window !== "undefined" && window.location ? window.location.origin : "";
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+/**
+ * API base URL resolution (priority):
+ * 1) window.__ENV.API_BASE_URL  (written at container start by env.js)
+ * 2) process.env.REACT_APP_API_BASE_URL (baked at build time)
+ * 3) `${window.location.origin}/api/v1` or `/api/v1` as a final fallback
+ *
+ * For Option B (separate API domains), set per environment:
+ *   dev:  https://api-dev.meatscentral.com/api/v1
+ *   uat:  https://api-uat.meatscentral.com/api/v1
+ *   prod: https://api.meatscentral.com/api/v1
+ */
+export const API_BASE_URL = (() => {
+  const runtime = window?.__ENV?.API_BASE_URL?.trim() || "";
+  const build = (process.env.REACT_APP_API_BASE_URL || "").trim();
+  const origin = DEFAULT_ORIGIN ? `${DEFAULT_ORIGIN}/api/v1` : "/api/v1";
 
-// Request interceptor for authentication
-apiClient.interceptors.request.use(
-  (config) => {
-    // Add authentication token if available
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  return (runtime || build || origin).replace(/\/$/, "");
+})();
 
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle authentication errors
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// API helper function
-async function apiRequest(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`, {
-    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
-    ...init,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-export { apiRequest, API_BASE_URL };
-// Type definitions
-export interface ChatSession {
-  id: string;
-  title?: string;
-  session_status: 'active' | 'completed' | 'archived';
-  context_data?: Record<string, any>;
-  last_activity: string;
-  created_on: string;
-  modified_on: string;
-  message_count: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  session: string;
-  message_type: 'user' | 'assistant' | 'system' | 'document';
-  content: string;
-  metadata?: Record<string, any>;
-  is_processed: boolean;
-  created_on: string;
-  modified_on: string;
-}
+// -------------------- Types (adjust to your real backend shapes) --------------------
+export type ID = string;
 
 export interface ChatRequest {
   message: string;
-  session_id?: string;
-  context?: Record<string, any>;
+  conversationId?: ID;
+  // Add fields as needed (e.g., model, temperature, etc.)
+  // model?: string;
+  // stream?: boolean;
 }
 
 export interface ChatResponse {
-  response: string;
-  session_id: string;
-  message_id: string;
-  processing_time: number;
-  metadata?: Record<string, any>;
+  conversationId: ID;
+  reply: string;
+  // Optional server-provided fields:
+  // tokensUsed?: number;
+  // finishReason?: string;
+  // meta?: Record<string, unknown>;
 }
 
-export interface DocumentProcessingRequest {
-  document_id: string;
-  session_id?: string;
-  processing_options?: Record<string, any>;
+export interface HealthResponse {
+  status: "ok" | "degraded" | "down";
+  version?: string;
 }
 
-export interface DocumentProcessingResponse {
-  task_id: string;
-  document_id: string;
-  status: string;
-  message: string;
+// -------------------- Small helper --------------------
+const joinUrl = (base: string, path: string) =>
+  `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+
+// -------------------- Error class (optional but handy) --------------------
+export class ApiError extends Error {
+  status?: number;
+  bodySnippet?: string;
+
+  constructor(message: string, opts?: { status?: number; bodySnippet?: string }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = opts?.status;
+    this.bodySnippet = opts?.bodySnippet;
+  }
 }
 
-// Chat API
-export const chatApi = {
-  /**
-   * Send a message and get AI response
-   * Fixed endpoint: /ai-assistant/ai-chat/chat/ (from PR #63)
-   */
-  sendMessage: async (data: ChatRequest): Promise<ChatResponse> => {
-    return apiRequest<ChatResponse>('/ai-assistant/ai-chat/chat/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+// -------------------- Generic request --------------------
+/**
+ * Generic request helper.
+ * Usage: const data = await apiRequest<MyType>("/ai-assistant/ai-chat/chat/", { method: "POST", body: JSON.stringify(payload) })
+ */
+export async function apiRequest<T = unknown>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const url = joinUrl(API_BASE_URL, path);
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(init.headers as HeadersInit),
+  };
 
-  /**
-   * Process a document with AI
-   * Fixed endpoint: /ai-assistant/ai-chat/process_document/ (from PR #63)
-   */
-  processDocument: async (data: DocumentProcessingRequest): Promise<DocumentProcessingResponse> => {
-    return apiRequest<DocumentProcessingResponse>('/ai-assistant/ai-chat/process_document/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-};
+  // If you need cookies across domains, switch to: credentials: "include"
+  // and ensure CORS on the backend allows credentials + sets SameSite=None.
+  const res = await fetch(url, { ...init, headers /*, credentials: "same-origin" */ });
 
-// Chat Sessions API
-export const chatSessionsApi = {
-  /**
-   * List all chat sessions for the current user
-   */
-  list: async (): Promise<ChatSession[]> => {
-    return apiRequest<ChatSession[]>('/ai-assistant/ai-sessions/');
-  },
-
-  /**
-   * Get a specific chat session
-   */
-  get: async (sessionId: string): Promise<ChatSession> => {
-    return apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`);
-  },
-
-  /**
-   * Create a new chat session
-   */
-  create: async (data: Partial<ChatSession>): Promise<ChatSession> => {
-    return apiRequest<ChatSession>('/ai-assistant/ai-sessions/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  /**
-   * Update a chat session
-   */
-  update: async (sessionId: string, data: Partial<ChatSession>): Promise<ChatSession> => {
-    return apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  /**
-   * Delete a chat session
-   */
-  delete: async (sessionId: string): Promise<void> => {
-    return apiRequest<void>(`/ai-assistant/ai-sessions/${sessionId}/`, {
-      method: 'DELETE',
-    });
-  },
-
-  /**
-   * Get messages for a specific session
-   */
-  getMessages: async (sessionId: string): Promise<ChatMessage[]> => {
-    return apiRequest<ChatMessage[]>(`/ai-assistant/ai-sessions/${sessionId}/messages/`);
-  },
-};
-
-// Documents API
-export const documentsApi = {
-  /**
-   * Upload a document
-   */
-  upload: async (file: File, sessionId?: string): Promise<any> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (sessionId) {
-      formData.append('session_id', sessionId);
+  if (!res.ok) {
+    let snippet = "";
+    try {
+      snippet = (await res.text()).slice(0, 300);
+    } catch {
+      /* ignore */
     }
-
-    return apiRequest<any>('/ai-assistant/ai-documents/', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set it for FormData
+    throw new ApiError(`HTTP ${res.status} ${res.statusText}`, {
+      status: res.status,
+      bodySnippet: snippet,
     });
-  },
+  }
 
-  /**
-   * List uploaded documents
-   */
-  list: async (): Promise<any[]> => {
-    return apiRequest<any[]>('/ai-assistant/ai-documents/');
-  },
+  // If endpoint returns no body (e.g., 204), return undefined as T
+  if (res.status === 204) return undefined as T;
 
-  /**
-   * Get document processing status
-   */
-  get: async (documentId: string): Promise<any> => {
-    return apiRequest<any>(`/ai-assistant/ai-documents/${documentId}/`);
-  },
-};
+  return (await res.json()) as T;
+}
 
-// AI Utils
-export const aiUtils = {
-  /**
-   * Check if AI assistant is enabled
-   */
-  isEnabled: (): boolean => {
-    return process.env.REACT_APP_AI_ASSISTANT_ENABLED === 'true';
-  },
+// -------------------- Concrete API functions --------------------
+/** Health check from the API service (e.g., /api/v1/health/) */
+export async function getHealth(): Promise<HealthResponse> {
+  return apiRequest<HealthResponse>("/health/");
+}
 
-  /**
-   * Get AI assistant configuration
-   */
-  getConfig: () => ({
-    apiBaseUrl: API_BASE_URL,
-    enabled: aiUtils.isEnabled(),
-    features: {
-      chat: true,
-      documentProcessing: true,
-      entityExtraction: true,
-    },
-  }),
-
-  /**
-   * Format processing time for display
-   */
-  formatProcessingTime: (seconds: number): string => {
-    if (seconds < 1) {
-      return `${Math.round(seconds * 1000)}ms`;
-    }
-    return `${seconds.toFixed(1)}s`;
-  },
-
-  /**
-   * Generate session title from first message
-   */
-  generateSessionTitle: (message: string): string => {
-    const maxLength = 50;
-    if (message.length <= maxLength) {
-      return message;
-    }
-    return message.substring(0, maxLength - 3) + '...';
-  },
-};
-
-export default apiClient;
+/**
+ * Send a chat message to the backend (matches your current path)
+ * Backend route: /api/v1/ai-assistant/ai-chat/chat/
+ */
+export async function sendMessage(data: ChatRequest): Promise<ChatResponse> {
+  return apiRequest<ChatResponse>("/ai-assistant/ai-chat/chat/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
