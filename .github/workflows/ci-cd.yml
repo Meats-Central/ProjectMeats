@@ -416,7 +416,7 @@ jobs:
             SSH_HOST: ${{ secrets.SSH_HOST }}
             SSH_USER: ${{ secrets.SSH_USER }}
             SSH_KEY:  ${{ secrets.SSH_KEY }}
-            ENV_NAME: uat
+            ENV_NAME: prod
         run: |
             set -euo pipefail
             # Write key to a file
