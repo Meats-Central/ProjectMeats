@@ -41,7 +41,7 @@ services:
     image: ${IMAGE_TAG_BACKEND}
     restart: unless-stopped
     env_file:
-      - env/uat.env
+      - env/prod.env
       - env/image.env
     volumes:
       - static_data:/app/staticfiles
@@ -69,7 +69,7 @@ services:
     image: ${IMAGE_TAG_FRONTEND}
     restart: unless-stopped
     env_file:
-      - env/uat.env
+      - env/prod.env
       - env/image.env
     labels:
       - "traefik.enable=true"
