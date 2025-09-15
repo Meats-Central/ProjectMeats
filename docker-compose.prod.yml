@@ -48,7 +48,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Catch everything on the host (except api which has higher priority)
-      - "traefik.http.routers.api-prod.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api-prod.rule=Host(`${APP_DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api-prod.priority=100"
       - "traefik.http.routers.api-prod.entrypoints=websecure"
       - "traefik.http.routers.api-prod.tls=true"
