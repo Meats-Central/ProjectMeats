@@ -158,7 +158,7 @@ jobs:
           REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
-          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}  
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}  
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
@@ -265,7 +265,7 @@ jobs:
           REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
-          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
@@ -381,7 +381,7 @@ jobs:
           REACT_APP_SUPPORTED_FILE_TYPES: ${{ vars.REACT_APP_SUPPORTED_FILE_TYPES }}  
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
-          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
