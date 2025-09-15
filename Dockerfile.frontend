@@ -1,21 +1,22 @@
-# Dockerfile.frontend
+# ---------- build stage ----------
 FROM node:20-alpine AS build
 WORKDIR /web
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-# Optional build-time default (not required because we inject at runtime):
-ARG REACT_APP_API_BASE_URL=""
-ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 RUN npm run build
 
-FROM node:20-alpine
-WORKDIR /web
-RUN npm i -g serve
-COPY --from=build /web/build ./build
-COPY deploy/frontend/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENV RUNTIME_API_BASE_URL=""
+# ---------- runtime stage ----------
+FROM nginx:1.27-alpine
+# Clean default site and copy our build + config
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY --from=build /web/build /usr/share/nginx/html
+COPY deploy/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+
+# (optional) ensure nginx owns the content dir
+RUN chown -R nginx:nginx /usr/share/nginx/html
+
 EXPOSE 3000
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["serve", "-s", "build", "-l", "3000"]
+
+# Basic container health check (uses busybox wget)
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://127.0.0.1:3000/healthz >/dev/null 2>&1 || exit 1
