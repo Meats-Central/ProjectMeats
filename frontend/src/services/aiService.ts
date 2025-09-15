@@ -1,8 +1,12 @@
 // frontend/src/aiService.ts
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  AxiosRequestHeaders,
+} from 'axios';
 
 // ---- Base URL (Option A: same-origin `/api/v1`) ----
-// If you still want a build-time override, set REACT_APP_API_BASE_URL during build.
 const BUILD_TIME_BASE = (process.env.REACT_APP_API_BASE_URL || '').trim();
 const SAME_ORIGIN_BASE =
   (typeof window !== 'undefined' && window.location
@@ -15,43 +19,46 @@ export const API_BASE_URL = (BUILD_TIME_BASE || SAME_ORIGIN_BASE).replace(/\/$/,
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
-  headers: { 'Content-Type': 'application/json' },
 });
 
 // ---- Interceptors ----
-// Request: attach Bearer token; drop JSON header for FormData so axios sets boundary
 apiClient.interceptors.request.use(
   (config) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (token) {
-      config.headers = config.headers ?? {};
+      (config.headers ??= {} as AxiosRequestHeaders);
       (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
     }
+    // If sending FormData, let axios set boundary automatically
     if (config.data instanceof FormData && config.headers) {
-      // Let axios/browser set the proper multipart boundary
       delete (config.headers as Record<string, string>)['Content-Type'];
+    } else {
+      // Default JSON header
+      (config.headers ??= {} as AxiosRequestHeaders);
+      if (!(config.headers as Record<string, string>)['Content-Type']) {
+        (config.headers as Record<string, string>)['Content-Type'] = 'application/json';
+      }
     }
+    // If you need cookie-based auth/CSRF, uncomment:
+    // config.withCredentials = true;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response: handle 401 globally; rethrow others as typed errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
-      // optional: keep current path for post-login redirect
       const next = encodeURIComponent(window.location.pathname + window.location.search);
       window.location.href = `/login?next=${next}`;
-      return Promise.reject(error);
     }
     return Promise.reject(error);
   }
 );
 
-// ---- Error shape (optional helper) ----
+// ---- Error helper ----
 export class ApiError extends Error {
   status?: number;
   data?: unknown;
@@ -63,41 +70,35 @@ export class ApiError extends Error {
   }
 }
 
-// ---- Generic request helper using axios ----
-// Keeps your previous signature so call sites don't have to change.
+// ---- Generic request (Axios) ----
 export async function apiRequest<T = unknown>(
   endpoint: string,
-  options: RequestInit = {}
+  config: AxiosRequestConfig = {}
 ): Promise<T> {
-  const method = (options.method || 'GET').toUpperCase();
-  // Prefer options.data if someone passes an axios-like config, else use body
-  // (Your existing code often passes JSON.stringify(data); that's fine.)
-  const maybeAny = options as unknown as { data?: any; params?: any };
-  const data = maybeAny.data ?? (options as any).body;
-  const params = maybeAny.params;
-
-  const headers: Record<string, string> = {
-    ...(options.headers as Record<string, string>),
+  const finalConfig: AxiosRequestConfig = {
+    url: endpoint,
+    method: config.method ?? 'GET',
+    ...config,
   };
 
+  // Ensure JSON header for non-FormData bodies (request interceptor also covers this)
+  if (!(finalConfig.data instanceof FormData)) {
+    finalConfig.headers = {
+      'Content-Type': 'application/json',
+      ...(finalConfig.headers as Record<string, string>),
+    };
+  }
+
   try {
-    const res: AxiosResponse<T> = await apiClient.request<T>({
-      url: endpoint,
-      method,
-      data,
-      params,
-      headers,
-      // If you need cookies for same-origin auth/CSRF, uncomment:
-      // withCredentials: true,
-    } as AxiosRequestConfig);
+    const res: AxiosResponse<T> = await apiClient.request<T>(finalConfig);
     return res.data;
   } catch (err) {
     const e = err as AxiosError;
     const status = e.response?.status;
-    const message =
+    const msg =
       e.message ||
       `Request failed${status ? ` with status ${status}` : ''}: ${endpoint}`;
-    throw new ApiError(message, { status, data: e.response?.data });
+    throw new ApiError(msg, { status, data: e.response?.data });
   }
 }
 
@@ -157,10 +158,7 @@ export const chatApi = {
   sendMessage: async (data: ChatRequest): Promise<ChatResponse> =>
     apiRequest<ChatResponse>('/ai-assistant/ai-chat/chat/', {
       method: 'POST',
-      // Either pass the raw object (preferred)...
       data,
-      // ...or keep your old style:
-      // body: JSON.stringify(data),
     }),
 
   processDocument: async (
@@ -211,7 +209,6 @@ export const documentsApi = {
     formData.append('file', file);
     if (sessionId) formData.append('session_id', sessionId);
 
-    // For FormData, we pass it directly; the request interceptor removes JSON header.
     const res: AxiosResponse<any> = await apiClient.post(
       '/ai-assistant/ai-documents/',
       formData
