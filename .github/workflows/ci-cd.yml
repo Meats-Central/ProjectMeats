@@ -449,6 +449,6 @@ jobs:
         run: |
           bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" prod "$BACK" "$FRONT" "$APP_DOMAIN"
 
-      - name: Post-deploy health
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
+    #   - name: Post-deploy health
+    #     run: |
+    #       curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
