@@ -8,20 +8,23 @@ from .production import *
 # Override production settings for staging
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-# Staging-specific allowed hosts
+# Staging-specific allowed hosts - read from environment
+env_allowed_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
+ALLOWED_HOSTS = [host.strip() for host in env_allowed_hosts.split(",") if host.strip()]
+
+# Add default staging hosts if not already included
 STAGING_HOSTS = [
     "staging-projectmeats.ondigitalocean.app",
     "projectmeats-staging.herokuapp.com",  # Fallback
 ]
 
-ALLOWED_HOSTS = STAGING_HOSTS + ALLOWED_HOSTS
+# Merge with environment hosts, avoiding duplicates
+for host in STAGING_HOSTS:
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
 
 # Less restrictive CORS for staging testing
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
-
-# Staging-specific logging (more verbose)
-LOGGING["loggers"]["django"]["level"] = "DEBUG"
-LOGGING["loggers"]["projectmeats"]["level"] = "DEBUG"
 
 # Email backend for staging (console or file)
 EMAIL_BACKEND = config(
@@ -46,3 +49,6 @@ HEALTH_CHECK = {
     "DISK_USAGE_MAX": 95,  # percent
     "MEMORY_MIN": 50,      # MB
 }
+
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'

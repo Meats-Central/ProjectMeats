@@ -4,18 +4,27 @@
   "description": "React frontend for ProjectMeats - migrated from PowerApps",
   "private": true,
   "dependencies": {
+    "@ant-design/icons": "^6.0.2",
     "@types/node": "^16.18.0",
     "@types/react": "^18.2.0",
+    "@types/react-autosuggest": "^10.1.11",
     "@types/react-dom": "^18.2.0",
     "@types/react-router-dom": "^5.3.3",
+    "@types/react-table": "^7.7.20",
     "@types/styled-components": "^5.1.0",
+    "antd": "^5.27.3",
     "axios": "^1.6.0",
     "react": "^18.2.0",
+    "react-autosuggest": "^10.1.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
+
+    "react-router-dom": "^6.30.1",
     "react-scripts": "5.0.1",
+    "react-table": "^7.8.0",
+    "reactflow": "^11.11.4",
+    "recharts": "^3.2.0",
     "styled-components": "^6.1.0",
-    "typescript": "^4.9.0"
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -29,7 +38,9 @@
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "lint:fix": "eslint src/**/*.{js,jsx,ts,tsx} --fix",
     "analyze": "npm run build && npx bundle-analyzer build/static/js/*.js",
-    "serve": "npx serve -s build -l 3000"
+    "serve": "npx serve -s build -l 3000",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "eslintConfig": {
     "extends": [
@@ -50,6 +61,10 @@
     ]
   },
   "devDependencies": {
+    "@storybook/addon-docs": "^9.1.5",
+    "@storybook/addon-onboarding": "^9.1.5",
+    "@storybook/preset-create-react-app": "^9.1.5",
+    "@storybook/react-webpack5": "^9.1.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/jest": "^27.5.0",
@@ -57,7 +72,13 @@
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.57.1",
     "prettier": "^3.6.2",
-    "serve": "^14.2.0"
+    "prop-types": "^15.8.1",
+    "serve": "^14.2.0",
+    "storybook": "^9.1.5",
+    "webpack": "^5.101.3"
+  },
+  "overrides": {
+    "@types/d3-dispatch": "^1.0.11"
   },
   "proxy": "http://localhost:8000"
 }

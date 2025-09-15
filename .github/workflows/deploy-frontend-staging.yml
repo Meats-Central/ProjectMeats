@@ -1,0 +1,146 @@
+name: Deploy Frontend to UAT2 Staging
+
+on:
+  push:
+    branches: [ development ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend-staging.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: 📥 Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: 🧪 Run tests
+      working-directory: ./frontend
+      run: npm run test:ci
+
+    - name: 🔍 Run type check
+      working-directory: ./frontend
+      run: npm run type-check
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: uat2  # Uses uat2 environment secrets
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: 📥 Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: 🏗️ Create production .env file
+      working-directory: ./frontend
+      run: |
+        cat > .env.production << EOF
+        REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
+        NODE_ENV=production
+        REACT_APP_ENVIRONMENT=staging
+        REACT_APP_AI_ASSISTANT_ENABLED=${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}
+        REACT_APP_ENABLE_DOCUMENT_UPLOAD=${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}
+        REACT_APP_ENABLE_CHAT_EXPORT=${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}
+        REACT_APP_MAX_FILE_SIZE=${{ secrets.REACT_APP_MAX_FILE_SIZE }}
+        REACT_APP_SUPPORTED_FILE_TYPES=${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}
+        REACT_APP_ENABLE_DEBUG=${{ secrets.REACT_APP_ENABLE_DEBUG }}
+        REACT_APP_ENABLE_DEVTOOLS=${{ secrets.REACT_APP_ENABLE_DEVTOOLS }}
+        EOF
+
+    - name: 🏗️ Build React app
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: 📦 Create deployment archive
+      run: |
+        cd frontend/build
+        tar -czf ../../frontend-build.tar.gz .
+
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        # Install sshpass for password authentication
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        
+        # Add host to known_hosts
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 🚀 Deploy to UAT2 staging server
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        # Upload build to server using sshpass
+        sshpass -e scp frontend-build.tar.gz ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
+        
+        # Deploy via SSH using sshpass
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'DEPLOY_SCRIPT'
+          set -e
+          
+          echo "🔄 Starting UAT2 deployment..."
+          
+          # Create backup
+          if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
+            echo "📦 Creating backup..."
+            sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Deploy new build
+          echo "🚀 Deploying new build..."
+          cd /tmp
+          mkdir -p frontend-build-new
+          tar -xzf frontend-build.tar.gz -C frontend-build-new/
+          
+          sudo rm -rf /var/www/ProjectMeats/frontend/build
+          sudo mkdir -p /var/www/ProjectMeats/frontend/build
+          sudo cp -r frontend-build-new/* /var/www/ProjectMeats/frontend/build/
+          
+          # Set permissions
+          sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+          sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+          
+          # Test nginx and reload
+          sudo nginx -t && sudo systemctl reload nginx
+          
+          # Cleanup
+          rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
+          
+          echo "✅ UAT2 deployment completed!"
+        DEPLOY_SCRIPT
+
+    - name: 🏥 Health check
+      run: |
+        sleep 10
+        if curl -f -s "${{ secrets.STAGING_URL }}" > /dev/null; then
+          echo "✅ UAT2 frontend is healthy"
+        else
+          echo "❌ UAT2 frontend health check failed"
+          exit 1
+        fi
+
+    - name: 🧹 Cleanup
+      if: always()
+      run: rm -f frontend-build.tar.gz
