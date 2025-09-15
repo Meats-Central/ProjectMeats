@@ -383,7 +383,7 @@ jobs:
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.production
-          API_DOMAIN=${API_DOMAIN}
+          API_DOMAIN=${APP_DOMAIN}
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
           DATABASE_URL=${DATABASE_URL}

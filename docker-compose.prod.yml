@@ -73,7 +73,7 @@ services:
       - env/image.env
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web-prod.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.web-prod.rule=Host(`${APP_DOMAIN}`) && PathPrefix(`/`)"
       - "traefik.http.routers.web-prod.entrypoints=websecure"
       - "traefik.http.routers.web-prod.tls=true"
       - "traefik.http.routers.web-prod.tls.certresolver=le"
