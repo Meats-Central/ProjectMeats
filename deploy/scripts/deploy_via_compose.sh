@@ -112,8 +112,8 @@ EOV
 chmod 600 env/image.env
 
 # Pull images prior to up (faster fail if auth/refs wrong)
-docker pull "${BACKEND_IMAGE}" || true
-docker pull "${FRONTEND_IMAGE}" || true
+docker pull "${BACKEND_IMAGE}" || { echo "Pull failed for backend"; exit 1; }
+docker pull "${FRONTEND_IMAGE}" || { echo "Pull failed for backend"; exit 1; }
 
 # Compose up using environment-specific compose file
 COMPOSE_FILE="docker-compose.${ENV_NAME}.yml"

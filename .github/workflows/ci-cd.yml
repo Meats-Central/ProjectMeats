@@ -115,6 +115,7 @@ jobs:
 
       - name: Push images
         run: |
+            set -euo pipefail
             docker push ${{ steps.prep.outputs.base }}-backend:${{ github.sha }}
             docker push ${{ steps.prep.outputs.base }}-backend:latest
             docker push ${{ steps.prep.outputs.base }}-frontend:${{ github.sha }}
@@ -480,7 +481,7 @@ jobs:
             # we already have id_rsa from the previous step
             scp -i id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             docker-compose.prod.yml "$SSH_USER@$SSH_HOST:/opt/projectmeats/docker-compose.prod.yml"
-            
+
       - name: Remote GHCR login
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
