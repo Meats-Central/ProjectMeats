@@ -11,7 +11,7 @@ from .base import *
 
 # Security Settings
 SECRET_KEY = config("SECRET_KEY", default="temp-key-for-build-phase-only-not-secure")
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS Configuration for Digital Ocean App Platform
 # Use wildcard for now to allow internal IPs (like 10.244.32.208) for health checks
