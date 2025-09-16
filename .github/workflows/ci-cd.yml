@@ -397,6 +397,16 @@ jobs:
     steps:
       - name: Checkout (for scripts)
         uses: actions/checkout@v4
+      
+      - name: Remote GHCR login
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          GH_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" \
+            "echo '${GH_TOKEN}' | docker login ghcr.io -u '${GH_USER}' --password-stdin"
 
       - name: Render prod.env and image.env on runner
         shell: bash
