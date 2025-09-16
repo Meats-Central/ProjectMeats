@@ -468,7 +468,7 @@ jobs:
             if [ "$cnt" -eq 0 ]; then
               echo "No running services after deploy"; exit 1
             fi
-
+          '
 
     #   - name: Post-deploy health
     #     run: |
