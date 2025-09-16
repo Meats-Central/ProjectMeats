@@ -232,6 +232,23 @@ jobs:
         run: |
             bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" dev "$BACK" "$FRONT" "$APP_DOMAIN"
 
+      - name: Compute GHCR repos
+        id: ghcr
+        run: |
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          repo=$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')
+          echo "repos=ghcr.io/${owner}/${repo}-backend,ghcr.io/${owner}/${repo}-frontend" >> "$GITHUB_OUTPUT"
+      
+      - name: Remote docker cleanup (DEV)
+        if: always()
+        uses: ./.github/actions/remote-docker-cleanup
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key_path: ${{ github.workspace }}/id_rsa
+          repos: ${{ steps.ghcr.outputs.repos }}
+          keep: "2"
+
     #   - name: Smoke check (public)
     #     run: |
     #       curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" >/dev/null
@@ -338,6 +355,24 @@ jobs:
             SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
             bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" uat "$BACK" "$FRONT" "$APP_DOMAIN"
+      
+      - name: Compute GHCR repos
+        id: ghcr
+        run: |
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          repo=$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')
+          echo "repos=ghcr.io/${owner}/${repo}-backend,ghcr.io/${owner}/${repo}-frontend" >> "$GITHUB_OUTPUT"
+      
+      - name: Remote docker cleanup (UAT)
+        if: always()
+        uses: ./.github/actions/remote-docker-cleanup
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key_path: ${{ github.workspace }}/id_rsa
+          repos: ${{ steps.ghcr.outputs.repos }}
+          keep: "2"
+
 
     #   - name: Smoke check (public)
     #     run: |
@@ -455,7 +490,24 @@ jobs:
             SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
           bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" prod "$BACK" "$FRONT" "$APP_DOMAIN"
-      
+
+      - name: Compute GHCR repos
+        id: ghcr
+        run: |
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          repo=$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')
+          echo "repos=ghcr.io/${owner}/${repo}-backend,ghcr.io/${owner}/${repo}-frontend" >> "$GITHUB_OUTPUT"
+
+      - name: Remote docker cleanup (PROD)
+        if: always()
+        uses: ./.github/actions/remote-docker-cleanup
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key_path: ${{ github.workspace }}/id_rsa
+          repos: ${{ steps.ghcr.outputs.repos }}
+          keep: "2"
+
       - name: Remote sanity (containers running?)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
