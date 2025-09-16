@@ -159,6 +159,7 @@ jobs:
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
           LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}  
+
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
@@ -266,6 +267,7 @@ jobs:
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
           LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
@@ -382,11 +384,12 @@ jobs:
           REACT_APP_ENABLE_DEBUG: ${{ vars.REACT_APP_ENABLE_DEBUG }}  
           REACT_APP_ENABLE_DEVTOOLS: ${{ vars.REACT_APP_ENABLE_DEVTOOLS }}
           LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+
         run: |
           set -euo pipefail
           cat > ${ENV_NAME}.env <<EOF
           DJANGO_SETTINGS_MODULE=projectmeats.settings.production
-          API_DOMAIN=${APP_DOMAIN}
+          API_DOMAIN=${API_DOMAIN}
           APP_DOMAIN=${APP_DOMAIN}
           DJANGO_DEBUG=0
           SECRET_KEY=${DJANGO_SECRET_KEY}
