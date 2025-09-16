@@ -455,6 +455,20 @@ jobs:
             SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
           bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" prod "$BACK" "$FRONT" "$APP_DOMAIN"
+      
+      - name: Remote sanity (containers running?)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -i id_rsa -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" '
+            set -e
+            cd /opt/projectmeats
+            cnt=$(docker compose -f docker-compose.prod.yml --env-file env/prod.env --env-file env/image.env ps --services --status=running | wc -l)
+            if [ "$cnt" -eq 0 ]; then
+              echo "No running services after deploy"; exit 1
+            fi
+
 
     #   - name: Post-deploy health
     #     run: |
