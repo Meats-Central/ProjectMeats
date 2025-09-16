@@ -489,6 +489,7 @@ jobs:
             APP_DOMAIN: ${{ vars.APP_DOMAIN }}
             SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
         run: |
+          echo "$GITHUB_TOKEN"
           bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" prod "$BACK" "$FRONT" "$APP_DOMAIN"
 
       - name: Compute GHCR repos
