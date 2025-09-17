@@ -301,7 +301,7 @@ resource "digitalocean_record" "uat_dns" {
 resource "digitalocean_record" "prod_dns" {
   domain = var.domain_name
   type   = "A"
-  name   = "prod"
+  name   = "@"
   value  = digitalocean_droplet.projectmeats_prod.ipv4_address
   ttl    = 300
   depends_on = [time_sleep.wait_between_droplets]
