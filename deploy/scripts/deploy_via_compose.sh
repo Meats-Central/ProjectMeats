@@ -80,8 +80,10 @@ remote_env_prefix=$(
     "$BACKEND_IMAGE" "$FRONTEND_IMAGE" "$APP_DOMAIN" "$ENV_NAME"
 )
 
-# Ensure logs directory exists before redirection
-ssh_exec "mkdir -p /opt/projectmeats/logs" || { err "Failed to create logs directory"; exit 1; }
+# Ensure logs directory exists with sudo
+ssh_exec "sudo mkdir -p /opt/projectmeats/logs && sudo chown -R $USER:$USER /opt/projectmeats/logs" || {
+  err "Failed to create or set ownership of logs directory"; exit 1;
+}
 
 ssh_exec "${remote_env_prefix} bash -s" <<'REMOTE_EOF' >> /opt/projectmeats/logs/deploy.log 2>&1
 set -euo pipefail
