@@ -85,7 +85,7 @@ ssh_exec() {
 # We pass environment variables explicitly to the remote shell to avoid relying on SSH env forwarding.
 remote_env_prefix=$(
   printf "GITHUB_ACTOR=%q GITHUB_TOKEN=%q BACKEND_IMAGE=%q FRONTEND_IMAGE=%q APP_DOMAIN=%q ENV_NAME=%q" \
-    "${GITHUB_ACTOR:-Meats-Central}" "${GITHUB_TOKEN:-}" \
+    "${GITHUB_ACTOR:-github-actions}" "${GITHUB_TOKEN:-}" \
     "$BACKEND_IMAGE" "$FRONTEND_IMAGE" "$APP_DOMAIN" "$ENV_NAME"
 )
 
@@ -99,7 +99,7 @@ cd "$APP_DIR"
 
 # Docker login (GHCR). If token missing, skip but warn (pull may fail for private images).
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  echo "$GITHUB_TOKEN" | docker login ghcr.io -u "Meats-Central" --password-stdin
+  echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${GITHUB_ACTOR:-github-actions}" --password-stdin
 else
   echo "WARN: GITHUB_TOKEN not provided; skipping docker login. Private GHCR pulls may fail." >&2
 fi
