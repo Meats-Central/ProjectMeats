@@ -38,10 +38,10 @@ normalize_image() {
 # Build sane defaults if not provided
 build_default_images_if_needed() {
   local owner_lower repo_lowername sha base
-  owner_lower="$(echo "${GITHUB_REPOSITORY_OWNER:-meats-central}" | tr '[:upper:]' '[:lower:]')"
+  owner_lower="${DOCKER_USERNAME:-meats-central}"
   repo_lowername="$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')"
   sha="${GITHUB_SHA:-latest}"
-  base="${DOCKER_USERNAME}/${repo_lowername}"
+  base="${owner_lower}/${repo_lowername}"
 
   if [[ -z "$BACK_ARG" ]]; then
     BACK_ARG="${base}-backend:${sha}"
@@ -80,12 +80,12 @@ remote_env_prefix=$(
     "$BACKEND_IMAGE" "$FRONTEND_IMAGE" "$APP_DOMAIN" "$ENV_NAME"
 )
 
-# Ensure logs directory exists with sudo
+# Ensure logs directory exists with sudo (optional, removed redirection)
 ssh_exec "sudo mkdir -p /opt/projectmeats/logs && sudo chown -R $USER:$USER /opt/projectmeats/logs" || {
   err "Failed to create or set ownership of logs directory"; exit 1;
 }
 
-ssh_exec "${remote_env_prefix} bash -s" <<'REMOTE_EOF' >> /opt/projectmeats/logs/deploy.log 2>&1
+ssh_exec "${remote_env_prefix} bash -s" <<'REMOTE_EOF'
 set -euo pipefail
 
 APP_DIR=/opt/projectmeats
