@@ -21,6 +21,8 @@ jobs:
   build_test_package:
     name: Build & Test → Push Images
     runs-on: ubuntu-latest
+    environment: dev
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/docker'
 
     outputs:
       back_image: ${{ steps.tags.outputs.BACK }}
