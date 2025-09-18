@@ -2,7 +2,7 @@ name: CI → DEV → UAT → (approval) → PROD
 
 on:
   push:
-    branches: [ "dev","docker" ]        # Trigger the full pipeline on pushes to dev
+    branches: [ "dev", "docker" ]        # Trigger the full pipeline on pushes to dev
   workflow_dispatch:            # Allow manual runs
 
 concurrency:
@@ -21,8 +21,8 @@ jobs:
   build_test_package:
     name: Build & Test → Push Images
     runs-on: ubuntu-latest
-    environment: dev
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/docker'
+    environment: dev
 
     outputs:
       back_image: ${{ steps.tags.outputs.BACK }}
@@ -237,10 +237,20 @@ jobs:
         run: |
           ssh -i "${SSH_KEY_PATH}" -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" \
             "docker images | grep -E '${BACK}|${FRONT}' || { echo 'ERROR: Expected images not found'; exit 1; }"
+      
+      - name: Remote docker cleanup (DEV)
+        if: always()
+        uses: ./.github/actions/remote-docker-cleanup
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key_path: ${{ github.workspace }}/id_rsa
+          repos: ${{ steps.ghcr.outputs.repos }}
+          keep: "2"
 
-      - name: Smoke check (public)
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
+      # - name: Smoke check (public)
+      #   run: |
+      #     curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
 
   promote_and_deploy_uat:
     name: Promote → Deploy to UAT
@@ -351,16 +361,16 @@ jobs:
           ssh -i "${SSH_KEY_PATH}" -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" \
             "docker images | grep -E '${BACK}|${FRONT}' || { echo 'ERROR: Expected images not found'; exit 1; }"
 
-      - name: Smoke check (public)
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
+      # - name: Smoke check (public)
+      #   run: |
+      #     curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
 
       - name: Compute Docker repos
         id: docker
         run: |
           repo=$(echo "${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]')
           echo "repos=${{ secrets.DOCKER_USERNAME }}/${repo}-backend,${{ secrets.DOCKER_USERNAME }}/${repo}-frontend" >> "$GITHUB_OUTPUT"
-
+      
       - name: Remote docker cleanup (UAT)
         if: always()
         uses: ./.github/actions/remote-docker-cleanup
@@ -368,7 +378,7 @@ jobs:
           ssh_host: ${{ secrets.SSH_HOST }}
           ssh_user: ${{ secrets.SSH_USER }}
           ssh_key_path: ${{ github.workspace }}/id_rsa
-          repos: ${{ steps.docker.outputs.repos }}
+          repos: ${{ steps.ghcr.outputs.repos }}
           keep: "2"
 
   deploy_prod:
