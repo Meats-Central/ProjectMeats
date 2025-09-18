@@ -226,14 +226,7 @@ jobs:
           SSH_KEY_PATH: ${{ github.workspace }}/id_rsa
           ENV_NAME: dev
         run: |
-          docker compose -f docker-compose.{ENV_NAME}.yml \
-            --env-file "env/${ENV_NAME}.env" \
-            --env-file "env/image.env" \
-            run --rm api python manage.py migrate --noinput || { echo "ERROR: Migrations failed"; exit 1; }
-
-          docker compose -f docker-compose.{ENV_NAME}.yml \
-            --env-file "env/${ENV_NAME}.env" \
-            --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
+          bash deploy/scripts/deploy_via_compose.sh "$SSH_HOST" "$SSH_USER" "IGNORED" dev "$BACK" "$FRONT" "$APP_DOMAIN"
 
       - name: Verify deployed images
         env:
