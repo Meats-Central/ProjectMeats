@@ -93,6 +93,10 @@ APP_DIR=/opt/projectmeats
 mkdir -p "$APP_DIR"/{env,logs}
 cd "$APP_DIR"
 
+# Set COMPOSE_FILE early
+COMPOSE_FILE="docker-compose.${ENV_NAME}.yml"
+echo "Using compose file: $COMPOSE_FILE"
+
 # Docker login (Docker Hub)
 if [[ -n "${DOCKER_TOKEN:-}" ]]; then
   echo "Logging into Docker Hub with user ${DOCKER_USERNAME:-}"
@@ -118,7 +122,6 @@ docker pull "${FRONTEND_IMAGE}" || { echo "ERROR: Failed to pull frontend image 
 
 # Compose up using environment-specific compose file
 echo "Checking for $COMPOSE_FILE"
-$COMPOSE_FILE="docker-compose.${ENV_NAME}.yml"
 if [[ ! -f "$COMPOSE_FILE" ]]; then
   echo "ERROR: $COMPOSE_FILE not found in $APP_DIR" >&2
   exit 2
