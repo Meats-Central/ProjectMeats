@@ -133,23 +133,7 @@ if [[ ! -f "env/${ENV_NAME}.env" ]]; then
   exit 3
 fi
 
-# Ensure database file exists for SQLite (DEV only)
-if [[ "$ENV_NAME" == "dev" ]]; then
-  echo "Ensuring SQLite database exists"
-  touch "$APP_DIR/db.sqlite3" 2>/dev/null || {
-    sudo touch "$APP_DIR/db.sqlite3" && sudo chown $USER:$USER "$APP_DIR/db.sqlite3"
-  }
-fi
 
-# Run DB migrations (all envs) with timeout
-echo "Running migrations"
-timeout 300 docker compose -f "$COMPOSE_FILE" \
-  --env-file "env/${ENV_NAME}.env" \
-  --env-file "env/image.env" \
-  run --rm api python manage.py migrate --noinput 2>&1 || {
-    echo "ERROR: Migrations failed or timed out" >&2
-    exit 1
-  }
 
 # For UAT/PROD, run collectstatic
 if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
@@ -165,6 +149,23 @@ echo "Starting services with docker compose up -d"
 docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
+
+# Ensure database file exists for SQLite (DEV only)
+if [[ "$ENV_NAME" == "dev" ]]; then
+  echo "Ensuring SQLite database exists"
+  touch "$APP_DIR/db.sqlite3" 2>/dev/null || {
+    sudo touch "$APP_DIR/db.sqlite3" && sudo chown $USER:$USER "$APP_DIR/db.sqlite3"
+  }
+fi
+# Run DB migrations (all envs) with timeout
+echo "Running migrations"
+timeout 300 docker compose -f "$COMPOSE_FILE" \
+  --env-file "env/${ENV_NAME}.env" \
+  --env-file "env/image.env" \
+  run --rm api python manage.py migrate --noinput 2>&1 || {
+    echo "ERROR: Migrations failed or timed out" >&2
+    exit 1
+  }
 
 # Verify health
 echo "Verifying service health"
