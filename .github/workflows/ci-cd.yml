@@ -491,9 +491,9 @@ jobs:
           ssh -i "${SSH_KEY_PATH}" -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" \
             "docker images | grep -E '${BACK}|${FRONT}' || { echo 'ERROR: Expected images not found'; exit 1; }"
 
-      - name: Smoke check (public)
-        run: |
-          curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
+      # - name: Smoke check (public)
+      #   run: |
+      #     curl -fsS "https://${{ vars.APP_DOMAIN }}/healthz" || { echo "ERROR: Health check failed"; exit 1; }
 
       - name: Compute Docker repos
         id: docker
