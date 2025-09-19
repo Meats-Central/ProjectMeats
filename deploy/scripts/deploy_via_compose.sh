@@ -128,17 +128,24 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
 fi
 
 echo "Checking for env/${ENV_NAME}.env"
-if [[ ! -f "env/${ENV_NAME}.env" ]]; then
+if [[ -f "env/${ENV_NAME}.env" ]]; then
+  echo "env/${ENV_NAME}.env found"
+else
   echo "ERROR: env/${ENV_NAME}.env not found in $APP_DIR" >&2
   exit 3
 fi
 
 # Run DB migrations (all envs)
 echo "Running migrations"
-docker compose -f "$COMPOSE_FILE" \
+migration_output=$(docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" \
-  run --rm api python manage.py migrate --noinput || { echo "ERROR: Migrations failed"; exit 1; }
+  run --rm api python manage.py migrate --noinput 2>&1)
+echo "Migration output: $migration_output"
+if [ $? -ne 0 ]; then
+  echo "ERROR: Migrations failed with output: $migration_output" >&2
+  exit 1
+fi
 
 # For UAT/PROD, run collectstatic
 if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
@@ -167,10 +174,10 @@ docker compose -f "$COMPOSE_FILE" \
 echo "Performing smoke checks"
 sleep 5
 if ! curl -fsS "http://127.0.0.1:8000/healthz" >/dev/null; then
-  echo "WARN: backend local health check failed (http://127.0.0.1:8000/healthz)" >&2
+  echo "WARN: backend local health check failed[](http://127.0.0.1:8000/healthz)" >&2
 fi
 if ! curl -fsS "https://${APP_DOMAIN}/healthz" >/dev/null; then
-  echo "ERROR: frontend public health check failed (https://${APP_DOMAIN}/healthz)" >&2
+  echo "ERROR: frontend public health check failed[](https://${APP_DOMAIN}/healthz)" >&2
   exit 1
 fi
 
