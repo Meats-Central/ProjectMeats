@@ -128,24 +128,28 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
 fi
 
 echo "Checking for env/${ENV_NAME}.env"
-if [[ -f "env/${ENV_NAME}.env" ]]; then
-  echo "env/${ENV_NAME}.env found"
-else
+if [[ ! -f "env/${ENV_NAME}.env" ]]; then
   echo "ERROR: env/${ENV_NAME}.env not found in $APP_DIR" >&2
   exit 3
 fi
 
-# Run DB migrations (all envs)
+# Ensure database file exists for SQLite (DEV only)
+if [[ "$ENV_NAME" == "dev" ]]; then
+  echo "Ensuring SQLite database exists"
+  touch "$APP_DIR/db.sqlite3" 2>/dev/null || {
+    sudo touch "$APP_DIR/db.sqlite3" && sudo chown $USER:$USER "$APP_DIR/db.sqlite3"
+  }
+fi
+
+# Run DB migrations (all envs) with timeout
 echo "Running migrations"
-migration_output=$(docker compose -f "$COMPOSE_FILE" \
+timeout 300 docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" \
-  run --rm api python manage.py migrate --noinput 2>&1)
-echo "Migration output: $migration_output"
-if [ $? -ne 0 ]; then
-  echo "ERROR: Migrations failed with output: $migration_output" >&2
-  exit 1
-fi
+  run --rm api python manage.py migrate --noinput 2>&1 || {
+    echo "ERROR: Migrations failed or timed out" >&2
+    exit 1
+  }
 
 # For UAT/PROD, run collectstatic
 if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
