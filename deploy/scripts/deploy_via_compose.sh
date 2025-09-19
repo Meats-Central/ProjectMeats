@@ -133,7 +133,11 @@ if [[ ! -f "env/${ENV_NAME}.env" ]]; then
   exit 3
 fi
 
-
+# Bring services up
+echo "Starting services with docker compose up -d"
+docker compose -f "$COMPOSE_FILE" \
+  --env-file "env/${ENV_NAME}.env" \
+  --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
 
 # For UAT/PROD, run collectstatic
 if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
@@ -143,12 +147,6 @@ if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
     --env-file "env/image.env" \
     run --rm api python manage.py collectstatic --noinput || { echo "ERROR: Collectstatic failed"; exit 1; }
 fi
-
-# Bring services up
-echo "Starting services with docker compose up -d"
-docker compose -f "$COMPOSE_FILE" \
-  --env-file "env/${ENV_NAME}.env" \
-  --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
 
 # Run DB migrations (all envs) with timeout
 echo "Running migrations"
