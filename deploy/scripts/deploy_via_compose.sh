@@ -139,24 +139,31 @@ docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
 
-# For UAT/PROD, run collectstatic
+# Run migrations and collectstatic based on environment
 if [[ "${ENV_NAME}" == "uat" || "${ENV_NAME}" == "prod" ]]; then
-  echo "Running collectstatic"
+  echo "Running migrations for $ENV_NAME"
+  timeout 300 docker compose -f "$COMPOSE_FILE" \
+    --env-file "env/${ENV_NAME}.env" \
+    --env-file "env/image.env" \
+    run --rm api python manage.py migrate --noinput 2>&1 || {
+      echo "ERROR: Migrations failed or timed out for $ENV_NAME" >&2
+      exit 1
+    }
+  echo "Running collectstatic for $ENV_NAME"
   docker compose -f "$COMPOSE_FILE" \
     --env-file "env/${ENV_NAME}.env" \
     --env-file "env/image.env" \
-    run --rm api python manage.py collectstatic --noinput || { echo "ERROR: Collectstatic failed"; exit 1; }
+    run --rm api python manage.py collectstatic --noinput || { echo "ERROR: Collectstatic failed for $ENV_NAME"; exit 1; }
+else
+  echo "Running migrations for $ENV_NAME"
+  timeout 300 docker compose -f "$COMPOSE_FILE" \
+    --env-file "env/${ENV_NAME}.env" \
+    --env-file "env/image.env" \
+    run --rm api python manage.py migrate --noinput 2>&1 || {
+      echo "ERROR: Migrations failed or timed out for $ENV_NAME" >&2
+      exit 1
+    }
 fi
-
-# Run DB migrations (all envs) with timeout
-echo "Running migrations"
-timeout 300 docker compose -f "$COMPOSE_FILE" \
-  --env-file "env/${ENV_NAME}.env" \
-  --env-file "env/image.env" \
-  run --rm api python manage.py migrate --noinput 2>&1 || {
-    echo "ERROR: Migrations failed or timed out" >&2
-    exit 1
-  }
 
 # Verify health
 echo "Verifying service health"
