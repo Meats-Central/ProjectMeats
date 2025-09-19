@@ -150,13 +150,6 @@ docker compose -f "$COMPOSE_FILE" \
   --env-file "env/${ENV_NAME}.env" \
   --env-file "env/image.env" up -d || { echo "ERROR: Compose up failed"; exit 1; }
 
-# Ensure database file exists for SQLite (DEV only)
-if [[ "$ENV_NAME" == "dev" ]]; then
-  echo "Ensuring SQLite database exists"
-  touch "$APP_DIR/db.sqlite3" 2>/dev/null || {
-    sudo touch "$APP_DIR/db.sqlite3" && sudo chown $USER:$USER "$APP_DIR/db.sqlite3"
-  }
-fi
 # Run DB migrations (all envs) with timeout
 echo "Running migrations"
 timeout 300 docker compose -f "$COMPOSE_FILE" \
