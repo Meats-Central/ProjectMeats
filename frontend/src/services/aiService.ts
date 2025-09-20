@@ -6,8 +6,8 @@
  */
 import axios from 'axios';
 
-// API Configuration - Use relative path for same-domain deployment
-const API_BASE_URL = '/api/v1';
+// API Configuration
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -129,16 +129,30 @@ export const chatApi = {
   },
 
   /**
-   * Get chat sessions
+   * Process a document with AI
+   * Fixed endpoint: /ai-assistant/ai-chat/process_document/ (from PR #63)
    */
-  getSessions: async (): Promise<ChatSession[]> => {
+  processDocument: async (data: DocumentProcessingRequest): Promise<DocumentProcessingResponse> => {
+    return apiRequest<DocumentProcessingResponse>('/ai-assistant/ai-chat/process_document/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Chat Sessions API
+export const chatSessionsApi = {
+  /**
+   * List all chat sessions for the current user
+   */
+  list: async (): Promise<ChatSession[]> => {
     return apiRequest<ChatSession[]>('/ai-assistant/ai-sessions/');
   },
 
   /**
    * Get a specific chat session
    */
-  getSession: async (sessionId: string): Promise<ChatSession> => {
+  get: async (sessionId: string): Promise<ChatSession> => {
     return apiRequest<ChatSession>(`/ai-assistant/ai-sessions/${sessionId}/`);
   },
 
