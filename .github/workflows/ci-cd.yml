@@ -2,7 +2,7 @@ name: CI → DEV → UAT → (approval) → PROD
 
 on:
   push:
-    branches: [ "dev" ]        # Trigger the full pipeline on pushes to dev
+    branches: [ "dev","main_rep","main" ]        # Trigger the full pipeline on pushes to dev
   workflow_dispatch:            # Allow manual runs
 
 concurrency:
@@ -130,7 +130,7 @@ jobs:
   deploy_dev:
     name: Deploy to DEV (auto)
     needs: [ build_test_package ]
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main_rep' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: dev
 
