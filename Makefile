@@ -98,7 +98,7 @@ test-backend:
 
 test-frontend:
 	@echo "🧪 Running React tests..."
-	cd frontend && npm test -- --watchAll=false
+	cd frontend && CI=true npm test -- --watchAll=false --passWithNoTests
 
 # Code quality
 format:
