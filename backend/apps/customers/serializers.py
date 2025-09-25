@@ -14,7 +14,10 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'id', 'name', 'contact_person', 'email', 'phone',
-            'address', 'city', 'state', 'zip_code', 'country',
+            'address', 'street_address', 'city', 'state', 'zip_code', 'country',
+            'plant', 'proteins', 'edible_inedible', 'type_of_plant',
+            'purchasing_preference_origin', 'industry', 'contacts',
+            'will_pickup_load', 'accounting_terms', 'accounting_line_of_credit',
             'created_on', 'modified_on'
         ]
         read_only_fields = ['id', 'created_on', 'modified_on']
