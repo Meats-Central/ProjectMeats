@@ -23,6 +23,7 @@ class Protein(models.Model):
 
     def __str__(self):
         return self.name
+        
 
 
 class StatusChoices(models.TextChoices):
