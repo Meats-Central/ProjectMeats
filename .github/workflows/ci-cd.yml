@@ -395,7 +395,10 @@ jobs:
     name: Deploy to PROD
     runs-on: ubuntu-latest
     needs: [ promote_and_deploy_uat, build_test_package ]
-    environment: prod
+    environment:
+      name: production
+      required_approvers:
+        - vacilator
 
     steps:
       - name: Checkout (for scripts)
