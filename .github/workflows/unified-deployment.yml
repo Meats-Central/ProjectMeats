@@ -5,7 +5,7 @@
 # triggering logic to avoid job skipping issues.
 # =============================================================================
 
-name: Unified Deployment Workflow (Fixed)
+name: Deploy to UAT2 & Production
 
 # =============================================================================
 # TRIGGERS - Simplified approach
