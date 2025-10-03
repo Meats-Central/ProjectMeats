@@ -1,27 +1,18 @@
 # =============================================================================
-# UNIFIED DEPLOYMENT WORKFLOW
+# UNIFIED DEPLOYMENT WORKFLOW (FIXED VERSION)
 # =============================================================================
-# This workflow combines all 4 separate deployment workflows:
-# - deploy-backend-production.yml
-# - deploy-backend-staging.yml
-# - deploy-frontend-production.yml
-# - deploy-frontend-staging.yml
-#
-# It maintains the exact same behavior and triggering logic as the separate workflows
+# This workflow combines all 4 separate deployment workflows with simplified
+# triggering logic to avoid job skipping issues.
 # =============================================================================
 
-name: Unified Deployment Workflow
+name: Unified Deployment Workflow (Fixed)
 
 # =============================================================================
-# TRIGGERS - Exactly matching the original 4 workflows
+# TRIGGERS - Simplified approach
 # =============================================================================
 on:
   push:
     branches: [ main, development ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/unified-deployment.yml'
   workflow_dispatch:
     inputs:
       action:
@@ -34,16 +25,64 @@ on:
         - rollback
 
 # =============================================================================
-# JOBS
+# JOBS - With proper conditional logic
 # =============================================================================
 jobs:
   # ===========================================================================
-  # BACKEND TESTING (for both staging and production)
+  # DETECT CHANGES - Determine what files changed
+  # ===========================================================================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for change detection
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          # Check what files changed in the last commit
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "Manual trigger - will run all jobs"
+          else
+            # Get changed files from the last commit
+            changed_files=$(git diff --name-only HEAD^ HEAD)
+            echo "Changed files: $changed_files"
+
+            # Check for backend changes
+            if echo "$changed_files" | grep -q "^backend/"; then
+              echo "backend=true" >> $GITHUB_OUTPUT
+              echo "Backend changes detected"
+            else
+              echo "backend=false" >> $GITHUB_OUTPUT
+              echo "No backend changes"
+            fi
+
+            # Check for frontend changes
+            if echo "$changed_files" | grep -q "^frontend/"; then
+              echo "frontend=true" >> $GITHUB_OUTPUT
+              echo "Frontend changes detected"
+            else
+              echo "frontend=false" >> $GITHUB_OUTPUT
+              echo "No frontend changes"
+            fi
+          fi
+
+  # ===========================================================================
+  # BACKEND TESTING
   # ===========================================================================
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'backend/') || contains(toJson(github.event.commits.*.added), 'backend/')
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
 
     services:
       postgres:
@@ -100,34 +139,32 @@ jobs:
         SECRET_KEY: test-secret-key-for-testing-only
         DEBUG: True
       run: |
-        # Run tests for apps only (excludes root-level test files like test_allowed_hosts_fix.py)
         python manage.py test apps/
 
     - name: 🔍 Run code quality checks
       working-directory: ./backend
-      continue-on-error: true  # Don't fail deployment on linting issues
+      continue-on-error: true
       run: |
-        # Run flake8 if available (non-blocking)
         if pip show flake8 >/dev/null 2>&1; then
           echo "Running flake8 linting..."
           flake8 . --exclude=migrations --max-line-length=120 || echo "⚠️ Flake8 found style issues (non-blocking)"
         fi
 
-        # Run black check if available (non-blocking)
         if pip show black >/dev/null 2>&1; then
           echo "Running black formatting check..."
           black --check . --exclude=migrations || echo "⚠️ Black found formatting issues (non-blocking)"
         fi
 
-        echo "✅ Code quality checks completed (issues are non-blocking for deployment)"
+        echo "✅ Code quality checks completed"
 
   # ===========================================================================
-  # FRONTEND TESTING (for both staging and production)
+  # FRONTEND TESTING
   # ===========================================================================
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'frontend/') || contains(toJson(github.event.commits.*.added), 'frontend/')
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
 
     steps:
     - name: 🔄 Checkout code
@@ -157,9 +194,13 @@ jobs:
   # ===========================================================================
   deploy-backend-staging:
     name: Deploy Backend to UAT2 Staging
-    needs: test-backend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/development' && (github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'backend/') || contains(toJson(github.event.commits.*.added), 'backend/'))
+    needs: [detect-changes, test-backend]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.backend == 'true' &&
+      github.ref == 'refs/heads/development' &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
     environment: uat2-backend
 
     steps:
@@ -168,11 +209,8 @@ jobs:
 
     - name: 🔐 Setup SSH with password authentication
       run: |
-        # Install sshpass for password authentication
         sudo apt-get update
         sudo apt-get install -y sshpass
-
-        # Add host to known_hosts
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
@@ -181,67 +219,51 @@ jobs:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
-        # Create deployment script with GitHub token
-        cat > deploy_script.sh << DEPLOY_SCRIPT
+        cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
         set -e
 
         echo "🔄 Starting UAT2 Backend deployment..."
 
-        # Navigate to project directory
         cd /home/django/ProjectMeats
 
-        # Create backup of current deployment
         echo "📦 Creating backup..."
         if [ -d "backend_backup" ]; then
           rm -rf backend_backup
         fi
         cp -r backend backend_backup
 
-        # Configure git with token authentication
         echo "🔐 Configuring git authentication..."
-        git remote set-url origin https://\${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
+        git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
 
-        # Pull latest changes from development branch
         echo "📥 Pulling latest changes..."
-
-        # Clean up any local changes and untracked files
-        echo "🧹 Cleaning local changes..."
-        git stash push -m "Deployment backup \$(date)" || true
+        git stash push -m "Deployment backup $(date)" || true
         git clean -fd
-
-        # Fetch and reset to latest development
         git fetch origin development
         git checkout development
         git reset --hard origin/development
 
         echo "✅ Successfully updated to latest development branch"
 
-        # Navigate to backend directory and activate virtual environment
         echo "🐍 Activating virtual environment..."
         cd backend
         source venv/bin/activate
 
-        # Install/update dependencies
         echo "📦 Installing dependencies..."
         pip install -r requirements.txt
 
-        # Run migrations
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
-        # Collect static files
         echo "📁 Collecting static files..."
         python manage.py collectstatic --noinput
 
-        # Test Django configuration
         echo "🧪 Testing Django configuration..."
         python manage.py check
 
         echo "✅ Backend deployment completed successfully!"
         DEPLOY_SCRIPT
 
-        # Upload and execute deployment script
         sshpass -e scp deploy_script.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
         sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
 
@@ -251,28 +273,18 @@ jobs:
       run: |
         sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'RESTART_SCRIPT'
         echo "🔄 Restarting backend services..."
-
-        # Restart gunicorn via supervisor
         sudo supervisorctl restart projectmeats-staging
-
-        # Wait a moment for service to start
         sleep 5
-
-        # Check service status
         sudo supervisorctl status projectmeats-staging
-
-        # Restart nginx
         sudo systemctl reload nginx
-
         echo "✅ Services restarted successfully!"
         RESTART_SCRIPT
 
     - name: 🏥 Health check
       run: |
         echo "🏥 Performing health check..."
-        sleep 15  # Wait for services to fully start
+        sleep 15
 
-        # Health check with retry logic
         for i in {1..5}; do
           echo "Health check attempt $i/5..."
           if curl -f -s "${{ secrets.STAGING_API_URL }}/api/v1/health/" > /dev/null; then
@@ -302,7 +314,6 @@ jobs:
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Author: ${{ github.actor }}"
           echo "🕒 Time: $(date)"
-          echo "🔍 Check the logs above for details"
         fi
 
   # ===========================================================================
@@ -310,9 +321,13 @@ jobs:
   # ===========================================================================
   deploy-backend-production:
     name: Deploy Backend to Production
-    needs: test-backend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'backend/') || contains(toJson(github.event.commits.*.added), 'backend/'))
+    needs: [detect-changes, test-backend]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.backend == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
     environment: prod2-backend
 
     steps:
@@ -321,11 +336,8 @@ jobs:
 
     - name: 🔐 Setup SSH with password authentication
       run: |
-        # Install sshpass for password authentication
         sudo apt-get update
         sudo apt-get install -y sshpass
-
-        # Add host to known_hosts
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
@@ -334,67 +346,51 @@ jobs:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
-        # Create deployment script with GitHub token
-        cat > deploy_script.sh << DEPLOY_SCRIPT
+        cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
         set -e
 
         echo "🔄 Starting PRODUCTION Backend deployment..."
 
-        # Navigate to project directory
         cd /home/django/ProjectMeats
 
-        # Create backup of current deployment
         echo "📦 Creating backup..."
         if [ -d "backend_backup" ]; then
           rm -rf backend_backup
         fi
         cp -r backend backend_backup
 
-        # Configure git with token authentication
         echo "🔐 Configuring git authentication..."
-        git remote set-url origin https://oauth2:\${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
+        git remote set-url origin https://oauth2:${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
 
-        # Pull latest changes from main branch
         echo "📥 Pulling latest changes from main branch..."
-
-        # Clean up any local changes and untracked files
-        echo "🧹 Cleaning local changes..."
-        git stash push -m "Production deployment backup \$(date)" || true
+        git stash push -m "Production deployment backup $(date)" || true
         git clean -fd
-
-        # Fetch and reset to latest main branch
         git fetch origin main
         git checkout main
         git reset --hard origin/main
 
         echo "✅ Successfully updated to latest main branch"
 
-        # Navigate to backend directory and activate virtual environment
         echo "🐍 Activating virtual environment..."
         cd backend
         source venv/bin/activate
 
-        # Install/update dependencies
         echo "📦 Installing dependencies..."
         pip install -r requirements.txt
 
-        # Run migrations
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
-        # Collect static files
         echo "📁 Collecting static files..."
         python manage.py collectstatic --noinput
 
-        # Test Django configuration
         echo "🧪 Testing Django configuration..."
         python manage.py check --deploy
 
         echo "✅ Production backend deployment completed successfully!"
         DEPLOY_SCRIPT
 
-        # Upload and execute deployment script
         sshpass -e scp deploy_script.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
         sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
 
@@ -404,28 +400,18 @@ jobs:
       run: |
         sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'RESTART_SCRIPT'
         echo "🔄 Restarting production backend services..."
-
-        # Restart gunicorn via supervisor
         sudo supervisorctl restart projectmeats-production
-
-        # Wait a moment for service to start
         sleep 10
-
-        # Check service status
         sudo supervisorctl status projectmeats-production
-
-        # Restart nginx
         sudo systemctl reload nginx
-
         echo "✅ Production services restarted successfully!"
         RESTART_SCRIPT
 
     - name: 🏥 Health check
       run: |
         echo "🏥 Performing production health check..."
-        sleep 20  # Wait for services to fully start
+        sleep 20
 
-        # Health check with retry logic
         for i in {1..10}; do
           echo "Health check attempt $i/10..."
           if curl -f -s "${{ secrets.PRODUCTION_API_URL }}/api/v1/health/" > /dev/null; then
@@ -465,9 +451,13 @@ jobs:
   # ===========================================================================
   deploy-frontend-staging:
     name: Deploy Frontend to UAT2 Staging
-    needs: test-frontend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/development' && (github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'frontend/') || contains(toJson(github.event.commits.*.added), 'frontend/'))
+    needs: [detect-changes, test-frontend]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.frontend == 'true' &&
+      github.ref == 'refs/heads/development' &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     environment: uat2
 
     steps:
@@ -485,7 +475,7 @@ jobs:
       working-directory: ./frontend
       run: npm ci
 
-    - name: 🏗️ Create production .env file
+    - name: 🏗️ Create staging .env file
       working-directory: ./frontend
       run: |
         cat > .env.production << EOF
@@ -512,11 +502,8 @@ jobs:
 
     - name: 🔐 Setup SSH with password authentication
       run: |
-        # Install sshpass for password authentication
         sudo apt-get update
         sudo apt-get install -y sshpass
-
-        # Add host to known_hosts
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
@@ -524,22 +511,18 @@ jobs:
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
       run: |
-        # Upload build to server using sshpass
         sshpass -e scp frontend-build.tar.gz ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
 
-        # Deploy via SSH using sshpass
         sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'DEPLOY_SCRIPT'
           set -e
 
           echo "🔄 Starting UAT2 deployment..."
 
-          # Create backup
           if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
             echo "📦 Creating backup..."
             sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
           fi
 
-          # Deploy new build
           echo "🚀 Deploying new build..."
           cd /tmp
           mkdir -p frontend-build-new
@@ -549,14 +532,11 @@ jobs:
           sudo mkdir -p /var/www/ProjectMeats/frontend/build
           sudo cp -r frontend-build-new/* /var/www/ProjectMeats/frontend/build/
 
-          # Set permissions
           sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
           sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
 
-          # Test nginx and reload
           sudo nginx -t && sudo systemctl reload nginx
 
-          # Cleanup
           rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
 
           echo "✅ UAT2 deployment completed!"
@@ -581,9 +561,13 @@ jobs:
   # ===========================================================================
   deploy-frontend-production:
     name: Deploy Frontend to Production
-    needs: test-frontend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || contains(toJson(github.event.commits.*.modified), 'frontend/') || contains(toJson(github.event.commits.*.added), 'frontend/'))
+    needs: [detect-changes, test-frontend]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.frontend == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     environment: prod2-frontend
 
     steps:
@@ -630,11 +614,8 @@ jobs:
 
     - name: 🔐 Setup SSH with password authentication
       run: |
-        # Install sshpass for password authentication
         sudo apt-get update
         sudo apt-get install -y sshpass
-
-        # Add host to known_hosts
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
@@ -642,22 +623,18 @@ jobs:
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
       run: |
-        # Upload build to server
         sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
-        # Deploy via SSH
         sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'DEPLOY_SCRIPT'
         set -e
 
         echo "🔄 Starting PRODUCTION Frontend deployment..."
 
-        # Create backup
         if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
           echo "📦 Creating backup..."
           sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
         fi
 
-        # Deploy new build
         echo "🚀 Deploying new production build..."
         cd /tmp
         mkdir -p frontend-build-new
@@ -667,14 +644,11 @@ jobs:
         sudo mkdir -p /var/www/ProjectMeats/frontend/build
         sudo cp -r frontend-build-new/* /var/www/ProjectMeats/frontend/build/
 
-        # Set permissions
         sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
         sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
 
-        # Test nginx and reload
         sudo nginx -t && sudo systemctl reload nginx
 
-        # Cleanup
         rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
 
         echo "✅ PRODUCTION Frontend deployment completed!"
@@ -683,9 +657,8 @@ jobs:
     - name: 🏥 Health check
       run: |
         echo "🏥 Performing production health check..."
-        sleep 15  # Wait for services to start
+        sleep 15
 
-        # Health check with retry logic
         for i in {1..8}; do
           echo "Health check attempt $i/8..."
           if curl -f -s "${{ secrets.PRODUCTION_URL }}" > /dev/null; then
@@ -752,7 +725,6 @@ jobs:
 
         cd /home/django/ProjectMeats
 
-        # Check if backup exists
         if [ ! -d "backend_backup" ]; then
           echo "❌ No backup found for rollback!"
           exit 1
@@ -760,14 +732,9 @@ jobs:
 
         echo "📦 Rolling back to previous version..."
 
-        # Stop services
         sudo supervisorctl stop projectmeats-staging
-
-        # Restore backup
         rm -rf backend
         mv backend_backup backend
-
-        # Restart services
         sudo supervisorctl start projectmeats-staging
         sleep 10
         sudo systemctl reload nginx
@@ -800,7 +767,6 @@ jobs:
 
         cd /home/django/ProjectMeats
 
-        # Check if backup exists
         if [ ! -d "backend_backup" ]; then
           echo "❌ No backup found for rollback!"
           echo "🚨 CRITICAL: Cannot rollback production!"
@@ -809,14 +775,9 @@ jobs:
 
         echo "📦 Rolling back production to previous version..."
 
-        # Stop services
         sudo supervisorctl stop projectmeats-production
-
-        # Restore backup
         rm -rf backend
         mv backend_backup backend
-
-        # Restart services
         sudo supervisorctl start projectmeats-production
         sleep 15
         sudo systemctl reload nginx
@@ -848,7 +809,6 @@ jobs:
 
         echo "🚨 Starting EMERGENCY PRODUCTION frontend rollback..."
 
-        # Find the most recent backup
         BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
 
         if [ -z "$BACKUP_DIR" ]; then
@@ -859,17 +819,10 @@ jobs:
 
         echo "📦 Rolling back to: $BACKUP_DIR"
 
-        # Remove current build
         sudo rm -rf /var/www/ProjectMeats/frontend/build
-
-        # Restore backup
         sudo cp -r "$BACKUP_DIR" /var/www/ProjectMeats/frontend/build
-
-        # Set permissions
         sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
         sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
-
-        # Reload nginx
         sudo systemctl reload nginx
 
         echo "✅ PRODUCTION frontend rollback completed!"
