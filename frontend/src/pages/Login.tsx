@@ -28,6 +28,7 @@ const Login: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    
     try {
       await login(credentials);
       navigate('/');
