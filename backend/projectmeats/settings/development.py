@@ -26,6 +26,7 @@ ALLOWED_HOSTS = [
     "157.245.114.182"
 ]
 
+
 # Database Configuration
 DATABASES = {
     "default": dj_database_url.config(
