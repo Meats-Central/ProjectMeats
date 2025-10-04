@@ -30,11 +30,22 @@ jobs:
       run: |
         doctl auth init --access-token "$DO_API_TOKEN"
 
+    - name: 🔍 Verify Cluster ID and Token
+      run: |
+        echo "🔍 Verifying configuration..."
+        echo "Cluster ID: ${{ secrets.PROD_DB_CLUSTER_ID }}"
+        echo "Cluster ID length: ${#PROD_DB_CLUSTER_ID}"
+
+        # List all databases to verify access
+        echo "📋 Listing all databases..."
+        doctl databases list
+      env:
+        PROD_DB_CLUSTER_ID: ${{ secrets.PROD_DB_CLUSTER_ID }}
+
     - name: 📋 List Production Database Backups
       run: |
-        echo "📊 Listing available backups..."
-        # Replace DATABASE_CLUSTER_ID with your actual production DB cluster ID
-        doctl databases backups list ${{ secrets.PROD_DB_CLUSTER_ID }}
+        echo "📊 Listing available backups for cluster: ${{ secrets.PROD_DB_CLUSTER_ID }}"
+        doctl databases backups list ${{ secrets.PROD_DB_CLUSTER_ID }} || echo "⚠️ Failed to list backups"
 
     - name: 🔄 Trigger Production Database Backup
       run: |
