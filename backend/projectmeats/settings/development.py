@@ -22,6 +22,8 @@ ALLOWED_HOSTS = [
     "testserver",
     "0.0.0.0",
     "dev.meatscentral.com",
+    "dev-backend.meatscentral.com",
+    "157.245.114.182"
 ]
 
 # Database Configuration
@@ -43,6 +45,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS=True
 
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
