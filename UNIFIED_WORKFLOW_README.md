@@ -137,7 +137,117 @@ The workflow (`unified-deployment.yml`) is triggered by:
    - Deploys to web server
    - Reloads nginx configuration
 
-## 3. Environment Configuration
+## 3. GitHub Environments Setup
+
+### Overview
+GitHub Environments provide deployment protection rules and environment-specific secrets. The unified workflow uses six environments to separate configurations for each deployment target.
+
+### Creating GitHub Environments
+
+**Step-by-step guide:**
+
+1. **Navigate to Repository Settings**:
+   - Go to your GitHub repository
+   - Click on **Settings** tab
+   - Click on **Environments** in the left sidebar
+
+2. **Create Required Environments**:
+   Create the following six environments:
+   - `dev-backend`
+   - `dev-frontend`
+   - `uat2-backend`
+   - `uat2` (for staging frontend)
+   - `prod2-backend`
+   - `prod2-frontend`
+
+3. **For Each Environment**:
+   - Click **New environment**
+   - Enter environment name (e.g., `dev-backend`)
+   - Click **Configure environment**
+
+### Environment Protection Rules
+
+**Development Environments** (`dev-backend`, `dev-frontend`):
+- No protection rules required
+- Automatic deployment on push to `development` branch
+
+**Staging Environments** (`uat2-backend`, `uat2`):
+- No protection rules required
+- Automatic deployment on push to `development` branch
+- Optional: Add required reviewers for additional safety
+
+**Production Environments** (`prod2-backend`, `prod2-frontend`):
+- **Recommended Protection Rules**:
+  - ✅ Required reviewers: Add 1-2 team members
+  - ✅ Wait timer: 0-5 minutes (gives time to cancel if needed)
+  - ✅ Deployment branches: Restrict to `main` branch only
+
+**Setting Protection Rules**:
+```
+Environment Settings (e.g., prod2-backend):
+├── Environment protection rules
+│   ├── ☑ Required reviewers
+│   │   └── Select reviewers: [team-member-1, team-member-2]
+│   ├── ☐ Wait timer: 0 minutes (optional)
+│   └── ☑ Deployment branches
+│       └── Selected branches: main
+└── Environment secrets (configured below)
+```
+
+### Environment Variables vs Secrets
+
+**When to use Environment Secrets**:
+- Sensitive data (passwords, API keys, tokens)
+- Environment-specific URLs and configurations
+- Data that should not be visible in logs
+
+**When to use Repository Secrets**:
+- Shared secrets across all environments (e.g., `GIT_TOKEN`)
+- SSH credentials used by multiple environments
+- Third-party service tokens
+
+### GitHub Environments Architecture
+```
+Repository: ProjectMeats
+│
+├── Environments
+│   ├── dev-backend
+│   │   ├── Protection: None
+│   │   └── Secrets: DEV_API_URL
+│   │
+│   ├── dev-frontend
+│   │   ├── Protection: None
+│   │   └── Secrets: DEV_URL, REACT_APP_*
+│   │
+│   ├── uat2-backend
+│   │   ├── Protection: Optional reviewers
+│   │   └── Secrets: STAGING_API_URL
+│   │
+│   ├── uat2
+│   │   ├── Protection: Optional reviewers
+│   │   └── Secrets: STAGING_URL, REACT_APP_*
+│   │
+│   ├── prod2-backend
+│   │   ├── Protection: Required reviewers ✓
+│   │   └── Secrets: PRODUCTION_API_URL
+│   │
+│   └── prod2-frontend
+│       ├── Protection: Required reviewers ✓
+│       └── Secrets: PRODUCTION_URL, REACT_APP_*
+│
+└── Repository Secrets (Shared)
+    ├── GIT_TOKEN
+    ├── SSH_PASSWORD
+    ├── DEV_SSH_PASSWORD
+    ├── DEV_HOST
+    ├── DEV_USER
+    ├── STAGING_HOST
+    ├── STAGING_USER
+    ├── PRODUCTION_HOST
+    └── PRODUCTION_USER
+```
+
+## 4. Environment Configuration
 
 ### Required GitHub Secrets
 
@@ -146,56 +256,150 @@ The workflow (`unified-deployment.yml`) is triggered by:
 - `SSH_PASSWORD`: SSH password for staging server
 - `DEV_SSH_PASSWORD`: SSH password for development server
 
+### How to Add Secrets to Environments
+
+**Repository-Level Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
+1. Click **New repository secret**
+2. Enter secret name (e.g., `GIT_TOKEN`)
+3. Enter secret value
+4. Click **Add secret**
+
+**Environment-Specific Secrets** (Settings → Environments → [Environment Name] → Environment secrets):
+1. Click on the environment name (e.g., `dev-backend`)
+2. Scroll to **Environment secrets** section
+3. Click **Add secret**
+4. Enter secret name and value
+5. Click **Add secret**
+
 #### Development Environment (`dev-backend` and `dev-frontend`)
 
-**Server Access:**
-- `DEV_HOST`: Development server IP/hostname
-- `DEV_USER`: SSH username (typically `django`)
-- `DEV_SSH_PASSWORD`: SSH password for development server
+**Repository Secrets (Shared across dev-backend and dev-frontend):**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `DEV_HOST` | Development server IP/hostname | `192.168.1.100` or `dev.yourdomain.com` |
+| `DEV_USER` | SSH username | `django` |
+| `DEV_SSH_PASSWORD` | SSH password for development server | `your-secure-password` |
 
-**Backend Secrets:**
-- `DEV_API_URL`: Backend API URL (e.g., `https://dev-api.yourdomain.com`)
+**Environment Secrets for `dev-backend`:**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `DEV_API_URL` | Backend API URL | `https://dev-api.yourdomain.com` or `http://192.168.1.100` |
 
-**Frontend Secrets:**
-- `DEV_URL`: Frontend URL (e.g., `https://dev.yourdomain.com`)
-- `REACT_APP_API_BASE_URL`: Backend API URL for frontend
-- `REACT_APP_AI_ASSISTANT_ENABLED`: Enable AI features (true/false)
-- `REACT_APP_ENABLE_DOCUMENT_UPLOAD`: Enable document uploads (true/false)
-- `REACT_APP_ENABLE_CHAT_EXPORT`: Enable chat exports (true/false)
-- `REACT_APP_MAX_FILE_SIZE`: Max upload size in bytes
-- `REACT_APP_SUPPORTED_FILE_TYPES`: Allowed file extensions
-- `REACT_APP_ENABLE_DEBUG`: Debug mode (true for dev)
-- `REACT_APP_ENABLE_DEVTOOLS`: DevTools enabled (true for dev)
+**Environment Secrets for `dev-frontend`:**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `DEV_URL` | Frontend URL | `https://dev.yourdomain.com` |
+| `REACT_APP_API_BASE_URL` | Backend API URL for frontend | `https://dev-api.yourdomain.com` |
+| `REACT_APP_AI_ASSISTANT_ENABLED` | Enable AI features | `true` |
+| `REACT_APP_ENABLE_DOCUMENT_UPLOAD` | Enable document uploads | `true` |
+| `REACT_APP_ENABLE_CHAT_EXPORT` | Enable chat exports | `true` |
+| `REACT_APP_MAX_FILE_SIZE` | Max upload size in bytes | `10485760` (10MB) |
+| `REACT_APP_SUPPORTED_FILE_TYPES` | Allowed file extensions | `.pdf,.doc,.docx,.txt` |
+| `REACT_APP_ENABLE_DEBUG` | Debug mode | `true` |
+| `REACT_APP_ENABLE_DEVTOOLS` | DevTools enabled | `true` |
 
 #### Staging Environment (`uat2-backend` and `uat2`)
 
-**Server Access:**
-- `STAGING_HOST`: Staging server IP/hostname
-- `STAGING_USER`: SSH username
-- `SSH_PASSWORD`: SSH password for staging server
+**Repository Secrets (Shared):**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `STAGING_HOST` | Staging server IP/hostname | `192.168.1.101` or `uat.yourdomain.com` |
+| `STAGING_USER` | SSH username | `django` |
+| `SSH_PASSWORD` | SSH password for staging server | `your-secure-password` |
 
-**Backend Secrets:**
-- `STAGING_API_URL`: Staging backend API URL
+**Environment Secrets for `uat2-backend`:**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `STAGING_API_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` |
 
-**Frontend Secrets:**
-- `STAGING_URL`: Staging frontend URL
-- `REACT_APP_API_BASE_URL`: Staging backend API URL
-- (Same REACT_APP_* variables as development)
+**Environment Secrets for `uat2` (staging frontend):**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `STAGING_URL` | Staging frontend URL | `https://uat.yourdomain.com` |
+| `REACT_APP_API_BASE_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` |
+| `REACT_APP_AI_ASSISTANT_ENABLED` | Enable AI features | `true` |
+| `REACT_APP_ENABLE_DOCUMENT_UPLOAD` | Enable document uploads | `true` |
+| `REACT_APP_ENABLE_CHAT_EXPORT` | Enable chat exports | `true` |
+| `REACT_APP_MAX_FILE_SIZE` | Max upload size in bytes | `10485760` (10MB) |
+| `REACT_APP_SUPPORTED_FILE_TYPES` | Allowed file extensions | `.pdf,.doc,.docx,.txt` |
+| `REACT_APP_ENABLE_DEBUG` | Debug mode | `true` |
+| `REACT_APP_ENABLE_DEVTOOLS` | DevTools enabled | `true` |
 
 #### Production Environment (`prod2-backend` and `prod2-frontend`)
 
-**Server Access:**
-- `PRODUCTION_HOST`: Production server IP/hostname
-- `PRODUCTION_USER`: SSH username
-- `SSH_PASSWORD`: SSH password for production server
+**Repository Secrets (Shared):**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `PRODUCTION_HOST` | Production server IP/hostname | `192.168.1.102` or `yourdomain.com` |
+| `PRODUCTION_USER` | SSH username | `django` |
+| `SSH_PASSWORD` | SSH password for production server | `your-secure-password` |
 
-**Backend Secrets:**
-- `PRODUCTION_API_URL`: Production backend API URL
+**Environment Secrets for `prod2-backend`:**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `PRODUCTION_API_URL` | Production backend API URL | `https://api.yourdomain.com` |
 
-**Frontend Secrets:**
-- `PRODUCTION_URL`: Production frontend URL
-- `REACT_APP_API_BASE_URL`: Production backend API URL
-- (Same REACT_APP_* variables, but with debug/devtools set to false)
+**Environment Secrets for `prod2-frontend`:**
+| Secret Name | Description | Example Value |
+|-------------|-------------|---------------|
+| `PRODUCTION_URL` | Production frontend URL | `https://yourdomain.com` |
+| `REACT_APP_API_BASE_URL` | Production backend API URL | `https://api.yourdomain.com` |
+| `REACT_APP_AI_ASSISTANT_ENABLED` | Enable AI features | `true` |
+| `REACT_APP_ENABLE_DOCUMENT_UPLOAD` | Enable document uploads | `true` |
+| `REACT_APP_ENABLE_CHAT_EXPORT` | Enable chat exports | `true` |
+| `REACT_APP_MAX_FILE_SIZE` | Max upload size in bytes | `10485760` (10MB) |
+| `REACT_APP_SUPPORTED_FILE_TYPES` | Allowed file extensions | `.pdf,.doc,.docx,.txt` |
+| `REACT_APP_ENABLE_DEBUG` | Debug mode | `false` ⚠️ |
+| `REACT_APP_ENABLE_DEVTOOLS` | DevTools enabled | `false` ⚠️ |
+
+**⚠️ Important**: Production should have `REACT_APP_ENABLE_DEBUG` and `REACT_APP_ENABLE_DEVTOOLS` set to `false` for security.
+
+### Quick Reference: Secrets Checklist
+
+Use this checklist when setting up a new environment:
+
+**Repository Secrets (Settings → Secrets and variables → Actions):**
+- [ ] `GIT_TOKEN` - GitHub Personal Access Token
+- [ ] `DEV_HOST` - Development server IP
+- [ ] `DEV_USER` - Development SSH user
+- [ ] `DEV_SSH_PASSWORD` - Development SSH password
+- [ ] `STAGING_HOST` - Staging server IP
+- [ ] `STAGING_USER` - Staging SSH user
+- [ ] `SSH_PASSWORD` - Staging SSH password
+- [ ] `PRODUCTION_HOST` - Production server IP
+- [ ] `PRODUCTION_USER` - Production SSH user
+
+**Environment: dev-backend**
+- [ ] `DEV_API_URL`
+
+**Environment: dev-frontend**
+- [ ] `DEV_URL`
+- [ ] `REACT_APP_API_BASE_URL`
+- [ ] `REACT_APP_AI_ASSISTANT_ENABLED`
+- [ ] `REACT_APP_ENABLE_DOCUMENT_UPLOAD`
+- [ ] `REACT_APP_ENABLE_CHAT_EXPORT`
+- [ ] `REACT_APP_MAX_FILE_SIZE`
+- [ ] `REACT_APP_SUPPORTED_FILE_TYPES`
+- [ ] `REACT_APP_ENABLE_DEBUG` (set to `true`)
+- [ ] `REACT_APP_ENABLE_DEVTOOLS` (set to `true`)
+
+**Environment: uat2-backend**
+- [ ] `STAGING_API_URL`
+
+**Environment: uat2**
+- [ ] `STAGING_URL`
+- [ ] `REACT_APP_API_BASE_URL`
+- [ ] All other `REACT_APP_*` variables (same as dev-frontend)
+
+**Environment: prod2-backend**
+- [ ] `PRODUCTION_API_URL`
+
+**Environment: prod2-frontend**
+- [ ] `PRODUCTION_URL`
+- [ ] `REACT_APP_API_BASE_URL`
+- [ ] All other `REACT_APP_*` variables
+- [ ] `REACT_APP_ENABLE_DEBUG` (set to `false`) ⚠️
+- [ ] `REACT_APP_ENABLE_DEVTOOLS` (set to `false`) ⚠️
 
 ### Server Configuration Requirements
 
