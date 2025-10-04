@@ -72,15 +72,19 @@ jobs:
         sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
         wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
         sudo apt-get update
+
+        # Remove old version and install PostgreSQL 17 client
+        sudo apt-get remove -y postgresql-client postgresql-client-16 || true
         sudo apt-get install -y postgresql-client-17
 
-        # Verify PostgreSQL version
-        pg_dump --version
+        # Verify PostgreSQL version - use explicit path
+        /usr/lib/postgresql/17/bin/pg_dump --version
 
         # Create backup file with timestamp
         BACKUP_FILE="prod_backup_$(date +%Y%m%d_%H%M%S).sql"
 
-        pg_dump "$PROD_DB_URL" \
+        # Use explicit path to pg_dump version 17
+        /usr/lib/postgresql/17/bin/pg_dump "$PROD_DB_URL" \
           --no-owner \
           --no-privileges \
           --clean \
@@ -97,7 +101,7 @@ jobs:
       run: |
         echo "🗑️ Cleaning staging database..."
 
-        psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        /usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
         echo "✅ Staging database cleaned"
 
@@ -107,7 +111,7 @@ jobs:
       run: |
         echo "📤 Restoring production backup to staging..."
 
-        psql "$STAGING_DB_URL" < "$BACKUP_FILE"
+        /usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" < "$BACKUP_FILE"
 
         echo "✅ Backup restored to staging"
 
@@ -117,7 +121,7 @@ jobs:
       run: |
         echo "🧪 Verifying staging database..."
 
-        TABLE_COUNT=$(psql "$STAGING_DB_URL" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
+        TABLE_COUNT=$(/usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
 
         echo "📊 Tables in staging: $TABLE_COUNT"
 
