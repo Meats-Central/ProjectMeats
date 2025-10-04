@@ -1106,6 +1106,47 @@ jobs:
         echo "✅ Development frontend rollback completed!"
         ROLLBACK_SCRIPT
 
+  rollback-frontend-staging:
+    name: Rollback Frontend Staging
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    environment: uat2
+
+    steps:
+    - name: 🔐 Setup SSH with password authentication
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+    - name: ⏪ Rollback staging frontend
+      env:
+        SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      run: |
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ROLLBACK_SCRIPT'
+        set -e
+
+        echo "🔄 Starting UAT2 Staging frontend rollback..."
+
+        BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+
+        if [ -z "$BACKUP_DIR" ]; then
+          echo "❌ No backup found for rollback!"
+          exit 1
+        fi
+
+        echo "📦 Rolling back to: $BACKUP_DIR"
+
+        sudo rm -rf /var/www/ProjectMeats/frontend/build
+        sudo cp -r "$BACKUP_DIR" /var/www/ProjectMeats/frontend/build
+        sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+        sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+        sudo systemctl reload nginx
+
+        echo "✅ UAT2 Staging frontend rollback completed!"
+        ROLLBACK_SCRIPT
+
   rollback-frontend-production:
     name: Rollback Frontend Production
     runs-on: ubuntu-latest
