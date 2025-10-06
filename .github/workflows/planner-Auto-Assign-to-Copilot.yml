@@ -12,8 +12,7 @@ jobs:
         with:
           script: |
             const issueId = context.issue.number;
-            const repoId = "${{ github.repository }}";
-            const copilotId = "copilot-swe-agent";  # Built-in Copilot user ID
+            const copilotId = "copilot-swe-agent"; // Built-in Copilot user ID
             await github.rest.issues.addAssignees({
               owner: context.repo.owner,
               repo: context.repo.repo,
