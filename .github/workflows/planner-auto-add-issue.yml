@@ -1,0 +1,15 @@
+name: Auto-Add Issue to Project
+on:
+  issues:
+    types: [opened]
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to ProjectMeats
+        uses: actions/add-to-project@v0.4.0
+        with:
+          project-url: https://github.com/orgs/Meats-Central/projects/2
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          label: enhancement  # Match Grok's label
+          column-id: 1  # Backlog Table column ID (get from project settings)
