@@ -1,15 +1,16 @@
-name: Auto-Add Issue to Project
+name: Auto-Add Issue to ProjectMeats
 on:
   issues:
-    types: [opened]
+    types: [opened, labeled]  # Trigger on new issues or adding labels
 jobs:
   add-to-project:
     runs-on: ubuntu-latest
     steps:
-      - name: Add issue to ProjectMeats
-        uses: actions/add-to-project@v0.4.0
+      - name: Add issue to ProjectMeats if labeled
+        uses: actions/add-to-project@v0.8.0  # Latest version (fixes resolution bugs)
+        if: github.event.label.name == 'enhancement'  # Only if labeled (e.g., from Grok)
         with:
-          project-url: https://github.com/orgs/Meats-Central/projects/PVT_kwDODbMdyc4BEjzZ
+          project-url: https://github.com/orgs/Meats-Central/projects/2  # Numeric format
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          label: enhancement  # Match Grok's label
-          column-id: 1  # Backlog Table column ID (get from project settings)
+          labeled: true  # Add if the issue is labeled
+          label-operator: OR  # For multiple labels (e.g., enhancement OR bug)
