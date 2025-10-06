@@ -9,7 +9,7 @@ jobs:
       - name: Add issue to ProjectMeats
         uses: actions/add-to-project@v0.4.0
         with:
-          project-url: https://github.com/orgs/Meats-Central/projects/2
+          project-url: https://github.com/orgs/Meats-Central/projects/PVT_kwDODbMdyc4BEjzZ
           github-token: ${{ secrets.GITHUB_TOKEN }}
           label: enhancement  # Match Grok's label
           column-id: 1  # Backlog Table column ID (get from project settings)
