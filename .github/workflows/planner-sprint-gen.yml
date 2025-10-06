@@ -1,0 +1,22 @@
+name: Generate Sprint
+on:
+  schedule:
+    - cron: '0 0 * * MON'  # Every Monday at 00:00 UTC
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign backlog to sprint
+        uses: alexandrefilipesilva/update-project-field@v1
+        with:
+          project-url: https://github.com/orgs/Meats-Central/projects/2
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          field-name: Sprint
+          new-value: "Sprint 2: Oct 14-28, 2025"
+          filters: 'priority < 4 and sprint = "Backlog"'  # Pull high-priority items
+      - name: Move to Sprint Board
+        uses: actions/add-to-project@v0.4.0
+        with:
+          project-url: https://github.com/orgs/Meats-Central/projects/2
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          column-id: 2  # Current Sprint Board "To Do" column ID
