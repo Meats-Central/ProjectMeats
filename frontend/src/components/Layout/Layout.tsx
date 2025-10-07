@@ -30,7 +30,7 @@ const Layout: React.FC = () => {
 
   const handleOmniboxSubmit = (command: string) => {
     // For now, just log the command. In a real app, this would be sent to the AI service
-    console.log('AI Command:', command);
+    console.warn('AI Command:', command);
     // You could also show a notification or redirect to a specific page based on the command
   };
 
@@ -63,7 +63,7 @@ const LayoutContainer = styled.div`
 
 const MainArea = styled.div<{ $sidebarOpen: boolean }>`
   flex: 1;
-  margin-left: ${props => props.$sidebarOpen ? '250px' : '60px'};
+  margin-left: ${(props) => (props.$sidebarOpen ? '250px' : '60px')};
   transition: margin-left 0.3s ease;
   display: flex;
   flex-direction: column;

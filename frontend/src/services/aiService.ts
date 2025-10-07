@@ -1,6 +1,6 @@
 /**
  * API Service for ProjectMeats AI Assistant
- * 
+ *
  * Handles communication with the Django REST API backend.
  * Includes fixed endpoints from PR #63.
  */
@@ -57,11 +57,11 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   };
 
   const response = await fetch(url, config);
-  
+
   if (!response.ok) {
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -70,7 +70,7 @@ export interface ChatSession {
   id: string;
   title?: string;
   session_status: 'active' | 'completed' | 'archived';
-  context_data?: Record<string, any>;
+  context_data?: Record<string, unknown>;
   last_activity: string;
   created_on: string;
   modified_on: string;
@@ -82,7 +82,7 @@ export interface ChatMessage {
   session: string;
   message_type: 'user' | 'assistant' | 'system' | 'document';
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   is_processed: boolean;
   created_on: string;
   modified_on: string;
@@ -91,7 +91,7 @@ export interface ChatMessage {
 export interface ChatRequest {
   message: string;
   session_id?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface ChatResponse {
@@ -99,13 +99,13 @@ export interface ChatResponse {
   session_id: string;
   message_id: string;
   processing_time: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DocumentProcessingRequest {
   document_id: string;
   session_id?: string;
-  processing_options?: Record<string, any>;
+  processing_options?: Record<string, unknown>;
 }
 
 export interface DocumentProcessingResponse {
@@ -113,6 +113,16 @@ export interface DocumentProcessingResponse {
   document_id: string;
   status: string;
   message: string;
+}
+
+export interface DocumentUploadResponse {
+  id: string;
+  original_filename: string;
+  file_size: number;
+  file_type: string;
+  document_type: string;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_on: string;
 }
 
 // Chat API
@@ -198,14 +208,14 @@ export const documentsApi = {
   /**
    * Upload a document
    */
-  upload: async (file: File, sessionId?: string): Promise<any> => {
+  upload: async (file: File, sessionId?: string): Promise<DocumentUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     if (sessionId) {
       formData.append('session_id', sessionId);
     }
 
-    return apiRequest<any>('/ai-assistant/ai-documents/', {
+    return apiRequest<DocumentUploadResponse>('/ai-assistant/ai-documents/', {
       method: 'POST',
       body: formData,
       headers: {}, // Remove Content-Type to let browser set it for FormData
@@ -215,15 +225,15 @@ export const documentsApi = {
   /**
    * List uploaded documents
    */
-  list: async (): Promise<any[]> => {
-    return apiRequest<any[]>('/ai-assistant/ai-documents/');
+  list: async (): Promise<DocumentUploadResponse[]> => {
+    return apiRequest<DocumentUploadResponse[]>('/ai-assistant/ai-documents/');
   },
 
   /**
    * Get document processing status
    */
-  get: async (documentId: string): Promise<any> => {
-    return apiRequest<any>(`/ai-assistant/ai-documents/${documentId}/`);
+  get: async (documentId: string): Promise<DocumentUploadResponse> => {
+    return apiRequest<DocumentUploadResponse>(`/ai-assistant/ai-documents/${documentId}/`);
   },
 };
 

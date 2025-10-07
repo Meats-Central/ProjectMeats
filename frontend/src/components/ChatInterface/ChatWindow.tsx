@@ -1,6 +1,6 @@
 /**
  * ChatWindow Component
- * 
+ *
  * Main chat interface for the AI assistant.
  * Enhanced from PR #63 to integrate file upload into MessageInput and remove separate DocumentUpload component.
  */
@@ -16,10 +16,7 @@ interface ChatWindowProps {
   onSessionChange?: (session: ChatSession | null) => void;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({
-  sessionId,
-  onSessionChange,
-}) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) => {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,26 +27,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadSession = useCallback(async (id: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const [sessionData, messagesData] = await Promise.all([
-        chatSessionsApi.get(id),
-        chatSessionsApi.getMessages(id),
-      ]);
-      
-      setSession(sessionData);
-      setMessages(messagesData);
-      onSessionChange?.(sessionData);
-    } catch (err) {
-      console.error('Error loading session:', err);
-      setError('Failed to load chat session');
-    } finally {
-      setLoading(false);
-    }
-  }, [onSessionChange]);
+  const loadSession = useCallback(
+    async (id: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [sessionData, messagesData] = await Promise.all([
+          chatSessionsApi.get(id),
+          chatSessionsApi.getMessages(id),
+        ]);
+
+        setSession(sessionData);
+        setMessages(messagesData);
+        onSessionChange?.(sessionData);
+      } catch (err) {
+        console.error('Error loading session:', err);
+        setError('Failed to load chat session');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onSessionChange]
+  );
 
   // Load session and messages
   useEffect(() => {
@@ -100,19 +100,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
-  const uploadDocument = async (file: File): Promise<any> => {
+  const uploadDocument = async (file: File): Promise<{ id: string; status: string }> => {
     try {
       setLoading(true);
       setError(null);
 
       // Upload document
       const uploadResponse = await documentsApi.upload(file, session?.id);
-      
+
       // Send a message about the upload
       const uploadMessage = `📄 I've uploaded "${file.name}" for analysis. What would you like me to help you with regarding this document?`;
       await sendMessage(uploadMessage);
 
-      return uploadResponse;
+      return {
+        id: uploadResponse.id,
+        status: uploadResponse.processing_status,
+      };
     } catch (err) {
       console.error('Error uploading document:', err);
       setError('Failed to upload document. Please try again.');
@@ -127,45 +130,57 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       <WelcomeIcon>🤖</WelcomeIcon>
       <WelcomeTitle>AI Assistant for Meat Market Operations</WelcomeTitle>
       <WelcomeSubtitle>
-        I can help you with supplier management, purchase orders, customer relationships, 
-        inventory tracking, and business intelligence. Upload documents or ask me questions to get started.
+        I can help you with supplier management, purchase orders, customer relationships, inventory
+        tracking, and business intelligence. Upload documents or ask me questions to get started.
       </WelcomeSubtitle>
-      
+
       <FeatureGrid>
         <FeatureItem>
           <FeatureIcon>📊</FeatureIcon>
           <FeatureTitle>Supplier Analysis</FeatureTitle>
-          <FeatureDescription>Track supplier performance, pricing, and delivery metrics</FeatureDescription>
+          <FeatureDescription>
+            Track supplier performance, pricing, and delivery metrics
+          </FeatureDescription>
         </FeatureItem>
-        
+
         <FeatureItem>
           <FeatureIcon>📋</FeatureIcon>
           <FeatureTitle>Purchase Orders</FeatureTitle>
-          <FeatureDescription>Manage POs, analyze spending patterns, ensure compliance</FeatureDescription>
+          <FeatureDescription>
+            Manage POs, analyze spending patterns, ensure compliance
+          </FeatureDescription>
         </FeatureItem>
-        
+
         <FeatureItem>
           <FeatureIcon>👥</FeatureIcon>
           <FeatureTitle>Customer Insights</FeatureTitle>
-          <FeatureDescription>Analyze customer data, preferences, and order history</FeatureDescription>
+          <FeatureDescription>
+            Analyze customer data, preferences, and order history
+          </FeatureDescription>
         </FeatureItem>
-        
+
         <FeatureItem>
           <FeatureIcon>📈</FeatureIcon>
           <FeatureTitle>Business Intelligence</FeatureTitle>
-          <FeatureDescription>Generate reports, pricing analysis, and market trends</FeatureDescription>
+          <FeatureDescription>
+            Generate reports, pricing analysis, and market trends
+          </FeatureDescription>
         </FeatureItem>
-        
+
         <FeatureItem>
           <FeatureIcon>📄</FeatureIcon>
           <FeatureTitle>Document Processing</FeatureTitle>
-          <FeatureDescription>Upload invoices, contracts, and receipts for AI analysis</FeatureDescription>
+          <FeatureDescription>
+            Upload invoices, contracts, and receipts for AI analysis
+          </FeatureDescription>
         </FeatureItem>
-        
+
         <FeatureItem>
           <FeatureIcon>✅</FeatureIcon>
           <FeatureTitle>Quality Compliance</FeatureTitle>
-          <FeatureDescription>USDA regulations, HACCP compliance, quality standards</FeatureDescription>
+          <FeatureDescription>
+            USDA regulations, HACCP compliance, quality standards
+          </FeatureDescription>
         </FeatureItem>
       </FeatureGrid>
     </WelcomeContainer>
@@ -194,11 +209,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Messages Area */}
       <MessagesArea>
-        {messages.length === 0 ? (
-          renderWelcomeMessage()
-        ) : (
-          <MessageList messages={messages} />
-        )}
+        {messages.length === 0 ? renderWelcomeMessage() : <MessageList messages={messages} />}
         <div ref={messagesEndRef} />
       </MessagesArea>
 
@@ -209,9 +220,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           onFileUpload={uploadDocument}
           disabled={loading}
           placeholder={
-            !session 
-              ? "Start a conversation or upload a document..."
-              : "Type your message or drag files here..."
+            !session
+              ? 'Start a conversation or upload a document...'
+              : 'Type your message or drag files here...'
           }
         />
       </InputArea>
@@ -253,7 +264,7 @@ const ErrorClose = styled.button`
   cursor: pointer;
   font-size: 18px;
   padding: 0;
-  
+
   &:hover {
     opacity: 0.7;
   }
@@ -284,7 +295,7 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   border-top-color: #667eea;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
@@ -342,7 +353,7 @@ const FeatureItem = styled.div`
   border: 1px solid #e5e7eb;
   text-align: left;
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: #d1d5db;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

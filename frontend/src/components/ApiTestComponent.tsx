@@ -11,7 +11,7 @@ const ApiTestComponent: React.FC = () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       const newSupplier = {
         name: `Test Supplier ${new Date().getTime()}`,
@@ -21,13 +21,11 @@ const ApiTestComponent: React.FC = () => {
         address: '123 Test St',
         city: 'Test City',
         state: 'TS',
-        zip_code: '12345'
+        zip_code: '12345',
       };
-      
-      console.log('Creating supplier:', newSupplier);
+
       const result = await apiService.createSupplier(newSupplier);
-      console.log('Supplier created successfully:', result);
-      
+
       setSuccess(`✅ Successfully created supplier: ${result.name} (ID: ${result.id})`);
       fetchSuppliers(); // Refresh the list
     } catch (err) {
@@ -40,9 +38,7 @@ const ApiTestComponent: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      console.log('Fetching suppliers...');
       const supplierData = await apiService.getSuppliers();
-      console.log('Fetched suppliers:', supplierData);
       setSuppliers(supplierData);
     } catch (err) {
       console.error('Error fetching suppliers:', err);
@@ -58,17 +54,17 @@ const ApiTestComponent: React.FC = () => {
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>🧪 API Test Component</h2>
       <div style={{ marginBottom: '20px' }}>
-        <button 
-          onClick={testCreateSupplier} 
+        <button
+          onClick={testCreateSupplier}
           disabled={loading}
-          style={{ 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            padding: '10px 20px', 
-            border: 'none', 
+          style={{
+            backgroundColor: '#007bff',
+            color: 'white',
+            padding: '10px 20px',
+            border: 'none',
             borderRadius: '4px',
             cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1
+            opacity: loading ? 0.6 : 1,
           }}
         >
           {loading ? '⏳ Creating...' : '✨ Test Create Supplier'}
@@ -76,25 +72,29 @@ const ApiTestComponent: React.FC = () => {
       </div>
 
       {error && (
-        <div style={{ 
-          backgroundColor: '#f8d7da', 
-          color: '#721c24', 
-          padding: '10px', 
-          borderRadius: '4px', 
-          marginBottom: '10px' 
-        }}>
+        <div
+          style={{
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '10px',
+          }}
+        >
           {error}
         </div>
       )}
 
       {success && (
-        <div style={{ 
-          backgroundColor: '#d1edff', 
-          color: '#155724', 
-          padding: '10px', 
-          borderRadius: '4px', 
-          marginBottom: '10px' 
-        }}>
+        <div
+          style={{
+            backgroundColor: '#d1edff',
+            color: '#155724',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '10px',
+          }}
+        >
           {success}
         </div>
       )}
@@ -102,16 +102,24 @@ const ApiTestComponent: React.FC = () => {
       <h3>📋 Current Suppliers ({suppliers.length})</h3>
       <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
         {suppliers.map((supplier) => (
-          <div key={supplier.id} style={{ 
-            border: '1px solid #dee2e6', 
-            padding: '10px', 
-            marginBottom: '5px', 
-            borderRadius: '4px',
-            backgroundColor: '#f8f9fa'
-          }}>
-            <strong>#{supplier.id} - {supplier.name}</strong><br />
-            Contact: {supplier.contact_person}<br />
-            Email: {supplier.email}<br />
+          <div
+            key={supplier.id}
+            style={{
+              border: '1px solid #dee2e6',
+              padding: '10px',
+              marginBottom: '5px',
+              borderRadius: '4px',
+              backgroundColor: '#f8f9fa',
+            }}
+          >
+            <strong>
+              #{supplier.id} - {supplier.name}
+            </strong>
+            <br />
+            Contact: {supplier.contact_person}
+            <br />
+            Email: {supplier.email}
+            <br />
             Phone: {supplier.phone}
           </div>
         ))}

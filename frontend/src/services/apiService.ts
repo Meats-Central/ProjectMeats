@@ -1,6 +1,6 @@
 /**
  * General API Service for ProjectMeats Business Management
- * 
+ *
  * Handles communication with all Django REST API endpoints.
  */
 import axios from 'axios';
@@ -192,7 +192,9 @@ export class ApiService {
       return response.data.results || response.data;
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
-      throw new Error('Purchase orders data unavailable. Please check your connection and try again.');
+      throw new Error(
+        'Purchase orders data unavailable. Please check your connection and try again.'
+      );
     }
   }
 
@@ -306,7 +308,10 @@ export class ApiService {
     return response.data;
   }
 
-  async updateAccountsReceivable(id: number, ar: Partial<AccountsReceivable>): Promise<AccountsReceivable> {
+  async updateAccountsReceivable(
+    id: number,
+    ar: Partial<AccountsReceivable>
+  ): Promise<AccountsReceivable> {
     const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
     return response.data;
   }

@@ -4,21 +4,21 @@ import styled from 'styled-components';
 
 const Breadcrumb: React.FC = () => {
   const location = useLocation();
-  
+
   // Create breadcrumb items from current path
-  const pathnames = location.pathname.split('/').filter(x => x);
-  
+  const pathnames = location.pathname.split('/').filter((x) => x);
+
   const breadcrumbNameMap: { [key: string]: string } = {
-    'suppliers': 'Suppliers',
-    'customers': 'Customers',
+    suppliers: 'Suppliers',
+    customers: 'Customers',
     'purchase-orders': 'Purchase Orders',
     'accounts-receivables': 'Accounts Receivables',
-    'contacts': 'Contacts',
-    'plants': 'Plants', 
-    'carriers': 'Carriers',
+    contacts: 'Contacts',
+    plants: 'Plants',
+    carriers: 'Carriers',
     'ai-assistant': 'AI Assistant',
-    'profile': 'Profile',
-    'settings': 'Settings',
+    profile: 'Profile',
+    settings: 'Settings',
   };
 
   if (pathnames.length === 0) {

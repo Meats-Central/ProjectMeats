@@ -1,5 +1,14 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import styled from 'styled-components';
 
 interface SupplierPerformanceData {
@@ -14,7 +23,10 @@ interface SupplierPerformanceChartProps {
   height?: number;
 }
 
-const SupplierPerformanceChart: React.FC<SupplierPerformanceChartProps> = ({ data, height = 300 }) => {
+const SupplierPerformanceChart: React.FC<SupplierPerformanceChartProps> = ({
+  data,
+  height = 300,
+}) => {
   return (
     <ChartContainer>
       <ChartTitle>Supplier Performance</ChartTitle>
@@ -32,7 +44,7 @@ const SupplierPerformanceChart: React.FC<SupplierPerformanceChartProps> = ({ dat
           <XAxis dataKey="name" />
           <YAxis yAxisId="left" />
           <YAxis yAxisId="right" orientation="right" />
-          <Tooltip 
+          <Tooltip
             formatter={(value: number, name: string) => {
               if (name === 'revenue') return [`$${value.toLocaleString()}`, 'Revenue'];
               if (name === 'rating') return [`${value}/5`, 'Rating'];

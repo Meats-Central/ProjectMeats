@@ -6,15 +6,15 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState({
     username: '',
-    password: ''
+    password: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Check for success message from signup
   const successMessage = location.state?.message;
 
@@ -25,16 +25,16 @@ const Login: React.FC = () => {
       return;
     }
 
-    
     setLoading(true);
     setError(null);
 
-    
     try {
       await login(credentials);
       navigate('/');
-    } catch (error: any) {
-      setError(error.message || 'Login failed. Please check your credentials.');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -42,9 +42,9 @@ const Login: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCredentials(prev => ({
+    setCredentials((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (error) setError(null);
@@ -117,12 +117,9 @@ const Login: React.FC = () => {
 
         <Footer>
           <FooterText>
-            Don't have an account?{' '}
-            <StyledLink to="/signup">Sign up here</StyledLink>
+            Don't have an account? <StyledLink to="/signup">Sign up here</StyledLink>
           </FooterText>
-          <FooterSubText>
-            Need help? Contact your administrator
-          </FooterSubText>
+          <FooterSubText>Need help? Contact your administrator</FooterSubText>
         </Footer>
       </LoginCard>
     </LoginContainer>
@@ -224,12 +221,12 @@ const Input = styled.input`
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #667eea;
   }
-  
+
   &:disabled {
     background-color: #f8f9fa;
     cursor: not-allowed;
@@ -251,12 +248,12 @@ const LoginButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   }
-  
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
@@ -271,10 +268,14 @@ const LoadingSpinner = styled.div`
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -300,7 +301,7 @@ const StyledLink = styled(Link)`
   color: #667eea;
   text-decoration: none;
   font-weight: 600;
-  
+
   &:hover {
     text-decoration: underline;
   }

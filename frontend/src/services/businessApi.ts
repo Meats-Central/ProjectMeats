@@ -1,6 +1,6 @@
 /**
  * Business API Service for ProjectMeats
- * 
+ *
  * Handles communication with business entities (suppliers, customers, etc.)
  */
 import axios from 'axios';
@@ -45,7 +45,10 @@ businessApiClient.interceptors.response.use(
 );
 
 // Generic API request helper
-async function apiRequest<T>(endpoint: string, options: {method?: string, data?: any} = {}): Promise<T> {
+async function apiRequest<T>(
+  endpoint: string,
+  options: { method?: string; data?: unknown } = {}
+): Promise<T> {
   const response = await businessApiClient.request({
     url: endpoint,
     method: options.method || 'GET',
@@ -173,7 +176,7 @@ export interface Carrier {
 function createEntityAPI<T>(entityName: string) {
   return {
     list: async (): Promise<T[]> => {
-      const response = await apiRequest<{results: T[]}>(`/${entityName}/`);
+      const response = await apiRequest<{ results: T[] }>(`/${entityName}/`);
       return response.results || [];
     },
 

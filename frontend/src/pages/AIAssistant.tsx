@@ -10,14 +10,13 @@ const AIAssistant: React.FC = () => {
     <Container>
       <Header>
         <Title>AI Assistant</Title>
-        <Subtitle>Get help with your business operations, ask questions, and receive intelligent insights</Subtitle>
+        <Subtitle>
+          Get help with your business operations, ask questions, and receive intelligent insights
+        </Subtitle>
       </Header>
-      
+
       <ChatContainer>
-        <ChatWindow 
-          sessionId={currentSession?.id}
-          onSessionChange={setCurrentSession}
-        />
+        <ChatWindow sessionId={currentSession?.id} onSessionChange={setCurrentSession} />
       </ChatContainer>
     </Container>
   );
