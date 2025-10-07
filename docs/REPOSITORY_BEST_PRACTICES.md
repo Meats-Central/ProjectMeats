@@ -29,7 +29,7 @@ ProjectMeats/
 │   ├── legacy/                # Archived docs
 │   └── *.md                   # Main documentation
 ├── deploy/                     # Deployment configurations
-├── terraform/                  # Infrastructure as code
+├── archived/                   # Archived Docker & Terraform files
 ├── mobile/                     # Mobile app (future)
 ├── .gitignore                 # Git ignore rules
 ├── Makefile                   # Development commands

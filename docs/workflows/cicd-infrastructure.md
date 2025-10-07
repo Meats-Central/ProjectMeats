@@ -1,5 +1,11 @@
 # ProjectMeats3 Deployment Documentation
 
+> **⚠️ ARCHIVED DOCUMENTATION**
+> 
+> This documentation describes a Docker and Terraform based deployment approach that is no longer actively used. The Docker and Terraform files referenced in this document have been moved to the `archived/` directory.
+> 
+> See `archived/README.md` for the location of archived files.
+
 ## Overview
 ProjectMeats3 is a full-stack application designed for managing a meat brokerage business, featuring a Django backend with REST APIs and OpenAI integration for AI-assisted features (e.g., chat, document processing), and a React frontend for user interaction. The application is deployed across three environments: DEV, UAT, and PROD, using Digital Ocean infrastructure managed by Terraform. The CI/CD pipeline, built with GitHub Actions, automates building, testing, and deployment of Docker images to GitHub Container Registry (GHCR.io). Deployment uses SSH to remote droplets, where Docker Compose orchestrates services with Traefik for routing and Let’s Encrypt for TLS.
 

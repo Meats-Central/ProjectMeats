@@ -110,32 +110,34 @@ npm run build
 # Serve build files with nginx or similar
 ```
 
-### Method 2: Docker Deployment
+### Method 2: Docker Deployment (Archived)
+
+> **Note:** Docker deployment files have been archived to `archived/docker/`. See `archived/README.md` for details.
 
 #### Development
 ```bash
-# Using docker-compose for development
-docker-compose -f config/deployment/docker-compose.dev.yml up
+# Using docker-compose for development (archived)
+docker-compose -f archived/docker/docker-compose.dev.yml up
 ```
 
 #### Staging
 ```bash
-# Build and push images
-docker build -t projectmeats/backend:staging backend/
-docker build -t projectmeats/frontend:staging frontend/
+# Build and push images (archived)
+docker build -f archived/docker/Dockerfile.backend -t projectmeats/backend:staging backend/
+docker build -f archived/docker/Dockerfile.frontend -t projectmeats/frontend:staging frontend/
 
-# Deploy with docker-compose
-docker-compose -f config/deployment/docker-compose.staging.yml up -d
+# Deploy with docker-compose (archived)
+docker-compose -f archived/docker/docker-compose.staging.config.yml up -d
 ```
 
 #### Production
 ```bash
-# Build and push images
-docker build -t projectmeats/backend:latest backend/
-docker build -t projectmeats/frontend:latest frontend/
+# Build and push images (archived)
+docker build -f archived/docker/Dockerfile.backend -t projectmeats/backend:latest backend/
+docker build -f archived/docker/Dockerfile.frontend -t projectmeats/frontend:latest frontend/
 
-# Deploy with docker swarm
-docker stack deploy -c config/deployment/docker-compose.prod.yml projectmeats
+# Deploy with docker swarm (archived)
+docker stack deploy -c archived/docker/docker-compose.prod.yml projectmeats
 ```
 
 ## Platform-Specific Deployments
