@@ -218,6 +218,30 @@ When working on tenant-aware features:
 
 ## Testing Strategy
 
+### Pre-commit Hooks
+
+We use pre-commit hooks to ensure code quality and consistency. To set up:
+
+```bash
+# Install pre-commit (included in backend/requirements.txt)
+pip install pre-commit
+
+# Install the git hook scripts
+pre-commit install
+
+# (Optional) Run against all files to verify setup
+pre-commit run --all-files
+```
+
+Pre-commit hooks will automatically:
+- Format Python code with Black
+- Sort imports with isort
+- Lint Python code with flake8
+- Fix trailing whitespace and line endings
+- Check for large files and merge conflicts
+
+**Optional Frontend Hooks**: Additional hooks for TypeScript/JavaScript formatting with Prettier are available in `.pre-commit-config-frontend.yaml`. These can be merged into the main config if needed.
+
 ### Backend Testing
 ```bash
 # Run all tests
