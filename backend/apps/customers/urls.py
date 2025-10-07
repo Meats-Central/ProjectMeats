@@ -4,9 +4,9 @@ from apps.customers.views import CustomerViewSet
 
 # Create a router and register our viewsets
 router = DefaultRouter()
-router.register(r'customers', CustomerViewSet)
+router.register(r"customers", CustomerViewSet)
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

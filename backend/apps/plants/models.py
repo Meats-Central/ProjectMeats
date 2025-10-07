@@ -1,36 +1,43 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Plant(models.Model):
     PLANT_TYPE_CHOICES = [
-        ('processing', 'Processing Plant'),
-        ('distribution', 'Distribution Center'),
-        ('warehouse', 'Warehouse'),
-        ('retail', 'Retail Location'),
-        ('other', 'Other'),
+        ("processing", "Processing Plant"),
+        ("distribution", "Distribution Center"),
+        ("warehouse", "Warehouse"),
+        ("retail", "Retail Location"),
+        ("other", "Other"),
     ]
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
-    plant_type = models.CharField(max_length=20, choices=PLANT_TYPE_CHOICES, default='processing')
+    plant_type = models.CharField(
+        max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
+    )
     address = models.TextField()
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     zip_code = models.CharField(max_length=20)
-    country = models.CharField(max_length=100, default='USA')
+    country = models.CharField(max_length=100, default="USA")
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     manager = models.CharField(max_length=100, blank=True)
-    capacity = models.PositiveIntegerField(help_text='Capacity in units', null=True, blank=True)
+    capacity = models.PositiveIntegerField(
+        help_text="Capacity in units", null=True, blank=True
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
-        ordering = ['name']
-        verbose_name = 'Plant'
-        verbose_name_plural = 'Plants'
+        ordering = ["name"]
+        verbose_name = "Plant"
+        verbose_name_plural = "Plants"
 
     def __str__(self):
         return f"{self.code} - {self.name}"

@@ -24,8 +24,13 @@ class Protein(models.Model):
     def __str__(self):
         return self.name
 
-        
-        
+
+class EdibleInedibleChoices(models.TextChoices):
+    """Common choices for edible/inedible product types."""
+
+    EDIBLE = "Edible", "Edible"
+    INEDIBLE = "Inedible", "Inedible"
+    BOTH = "Edible & Inedible", "Edible & Inedible"
 
 
 class StatusChoices(models.TextChoices):

@@ -13,7 +13,14 @@ class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
         fields = [
-            'id', 'first_name', 'last_name', 'email', 'phone',
-            'company', 'position', 'created_on', 'modified_on'
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "company",
+            "position",
+            "created_on",
+            "modified_on",
         ]
-        read_only_fields = ['id', 'created_on', 'modified_on']
+        read_only_fields = ["id", "created_on", "modified_on"]

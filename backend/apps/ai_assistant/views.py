@@ -15,10 +15,13 @@ from rest_framework.response import Response
 
 from .models import ChatMessage, ChatSession, MessageTypeChoices, AIConfiguration
 from .serializers import (
-    ChatBotRequestSerializer, ChatBotResponseSerializer,
-    ChatMessageCreateSerializer, ChatMessageSerializer,
-    ChatSessionDetailSerializer, ChatSessionListSerializer,
-    AIConfigurationSerializer
+    ChatBotRequestSerializer,
+    ChatBotResponseSerializer,
+    ChatMessageCreateSerializer,
+    ChatMessageSerializer,
+    ChatSessionDetailSerializer,
+    ChatSessionListSerializer,
+    AIConfigurationSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ChatSessionViewSet(viewsets.ModelViewSet):
     """ViewSet for managing chat sessions."""
-    
+
     queryset = ChatSession.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -55,7 +58,7 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
 
 class ChatMessageViewSet(viewsets.ModelViewSet):
     """ViewSet for managing chat messages."""
-    
+
     queryset = ChatMessage.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
@@ -75,7 +78,7 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
 
 class ChatBotAPIViewSet(viewsets.ViewSet):
     """Simplified chat API for frontend integration."""
-    
+
     permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["post"])
@@ -97,8 +100,7 @@ class ChatBotAPIViewSet(viewsets.ViewSet):
                     session = ChatSession.objects.get(id=session_id, owner=request.user)
                 except ChatSession.DoesNotExist:
                     return Response(
-                        {"error": "Session not found"}, 
-                        status=status.HTTP_404_NOT_FOUND
+                        {"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND
                     )
             else:
                 # Create new session
@@ -126,7 +128,7 @@ class ChatBotAPIViewSet(viewsets.ViewSet):
                 "model": "gpt-4o-mini",
                 "provider": "openai",
                 "tokens_used": len(user_message) // 4,
-                "response_type": "mock"
+                "response_type": "mock",
             }
 
             # Create AI response message
@@ -171,34 +173,40 @@ class ChatBotAPIViewSet(viewsets.ViewSet):
     def _generate_mock_response(self, user_message: str) -> str:
         """Generate a mock AI response for demonstration purposes."""
         message_lower = user_message.lower()
-        
+
         # Meat industry specific responses
-        if any(word in message_lower for word in ['supplier', 'suppliers']):
+        if any(word in message_lower for word in ["supplier", "suppliers"]):
             return "I can help you manage your meat suppliers. Our system tracks supplier performance, pricing, and delivery schedules. Would you like me to show you current supplier metrics or help you find new suppliers for specific meat products?"
-        
-        elif any(word in message_lower for word in ['purchase order', 'po', 'order']):
+
+        elif any(word in message_lower for word in ["purchase order", "po", "order"]):
             return "I can assist with purchase order management. I can help you create new POs, track existing orders, analyze spending patterns, and ensure compliance with quality standards. What specific aspect of purchase order management would you like help with?"
-        
-        elif any(word in message_lower for word in ['customer', 'customers', 'client']):
+
+        elif any(word in message_lower for word in ["customer", "customers", "client"]):
             return "I can help you manage customer relationships and analyze customer data. Our system tracks customer preferences, order history, and payment patterns. Would you like to review customer performance or get insights about customer trends?"
-        
-        elif any(word in message_lower for word in ['inventory', 'stock']):
+
+        elif any(word in message_lower for word in ["inventory", "stock"]):
             return "I can help you monitor inventory levels, track product movements, and optimize stock management. Our system provides real-time inventory data and can suggest reorder points. What inventory information do you need?"
-        
-        elif any(word in message_lower for word in ['price', 'pricing', 'cost']):
+
+        elif any(word in message_lower for word in ["price", "pricing", "cost"]):
             return "I can analyze pricing trends, compare supplier costs, and help optimize your procurement strategy. Our system tracks historical pricing data and market trends. Would you like to see current price analysis or historical trends?"
-        
-        elif any(word in message_lower for word in ['quality', 'compliance', 'inspection']):
+
+        elif any(
+            word in message_lower for word in ["quality", "compliance", "inspection"]
+        ):
             return "I can help you manage quality standards and compliance requirements. Our system tracks USDA regulations, HACCP compliance, and quality inspection results. What quality management information do you need?"
-        
-        elif any(word in message_lower for word in ['delivery', 'shipping', 'logistics']):
+
+        elif any(
+            word in message_lower for word in ["delivery", "shipping", "logistics"]
+        ):
             return "I can help you track deliveries, optimize logistics, and manage carrier relationships. Our system monitors delivery performance and can suggest improvements. What delivery or logistics information would you like?"
-        
-        elif any(word in message_lower for word in ['report', 'analytics', 'analysis']):
+
+        elif any(word in message_lower for word in ["report", "analytics", "analysis"]):
             return "I can generate various reports and analytics for your meat business operations. Available reports include supplier performance, customer analysis, inventory trends, and financial summaries. What type of analysis would you like me to prepare?"
-        
-        elif 'hello' in message_lower or 'hi' in message_lower or 'help' in message_lower:
+
+        elif (
+            "hello" in message_lower or "hi" in message_lower or "help" in message_lower
+        ):
             return "Hello! I'm your AI assistant for meat market operations. I can help you with supplier management, purchase orders, customer relationships, inventory tracking, pricing analysis, and compliance. What would you like assistance with today?"
-        
+
         else:
             return f"Thank you for your message. I'm designed to help with meat market operations including supplier management, purchase orders, customer relationships, and business analytics. I understand you mentioned: '{user_message[:100]}...' - could you provide more specific details about what you'd like help with?"

@@ -6,7 +6,7 @@ Defines supplier entities and related business logic.
 from django.db import models
 
 from apps.contacts.models import Contact
-from apps.core.models import Protein, TimestampModel
+from apps.core.models import EdibleInedibleChoices, Protein, TimestampModel
 from apps.plants.models import Plant
 
 
@@ -54,11 +54,7 @@ class Supplier(TimestampModel):
     )
     edible_inedible = models.CharField(
         max_length=50,
-        choices=[
-            ("Edible", "Edible"),
-            ("Inedible", "Inedible"),
-            ("Edible & Inedible", "Edible & Inedible"),
-        ],
+        choices=EdibleInedibleChoices.choices,
         blank=True,
         help_text="Type of products supplied",
     )
