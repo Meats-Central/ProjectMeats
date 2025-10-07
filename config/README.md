@@ -102,3 +102,10 @@ Common issues and solutions:
 - **Database errors**: Verify DATABASE_URL format and credentials
 - **AI errors**: Ensure API keys are valid and have sufficient credits
 - **File upload errors**: Check file size limits and supported types
+
+## Additional Documentation
+
+For comprehensive environment configuration documentation, see:
+- **[Environment Guide](../docs/ENVIRONMENT_GUIDE.md)** - Complete environment configuration guide
+- **[Documentation Hub](../docs/README.md)** - Central documentation navigation
+- **[User Deployment Guide](../USER_DEPLOYMENT_GUIDE.md)** - Deployment instructions

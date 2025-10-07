@@ -99,18 +99,37 @@ When creating issues for Copilot to handle, use these templates:
 
 ### 1. Setup Development Environment
 
+**Recommended Setup (using centralized config):**
 ```bash
-# Backend setup
+# Use centralized environment manager
+python config/manage_env.py setup development
+
+# Install backend dependencies
 cd backend
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 
-# Frontend setup (separate terminal)
+# Install frontend dependencies (separate terminal)
 cd frontend
 npm install
 npm start
 ```
+
+**Alternative Setup (using Makefile):**
+```bash
+# Complete setup (backend + frontend)
+make setup
+
+# Run development servers
+make dev
+
+# Or run individually
+make backend   # Backend only
+make frontend  # Frontend only
+```
+
+**See [Environment Guide](docs/ENVIRONMENT_GUIDE.md) for detailed environment configuration.**
 
 ### 2. Making Changes
 
@@ -118,7 +137,21 @@ npm start
 2. **Use Copilot**: For implementation tasks, tag issues with `copilot-ready`
 3. **Follow TDD**: Write tests first, then implement
 4. **Code Review**: All PRs require human review
-5. **Test Coverage**: Maintain >90% test coverage
+5. **Test Coverage**: Aim for 80%+ coverage (95%+ for critical paths)
+6. **Documentation**: Update relevant docs with your changes
+7. **Commit Messages**: Use [Conventional Commits](https://www.conventionalcommits.org/) format
+
+**Example Commit Message:**
+```
+feat(customers): add customer export functionality
+
+Add CSV and Excel export options for customer data.
+Includes filtering and custom field selection.
+
+Closes #123
+```
+
+**See [Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md) for detailed workflow guidelines.**
 
 ### 3. Multi-Tenancy Considerations
 
@@ -132,10 +165,35 @@ When working on tenant-aware features:
 
 ### 4. Code Style
 
-- **Backend**: Follow PEP 8, use `black` and `flake8`
-- **Frontend**: Use TypeScript, follow React best practices
-- **Database**: Use descriptive migration names
-- **APIs**: Follow RESTful conventions
+**Backend (Python):**
+- Follow PEP 8 style guide
+- Use `black` for formatting: `cd backend && black . --exclude=migrations`
+- Use `flake8` for linting: `flake8 . --exclude=migrations`
+- Use `isort` for import sorting: `isort . --skip=migrations`
+- Add type hints where appropriate
+- Write Google-style docstrings
+
+**Frontend (TypeScript/React):**
+- Use TypeScript for type safety
+- Follow React best practices and hooks patterns
+- Use `eslint` for linting: `npm run lint`
+- Use `prettier` for formatting: `npm run format`
+- Write comprehensive prop types
+- Follow component composition patterns
+
+**Database:**
+- Use descriptive migration names
+- Add comments for complex migrations
+- Test migrations with rollback scenarios
+
+**APIs:**
+- Follow RESTful conventions (see [Backend Architecture](docs/BACKEND_ARCHITECTURE.md))
+- Use proper HTTP methods and status codes
+- Implement pagination for list endpoints
+- Add filtering and search capabilities
+- Document all endpoints with OpenAPI/Swagger
+
+**See [Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md) for complete code quality guidelines.**
 
 ## Architecture Guidelines
 
@@ -163,25 +221,29 @@ When working on tenant-aware features:
 ### Backend Testing
 ```bash
 # Run all tests
-python manage.py test
+cd backend && python manage.py test
 
 # Run with coverage
-pytest --cov=.
+coverage run --source='.' manage.py test
+coverage report
 
 # Test specific app
 python manage.py test apps.customers
+
+# Using Makefile
+make test-backend
 ```
 
 ### Frontend Testing
 ```bash
 # Run unit tests
-npm test
+cd frontend && npm test
 
-# Run with coverage
+# Run in CI mode (no watch)
 npm run test:ci
 
-# E2E tests (when implemented)
-npm run test:e2e
+# Using Makefile
+make test-frontend
 ```
 
 ### Multi-Tenant Testing
@@ -189,6 +251,8 @@ npm run test:e2e
 - Verify data isolation
 - Test tenant switching
 - Validate permissions
+
+**See [Testing Strategy](docs/TESTING_STRATEGY.md) for comprehensive testing guidelines, examples, and best practices.**
 
 ## Deployment Process
 
@@ -220,16 +284,32 @@ npm run test:e2e
 
 ## Documentation
 
+### Documentation Structure
+
+ProjectMeats maintains comprehensive documentation in the `docs/` directory:
+
+- **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
+- **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
+- **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
+- **[Testing Strategy](docs/TESTING_STRATEGY.md)** - Comprehensive testing guide
+- **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
+- **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Deployment procedures
+
+### Documentation Requirements
+
+When contributing:
 - **API Documentation**: Auto-generated with DRF Spectacular
-- **Code Documentation**: Docstrings for all public functions
+- **Code Documentation**: Docstrings for all public functions (Google-style)
 - **Architecture Documentation**: Keep ADRs (Architecture Decision Records)
 - **User Documentation**: Maintain user guides and tutorials
+- **Update Docs**: Always update relevant documentation with code changes
 
 ## Getting Help
 
 - **Issues**: Create detailed issues using templates above
 - **Discussions**: Use GitHub Discussions for questions
-- **Documentation**: Check existing docs first
+- **Documentation**: Check the [Documentation Hub](docs/README.md) first
 - **Code Review**: Tag appropriate reviewers
 
 ## Labels for Issues
