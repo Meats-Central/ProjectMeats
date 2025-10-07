@@ -15,11 +15,13 @@ from .base import *  # noqa
 DEBUG = False
 SECRET_KEY = config("SECRET_KEY", default="temp-key-for-build-phase-only-not-secure")
 
+
 # Helper: split comma-separated env values into a cleaned list
 def _split_list(val: str | None) -> list[str]:
     if not val:
         return []
     return [item.strip() for item in val.split(",") if item.strip()]
+
 
 # Common internal/container hosts expected in CI and containerized envs
 _COMMON_INTERNAL_HOSTS = [
@@ -33,13 +35,17 @@ _COMMON_INTERNAL_HOSTS = [
 ]
 
 # External + internal hosts from env
-_ext_hosts = _split_list(os.environ.get("ALLOWED_HOSTS", ""))              # e.g. "example.com,api.example.com"
-_int_hosts = _split_list(os.environ.get("INTERNAL_ALLOWED_HOSTS", ""))     # e.g. "10.244.45.4,localhost"
+_ext_hosts = _split_list(
+    os.environ.get("ALLOWED_HOSTS", "")
+)  # e.g. "example.com,api.example.com"
+_int_hosts = _split_list(
+    os.environ.get("INTERNAL_ALLOWED_HOSTS", "")
+)  # e.g. "10.244.45.4,localhost"
 
 # Build ALLOWED_HOSTS: keep order, remove duplicates, ensure internal fallbacks always present
 _seen: set[str] = set()
 ALLOWED_HOSTS: list[str] = []
-for h in (_ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS):
+for h in _ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS:
     if h not in _seen:
         _seen.add(h)
         ALLOWED_HOSTS.append(h)
@@ -49,7 +55,9 @@ for h in (_ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS):
 # -----------------------------------------------------------------------------
 DATABASES = {
     "default": dj_database_url.config(
-        default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"),  # noqa: F405
+        default=config(
+            "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
+        ),  # noqa: F405
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -99,7 +107,9 @@ _CSRF = "django.middleware.csrf.CsrfViewMiddleware"
 if _SESSION not in MIDDLEWARE:  # noqa: F405
     # place early (right after SecurityMiddleware if present)
     try:
-        sec_idx = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware")  # noqa: F405
+        sec_idx = MIDDLEWARE.index(
+            "django.middleware.security.SecurityMiddleware"
+        )  # noqa: F405
         MIDDLEWARE.insert(sec_idx + 1, _SESSION)  # noqa: F405
     except ValueError:
         MIDDLEWARE.insert(0, _SESSION)  # noqa: F405
@@ -107,7 +117,9 @@ if _SESSION not in MIDDLEWARE:  # noqa: F405
 if _CSRF not in MIDDLEWARE:  # noqa: F405
     # after CommonMiddleware if present, but after SessionMiddleware for sure
     try:
-        common_idx = MIDDLEWARE.index("django.middleware.common.CommonMiddleware")  # noqa: F405
+        common_idx = MIDDLEWARE.index(
+            "django.middleware.common.CommonMiddleware"
+        )  # noqa: F405
         insert_at = common_idx + 1
     except ValueError:
         insert_at = len(MIDDLEWARE)  # noqa: F405
@@ -116,10 +128,10 @@ if _CSRF not in MIDDLEWARE:  # noqa: F405
 # Fix order if needed
 try:
     s_idx = MIDDLEWARE.index(_SESSION)  # noqa: F405
-    c_idx = MIDDLEWARE.index(_CSRF)     # noqa: F405
+    c_idx = MIDDLEWARE.index(_CSRF)  # noqa: F405
     if s_idx > c_idx:
-        MIDDLEWARE.pop(s_idx)           # noqa: F405
-        c_idx = MIDDLEWARE.index(_CSRF) # noqa: F405
+        MIDDLEWARE.pop(s_idx)  # noqa: F405
+        c_idx = MIDDLEWARE.index(_CSRF)  # noqa: F405
         MIDDLEWARE.insert(c_idx, _SESSION)  # noqa: F405
 except ValueError:
     pass
@@ -142,7 +154,18 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = [
-    "jpg", "jpeg", "png", "gif", "webp", "zip", "gz", "tgz", "bz2", "tbz", "xz", "br"
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "zip",
+    "gz",
+    "tgz",
+    "bz2",
+    "tbz",
+    "xz",
+    "br",
 ]
 MEDIA_ROOT = BASE_DIR / "media"  # noqa: F405
 

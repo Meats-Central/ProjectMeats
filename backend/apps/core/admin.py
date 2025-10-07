@@ -10,7 +10,7 @@ from apps.core.models import Protein
 @admin.register(Protein)
 class ProteinAdmin(admin.ModelAdmin):
     """Admin interface for Protein model."""
-    
-    list_display = ['name']
-    search_fields = ['name']
-    ordering = ['name']
+
+    list_display = ["name"]
+    search_fields = ["name"]
+    ordering = ["name"]

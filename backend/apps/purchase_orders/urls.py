@@ -4,9 +4,9 @@ from apps.purchase_orders.views import PurchaseOrderViewSet
 
 # Create a router and register our viewsets
 router = DefaultRouter()
-router.register(r'purchase-orders', PurchaseOrderViewSet)
+router.register(r"purchase-orders", PurchaseOrderViewSet)
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]
