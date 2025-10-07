@@ -24,6 +24,10 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[UI/UX Enhancements](UI_UX_ENHANCEMENTS.md)** - UI/UX implementation guide
 - **[TODO Log](TODO_LOG.md)** - Development progress and task tracking
 
+#### 📋 Repository Maintenance
+- **[Platform Core Components Audit](REPO_AUDIT_PLATFORM_CORE.md)** - Comprehensive repository audit report
+- **[Cleanup Checklist](CLEANUP_CHECKLIST.md)** - Actionable cleanup tasks from audit
+
 ## 📁 Documentation Structure
 
 ```
@@ -37,6 +41,8 @@ docs/
 ├── DEPLOYMENT_GUIDE.md                # Comprehensive deployment guide
 ├── UI_UX_ENHANCEMENTS.md             # UI/UX implementation details
 ├── TODO_LOG.md                        # Development progress tracking
+├── REPO_AUDIT_PLATFORM_CORE.md       # Platform core components audit
+├── CLEANUP_CHECKLIST.md              # Repository cleanup tasks
 ├── guides/                            # Step-by-step guides
 ├── workflows/                         # CI/CD workflow documentation
 │   ├── unified-workflow.md           # Main unified workflow documentation
@@ -78,6 +84,10 @@ docs/
 **Contribute to the project:**
 - Read [Contributing Guide](../CONTRIBUTING.md)
 - Review [TODO Log](TODO_LOG.md) for current tasks
+
+**Maintain the repository:**
+- Review [Repository Audit Report](REPO_AUDIT_PLATFORM_CORE.md)
+- Follow [Cleanup Checklist](CLEANUP_CHECKLIST.md)
 
 **Troubleshoot issues:**
 - Check relevant guide's troubleshooting section
