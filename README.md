@@ -238,6 +238,13 @@ make test-frontend     # React tests only
 
 **Coverage**: 95+ backend tests covering all business logic, API endpoints, and data models.
 
+**Core Components**: 84% coverage with comprehensive tests for:
+- Base models (Protein, StatusModel, TimestampModel, OwnedModel)
+- Environment management flows
+- Configuration validation
+
+See **[Core Architecture](docs/CORE_ARCHITECTURE.md)** for detailed model hierarchy and testing documentation.
+
 ## 🛠️ Deployment Tools
 
 This repository includes comprehensive deployment tools:
@@ -263,6 +270,7 @@ This repository includes comprehensive deployment tools:
 - **[User Deployment Guide](USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment (30 minutes)
 - **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
+- **[Core Architecture](docs/CORE_ARCHITECTURE.md)** - Core components and base models architecture
 
 ### CI/CD & Workflows
 - **[Unified Workflow](docs/workflows/unified-workflow.md)** - Main CI/CD workflow documentation

@@ -17,6 +17,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[CI/CD Workflows](workflows/)** - GitHub Actions workflows and automation
 
 #### 🔧 Development Guides
+- **[Core Architecture](CORE_ARCHITECTURE.md)** - Core components and base models architecture
 - **[UI/UX Enhancements](UI_UX_ENHANCEMENTS.md)** - UI/UX implementation guide
 - **[TODO Log](TODO_LOG.md)** - Development progress and task tracking
 
@@ -25,6 +26,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 ```
 docs/
 ├── README.md (this file)              # Documentation navigation hub
+├── CORE_ARCHITECTURE.md               # Core components and base models
 ├── ENVIRONMENT_GUIDE.md               # Environment configuration
 ├── DEPLOYMENT_GUIDE.md                # Comprehensive deployment guide
 ├── UI_UX_ENHANCEMENTS.md             # UI/UX implementation details
@@ -61,6 +63,7 @@ docs/
 **Set up my development environment:**
 - Follow [Main README Quick Setup](../README.md#-quick-setup)
 - Configure environment with [Environment Guide](ENVIRONMENT_GUIDE.md)
+- Understand core models with [Core Architecture](CORE_ARCHITECTURE.md)
 
 **Understand CI/CD workflows:**
 - Read [Unified Workflow Documentation](workflows/unified-workflow.md)
