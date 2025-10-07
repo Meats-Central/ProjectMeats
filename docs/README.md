@@ -17,6 +17,9 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[CI/CD Workflows](workflows/)** - GitHub Actions workflows and automation
 
 #### 🔧 Development Guides
+- **[Backend Architecture](BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
+- **[Frontend Architecture](FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
+- **[Testing Strategy](TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[UI/UX Enhancements](UI_UX_ENHANCEMENTS.md)** - UI/UX implementation guide
 - **[TODO Log](TODO_LOG.md)** - Development progress and task tracking
 
@@ -25,6 +28,9 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 ```
 docs/
 ├── README.md (this file)              # Documentation navigation hub
+├── BACKEND_ARCHITECTURE.md            # Django backend architecture and patterns
+├── FRONTEND_ARCHITECTURE.md           # React frontend architecture and components
+├── TESTING_STRATEGY.md                # Comprehensive testing guide and best practices
 ├── ENVIRONMENT_GUIDE.md               # Environment configuration
 ├── DEPLOYMENT_GUIDE.md                # Comprehensive deployment guide
 ├── UI_UX_ENHANCEMENTS.md             # UI/UX implementation details
