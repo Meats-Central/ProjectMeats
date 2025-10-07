@@ -36,6 +36,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+*.env.backup
+.env.*.backup
 
 # Python virtual environments
 venv/
@@ -77,6 +79,9 @@ tmp/
 temp/
 *.tmp
 *.temp
+*_backup.py
+*_original*.py
+*.backup
 
 # Deployment artifacts
 .digitalocean/

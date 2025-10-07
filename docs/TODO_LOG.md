@@ -102,10 +102,11 @@ This file tracks the progress of converting ProjectMeats from a single-tenant Po
 ## Phase 3: Distribution & Infrastructure
 
 ### 📋 Task 6: Automated Client Provisioning
-- **Status**: Pending
+- **Status**: Archived (moved to archived/terraform)
 - **Branch**: `feature/provisioning`
+- **Note**: Terraform infrastructure files have been archived as the project moved away from this deployment approach.
 - **Requirements**:
-  - [ ] Create Terraform scripts for DigitalOcean Droplets/Apps
+  - [ ] ~~Create Terraform scripts for DigitalOcean Droplets/Apps~~ (archived)
   - [ ] Set up database provisioning automation
   - [ ] Configure container orchestration
   - [ ] Integrate with tenant creation API

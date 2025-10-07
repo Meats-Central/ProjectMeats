@@ -11,14 +11,12 @@ config/
 │   ├── development.env        # Development environment
 │   ├── staging.env           # Staging environment  
 │   └── production.env        # Production environment
-├── shared/                    # Shared configuration templates
-│   ├── backend.env.template  # Backend environment template
-│   └── frontend.env.template # Frontend environment template
-└── deployment/               # Deployment configurations
-    ├── docker-compose.dev.yml
-    ├── docker-compose.staging.yml
-    └── docker-compose.prod.yml
+└── shared/                    # Shared configuration templates
+    ├── backend.env.template  # Backend environment template
+    └── frontend.env.template # Frontend environment template
 ```
+
+**Note:** Docker-related deployment configurations have been archived to `archived/docker/`. See `archived/README.md` for details.
 
 ## Environment Management
 
