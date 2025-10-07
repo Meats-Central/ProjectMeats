@@ -8,7 +8,9 @@ This folder contains the previous deployment documentation that has been replace
 - `production_checklist.md` - The original production checklist (very long format)
 
 ## Current Documentation:
-**Please use [`USER_DEPLOYMENT_GUIDE.md`](../USER_DEPLOYMENT_GUIDE.md) instead** - it's a streamlined, tested, 30-minute deployment guide.
+**Please use [`USER_DEPLOYMENT_GUIDE.md`](../../USER_DEPLOYMENT_GUIDE.md) instead** - it's a streamlined, tested, 30-minute deployment guide.
+
+For comprehensive documentation navigation, see the [Documentation Hub](../README.md).
 
 ## Why these files were archived:
 - **Documentation fragmentation** - Multiple overlapping guides caused confusion

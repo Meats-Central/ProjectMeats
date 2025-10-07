@@ -224,12 +224,13 @@ npm run test:e2e
 - **Code Documentation**: Docstrings for all public functions
 - **Architecture Documentation**: Keep ADRs (Architecture Decision Records)
 - **User Documentation**: Maintain user guides and tutorials
+- **Documentation Hub**: See [docs/README.md](docs/README.md) for complete documentation navigation
 
 ## Getting Help
 
 - **Issues**: Create detailed issues using templates above
 - **Discussions**: Use GitHub Discussions for questions
-- **Documentation**: Check existing docs first
+- **Documentation**: Check the [Documentation Hub](docs/README.md) first
 - **Code Review**: Tag appropriate reviewers
 
 ## Labels for Issues
