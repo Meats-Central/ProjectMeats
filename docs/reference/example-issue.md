@@ -66,8 +66,9 @@ npm ERR! command sh -c react-scripts build
 5. Monitor the next deployment to ensure the issue is resolved
 
 ### 📚 Related Documentation
-- [Deployment Documentation](./DEPLOYMENT_DOCUMENTATION.md)
-- [Troubleshooting Guide](./docs/legacy/DEPLOYMENT_GUIDE.md#-troubleshooting)
+- [Deployment Technical Reference](../reference/deployment-technical-reference.md)
+- [Troubleshooting Guide](../legacy/DEPLOYMENT_GUIDE.md#-troubleshooting)
+- [Documentation Hub](../README.md)
 
 ---
 *This issue was automatically created by the deployment failure monitoring workflow.*

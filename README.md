@@ -255,6 +255,25 @@ This repository includes comprehensive deployment tools:
 3. **Testing**: Add tests for new functionality
 4. **Code Quality**: Run `make format` and `make lint` before commits
 
+## 📚 Documentation
+
+### Essential Documentation
+- **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[User Deployment Guide](USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment (30 minutes)
+- **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
+
+### CI/CD & Workflows
+- **[Unified Workflow](docs/workflows/unified-workflow.md)** - Main CI/CD workflow documentation
+- **[CI/CD Infrastructure](docs/workflows/cicd-infrastructure.md)** - Infrastructure details
+- **[Database Backup](docs/workflows/database-backup.md)** - Backup workflow documentation
+
+### Implementation Summaries
+- **[Dashboard Enhancement](docs/implementation-summaries/dashboard-enhancement.md)** - Dashboard improvements
+- **[Deployment Optimization](docs/implementation-summaries/deployment-optimization.md)** - Deployment improvements
+- **[ALLOWED_HOSTS Fix](docs/implementation-summaries/allowed-hosts-fix.md)** - Configuration fix details
+
 ## 📚 Reference
 
 ### URLs
@@ -275,4 +294,4 @@ This repository includes comprehensive deployment tools:
 
 ---
 
-**Need help?** Create an issue or check error messages - the setup script handles 99% of common problems automatically.
+**Need help?** Check the [Documentation Hub](docs/README.md) or create an issue - the setup script handles 99% of common problems automatically.

@@ -119,8 +119,9 @@ jobs:
           issueBody += '4. Test the fix in the development environment before merging\n';
           issueBody += '5. Monitor the next deployment to ensure the issue is resolved\n\n';
           issueBody += '### 📚 Related Documentation\n';
-          issueBody += '- [Deployment Documentation](./DEPLOYMENT_DOCUMENTATION.md)\n';
-          issueBody += '- [Troubleshooting Guide](./docs/legacy/DEPLOYMENT_GUIDE.md#-troubleshooting)\n\n';
+          issueBody += '- [Deployment Technical Reference](./docs/reference/deployment-technical-reference.md)\n';
+          issueBody += '- [Troubleshooting Guide](./docs/legacy/DEPLOYMENT_GUIDE.md#-troubleshooting)\n';
+          issueBody += '- [Documentation Hub](./docs/README.md)\n\n';
           issueBody += '---\n*This issue was automatically created by the deployment failure monitoring workflow.*';
 
           // Create the issue
