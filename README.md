@@ -261,6 +261,14 @@ This repository includes comprehensive deployment tools:
 - **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 - **[User Deployment Guide](USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment (30 minutes)
+
+### Architecture & Development
+- **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
+- **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
+- **[Testing Strategy](docs/TESTING_STRATEGY.md)** - Comprehensive testing guide
+- **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
+
+### Deployment & Infrastructure
 - **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
 
