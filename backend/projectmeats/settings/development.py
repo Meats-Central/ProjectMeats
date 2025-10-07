@@ -47,7 +47,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
 
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
