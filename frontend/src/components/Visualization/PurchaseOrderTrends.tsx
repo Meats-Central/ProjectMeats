@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   LineChart,
   Line,
@@ -8,8 +8,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
-import styled from "styled-components";
+} from 'recharts';
+import styled from 'styled-components';
 
 interface PurchaseOrderTrendData {
   date: string;
@@ -23,10 +23,7 @@ interface PurchaseOrderTrendsProps {
   height?: number;
 }
 
-const PurchaseOrderTrends: React.FC<PurchaseOrderTrendsProps> = ({
-  data,
-  height = 300,
-}) => {
+const PurchaseOrderTrends: React.FC<PurchaseOrderTrendsProps> = ({ data, height = 300 }) => {
   return (
     <ChartContainer>
       <ChartTitle>Purchase Order Trends</ChartTitle>
@@ -46,13 +43,13 @@ const PurchaseOrderTrends: React.FC<PurchaseOrderTrendsProps> = ({
           <YAxis yAxisId="right" orientation="right" />
           <Tooltip
             formatter={(value: number, name: string) => {
-              if (name === "value" || name === "averageValue") {
+              if (name === 'value' || name === 'averageValue') {
                 return [
                   `$${value.toLocaleString()}`,
-                  name === "value" ? "Total Value" : "Average Value",
+                  name === 'value' ? 'Total Value' : 'Average Value',
                 ];
               }
-              return [value, "Orders"];
+              return [value, 'Orders'];
             }}
           />
           <Legend />

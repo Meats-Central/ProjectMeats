@@ -1,19 +1,9 @@
 /**
  * Authentication context for managing user authentication state across the app.
  */
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-import { UserProfile } from "../types";
-import {
-  authService,
-  LoginCredentials,
-  SignUpCredentials,
-} from "../services/authService";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { UserProfile } from '../types';
+import { authService, LoginCredentials, SignUpCredentials } from '../services/authService';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -42,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        console.error("Failed to initialize auth:", error);
+        console.error('Failed to initialize auth:', error);
         setUser(null);
       } finally {
         setLoading(false);
@@ -84,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authService.logout();
       setUser(null);
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Logout error:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -96,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
     } catch (error) {
-      console.error("Failed to refresh user:", error);
+      console.error('Failed to refresh user:', error);
       setUser(null);
     }
   };
@@ -118,7 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

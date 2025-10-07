@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import styled from "styled-components";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import styled from 'styled-components';
 
 // Renamed to avoid collision with component name (ESLint no-redeclare warning)
 interface UserSettings {
@@ -32,10 +32,10 @@ const Settings: React.FC = () => {
       systemUpdates: false,
     },
     preferences: {
-      language: "en",
-      timezone: "UTC",
-      dateFormat: "MM/DD/YYYY",
-      currency: "USD",
+      language: 'en',
+      timezone: 'UTC',
+      dateFormat: 'MM/DD/YYYY',
+      currency: 'USD',
     },
     privacy: {
       profileVisible: true,
@@ -44,18 +44,18 @@ const Settings: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     text: string;
   } | null>(null);
 
   useEffect(() => {
     // Load settings from localStorage (in a real app, this would come from an API)
-    const savedSettings = localStorage.getItem("userSettings");
+    const savedSettings = localStorage.getItem('userSettings');
     if (savedSettings) {
       try {
         setSettings(JSON.parse(savedSettings));
       } catch (error) {
-        console.error("Failed to parse saved settings:", error);
+        console.error('Failed to parse saved settings:', error);
       }
     }
   }, []);
@@ -69,22 +69,20 @@ const Settings: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Save to localStorage (in a real app, this would be an API call)
-      localStorage.setItem("userSettings", JSON.stringify(settings));
+      localStorage.setItem('userSettings', JSON.stringify(settings));
 
-      setMessage({ type: "success", text: "Settings saved successfully!" });
+      setMessage({ type: 'success', text: 'Settings saved successfully!' });
     } catch (error) {
       setMessage({
-        type: "error",
-        text: "Failed to save settings. Please try again.",
+        type: 'error',
+        text: 'Failed to save settings. Please try again.',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNotificationChange = (
-    key: keyof UserSettings["notifications"],
-  ) => {
+  const handleNotificationChange = (key: keyof UserSettings['notifications']) => {
     setSettings((prev) => ({
       ...prev,
       notifications: {
@@ -95,10 +93,7 @@ const Settings: React.FC = () => {
     if (message) setMessage(null);
   };
 
-  const handlePreferenceChange = (
-    key: keyof UserSettings["preferences"],
-    value: string,
-  ) => {
+  const handlePreferenceChange = (key: keyof UserSettings['preferences'], value: string) => {
     setSettings((prev) => ({
       ...prev,
       preferences: {
@@ -109,7 +104,7 @@ const Settings: React.FC = () => {
     if (message) setMessage(null);
   };
 
-  const handlePrivacyChange = (key: keyof UserSettings["privacy"]) => {
+  const handlePrivacyChange = (key: keyof UserSettings['privacy']) => {
     setSettings((prev) => ({
       ...prev,
       privacy: {
@@ -129,17 +124,17 @@ const Settings: React.FC = () => {
         systemUpdates: false,
       },
       preferences: {
-        language: "en",
-        timezone: "UTC",
-        dateFormat: "MM/DD/YYYY",
-        currency: "USD",
+        language: 'en',
+        timezone: 'UTC',
+        dateFormat: 'MM/DD/YYYY',
+        currency: 'USD',
       },
       privacy: {
         profileVisible: true,
         shareData: false,
       },
     });
-    setMessage({ type: "success", text: "Settings reset to defaults!" });
+    setMessage({ type: 'success', text: 'Settings reset to defaults!' });
   };
 
   if (!user) {
@@ -159,7 +154,7 @@ const Settings: React.FC = () => {
 
       {message && (
         <Message $type={message.type}>
-          <MessageIcon>{message.type === "success" ? "✅" : "❌"}</MessageIcon>
+          <MessageIcon>{message.type === 'success' ? '✅' : '❌'}</MessageIcon>
           {message.text}
         </Message>
       )}
@@ -171,9 +166,7 @@ const Settings: React.FC = () => {
             <SectionIcon>🔔</SectionIcon>
             <div>
               <SectionTitle>Notifications</SectionTitle>
-              <SectionDescription>
-                Manage how you receive updates and alerts
-              </SectionDescription>
+              <SectionDescription>Manage how you receive updates and alerts</SectionDescription>
             </div>
           </SectionHeader>
 
@@ -181,13 +174,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Email Notifications</SettingLabel>
-                <SettingDescription>
-                  Receive notifications via email
-                </SettingDescription>
+                <SettingDescription>Receive notifications via email</SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.notifications.email}
-                onClick={() => handleNotificationChange("email")}
+                onClick={() => handleNotificationChange('email')}
               >
                 <ToggleSlider $active={settings.notifications.email} />
               </Toggle>
@@ -196,13 +187,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Push Notifications</SettingLabel>
-                <SettingDescription>
-                  Receive browser push notifications
-                </SettingDescription>
+                <SettingDescription>Receive browser push notifications</SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.notifications.push}
-                onClick={() => handleNotificationChange("push")}
+                onClick={() => handleNotificationChange('push')}
               >
                 <ToggleSlider $active={settings.notifications.push} />
               </Toggle>
@@ -211,13 +200,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Order Updates</SettingLabel>
-                <SettingDescription>
-                  Get notified about order status changes
-                </SettingDescription>
+                <SettingDescription>Get notified about order status changes</SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.notifications.orderUpdates}
-                onClick={() => handleNotificationChange("orderUpdates")}
+                onClick={() => handleNotificationChange('orderUpdates')}
               >
                 <ToggleSlider $active={settings.notifications.orderUpdates} />
               </Toggle>
@@ -232,7 +219,7 @@ const Settings: React.FC = () => {
               </SettingInfo>
               <Toggle
                 $active={settings.notifications.systemUpdates}
-                onClick={() => handleNotificationChange("systemUpdates")}
+                onClick={() => handleNotificationChange('systemUpdates')}
               >
                 <ToggleSlider $active={settings.notifications.systemUpdates} />
               </Toggle>
@@ -256,15 +243,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Language</SettingLabel>
-                <SettingDescription>
-                  Choose your preferred language
-                </SettingDescription>
+                <SettingDescription>Choose your preferred language</SettingDescription>
               </SettingInfo>
               <Select
                 value={settings.preferences.language}
-                onChange={(e) =>
-                  handlePreferenceChange("language", e.target.value)
-                }
+                onChange={(e) => handlePreferenceChange('language', e.target.value)}
               >
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
@@ -280,9 +263,7 @@ const Settings: React.FC = () => {
               </SettingInfo>
               <Select
                 value={settings.preferences.timezone}
-                onChange={(e) =>
-                  handlePreferenceChange("timezone", e.target.value)
-                }
+                onChange={(e) => handlePreferenceChange('timezone', e.target.value)}
               >
                 <option value="UTC">UTC</option>
                 <option value="EST">EST (Eastern)</option>
@@ -295,15 +276,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Date Format</SettingLabel>
-                <SettingDescription>
-                  Choose how dates are displayed
-                </SettingDescription>
+                <SettingDescription>Choose how dates are displayed</SettingDescription>
               </SettingInfo>
               <Select
                 value={settings.preferences.dateFormat}
-                onChange={(e) =>
-                  handlePreferenceChange("dateFormat", e.target.value)
-                }
+                onChange={(e) => handlePreferenceChange('dateFormat', e.target.value)}
               >
                 <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
                 <option value="DD/MM/YYYY">DD/MM/YYYY (EU)</option>
@@ -314,15 +291,11 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Currency</SettingLabel>
-                <SettingDescription>
-                  Default currency for pricing
-                </SettingDescription>
+                <SettingDescription>Default currency for pricing</SettingDescription>
               </SettingInfo>
               <Select
                 value={settings.preferences.currency}
-                onChange={(e) =>
-                  handlePreferenceChange("currency", e.target.value)
-                }
+                onChange={(e) => handlePreferenceChange('currency', e.target.value)}
               >
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
@@ -355,7 +328,7 @@ const Settings: React.FC = () => {
               </SettingInfo>
               <Toggle
                 $active={settings.privacy.profileVisible}
-                onClick={() => handlePrivacyChange("profileVisible")}
+                onClick={() => handlePrivacyChange('profileVisible')}
               >
                 <ToggleSlider $active={settings.privacy.profileVisible} />
               </Toggle>
@@ -370,7 +343,7 @@ const Settings: React.FC = () => {
               </SettingInfo>
               <Toggle
                 $active={settings.privacy.shareData}
-                onClick={() => handlePrivacyChange("shareData")}
+                onClick={() => handlePrivacyChange('shareData')}
               >
                 <ToggleSlider $active={settings.privacy.shareData} />
               </Toggle>
@@ -384,7 +357,7 @@ const Settings: React.FC = () => {
           Reset to Defaults
         </ResetButton>
         <SaveButton onClick={handleSave} disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
+          {loading ? 'Saving...' : 'Save Changes'}
         </SaveButton>
       </Actions>
     </Container>
@@ -421,17 +394,16 @@ const Subtitle = styled.p`
   margin: 0;
 `;
 
-const Message = styled.div<{ $type: "success" | "error" }>`
+const Message = styled.div<{ $type: 'success' | 'error' }>`
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  background: ${(props) => (props.$type === "success" ? "#f0fdf4" : "#fef2f2")};
-  border: 1px solid
-    ${(props) => (props.$type === "success" ? "#bbf7d0" : "#fecaca")};
-  color: ${(props) => (props.$type === "success" ? "#16a34a" : "#dc2626")};
+  background: ${(props) => (props.$type === 'success' ? '#f0fdf4' : '#fef2f2')};
+  border: 1px solid ${(props) => (props.$type === 'success' ? '#bbf7d0' : '#fecaca')};
+  color: ${(props) => (props.$type === 'success' ? '#16a34a' : '#dc2626')};
 `;
 
 const MessageIcon = styled.span`
@@ -517,7 +489,7 @@ const Toggle = styled.button<{ $active: boolean }>`
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  background: ${(props) => (props.$active ? "#667eea" : "#e9ecef")};
+  background: ${(props) => (props.$active ? '#667eea' : '#e9ecef')};
   position: relative;
 `;
 
@@ -528,7 +500,7 @@ const ToggleSlider = styled.div<{ $active: boolean }>`
   background: white;
   position: absolute;
   top: 2px;
-  left: ${(props) => (props.$active ? "26px" : "2px")};
+  left: ${(props) => (props.$active ? '26px' : '2px')};
   transition: left 0.2s ease;
 `;
 

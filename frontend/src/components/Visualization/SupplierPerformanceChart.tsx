@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -8,8 +8,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
-import styled from "styled-components";
+} from 'recharts';
+import styled from 'styled-components';
 
 interface SupplierPerformanceData {
   name: string;
@@ -46,26 +46,15 @@ const SupplierPerformanceChart: React.FC<SupplierPerformanceChartProps> = ({
           <YAxis yAxisId="right" orientation="right" />
           <Tooltip
             formatter={(value: number, name: string) => {
-              if (name === "revenue")
-                return [`$${value.toLocaleString()}`, "Revenue"];
-              if (name === "rating") return [`${value}/5`, "Rating"];
+              if (name === 'revenue') return [`$${value.toLocaleString()}`, 'Revenue'];
+              if (name === 'rating') return [`${value}/5`, 'Rating'];
               return [value, name];
             }}
           />
           <Legend />
           <Bar yAxisId="left" dataKey="orders" fill="#3498db" name="Orders" />
-          <Bar
-            yAxisId="left"
-            dataKey="revenue"
-            fill="#2ecc71"
-            name="Revenue ($)"
-          />
-          <Bar
-            yAxisId="right"
-            dataKey="rating"
-            fill="#f39c12"
-            name="Rating (1-5)"
-          />
+          <Bar yAxisId="left" dataKey="revenue" fill="#2ecc71" name="Revenue ($)" />
+          <Bar yAxisId="right" dataKey="rating" fill="#f39c12" name="Rating (1-5)" />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

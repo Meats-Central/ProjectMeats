@@ -4,26 +4,19 @@
  * Main chat interface for the AI assistant.
  * Enhanced from PR #63 to integrate file upload into MessageInput and remove separate DocumentUpload component.
  */
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import styled from "styled-components";
-import { ChatSession, ChatMessage } from "../../types";
-import {
-  chatApi,
-  chatSessionsApi,
-  documentsApi,
-} from "../../services/aiService";
-import MessageList from "./MessageList";
-import MessageInput from "./MessageInput";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import styled from 'styled-components';
+import { ChatSession, ChatMessage } from '../../types';
+import { chatApi, chatSessionsApi, documentsApi } from '../../services/aiService';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
 
 interface ChatWindowProps {
   sessionId?: string;
   onSessionChange?: (session: ChatSession | null) => void;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({
-  sessionId,
-  onSessionChange,
-}) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) => {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +24,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const loadSession = useCallback(
@@ -49,13 +42,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         setMessages(messagesData);
         onSessionChange?.(sessionData);
       } catch (err) {
-        console.error("Error loading session:", err);
-        setError("Failed to load chat session");
+        console.error('Error loading session:', err);
+        setError('Failed to load chat session');
       } finally {
         setLoading(false);
       }
     },
-    [onSessionChange],
+    [onSessionChange]
   );
 
   // Load session and messages
@@ -96,20 +89,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       // Reload messages to get the latest
       if (response.session_id) {
-        const updatedMessages = await chatSessionsApi.getMessages(
-          response.session_id,
-        );
+        const updatedMessages = await chatSessionsApi.getMessages(response.session_id);
         setMessages(updatedMessages);
       }
     } catch (err) {
-      console.error("Error sending message:", err);
-      setError("Failed to send message. Please try again.");
+      console.error('Error sending message:', err);
+      setError('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const uploadDocument = async (file: File): Promise<any> => {
+  const uploadDocument = async (file: File): Promise<{ id: string; status: string }> => {
     try {
       setLoading(true);
       setError(null);
@@ -121,10 +112,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       const uploadMessage = `📄 I've uploaded "${file.name}" for analysis. What would you like me to help you with regarding this document?`;
       await sendMessage(uploadMessage);
 
-      return uploadResponse;
+      return {
+        id: uploadResponse.id,
+        status: uploadResponse.processing_status,
+      };
     } catch (err) {
-      console.error("Error uploading document:", err);
-      setError("Failed to upload document. Please try again.");
+      console.error('Error uploading document:', err);
+      setError('Failed to upload document. Please try again.');
       throw err;
     } finally {
       setLoading(false);
@@ -136,9 +130,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       <WelcomeIcon>🤖</WelcomeIcon>
       <WelcomeTitle>AI Assistant for Meat Market Operations</WelcomeTitle>
       <WelcomeSubtitle>
-        I can help you with supplier management, purchase orders, customer
-        relationships, inventory tracking, and business intelligence. Upload
-        documents or ask me questions to get started.
+        I can help you with supplier management, purchase orders, customer relationships, inventory
+        tracking, and business intelligence. Upload documents or ask me questions to get started.
       </WelcomeSubtitle>
 
       <FeatureGrid>
@@ -216,11 +209,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Messages Area */}
       <MessagesArea>
-        {messages.length === 0 ? (
-          renderWelcomeMessage()
-        ) : (
-          <MessageList messages={messages} />
-        )}
+        {messages.length === 0 ? renderWelcomeMessage() : <MessageList messages={messages} />}
         <div ref={messagesEndRef} />
       </MessagesArea>
 
@@ -232,8 +221,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           disabled={loading}
           placeholder={
             !session
-              ? "Start a conversation or upload a document..."
-              : "Type your message or drag files here..."
+              ? 'Start a conversation or upload a document...'
+              : 'Type your message or drag files here...'
           }
         />
       </InputArea>

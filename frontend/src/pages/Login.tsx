@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import styled from "styled-components";
-import { useAuth } from "../contexts/AuthContext";
+import React, { useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import styled from 'styled-components';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState({
-    username: "",
-    password: "",
+    username: '',
+    password: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!credentials.username.trim() || !credentials.password.trim()) {
-      setError("Please enter both username and password");
+      setError('Please enter both username and password');
       return;
     }
 
@@ -30,9 +30,11 @@ const Login: React.FC = () => {
 
     try {
       await login(credentials);
-      navigate("/");
-    } catch (error: any) {
-      setError(error.message || "Login failed. Please check your credentials.");
+      navigate('/');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -108,15 +110,14 @@ const Login: React.FC = () => {
                 Signing In...
               </>
             ) : (
-              "Sign In"
+              'Sign In'
             )}
           </LoginButton>
         </LoginForm>
 
         <Footer>
           <FooterText>
-            Don't have an account?{" "}
-            <StyledLink to="/signup">Sign up here</StyledLink>
+            Don't have an account? <StyledLink to="/signup">Sign up here</StyledLink>
           </FooterText>
           <FooterSubText>Need help? Contact your administrator</FooterSubText>
         </Footer>

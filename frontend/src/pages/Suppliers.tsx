@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { apiService, Supplier } from "../services/apiService";
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { apiService, Supplier } from '../services/apiService';
 
 const Suppliers: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -8,15 +8,15 @@ const Suppliers: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    contact_person: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip_code: "",
-    country: "",
+    name: '',
+    contact_person: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    country: '',
   });
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const Suppliers: React.FC = () => {
       const data = await apiService.getSuppliers();
       setSuppliers(data);
     } catch (error) {
-      console.error("Error fetching suppliers:", error);
+      console.error('Error fetching suppliers:', error);
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ const Suppliers: React.FC = () => {
       resetForm();
       fetchSuppliers();
     } catch (error) {
-      console.error("Error saving supplier:", error);
+      console.error('Error saving supplier:', error);
     }
   };
 
@@ -56,40 +56,40 @@ const Suppliers: React.FC = () => {
     setEditingSupplier(supplier);
     setFormData({
       name: supplier.name,
-      contact_person: supplier.contact_person || "",
-      email: supplier.email || "",
-      phone: supplier.phone || "",
-      address: supplier.address || "",
-      city: supplier.city || "",
-      state: supplier.state || "",
-      zip_code: supplier.zip_code || "",
-      country: supplier.country || "",
+      contact_person: supplier.contact_person || '',
+      email: supplier.email || '',
+      phone: supplier.phone || '',
+      address: supplier.address || '',
+      city: supplier.city || '',
+      state: supplier.state || '',
+      zip_code: supplier.zip_code || '',
+      country: supplier.country || '',
     });
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this supplier?")) {
+    if (window.confirm('Are you sure you want to delete this supplier?')) {
       try {
         await apiService.deleteSupplier(id);
         fetchSuppliers();
       } catch (error) {
-        console.error("Error deleting supplier:", error);
+        console.error('Error deleting supplier:', error);
       }
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      contact_person: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      country: "",
+      name: '',
+      contact_person: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: '',
     });
   };
 
@@ -114,9 +114,7 @@ const Suppliers: React.FC = () => {
         <FormOverlay>
           <FormContainer>
             <FormHeader>
-              <FormTitle>
-                {editingSupplier ? "Edit Supplier" : "Add New Supplier"}
-              </FormTitle>
+              <FormTitle>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</FormTitle>
               <CloseButton onClick={handleCancel}>×</CloseButton>
             </FormHeader>
 
@@ -127,9 +125,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </FormGroup>
@@ -153,9 +149,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </FormGroup>
 
@@ -164,9 +158,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </FormGroup>
 
@@ -175,9 +167,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </FormGroup>
 
@@ -186,9 +176,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
                 </FormGroup>
 
@@ -197,9 +185,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.state}
-                    onChange={(e) =>
-                      setFormData({ ...formData, state: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   />
                 </FormGroup>
 
@@ -208,9 +194,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.zip_code}
-                    onChange={(e) =>
-                      setFormData({ ...formData, zip_code: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
                   />
                 </FormGroup>
 
@@ -219,9 +203,7 @@ const Suppliers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.country}
-                    onChange={(e) =>
-                      setFormData({ ...formData, country: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   />
                 </FormGroup>
               </FormGrid>
@@ -231,7 +213,7 @@ const Suppliers: React.FC = () => {
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  {editingSupplier ? "Update" : "Create"} Supplier
+                  {editingSupplier ? 'Update' : 'Create'} Supplier
                 </SubmitButton>
               </FormActions>
             </Form>
@@ -264,21 +246,17 @@ const Suppliers: React.FC = () => {
                   <TableCell>
                     <CompanyName>{supplier.name}</CompanyName>
                   </TableCell>
-                  <TableCell>{supplier.contact_person || "-"}</TableCell>
-                  <TableCell>{supplier.email || "-"}</TableCell>
-                  <TableCell>{supplier.phone || "-"}</TableCell>
+                  <TableCell>{supplier.contact_person || '-'}</TableCell>
+                  <TableCell>{supplier.email || '-'}</TableCell>
+                  <TableCell>{supplier.phone || '-'}</TableCell>
                   <TableCell>
                     {supplier.city && supplier.state
                       ? `${supplier.city}, ${supplier.state}`
-                      : supplier.city || supplier.state || "-"}
+                      : supplier.city || supplier.state || '-'}
                   </TableCell>
                   <TableCell>
-                    <ActionButton onClick={() => handleEdit(supplier)}>
-                      Edit
-                    </ActionButton>
-                    <DeleteButton onClick={() => handleDelete(supplier.id)}>
-                      Delete
-                    </DeleteButton>
+                    <ActionButton onClick={() => handleEdit(supplier)}>Edit</ActionButton>
+                    <DeleteButton onClick={() => handleDelete(supplier.id)}>Delete</DeleteButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -395,7 +373,7 @@ const FormGrid = styled.div`
 `;
 
 const FormGroup = styled.div<{ $fullWidth?: boolean }>`
-  grid-column: ${(props) => (props.$fullWidth ? "1 / -1" : "auto")};
+  grid-column: ${(props) => (props.$fullWidth ? '1 / -1' : 'auto')};
 `;
 
 const Label = styled.label`

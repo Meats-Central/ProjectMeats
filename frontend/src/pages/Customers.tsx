@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { apiService, Customer } from "../services/apiService";
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { apiService, Customer } from '../services/apiService';
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -8,15 +8,15 @@ const Customers: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    contact_person: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip_code: "",
-    country: "",
+    name: '',
+    contact_person: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    country: '',
   });
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const Customers: React.FC = () => {
       const data = await apiService.getCustomers();
       setCustomers(data);
     } catch (error) {
-      console.error("Error fetching customers:", error);
+      console.error('Error fetching customers:', error);
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ const Customers: React.FC = () => {
       resetForm();
       fetchCustomers();
     } catch (error) {
-      console.error("Error saving customer:", error);
+      console.error('Error saving customer:', error);
     }
   };
 
@@ -56,40 +56,40 @@ const Customers: React.FC = () => {
     setEditingCustomer(customer);
     setFormData({
       name: customer.name,
-      contact_person: customer.contact_person || "",
-      email: customer.email || "",
-      phone: customer.phone || "",
-      address: customer.address || "",
-      city: customer.city || "",
-      state: customer.state || "",
-      zip_code: customer.zip_code || "",
-      country: customer.country || "",
+      contact_person: customer.contact_person || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      address: customer.address || '',
+      city: customer.city || '',
+      state: customer.state || '',
+      zip_code: customer.zip_code || '',
+      country: customer.country || '',
     });
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this customer?")) {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
         await apiService.deleteCustomer(id);
         fetchCustomers();
       } catch (error) {
-        console.error("Error deleting customer:", error);
+        console.error('Error deleting customer:', error);
       }
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      contact_person: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      country: "",
+      name: '',
+      contact_person: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: '',
     });
   };
 
@@ -114,9 +114,7 @@ const Customers: React.FC = () => {
         <FormOverlay>
           <FormContainer>
             <FormHeader>
-              <FormTitle>
-                {editingCustomer ? "Edit Customer" : "Add New Customer"}
-              </FormTitle>
+              <FormTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</FormTitle>
               <CloseButton onClick={handleCancel}>×</CloseButton>
             </FormHeader>
 
@@ -127,9 +125,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </FormGroup>
@@ -153,9 +149,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </FormGroup>
 
@@ -164,9 +158,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </FormGroup>
 
@@ -175,9 +167,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </FormGroup>
 
@@ -186,9 +176,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
                 </FormGroup>
 
@@ -197,9 +185,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.state}
-                    onChange={(e) =>
-                      setFormData({ ...formData, state: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   />
                 </FormGroup>
 
@@ -208,9 +194,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.zip_code}
-                    onChange={(e) =>
-                      setFormData({ ...formData, zip_code: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
                   />
                 </FormGroup>
 
@@ -219,9 +203,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.country}
-                    onChange={(e) =>
-                      setFormData({ ...formData, country: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   />
                 </FormGroup>
               </FormGrid>
@@ -231,7 +213,7 @@ const Customers: React.FC = () => {
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  {editingCustomer ? "Update" : "Create"} Customer
+                  {editingCustomer ? 'Update' : 'Create'} Customer
                 </SubmitButton>
               </FormActions>
             </Form>
@@ -264,21 +246,17 @@ const Customers: React.FC = () => {
                   <TableCell>
                     <CompanyName>{customer.name}</CompanyName>
                   </TableCell>
-                  <TableCell>{customer.contact_person || "-"}</TableCell>
-                  <TableCell>{customer.email || "-"}</TableCell>
-                  <TableCell>{customer.phone || "-"}</TableCell>
+                  <TableCell>{customer.contact_person || '-'}</TableCell>
+                  <TableCell>{customer.email || '-'}</TableCell>
+                  <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>
                     {customer.city && customer.state
                       ? `${customer.city}, ${customer.state}`
-                      : customer.city || customer.state || "-"}
+                      : customer.city || customer.state || '-'}
                   </TableCell>
                   <TableCell>
-                    <ActionButton onClick={() => handleEdit(customer)}>
-                      Edit
-                    </ActionButton>
-                    <DeleteButton onClick={() => handleDelete(customer.id)}>
-                      Delete
-                    </DeleteButton>
+                    <ActionButton onClick={() => handleEdit(customer)}>Edit</ActionButton>
+                    <DeleteButton onClick={() => handleDelete(customer.id)}>Delete</DeleteButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -395,7 +373,7 @@ const FormGrid = styled.div`
 `;
 
 const FormGroup = styled.div<{ $fullWidth?: boolean }>`
-  grid-column: ${(props) => (props.$fullWidth ? "1 / -1" : "auto")};
+  grid-column: ${(props) => (props.$fullWidth ? '1 / -1' : 'auto')};
 `;
 
 const Label = styled.label`

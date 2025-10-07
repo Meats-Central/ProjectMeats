@@ -1,28 +1,22 @@
-import React, { useState } from "react";
-import styled from "styled-components";
-import ChatWindow from "../components/ChatInterface/ChatWindow";
-import { ChatSession } from "../types";
+import React, { useState } from 'react';
+import styled from 'styled-components';
+import ChatWindow from '../components/ChatInterface/ChatWindow';
+import { ChatSession } from '../types';
 
 const AIAssistant: React.FC = () => {
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(
-    null,
-  );
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
 
   return (
     <Container>
       <Header>
         <Title>AI Assistant</Title>
         <Subtitle>
-          Get help with your business operations, ask questions, and receive
-          intelligent insights
+          Get help with your business operations, ask questions, and receive intelligent insights
         </Subtitle>
       </Header>
 
       <ChatContainer>
-        <ChatWindow
-          sessionId={currentSession?.id}
-          onSessionChange={setCurrentSession}
-        />
+        <ChatWindow sessionId={currentSession?.id} onSessionChange={setCurrentSession} />
       </ChatContainer>
     </Container>
   );

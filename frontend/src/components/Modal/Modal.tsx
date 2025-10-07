@@ -1,6 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import styled from "styled-components";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import styled from 'styled-components';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,13 +10,7 @@ interface ModalProps {
   maxWidth?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  children,
-  maxWidth = "600px",
-}) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -35,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({
         <ModalContent>{children}</ModalContent>
       </ModalContainer>
     </ModalBackdrop>,
-    document.body,
+    document.body
   );
 };
 

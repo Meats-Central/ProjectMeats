@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import { apiService, Supplier, PurchaseOrder } from "../services/apiService";
-import SupplierPerformanceChart from "../components/Visualization/SupplierPerformanceChart";
-import PurchaseOrderTrends from "../components/Visualization/PurchaseOrderTrends";
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
+import { apiService, Supplier, PurchaseOrder } from '../services/apiService';
+import SupplierPerformanceChart from '../components/Visualization/SupplierPerformanceChart';
+import PurchaseOrderTrends from '../components/Visualization/PurchaseOrderTrends';
 
 interface DashboardStats {
   suppliers: number;
@@ -13,10 +13,24 @@ interface DashboardStats {
 }
 
 interface RecentActivity {
-  type: "supplier" | "customer" | "purchase_order" | "accounts_receivable";
+  type: 'supplier' | 'customer' | 'purchase_order' | 'accounts_receivable';
   title: string;
   description: string;
   timestamp: string;
+}
+
+interface SupplierPerformanceData {
+  name: string;
+  orders: number;
+  revenue: number;
+  rating: number;
+}
+
+interface PurchaseOrderTrendData {
+  date: string;
+  orders: number;
+  value: number;
+  averageValue: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -28,11 +42,11 @@ const Dashboard: React.FC = () => {
     accountsReceivables: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [supplierPerformanceData, setSupplierPerformanceData] = useState<any[]>(
-    [],
+  const [supplierPerformanceData, setSupplierPerformanceData] = useState<SupplierPerformanceData[]>(
+    []
   );
-  const [purchaseOrderTrendData, setPurchaseOrderTrendData] = useState<any[]>(
-    [],
+  const [purchaseOrderTrendData, setPurchaseOrderTrendData] = useState<PurchaseOrderTrendData[]>(
+    []
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,17 +57,13 @@ const Dashboard: React.FC = () => {
       setLoading(true);
 
       // Fetch data from all endpoints to get real counts
-      const [
-        suppliersData,
-        customersData,
-        purchaseOrdersData,
-        accountsReceivablesData,
-      ] = await Promise.all([
-        apiService.getSuppliers().catch(() => []),
-        apiService.getCustomers().catch(() => []),
-        apiService.getPurchaseOrders().catch(() => []),
-        apiService.getAccountsReceivables().catch(() => []),
-      ]);
+      const [suppliersData, customersData, purchaseOrdersData, accountsReceivablesData] =
+        await Promise.all([
+          apiService.getSuppliers().catch(() => []),
+          apiService.getCustomers().catch(() => []),
+          apiService.getPurchaseOrders().catch(() => []),
+          apiService.getAccountsReceivables().catch(() => []),
+        ]);
 
       // Set real stats
       setStats({
@@ -107,21 +117,18 @@ const Dashboard: React.FC = () => {
             orders: 0,
             revenue: 0,
             rating: 4.0 + Math.random() * 1.0,
-          })),
+          }))
         );
       } else {
         setSupplierPerformanceData(supplierChartData);
       }
 
       // Generate purchase order trends data from real API data
-      const monthlyData = new Map<
-        string,
-        { date: string; orders: number; value: number }
-      >();
+      const monthlyData = new Map<string, { date: string; orders: number; value: number }>();
 
       purchaseOrdersData.forEach((order: PurchaseOrder) => {
         const orderDate = new Date(order.order_date);
-        const monthKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, "0")}`;
+        const monthKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}`;
 
         if (!monthlyData.has(monthKey)) {
           monthlyData.set(monthKey, {
@@ -140,10 +147,7 @@ const Dashboard: React.FC = () => {
       const trendChartData = Array.from(monthlyData.values())
         .map((monthData) => ({
           ...monthData,
-          averageValue:
-            monthData.orders > 0
-              ? Math.round(monthData.value / monthData.orders)
-              : 0,
+          averageValue: monthData.orders > 0 ? Math.round(monthData.value / monthData.orders) : 0,
         }))
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-12); // Show last 12 months
@@ -153,12 +157,8 @@ const Dashboard: React.FC = () => {
         const currentDate = new Date();
         const fallbackData = [];
         for (let i = 5; i >= 0; i--) {
-          const date = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() - i,
-            1,
-          );
-          const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+          const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
           fallbackData.push({
             date: monthKey,
             orders: 0,
@@ -177,11 +177,11 @@ const Dashboard: React.FC = () => {
       // Add recent suppliers
       suppliersData.slice(-3).forEach((supplier) => {
         activities.push({
-          type: "supplier",
+          type: 'supplier',
           title: `New Supplier: ${supplier.name}`,
           description: supplier.contact_person
             ? `Contact: ${supplier.contact_person}`
-            : "No contact person",
+            : 'No contact person',
           timestamp: supplier.created_at || new Date().toISOString(),
         });
       });
@@ -189,11 +189,11 @@ const Dashboard: React.FC = () => {
       // Add recent customers
       customersData.slice(-3).forEach((customer) => {
         activities.push({
-          type: "customer",
+          type: 'customer',
           title: `New Customer: ${customer.name}`,
           description: customer.contact_person
             ? `Contact: ${customer.contact_person}`
-            : "No contact person",
+            : 'No contact person',
           timestamp: customer.created_at || new Date().toISOString(),
         });
       });
@@ -201,7 +201,7 @@ const Dashboard: React.FC = () => {
       // Add recent purchase orders
       purchaseOrdersData.slice(-2).forEach((order) => {
         activities.push({
-          type: "purchase_order",
+          type: 'purchase_order',
           title: `Purchase Order: ${order.order_number}`,
           description: `Amount: $${order.total_amount.toLocaleString()} - Status: ${order.status}`,
           timestamp: order.created_at || new Date().toISOString(),
@@ -209,14 +209,11 @@ const Dashboard: React.FC = () => {
       });
 
       // Sort by timestamp and take the most recent
-      activities.sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setRecentActivity(activities.slice(0, 8));
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      setError("Failed to load dashboard data. Please check your connection.");
+      console.error('Error fetching dashboard stats:', error);
+      setError('Failed to load dashboard data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -232,35 +229,35 @@ const Dashboard: React.FC = () => {
 
   const handleQuickAction = (action: string) => {
     switch (action) {
-      case "add-supplier":
-        navigate("/suppliers");
+      case 'add-supplier':
+        navigate('/suppliers');
         break;
-      case "add-customer":
-        navigate("/customers");
+      case 'add-customer':
+        navigate('/customers');
         break;
-      case "create-purchase-order":
-        navigate("/purchase-orders");
+      case 'create-purchase-order':
+        navigate('/purchase-orders');
         break;
-      case "ask-ai":
-        navigate("/ai-assistant");
+      case 'ask-ai':
+        navigate('/ai-assistant');
         break;
       default:
-        console.log("Unknown action:", action);
+        console.warn('Unknown action:', action);
     }
   };
 
-  const getActivityIcon = (type: RecentActivity["type"]) => {
+  const getActivityIcon = (type: RecentActivity['type']) => {
     switch (type) {
-      case "supplier":
-        return "🏭";
-      case "customer":
-        return "👥";
-      case "purchase_order":
-        return "📋";
-      case "accounts_receivable":
-        return "💰";
+      case 'supplier':
+        return '🏭';
+      case 'customer':
+        return '👥';
+      case 'purchase_order':
+        return '📋';
+      case 'accounts_receivable':
+        return '💰';
       default:
-        return "📄";
+        return '📄';
     }
   };
 
@@ -304,9 +301,7 @@ const Dashboard: React.FC = () => {
         <HeaderTop>
           <TitleSection>
             <Title>Dashboard</Title>
-            <Subtitle>
-              Welcome to ProjectMeats Business Management System
-            </Subtitle>
+            <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
           </TitleSection>
           <RefreshButton onClick={handleRefresh}>🔄 Refresh Data</RefreshButton>
         </HeaderTop>
@@ -361,13 +356,9 @@ const Dashboard: React.FC = () => {
                   <ActivityIcon>{getActivityIcon(activity.type)}</ActivityIcon>
                   <ActivityContent>
                     <ActivityTitle>{activity.title}</ActivityTitle>
-                    <ActivityDescription>
-                      {activity.description}
-                    </ActivityDescription>
+                    <ActivityDescription>{activity.description}</ActivityDescription>
                   </ActivityContent>
-                  <ActivityTime>
-                    {formatTimestamp(activity.timestamp)}
-                  </ActivityTime>
+                  <ActivityTime>{formatTimestamp(activity.timestamp)}</ActivityTime>
                 </ActivityItem>
               ))}
             </ActivityList>
@@ -401,9 +392,7 @@ const Dashboard: React.FC = () => {
             </OverviewStat>
             <OverviewStat>
               <OverviewLabel>Business Partners</OverviewLabel>
-              <OverviewNumber>
-                {stats.suppliers + stats.customers}
-              </OverviewNumber>
+              <OverviewNumber>{stats.suppliers + stats.customers}</OverviewNumber>
             </OverviewStat>
           </StatsOverview>
         </ChartCard>
@@ -412,18 +401,16 @@ const Dashboard: React.FC = () => {
       <QuickActions>
         <QuickActionTitle>Quick Actions</QuickActionTitle>
         <ActionButtons>
-          <ActionButton onClick={() => handleQuickAction("add-supplier")}>
+          <ActionButton onClick={() => handleQuickAction('add-supplier')}>
             + Add Supplier
           </ActionButton>
-          <ActionButton onClick={() => handleQuickAction("add-customer")}>
+          <ActionButton onClick={() => handleQuickAction('add-customer')}>
             + Add Customer
           </ActionButton>
-          <ActionButton
-            onClick={() => handleQuickAction("create-purchase-order")}
-          >
+          <ActionButton onClick={() => handleQuickAction('create-purchase-order')}>
             + Create Purchase Order
           </ActionButton>
-          <ActionButton onClick={() => handleQuickAction("ask-ai")}>
+          <ActionButton onClick={() => handleQuickAction('ask-ai')}>
             💬 Ask AI Assistant
           </ActionButton>
         </ActionButtons>

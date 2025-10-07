@@ -7,7 +7,7 @@ export interface ChatSession {
   id: string;
   title?: string;
   session_status: 'active' | 'completed' | 'archived';
-  context_data?: Record<string, any>;
+  context_data?: Record<string, unknown>;
   last_activity: string;
   created_on: string;
   modified_on: string;
@@ -19,7 +19,7 @@ export interface ChatMessage {
   session: string;
   message_type: 'user' | 'assistant' | 'system' | 'document';
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   is_processed: boolean;
   created_on: string;
   modified_on: string;
@@ -41,7 +41,7 @@ export interface UserProfile {
 export interface APIError {
   error: string;
   message?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface PaginatedResponse<T> {
@@ -59,7 +59,7 @@ export interface BaseComponentProps {
 
 // File Upload Types
 export interface FileUploadProps {
-  onFileUpload: (file: File) => Promise<any>;
+  onFileUpload: (file: File) => Promise<UploadedDocument>;
   disabled?: boolean;
   acceptedFileTypes?: string[];
   maxFileSize?: number;
@@ -74,6 +74,6 @@ export interface UploadedDocument {
   document_type: string;
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
   extracted_text?: string;
-  extracted_data?: Record<string, any>;
+  extracted_data?: Record<string, unknown>;
   created_on: string;
 }

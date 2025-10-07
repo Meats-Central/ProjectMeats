@@ -1,6 +1,6 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
-import styled from "styled-components";
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import styled from 'styled-components';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -9,19 +9,19 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const menuItems = [
-    { path: "/", label: "Dashboard", icon: "📊" },
-    { path: "/suppliers", label: "Suppliers", icon: "🏭" },
-    { path: "/customers", label: "Customers", icon: "👥" },
-    { path: "/purchase-orders", label: "Purchase Orders", icon: "📋" },
+    { path: '/', label: 'Dashboard', icon: '📊' },
+    { path: '/suppliers', label: 'Suppliers', icon: '🏭' },
+    { path: '/customers', label: 'Customers', icon: '👥' },
+    { path: '/purchase-orders', label: 'Purchase Orders', icon: '📋' },
     {
-      path: "/accounts-receivables",
-      label: "Accounts Receivables",
-      icon: "💰",
+      path: '/accounts-receivables',
+      label: 'Accounts Receivables',
+      icon: '💰',
     },
-    { path: "/contacts", label: "Contacts", icon: "📞" },
-    { path: "/plants", label: "Plants", icon: "🏢" },
-    { path: "/carriers", label: "Carriers", icon: "🚛" },
-    { path: "/ai-assistant", label: "AI Assistant", icon: "🤖" },
+    { path: '/contacts', label: 'Contacts', icon: '📞' },
+    { path: '/plants', label: 'Plants', icon: '🏢' },
+    { path: '/carriers', label: 'Carriers', icon: '🚛' },
+    { path: '/ai-assistant', label: 'AI Assistant', icon: '🤖' },
   ];
 
   return (
@@ -31,7 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           <LogoIcon>🥩</LogoIcon>
           {isOpen && <LogoText>ProjectMeats</LogoText>}
         </Logo>
-        <ToggleButton onClick={onToggle}>{isOpen ? "◀" : "▶"}</ToggleButton>
+        <ToggleButton onClick={onToggle}>{isOpen ? '◀' : '▶'}</ToggleButton>
       </SidebarHeader>
 
       <Navigation>
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 };
 
 const SidebarContainer = styled.div<{ $isOpen: boolean }>`
-  width: ${(props) => (props.$isOpen ? "250px" : "60px")};
+  width: ${(props) => (props.$isOpen ? '250px' : '60px')};
   height: 100vh;
   background: #2c3e50;
   color: white;

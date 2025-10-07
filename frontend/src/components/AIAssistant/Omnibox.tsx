@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import styled from "styled-components";
-import Modal from "../Modal/Modal";
+import React, { useState, useRef, useEffect } from 'react';
+import styled from 'styled-components';
+import Modal from '../Modal/Modal';
 
 interface OmniboxProps {
   isOpen: boolean;
@@ -9,20 +9,20 @@ interface OmniboxProps {
 }
 
 const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [command, setCommand] = useState("");
+  const [command, setCommand] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sampleCommands = [
-    "Create a purchase order for ABC Meats",
-    "Show me supplier performance for this month",
-    "Generate a customer report",
-    "Set pricing rule for premium cuts",
-    "Update inventory levels",
-    "Send payment reminder to overdue customers",
-    "Schedule delivery for order #12345",
-    "Compare supplier prices for beef products",
+    'Create a purchase order for ABC Meats',
+    'Show me supplier performance for this month',
+    'Generate a customer report',
+    'Set pricing rule for premium cuts',
+    'Update inventory levels',
+    'Send payment reminder to overdue customers',
+    'Schedule delivery for order #12345',
+    'Compare supplier prices for beef products',
   ];
 
   useEffect(() => {
@@ -34,7 +34,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
   useEffect(() => {
     if (command.length > 2) {
       const filtered = sampleCommands.filter((cmd) =>
-        cmd.toLowerCase().includes(command.toLowerCase()),
+        cmd.toLowerCase().includes(command.toLowerCase())
       );
       setSuggestions(filtered.slice(0, 5));
     } else {
@@ -46,29 +46,27 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
   }, [command]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) =>
-        prev < suggestions.length - 1 ? prev + 1 : prev,
-      );
-    } else if (e.key === "ArrowUp") {
+      setSelectedSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter") {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedSuggestionIndex >= 0) {
         handleSubmit(suggestions[selectedSuggestionIndex]);
       } else if (command.trim()) {
         handleSubmit(command);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       onClose();
     }
   };
 
   const handleSubmit = (commandToSubmit: string) => {
     onSubmit(commandToSubmit);
-    setCommand("");
+    setCommand('');
     setSuggestions([]);
     setSelectedSuggestionIndex(-1);
     onClose();
@@ -79,12 +77,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="AI Command Center"
-      maxWidth="700px"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="AI Command Center" maxWidth="700px">
       <OmniboxContainer>
         <CommandInput
           ref={inputRef}
@@ -121,9 +114,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
               <HelpItem>"Generate report for [entity type]"</HelpItem>
             </HelpList>
           </HelpSection>
-          <TipText>
-            💡 Tip: Use natural language - the AI will interpret your intent
-          </TipText>
+          <TipText>💡 Tip: Use natural language - the AI will interpret your intent</TipText>
         </HelpText>
       </OmniboxContainer>
     </Modal>
@@ -172,7 +163,7 @@ const SuggestionItem = styled.div<{ isSelected: boolean }>`
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  background: ${(props) => (props.isSelected ? "#e3f2fd" : "white")};
+  background: ${(props) => (props.isSelected ? '#e3f2fd' : 'white')};
   border-bottom: 1px solid #f1f3f4;
   transition: background-color 0.2s;
 
@@ -228,7 +219,7 @@ const HelpItem = styled.li`
   font-size: 13px;
   color: #6c757d;
   margin-bottom: 4px;
-  font-family: "Consolas", "Monaco", monospace;
+  font-family: 'Consolas', 'Monaco', monospace;
 `;
 
 const TipText = styled.div`

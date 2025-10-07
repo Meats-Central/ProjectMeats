@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { apiService, AccountsReceivable } from "../services/apiService";
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { apiService, AccountsReceivable } from '../services/apiService';
 
 // Styled Components
 const Container = styled.div`
@@ -318,14 +318,13 @@ const AccountsReceivables: React.FC = () => {
   const [receivables, setReceivables] = useState<AccountsReceivable[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingReceivable, setEditingReceivable] =
-    useState<AccountsReceivable | null>(null);
+  const [editingReceivable, setEditingReceivable] = useState<AccountsReceivable | null>(null);
   const [formData, setFormData] = useState({
-    invoice_number: "",
-    customer: "",
-    amount: "",
-    due_date: "",
-    status: "pending",
+    invoice_number: '',
+    customer: '',
+    amount: '',
+    due_date: '',
+    status: 'pending',
   });
 
   useEffect(() => {
@@ -338,7 +337,7 @@ const AccountsReceivables: React.FC = () => {
       const data = await apiService.getAccountsReceivables();
       setReceivables(data);
     } catch (error) {
-      console.error("Error loading accounts receivables:", error);
+      console.error('Error loading accounts receivables:', error);
     } finally {
       setLoading(false);
     }
@@ -354,10 +353,7 @@ const AccountsReceivables: React.FC = () => {
       };
 
       if (editingReceivable) {
-        await apiService.updateAccountsReceivable(
-          editingReceivable.id,
-          receivableData,
-        );
+        await apiService.updateAccountsReceivable(editingReceivable.id, receivableData);
       } else {
         await apiService.createAccountsReceivable(receivableData);
       }
@@ -366,14 +362,14 @@ const AccountsReceivables: React.FC = () => {
       setShowForm(false);
       setEditingReceivable(null);
       setFormData({
-        invoice_number: "",
-        customer: "",
-        amount: "",
-        due_date: "",
-        status: "pending",
+        invoice_number: '',
+        customer: '',
+        amount: '',
+        due_date: '',
+        status: 'pending',
       });
     } catch (error) {
-      console.error("Error saving accounts receivable:", error);
+      console.error('Error saving accounts receivable:', error);
     }
   };
 
@@ -390,20 +386,18 @@ const AccountsReceivables: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this receivable?")) {
+    if (window.confirm('Are you sure you want to delete this receivable?')) {
       try {
         await apiService.deleteAccountsReceivable(id);
         await loadReceivables();
       } catch (error) {
-        console.error("Error deleting accounts receivable:", error);
+        console.error('Error deleting accounts receivable:', error);
       }
     }
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -414,16 +408,16 @@ const AccountsReceivables: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
-        return "#ffc107";
-      case "paid":
-        return "#28a745";
-      case "overdue":
-        return "#dc3545";
-      case "disputed":
-        return "#6f42c1";
+      case 'pending':
+        return '#ffc107';
+      case 'paid':
+        return '#28a745';
+      case 'overdue':
+        return '#dc3545';
+      case 'disputed':
+        return '#6f42c1';
       default:
-        return "#6c757d";
+        return '#6c757d';
     }
   };
 
@@ -434,13 +428,13 @@ const AccountsReceivables: React.FC = () => {
   const getPendingAmount = () =>
     Array.isArray(receivables)
       ? receivables
-          .filter((r) => r.status === "pending")
+          .filter((r) => r.status === 'pending')
           .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
       : 0;
   const getOverdueAmount = () =>
     Array.isArray(receivables)
       ? receivables
-          .filter((r) => r.status === "overdue")
+          .filter((r) => r.status === 'overdue')
           .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
       : 0;
 
@@ -456,9 +450,7 @@ const AccountsReceivables: React.FC = () => {
     <Container>
       <Header>
         <Title>Accounts Receivables</Title>
-        <AddButton onClick={() => setShowForm(true)}>
-          + Add Receivable
-        </AddButton>
+        <AddButton onClick={() => setShowForm(true)}>+ Add Receivable</AddButton>
       </Header>
 
       <StatsCards>
@@ -484,9 +476,7 @@ const AccountsReceivables: React.FC = () => {
         <EmptyState>
           <EmptyIcon>💰</EmptyIcon>
           <EmptyTitle>No Accounts Receivables</EmptyTitle>
-          <EmptyDescription>
-            Get started by creating your first receivable
-          </EmptyDescription>
+          <EmptyDescription>Get started by creating your first receivable</EmptyDescription>
         </EmptyState>
       ) : (
         <Table>
@@ -505,24 +495,16 @@ const AccountsReceivables: React.FC = () => {
               <TableRow key={receivable.id}>
                 <TableCell>{receivable.invoice_number}</TableCell>
                 <TableCell>{receivable.customer}</TableCell>
-                <TableCell>
-                  ${(Number(receivable.amount) || 0).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  {new Date(receivable.due_date).toLocaleDateString()}
-                </TableCell>
+                <TableCell>${(Number(receivable.amount) || 0).toFixed(2)}</TableCell>
+                <TableCell>{new Date(receivable.due_date).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <StatusBadge $color={getStatusColor(receivable.status)}>
                     {receivable.status.toUpperCase()}
                   </StatusBadge>
                 </TableCell>
                 <TableCell>
-                  <ActionButton onClick={() => handleEdit(receivable)}>
-                    Edit
-                  </ActionButton>
-                  <DeleteButton onClick={() => handleDelete(receivable.id)}>
-                    Delete
-                  </DeleteButton>
+                  <ActionButton onClick={() => handleEdit(receivable)}>Edit</ActionButton>
+                  <DeleteButton onClick={() => handleDelete(receivable.id)}>Delete</DeleteButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -534,9 +516,7 @@ const AccountsReceivables: React.FC = () => {
         <FormOverlay>
           <FormContainer>
             <FormHeader>
-              <FormTitle>
-                {editingReceivable ? "Edit Receivable" : "Add New Receivable"}
-              </FormTitle>
+              <FormTitle>{editingReceivable ? 'Edit Receivable' : 'Add New Receivable'}</FormTitle>
               <CloseButton onClick={() => setShowForm(false)}>×</CloseButton>
             </FormHeader>
             <Form onSubmit={handleSubmit}>
@@ -583,12 +563,7 @@ const AccountsReceivables: React.FC = () => {
               </FormGroup>
               <FormGroup>
                 <Label>Status</Label>
-                <Select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  required
-                >
+                <Select name="status" value={formData.status} onChange={handleInputChange} required>
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
                   <option value="overdue">Overdue</option>
@@ -600,7 +575,7 @@ const AccountsReceivables: React.FC = () => {
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  {editingReceivable ? "Update" : "Create"} Receivable
+                  {editingReceivable ? 'Update' : 'Create'} Receivable
                 </SubmitButton>
               </FormActions>
             </Form>

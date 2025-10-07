@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
-import styled from "styled-components";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
-import Breadcrumb from "../Navigation/Breadcrumb";
-import Omnibox from "../AIAssistant/Omnibox";
-import { useNavigation } from "../../contexts/NavigationContext";
+import React, { useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import styled from 'styled-components';
+import Sidebar from './Sidebar';
+import Header from './Header';
+import Breadcrumb from '../Navigation/Breadcrumb';
+import Omnibox from '../AIAssistant/Omnibox';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 const Layout: React.FC = () => {
   const { sidebarOpen, setSidebarOpen } = useNavigation();
@@ -18,19 +18,19 @@ const Layout: React.FC = () => {
   // Global keyboard shortcut for Omnibox (Cmd/Ctrl + K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setShowOmnibox(true);
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleOmniboxSubmit = (command: string) => {
     // For now, just log the command. In a real app, this would be sent to the AI service
-    console.log("AI Command:", command);
+    console.warn('AI Command:', command);
     // You could also show a notification or redirect to a specific page based on the command
   };
 
@@ -63,7 +63,7 @@ const LayoutContainer = styled.div`
 
 const MainArea = styled.div<{ $sidebarOpen: boolean }>`
   flex: 1;
-  margin-left: ${(props) => (props.$sidebarOpen ? "250px" : "60px")};
+  margin-left: ${(props) => (props.$sidebarOpen ? '250px' : '60px')};
   transition: margin-left 0.3s ease;
   display: flex;
   flex-direction: column;

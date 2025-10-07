@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface NavigationContextType {
   currentModule: string;
-  moduleData: { [key: string]: any };
-  setModuleData: (module: string, data: any) => void;
+  moduleData: { [key: string]: Record<string, unknown> };
+  setModuleData: (module: string, data: Record<string, unknown>) => void;
   clearModuleData: (module: string) => void;
   breadcrumbPath: string[];
   setBreadcrumbPath: (path: string[]) => void;
@@ -12,14 +12,12 @@ interface NavigationContextType {
   setSidebarOpen: (open: boolean) => void;
 }
 
-const NavigationContext = createContext<NavigationContextType | undefined>(
-  undefined,
-);
+const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export const useNavigation = () => {
   const context = useContext(NavigationContext);
   if (!context) {
-    throw new Error("useNavigation must be used within a NavigationProvider");
+    throw new Error('useNavigation must be used within a NavigationProvider');
   }
   return context;
 };
@@ -28,18 +26,18 @@ interface NavigationProviderProps {
   children: React.ReactNode;
 }
 
-export const NavigationProvider: React.FC<NavigationProviderProps> = ({
-  children,
-}) => {
+export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children }) => {
   const location = useLocation();
-  const [moduleData, setModuleDataState] = useState<{ [key: string]: any }>({});
+  const [moduleData, setModuleDataState] = useState<{
+    [key: string]: Record<string, unknown>;
+  }>({});
   const [breadcrumbPath, setBreadcrumbPath] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Get current module from location
-  const currentModule = location.pathname.split("/")[1] || "dashboard";
+  const currentModule = location.pathname.split('/')[1] || 'dashboard';
 
-  const setModuleData = useCallback((module: string, data: any) => {
+  const setModuleData = useCallback((module: string, data: Record<string, unknown>) => {
     setModuleDataState((prev) => ({
       ...prev,
       [module]: { ...prev[module], ...data },
@@ -65,9 +63,5 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     setSidebarOpen,
   };
 
-  return (
-    <NavigationContext.Provider value={value}>
-      {children}
-    </NavigationContext.Provider>
-  );
+  return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
 };

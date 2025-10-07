@@ -8,7 +8,8 @@ const meta: Meta<typeof SupplierPerformanceChart> = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A bar chart component that displays supplier performance metrics including orders, revenue, and ratings.',
+        component:
+          'A bar chart component that displays supplier performance metrics including orders, revenue, and ratings.',
       },
     },
   },

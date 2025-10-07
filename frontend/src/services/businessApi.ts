@@ -3,17 +3,16 @@
  *
  * Handles communication with business entities (suppliers, customers, etc.)
  */
-import axios from "axios";
+import axios from 'axios';
 
 // API Configuration
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const businessApiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
@@ -21,7 +20,7 @@ const businessApiClient = axios.create({
 businessApiClient.interceptors.request.use(
   (config) => {
     // Add authentication token if available
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,7 +28,7 @@ businessApiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  },
+  }
 );
 
 // Response interceptor for error handling
@@ -38,21 +37,21 @@ businessApiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle authentication errors
-      localStorage.removeItem("authToken");
-      window.location.href = "/login";
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 // Generic API request helper
 async function apiRequest<T>(
   endpoint: string,
-  options: { method?: string; data?: any } = {},
+  options: { method?: string; data?: unknown } = {}
 ): Promise<T> {
   const response = await businessApiClient.request({
     url: endpoint,
-    method: options.method || "GET",
+    method: options.method || 'GET',
     data: options.data,
   });
   return response.data;
@@ -70,12 +69,7 @@ export interface Supplier {
   state?: string;
   zip_code?: string;
   country?: string;
-  supplier_type?:
-    | "meat_processor"
-    | "packaging"
-    | "equipment"
-    | "logistics"
-    | "other";
+  supplier_type?: 'meat_processor' | 'packaging' | 'equipment' | 'logistics' | 'other';
   is_active?: boolean;
   created_on?: string;
   modified_on?: string;
@@ -92,12 +86,7 @@ export interface Customer {
   state?: string;
   zip_code?: string;
   country?: string;
-  customer_type?:
-    | "restaurant"
-    | "retail"
-    | "distributor"
-    | "food_service"
-    | "other";
+  customer_type?: 'restaurant' | 'retail' | 'distributor' | 'food_service' | 'other';
   is_active?: boolean;
   credit_limit?: number;
   payment_terms?: string;
@@ -114,7 +103,7 @@ export interface Contact {
   company?: string;
   notes?: string;
   is_active?: boolean;
-  contact_type?: "supplier" | "customer" | "internal" | "other";
+  contact_type?: 'supplier' | 'customer' | 'internal' | 'other';
   created_on?: string;
   modified_on?: string;
 }
@@ -125,13 +114,7 @@ export interface PurchaseOrder {
   supplier?: number;
   order_date?: string;
   delivery_date?: string;
-  status?:
-    | "draft"
-    | "pending"
-    | "approved"
-    | "ordered"
-    | "received"
-    | "cancelled";
+  status?: 'draft' | 'pending' | 'approved' | 'ordered' | 'received' | 'cancelled';
   total_amount?: number;
   notes?: string;
   created_by?: number;
@@ -145,7 +128,7 @@ export interface AccountsReceivable {
   customer?: number;
   amount: number;
   due_date?: string;
-  status?: "pending" | "paid" | "overdue" | "cancelled";
+  status?: 'pending' | 'paid' | 'overdue' | 'cancelled';
   description?: string;
   created_on?: string;
   modified_on?: string;
@@ -162,7 +145,7 @@ export interface Plant {
   country?: string;
   phone?: string;
   manager?: string;
-  plant_type?: "processing" | "distribution" | "storage" | "office" | "other";
+  plant_type?: 'processing' | 'distribution' | 'storage' | 'office' | 'other';
   capacity?: number;
   is_active?: boolean;
   created_on?: string;
@@ -181,7 +164,7 @@ export interface Carrier {
   state?: string;
   zip_code?: string;
   country?: string;
-  carrier_type?: "trucking" | "rail" | "air" | "ocean" | "courier" | "other";
+  carrier_type?: 'trucking' | 'rail' | 'air' | 'ocean' | 'courier' | 'other';
   mc_number?: string;
   dot_number?: string;
   is_active?: boolean;
@@ -203,44 +186,41 @@ function createEntityAPI<T>(entityName: string) {
 
     create: async (data: Partial<T>): Promise<T> => {
       return apiRequest<T>(`/${entityName}/`, {
-        method: "POST",
+        method: 'POST',
         data: data,
       });
     },
 
     update: async (id: number, data: Partial<T>): Promise<T> => {
       return apiRequest<T>(`/${entityName}/${id}/`, {
-        method: "PUT",
+        method: 'PUT',
         data: data,
       });
     },
 
     patch: async (id: number, data: Partial<T>): Promise<T> => {
       return apiRequest<T>(`/${entityName}/${id}/`, {
-        method: "PATCH",
+        method: 'PATCH',
         data: data,
       });
     },
 
     delete: async (id: number): Promise<void> => {
       return apiRequest<void>(`/${entityName}/${id}/`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
     },
   };
 }
 
 // Export entity APIs
-export const suppliersApi = createEntityAPI<Supplier>("suppliers");
-export const customersApi = createEntityAPI<Customer>("customers");
-export const contactsApi = createEntityAPI<Contact>("contacts");
-export const purchaseOrdersApi =
-  createEntityAPI<PurchaseOrder>("purchase-orders");
-export const accountsReceivableApi = createEntityAPI<AccountsReceivable>(
-  "accounts-receivable",
-);
-export const plantsApi = createEntityAPI<Plant>("plants");
-export const carriersApi = createEntityAPI<Carrier>("carriers");
+export const suppliersApi = createEntityAPI<Supplier>('suppliers');
+export const customersApi = createEntityAPI<Customer>('customers');
+export const contactsApi = createEntityAPI<Contact>('contacts');
+export const purchaseOrdersApi = createEntityAPI<PurchaseOrder>('purchase-orders');
+export const accountsReceivableApi = createEntityAPI<AccountsReceivable>('accounts-receivable');
+export const plantsApi = createEntityAPI<Plant>('plants');
+export const carriersApi = createEntityAPI<Carrier>('carriers');
 
 // Export default client
 export default businessApiClient;

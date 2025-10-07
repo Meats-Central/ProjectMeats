@@ -3,12 +3,18 @@
  *
  * Displays a list of chat messages with proper formatting and styling.
  */
-import React from "react";
-import styled from "styled-components";
-import { ChatMessage } from "../../types";
+import React from 'react';
+import styled from 'styled-components';
+import { ChatMessage } from '../../types';
 
 interface MessageListProps {
   messages: ChatMessage[];
+}
+
+interface MessageMetadataType {
+  model?: string;
+  processing_time?: number;
+  tokens_used?: number;
 }
 
 const MessageList: React.FC<MessageListProps> = ({ messages }) => {
@@ -18,7 +24,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
 
-    if (diffMins < 1) return "Just now";
+    if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
 
     const diffHours = Math.floor(diffMins / 60);
@@ -29,16 +35,16 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
 
   const getMessageIcon = (type: string): string => {
     switch (type) {
-      case "user":
-        return "👤";
-      case "assistant":
-        return "🤖";
-      case "system":
-        return "⚙️";
-      case "document":
-        return "📄";
+      case 'user':
+        return '👤';
+      case 'assistant':
+        return '🤖';
+      case 'system':
+        return '⚙️';
+      case 'document':
+        return '📄';
       default:
-        return "💬";
+        return '💬';
     }
   };
 
@@ -47,18 +53,16 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
       {messages.map((message) => (
         <MessageItem key={message.id} messageType={message.message_type}>
           <MessageHeader>
-            <MessageTypeIcon>
-              {getMessageIcon(message.message_type)}
-            </MessageTypeIcon>
+            <MessageTypeIcon>{getMessageIcon(message.message_type)}</MessageTypeIcon>
             <MessageInfo>
               <MessageType>
-                {message.message_type === "user"
-                  ? "You"
-                  : message.message_type === "assistant"
-                    ? "AI Assistant"
-                    : message.message_type === "system"
-                      ? "System"
-                      : "Document"}
+                {message.message_type === 'user'
+                  ? 'You'
+                  : message.message_type === 'assistant'
+                    ? 'AI Assistant'
+                    : message.message_type === 'system'
+                      ? 'System'
+                      : 'Document'}
               </MessageType>
               <MessageTime>{formatTimestamp(message.created_on)}</MessageTime>
             </MessageInfo>
@@ -68,17 +72,19 @@ const MessageList: React.FC<MessageListProps> = ({ messages }) => {
 
           {message.metadata && Object.keys(message.metadata).length > 0 && (
             <MessageMetadata>
-              {message.metadata.model && (
-                <MetadataItem>Model: {message.metadata.model}</MetadataItem>
-              )}
-              {message.metadata.processing_time && (
+              {(message.metadata as MessageMetadataType).model && (
                 <MetadataItem>
-                  Processing: {message.metadata.processing_time}s
+                  Model: {(message.metadata as MessageMetadataType).model}
                 </MetadataItem>
               )}
-              {message.metadata.tokens_used && (
+              {(message.metadata as MessageMetadataType).processing_time && (
                 <MetadataItem>
-                  Tokens: {message.metadata.tokens_used}
+                  Processing: {(message.metadata as MessageMetadataType).processing_time}s
+                </MetadataItem>
+              )}
+              {(message.metadata as MessageMetadataType).tokens_used && (
+                <MetadataItem>
+                  Tokens: {(message.metadata as MessageMetadataType).tokens_used}
                 </MetadataItem>
               )}
             </MessageMetadata>
@@ -100,27 +106,27 @@ const MessageItem = styled.div<{ messageType: string }>`
   padding: 16px;
   border-radius: 12px;
   background: ${(props) =>
-    props.messageType === "user"
-      ? "#e0f2fe"
-      : props.messageType === "assistant"
-        ? "#f8fafc"
-        : "#fff7ed"};
+    props.messageType === 'user'
+      ? '#e0f2fe'
+      : props.messageType === 'assistant'
+        ? '#f8fafc'
+        : '#fff7ed'};
   border: 1px solid
     ${(props) =>
-      props.messageType === "user"
-        ? "#b3e5fc"
-        : props.messageType === "assistant"
-          ? "#e2e8f0"
-          : "#fed7aa"};
+      props.messageType === 'user'
+        ? '#b3e5fc'
+        : props.messageType === 'assistant'
+          ? '#e2e8f0'
+          : '#fed7aa'};
 
   ${(props) =>
-    props.messageType === "user" &&
+    props.messageType === 'user' &&
     `
     margin-left: 20%;
   `}
 
   ${(props) =>
-    props.messageType === "assistant" &&
+    props.messageType === 'assistant' &&
     `
     margin-right: 20%;
   `}

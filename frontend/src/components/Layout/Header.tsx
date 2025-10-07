@@ -1,6 +1,6 @@
-import React from "react";
-import styled from "styled-components";
-import ProfileDropdown from "../ProfileDropdown";
+import React from 'react';
+import styled from 'styled-components';
+import ProfileDropdown from '../ProfileDropdown';
 
 interface HeaderProps {
   // No props needed currently

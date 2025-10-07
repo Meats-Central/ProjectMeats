@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { apiService, Supplier } from "../services/apiService";
+import React, { useState, useEffect } from 'react';
+import { apiService, Supplier } from '../services/apiService';
 
 const ApiTestComponent: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -15,25 +15,21 @@ const ApiTestComponent: React.FC = () => {
     try {
       const newSupplier = {
         name: `Test Supplier ${new Date().getTime()}`,
-        contact_person: "Test Person",
-        email: "test@example.com",
-        phone: "555-0123",
-        address: "123 Test St",
-        city: "Test City",
-        state: "TS",
-        zip_code: "12345",
+        contact_person: 'Test Person',
+        email: 'test@example.com',
+        phone: '555-0123',
+        address: '123 Test St',
+        city: 'Test City',
+        state: 'TS',
+        zip_code: '12345',
       };
 
-      console.log("Creating supplier:", newSupplier);
       const result = await apiService.createSupplier(newSupplier);
-      console.log("Supplier created successfully:", result);
 
-      setSuccess(
-        `✅ Successfully created supplier: ${result.name} (ID: ${result.id})`,
-      );
+      setSuccess(`✅ Successfully created supplier: ${result.name} (ID: ${result.id})`);
       fetchSuppliers(); // Refresh the list
     } catch (err) {
-      console.error("Error creating supplier:", err);
+      console.error('Error creating supplier:', err);
       setError(`❌ Error creating supplier: ${err}`);
     } finally {
       setLoading(false);
@@ -42,12 +38,10 @@ const ApiTestComponent: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      console.log("Fetching suppliers...");
       const supplierData = await apiService.getSuppliers();
-      console.log("Fetched suppliers:", supplierData);
       setSuppliers(supplierData);
     } catch (err) {
-      console.error("Error fetching suppliers:", err);
+      console.error('Error fetching suppliers:', err);
       setError(`❌ Error fetching suppliers: ${err}`);
     }
   };
@@ -57,34 +51,34 @@ const ApiTestComponent: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>🧪 API Test Component</h2>
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: '20px' }}>
         <button
           onClick={testCreateSupplier}
           disabled={loading}
           style={{
-            backgroundColor: "#007bff",
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: loading ? "not-allowed" : "pointer",
+            backgroundColor: '#007bff',
+            color: 'white',
+            padding: '10px 20px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? "⏳ Creating..." : "✨ Test Create Supplier"}
+          {loading ? '⏳ Creating...' : '✨ Test Create Supplier'}
         </button>
       </div>
 
       {error && (
         <div
           style={{
-            backgroundColor: "#f8d7da",
-            color: "#721c24",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "10px",
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '10px',
           }}
         >
           {error}
@@ -94,11 +88,11 @@ const ApiTestComponent: React.FC = () => {
       {success && (
         <div
           style={{
-            backgroundColor: "#d1edff",
-            color: "#155724",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "10px",
+            backgroundColor: '#d1edff',
+            color: '#155724',
+            padding: '10px',
+            borderRadius: '4px',
+            marginBottom: '10px',
           }}
         >
           {success}
@@ -106,16 +100,16 @@ const ApiTestComponent: React.FC = () => {
       )}
 
       <h3>📋 Current Suppliers ({suppliers.length})</h3>
-      <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
         {suppliers.map((supplier) => (
           <div
             key={supplier.id}
             style={{
-              border: "1px solid #dee2e6",
-              padding: "10px",
-              marginBottom: "5px",
-              borderRadius: "4px",
-              backgroundColor: "#f8f9fa",
+              border: '1px solid #dee2e6',
+              padding: '10px',
+              marginBottom: '5px',
+              borderRadius: '4px',
+              backgroundColor: '#f8f9fa',
             }}
           >
             <strong>
