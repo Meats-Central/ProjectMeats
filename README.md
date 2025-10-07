@@ -45,10 +45,17 @@ ProjectMeats3/
 │   ├── src/
 │   │   ├── components/         # Reusable UI components
 │   │   ├── screens/           # Main application screens
-│   │   └── services/         # API communication
+│   │   ├── services/         # API communication
+│   │   └── shared/           # Shared utilities (re-exports from /shared)
 │   └── package.json
+├── mobile/                     # React Native mobile app
+│   └── src/
+│       └── shared/            # Shared utilities (re-exports from /shared)
+├── shared/                     # Cross-platform shared utilities
+│   └── utils.ts              # Common TypeScript utilities
 ├── docs/                      # Documentation
-└── powerapps_export/          # Original PowerApps solution
+│   └── legacy/               # Archived legacy documentation
+└── config/                    # Centralized configuration
 ```
 
 ## 🚀 Quick Setup
