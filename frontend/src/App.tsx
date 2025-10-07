@@ -1,28 +1,28 @@
 /**
  * Main App Component
- * 
+ *
  * ProjectMeats3 React Application
  * Full Business Management System with AI Assistant
  */
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { NavigationProvider } from './contexts/NavigationContext';
-import Layout from './components/Layout/Layout';
-import Dashboard from './pages/Dashboard';
-import Suppliers from './pages/Suppliers';
-import Customers from './pages/Customers';
-import PurchaseOrders from './pages/PurchaseOrders';
-import AccountsReceivables from './pages/AccountsReceivables';
-import Contacts from './pages/Contacts';
-import Plants from './pages/Plants';
-import Carriers from './pages/Carriers';
-import AIAssistant from './pages/AIAssistant';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import ApiTestComponent from './components/ApiTestComponent';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { NavigationProvider } from "./contexts/NavigationContext";
+import Layout from "./components/Layout/Layout";
+import Dashboard from "./pages/Dashboard";
+import Suppliers from "./pages/Suppliers";
+import Customers from "./pages/Customers";
+import PurchaseOrders from "./pages/PurchaseOrders";
+import AccountsReceivables from "./pages/AccountsReceivables";
+import Contacts from "./pages/Contacts";
+import Plants from "./pages/Plants";
+import Carriers from "./pages/Carriers";
+import AIAssistant from "./pages/AIAssistant";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import ApiTestComponent from "./components/ApiTestComponent";
 
 const App: React.FC = () => {
   return (
@@ -42,7 +42,10 @@ const App: React.FC = () => {
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="customers" element={<Customers />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="accounts-receivables" element={<AccountsReceivables />} />
+              <Route
+                path="accounts-receivables"
+                element={<AccountsReceivables />}
+              />
               <Route path="contacts" element={<Contacts />} />
               <Route path="plants" element={<Plants />} />
               <Route path="carriers" element={<Carriers />} />

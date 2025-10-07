@@ -1,40 +1,38 @@
-import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import styled from "styled-components";
+import { useAuth } from "../contexts/AuthContext";
 
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Check for success message from signup
   const successMessage = location.state?.message;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!credentials.username.trim() || !credentials.password.trim()) {
-      setError('Please enter both username and password');
+      setError("Please enter both username and password");
       return;
     }
 
-    
     setLoading(true);
     setError(null);
 
-    
     try {
       await login(credentials);
-      navigate('/');
+      navigate("/");
     } catch (error: any) {
-      setError(error.message || 'Login failed. Please check your credentials.');
+      setError(error.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -42,9 +40,9 @@ const Login: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCredentials(prev => ({
+    setCredentials((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (error) setError(null);
@@ -110,19 +108,17 @@ const Login: React.FC = () => {
                 Signing In...
               </>
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </LoginButton>
         </LoginForm>
 
         <Footer>
           <FooterText>
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <StyledLink to="/signup">Sign up here</StyledLink>
           </FooterText>
-          <FooterSubText>
-            Need help? Contact your administrator
-          </FooterSubText>
+          <FooterSubText>Need help? Contact your administrator</FooterSubText>
         </Footer>
       </LoginCard>
     </LoginContainer>
@@ -224,12 +220,12 @@ const Input = styled.input`
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #667eea;
   }
-  
+
   &:disabled {
     background-color: #f8f9fa;
     cursor: not-allowed;
@@ -251,12 +247,12 @@ const LoginButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   }
-  
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
@@ -271,10 +267,14 @@ const LoadingSpinner = styled.div`
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -300,7 +300,7 @@ const StyledLink = styled(Link)`
   color: #667eea;
   text-decoration: none;
   font-weight: 600;
-  
+
   &:hover {
     text-decoration: underline;
   }

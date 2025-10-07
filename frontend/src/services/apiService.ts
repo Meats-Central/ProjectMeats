@@ -1,31 +1,32 @@
 /**
  * General API Service for ProjectMeats Business Management
- * 
+ *
  * Handles communication with all Django REST API endpoints.
  */
-import axios from 'axios';
+import axios from "axios";
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor for error handling
@@ -33,11 +34,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      localStorage.removeItem("authToken");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Types
@@ -137,7 +138,7 @@ export interface AccountsReceivable {
 export class ApiService {
   // Suppliers
   async getSuppliers(): Promise<Supplier[]> {
-    const response = await apiClient.get('/suppliers/');
+    const response = await apiClient.get("/suppliers/");
     return response.data.results || response.data;
   }
 
@@ -147,11 +148,14 @@ export class ApiService {
   }
 
   async createSupplier(supplier: Partial<Supplier>): Promise<Supplier> {
-    const response = await apiClient.post('/suppliers/', supplier);
+    const response = await apiClient.post("/suppliers/", supplier);
     return response.data;
   }
 
-  async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<Supplier> {
+  async updateSupplier(
+    id: number,
+    supplier: Partial<Supplier>,
+  ): Promise<Supplier> {
     const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
     return response.data;
   }
@@ -162,7 +166,7 @@ export class ApiService {
 
   // Customers
   async getCustomers(): Promise<Customer[]> {
-    const response = await apiClient.get('/customers/');
+    const response = await apiClient.get("/customers/");
     return response.data.results || response.data;
   }
 
@@ -172,11 +176,14 @@ export class ApiService {
   }
 
   async createCustomer(customer: Partial<Customer>): Promise<Customer> {
-    const response = await apiClient.post('/customers/', customer);
+    const response = await apiClient.post("/customers/", customer);
     return response.data;
   }
 
-  async updateCustomer(id: number, customer: Partial<Customer>): Promise<Customer> {
+  async updateCustomer(
+    id: number,
+    customer: Partial<Customer>,
+  ): Promise<Customer> {
     const response = await apiClient.patch(`/customers/${id}/`, customer);
     return response.data;
   }
@@ -188,11 +195,13 @@ export class ApiService {
   // Purchase Orders
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
     try {
-      const response = await apiClient.get('/purchase-orders/');
+      const response = await apiClient.get("/purchase-orders/");
       return response.data.results || response.data;
     } catch (error) {
-      console.error('Error fetching purchase orders:', error);
-      throw new Error('Purchase orders data unavailable. Please check your connection and try again.');
+      console.error("Error fetching purchase orders:", error);
+      throw new Error(
+        "Purchase orders data unavailable. Please check your connection and try again.",
+      );
     }
   }
 
@@ -201,12 +210,17 @@ export class ApiService {
     return response.data;
   }
 
-  async createPurchaseOrder(order: Partial<PurchaseOrder>): Promise<PurchaseOrder> {
-    const response = await apiClient.post('/purchase-orders/', order);
+  async createPurchaseOrder(
+    order: Partial<PurchaseOrder>,
+  ): Promise<PurchaseOrder> {
+    const response = await apiClient.post("/purchase-orders/", order);
     return response.data;
   }
 
-  async updatePurchaseOrder(id: number, order: Partial<PurchaseOrder>): Promise<PurchaseOrder> {
+  async updatePurchaseOrder(
+    id: number,
+    order: Partial<PurchaseOrder>,
+  ): Promise<PurchaseOrder> {
     const response = await apiClient.patch(`/purchase-orders/${id}/`, order);
     return response.data;
   }
@@ -217,7 +231,7 @@ export class ApiService {
 
   // Contacts
   async getContacts(): Promise<Contact[]> {
-    const response = await apiClient.get('/contacts/');
+    const response = await apiClient.get("/contacts/");
     return response.data.results || response.data;
   }
 
@@ -227,7 +241,7 @@ export class ApiService {
   }
 
   async createContact(contact: Partial<Contact>): Promise<Contact> {
-    const response = await apiClient.post('/contacts/', contact);
+    const response = await apiClient.post("/contacts/", contact);
     return response.data;
   }
 
@@ -242,7 +256,7 @@ export class ApiService {
 
   // Plants
   async getPlants(): Promise<Plant[]> {
-    const response = await apiClient.get('/plants/');
+    const response = await apiClient.get("/plants/");
     return response.data.results || response.data;
   }
 
@@ -252,7 +266,7 @@ export class ApiService {
   }
 
   async createPlant(plant: Partial<Plant>): Promise<Plant> {
-    const response = await apiClient.post('/plants/', plant);
+    const response = await apiClient.post("/plants/", plant);
     return response.data;
   }
 
@@ -267,7 +281,7 @@ export class ApiService {
 
   // Carriers
   async getCarriers(): Promise<Carrier[]> {
-    const response = await apiClient.get('/carriers/');
+    const response = await apiClient.get("/carriers/");
     return response.data.results || response.data;
   }
 
@@ -277,7 +291,7 @@ export class ApiService {
   }
 
   async createCarrier(carrier: Partial<Carrier>): Promise<Carrier> {
-    const response = await apiClient.post('/carriers/', carrier);
+    const response = await apiClient.post("/carriers/", carrier);
     return response.data;
   }
 
@@ -292,7 +306,7 @@ export class ApiService {
 
   // Accounts Receivables
   async getAccountsReceivables(): Promise<AccountsReceivable[]> {
-    const response = await apiClient.get('/accounts-receivables/');
+    const response = await apiClient.get("/accounts-receivables/");
     return response.data.results || response.data;
   }
 
@@ -301,12 +315,17 @@ export class ApiService {
     return response.data;
   }
 
-  async createAccountsReceivable(ar: Partial<AccountsReceivable>): Promise<AccountsReceivable> {
-    const response = await apiClient.post('/accounts-receivables/', ar);
+  async createAccountsReceivable(
+    ar: Partial<AccountsReceivable>,
+  ): Promise<AccountsReceivable> {
+    const response = await apiClient.post("/accounts-receivables/", ar);
     return response.data;
   }
 
-  async updateAccountsReceivable(id: number, ar: Partial<AccountsReceivable>): Promise<AccountsReceivable> {
+  async updateAccountsReceivable(
+    id: number,
+    ar: Partial<AccountsReceivable>,
+  ): Promise<AccountsReceivable> {
     const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
     return response.data;
   }

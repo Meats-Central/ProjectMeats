@@ -1,24 +1,24 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import styled from "styled-components";
 
 const Breadcrumb: React.FC = () => {
   const location = useLocation();
-  
+
   // Create breadcrumb items from current path
-  const pathnames = location.pathname.split('/').filter(x => x);
-  
+  const pathnames = location.pathname.split("/").filter((x) => x);
+
   const breadcrumbNameMap: { [key: string]: string } = {
-    'suppliers': 'Suppliers',
-    'customers': 'Customers',
-    'purchase-orders': 'Purchase Orders',
-    'accounts-receivables': 'Accounts Receivables',
-    'contacts': 'Contacts',
-    'plants': 'Plants', 
-    'carriers': 'Carriers',
-    'ai-assistant': 'AI Assistant',
-    'profile': 'Profile',
-    'settings': 'Settings',
+    suppliers: "Suppliers",
+    customers: "Customers",
+    "purchase-orders": "Purchase Orders",
+    "accounts-receivables": "Accounts Receivables",
+    contacts: "Contacts",
+    plants: "Plants",
+    carriers: "Carriers",
+    "ai-assistant": "AI Assistant",
+    profile: "Profile",
+    settings: "Settings",
   };
 
   if (pathnames.length === 0) {
@@ -38,7 +38,7 @@ const Breadcrumb: React.FC = () => {
         <Separator>/</Separator>
       </BreadcrumbItem>
       {pathnames.map((pathname, index) => {
-        const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
+        const routeTo = `/${pathnames.slice(0, index + 1).join("/")}`;
         const isLast = index === pathnames.length - 1;
         const displayName = breadcrumbNameMap[pathname] || pathname;
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import styled from 'styled-components';
+import React from "react";
+import ReactDOM from "react-dom";
+import styled from "styled-components";
 
 interface ModalProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  maxWidth = '600px',
+  maxWidth = "600px",
 }) => {
   if (!isOpen) return null;
 
@@ -32,12 +32,10 @@ const Modal: React.FC<ModalProps> = ({
           <ModalTitle>{title}</ModalTitle>
           <CloseButton onClick={onClose}>&times;</CloseButton>
         </ModalHeader>
-        <ModalContent>
-          {children}
-        </ModalContent>
+        <ModalContent>{children}</ModalContent>
       </ModalContainer>
     </ModalBackdrop>,
-    document.body
+    document.body,
   );
 };
 
@@ -59,7 +57,7 @@ const ModalContainer = styled.div<{ maxWidth: string }>`
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-width: ${props => props.maxWidth};
+  max-width: ${(props) => props.maxWidth};
   width: 100%;
   max-height: 90vh;
   overflow: hidden;

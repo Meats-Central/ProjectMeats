@@ -1,14 +1,20 @@
 /**
  * MessageInput Component
- * 
+ *
  * Enhanced input field for typing and sending messages to the AI assistant.
  * Includes integrated file upload, auto-resize, keyboard shortcuts, and suggested prompts.
  * Designed similar to Microsoft Copilot interface.
- * 
+ *
  * Enhanced from PR #63 with drag & drop file upload integration.
  */
-import React, { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
-import styled from 'styled-components';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  KeyboardEvent,
+  useCallback,
+} from "react";
+import styled from "styled-components";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -19,7 +25,17 @@ interface MessageInputProps {
 }
 
 // Supported file extensions and constraints
-const SUPPORTED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'txt', 'doc', 'docx', 'xls', 'xlsx'];
+const SUPPORTED_EXTENSIONS = [
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "txt",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -27,9 +43,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onFileUpload,
   disabled = false,
   placeholder = "Type your message...",
-  className
+  className,
 }) => {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -55,53 +71,58 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     // Check file type
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const fileExtension = file.name.split(".").pop()?.toLowerCase();
     if (!fileExtension || !SUPPORTED_EXTENSIONS.includes(fileExtension)) {
-      return `File type not supported. Supported types: ${SUPPORTED_EXTENSIONS.join(', ')}`;
+      return `File type not supported. Supported types: ${SUPPORTED_EXTENSIONS.join(", ")}`;
     }
 
     return null;
   }, []);
 
   // Handle file upload
-  const handleFileUpload = useCallback(async (file: File) => {
-    setError(null);
-    
-    // Validate file
-    const validationError = validateFile(file);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      setError(null);
 
-    if (!onFileUpload) {
-      setError('File upload not available');
-      return;
-    }
+      // Validate file
+      const validationError = validateFile(file);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
-    try {
-      setUploading(true);
-      await onFileUpload(file);
-      
-      // Add a message about the uploaded file
-      const fileMessage = `📄 I've uploaded "${file.name}" for processing.`;
-      setMessage(fileMessage);
-      textareaRef.current?.focus();
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  }, [onFileUpload, validateFile]);
+      if (!onFileUpload) {
+        setError("File upload not available");
+        return;
+      }
+
+      try {
+        setUploading(true);
+        await onFileUpload(file);
+
+        // Add a message about the uploaded file
+        const fileMessage = `📄 I've uploaded "${file.name}" for processing.`;
+        setMessage(fileMessage);
+        textareaRef.current?.focus();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [onFileUpload, validateFile],
+  );
 
   // Handle drag events
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled && !uploading) {
-      setIsDragOver(true);
-    }
-  }, [disabled, uploading]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!disabled && !uploading) {
+        setIsDragOver(true);
+      }
+    },
+    [disabled, uploading],
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -111,27 +132,33 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
 
-    if (disabled || uploading) return;
+      if (disabled || uploading) return;
 
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileUpload(files[0]);
-    }
-  }, [disabled, uploading, handleFileUpload]);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    },
+    [disabled, uploading, handleFileUpload],
+  );
 
   // Handle file input change
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleFileUpload(files[0] as File);
-    }
-    // Reset input value to allow same file upload
-    e.target.value = '';
-  }, [handleFileUpload]);
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        handleFileUpload(files[0] as File);
+      }
+      // Reset input value to allow same file upload
+      e.target.value = "";
+    },
+    [handleFileUpload],
+  );
 
   // Handle attachment button click
   const handleAttachmentClick = useCallback(() => {
@@ -144,34 +171,34 @@ const MessageInput: React.FC<MessageInputProps> = ({
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+      textarea.style.height = "auto";
+      textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
     }
   }, [message]);
 
   // Handle form submission
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    
+
     if (message.trim() && !disabled && !uploading) {
       onSendMessage(message.trim());
-      setMessage('');
+      setMessage("");
       setShowSuggestions(false);
       setError(null);
-      
+
       // Reset textarea height
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = "auto";
       }
     }
   };
 
   // Handle keyboard events
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setShowSuggestions(false);
     }
   };
@@ -180,9 +207,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     setError(null); // Clear error when user starts typing
-    
+
     // Show suggestions if input is empty and user starts typing
-    if (e.target.value === '' && !showSuggestions) {
+    if (e.target.value === "" && !showSuggestions) {
       setShowSuggestions(true);
     }
   };
@@ -197,17 +224,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Hide suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (textareaRef.current && !textareaRef.current.contains(event.target as Node)) {
+      if (
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <InputContainer 
+    <InputContainer
       className={className}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -218,7 +248,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       <HiddenFileInput
         ref={fileInputRef}
         type="file"
-        accept={SUPPORTED_EXTENSIONS.map(ext => `.${ext}`).join(',')}
+        accept={SUPPORTED_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={handleFileInputChange}
         disabled={disabled || uploading}
       />
@@ -272,7 +302,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               <AttachmentIcon>📎</AttachmentIcon>
             )}
           </AttachmentButton>
-          
+
           <TextArea
             ref={textareaRef}
             value={message}
@@ -283,12 +313,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
             rows={1}
             maxLength={5000}
           />
-          
+
           <ButtonGroup>
-            <CharacterCount>
-              {message.length}/5000
-            </CharacterCount>
-            
+            <CharacterCount>{message.length}/5000</CharacterCount>
+
             <SendButton
               type="submit"
               disabled={!message.trim() || disabled || uploading}
@@ -302,9 +330,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </SendButton>
           </ButtonGroup>
         </InputWrapper>
-        
+
         <InputHint>
-          Press <Kbd>Enter</Kbd> to send, <Kbd>Shift + Enter</Kbd> for new line • Drag & drop files to upload
+          Press <Kbd>Enter</Kbd> to send, <Kbd>Shift + Enter</Kbd> for new line
+          • Drag & drop files to upload
         </InputHint>
       </InputForm>
     </InputContainer>
@@ -312,12 +341,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
 };
 
 // Styled Components
-const InputContainer = styled.div<{$isDragOver?: boolean}>`
+const InputContainer = styled.div<{ $isDragOver?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
-  ${props => props.$isDragOver && `
+  ${(props) =>
+    props.$isDragOver &&
+    `
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     border-radius: 12px;
   `}
@@ -338,7 +369,7 @@ const ErrorBanner = styled.div`
   color: #dc2626;
   font-size: 12px;
   animation: slideDown 0.2s ease-out;
-  
+
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -366,7 +397,7 @@ const ErrorClose = styled.button`
   cursor: pointer;
   font-size: 16px;
   padding: 0;
-  
+
   &:hover {
     opacity: 0.7;
   }
@@ -378,7 +409,11 @@ const DragOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.95) 0%,
+    rgba(118, 75, 162, 0.95) 100%
+  );
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -387,7 +422,7 @@ const DragOverlay = styled.div`
   color: white;
   z-index: 10;
   animation: fadeIn 0.2s ease-out;
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -415,7 +450,7 @@ const SuggestionsContainer = styled.div`
   padding: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.2s ease-out;
-  
+
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -451,13 +486,13 @@ const SuggestionItem = styled.button`
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: #e5e7eb;
     border-color: #d1d5db;
     transform: translateY(-1px);
   }
-  
+
   &:active {
     transform: translateY(0) scale(0.98);
   }
@@ -469,23 +504,25 @@ const InputForm = styled.form`
   gap: 8px;
 `;
 
-const InputWrapper = styled.div<{$isDragOver?: boolean}>`
+const InputWrapper = styled.div<{ $isDragOver?: boolean }>`
   display: flex;
   align-items: flex-end;
   gap: 12px;
   padding: 12px;
   background: white;
-  border: 2px solid ${props => props.$isDragOver ? '#667eea' : '#e5e7eb'};
+  border: 2px solid ${(props) => (props.$isDragOver ? "#667eea" : "#e5e7eb")};
   border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
-  
+
   &:focus-within {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
-  
-  ${props => props.$isDragOver && `
+
+  ${(props) =>
+    props.$isDragOver &&
+    `
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   `}
 `;
@@ -503,17 +540,17 @@ const AttachmentButton = styled.button`
   justify-content: center;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  
+
   &:hover:not(:disabled) {
     background: #e5e7eb;
     color: #374151;
     transform: translateY(-1px);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(0) scale(0.95);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -536,11 +573,11 @@ const TextArea = styled.textarea`
   background: transparent;
   min-height: 24px;
   max-height: 200px;
-  
+
   &::placeholder {
     color: #9ca3af;
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -571,16 +608,16 @@ const SendButton = styled.button`
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  
+
   &:hover:not(:disabled) {
     background: #5a67d8;
     transform: translateY(-1px);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(0) scale(0.95);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -600,7 +637,7 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   border-top-color: white;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
     to {
       transform: rotate(360deg);

@@ -1,10 +1,10 @@
 /**
  * ProfileDropdown component for user profile actions.
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ProfileDropdownProps {
   // No props needed currently
@@ -19,14 +19,17 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -34,39 +37,40 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     try {
       await logout();
       // Redirect to login page or refresh
-      window.location.href = '/login';
+      window.location.href = "/login";
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
   const handleProfileClick = () => {
-    navigate('/profile');
+    navigate("/profile");
     setIsOpen(false);
   };
 
   const handleSettingsClick = () => {
-    navigate('/settings');
+    navigate("/settings");
     setIsOpen(false);
   };
 
   const handleAdminClick = () => {
     // Open Django admin in new tab using the API base URL
-    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+    const apiBaseUrl =
+      process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
     // Remove '/api/v1' from the end to get the base backend URL, then add '/admin/'
-    const baseBackendUrl = apiBaseUrl.replace('/api/v1', '');
+    const baseBackendUrl = apiBaseUrl.replace("/api/v1", "");
     const adminUrl = `${baseBackendUrl}/admin/`;
-    window.open(adminUrl, '_blank');
+    window.open(adminUrl, "_blank");
     setIsOpen(false);
   };
 
   const handleLoginClick = () => {
-    navigate('/login');
+    navigate("/login");
     setIsOpen(false);
   };
 
   const handleSignUpClick = () => {
-    navigate('/signup');
+    navigate("/signup");
     setIsOpen(false);
   };
 
@@ -97,9 +101,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
               <ItemIcon>🔐</ItemIcon>
               Login
             </DropdownItem>
-            
+
             <DropdownDivider />
-            
+
             <DropdownItem onClick={handleSignUpClick}>
               <ItemIcon>📝</ItemIcon>
               Sign Up
@@ -110,9 +114,10 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     );
   }
 
-  const displayName = user.first_name && user.last_name 
-    ? `${user.first_name} ${user.last_name}` 
-    : user.username;
+  const displayName =
+    user.first_name && user.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user.username;
 
   return (
     <DropdownContainer ref={dropdownRef}>
@@ -128,7 +133,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
             <ItemIcon>👤</ItemIcon>
             View Profile
           </DropdownItem>
-          
+
           <DropdownItem onClick={handleSettingsClick}>
             <ItemIcon>⚙️</ItemIcon>
             Settings
@@ -165,7 +170,7 @@ const UserMenu = styled.div<{ $isOpen?: boolean }>`
   padding: 8px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  background-color: ${props => props.$isOpen ? '#f8f9fa' : 'transparent'};
+  background-color: ${(props) => (props.$isOpen ? "#f8f9fa" : "transparent")};
 
   &:hover {
     background-color: #f8f9fa;
@@ -192,7 +197,7 @@ const UserName = styled.span`
 const DropdownArrow = styled.span<{ $isOpen: boolean }>`
   font-size: 10px;
   color: #6c757d;
-  transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+  transform: ${(props) => (props.$isOpen ? "rotate(180deg)" : "rotate(0deg)")};
   transition: transform 0.2s ease;
 `;
 
@@ -210,7 +215,7 @@ const DropdownMenu = styled.div`
   margin-top: 4px;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: -6px;
     right: 16px;
@@ -234,16 +239,16 @@ const DropdownItem = styled.button<{ $isLogout?: boolean }>`
   background: none;
   cursor: pointer;
   font-size: 14px;
-  color: ${props => props.$isLogout ? '#dc3545' : '#2c3e50'};
+  color: ${(props) => (props.$isLogout ? "#dc3545" : "#2c3e50")};
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: ${props => props.$isLogout ? '#fff5f5' : '#f8f9fa'};
+    background-color: ${(props) => (props.$isLogout ? "#fff5f5" : "#f8f9fa")};
   }
 
   &:focus {
     outline: none;
-    background-color: ${props => props.$isLogout ? '#fff5f5' : '#f8f9fa'};
+    background-color: ${(props) => (props.$isLogout ? "#fff5f5" : "#f8f9fa")};
   }
 `;
 

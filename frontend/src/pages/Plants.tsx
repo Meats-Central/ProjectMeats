@@ -1,5 +1,5 @@
-import React from 'react';
-import styled from 'styled-components';
+import React from "react";
+import styled from "styled-components";
 
 const Plants: React.FC = () => {
   return (
@@ -8,7 +8,7 @@ const Plants: React.FC = () => {
         <Title>Plants</Title>
         <Subtitle>Manage your processing facilities and locations</Subtitle>
       </Header>
-      
+
       <ComingSoon>
         <Icon>🏢</Icon>
         <Text>Plant Management</Text>

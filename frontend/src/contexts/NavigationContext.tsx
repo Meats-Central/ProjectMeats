@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 
 interface NavigationContextType {
   currentModule: string;
@@ -12,12 +12,14 @@ interface NavigationContextType {
   setSidebarOpen: (open: boolean) => void;
 }
 
-const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
+const NavigationContext = createContext<NavigationContextType | undefined>(
+  undefined,
+);
 
 export const useNavigation = () => {
   const context = useContext(NavigationContext);
   if (!context) {
-    throw new Error('useNavigation must be used within a NavigationProvider');
+    throw new Error("useNavigation must be used within a NavigationProvider");
   }
   return context;
 };
@@ -26,24 +28,26 @@ interface NavigationProviderProps {
   children: React.ReactNode;
 }
 
-export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children }) => {
+export const NavigationProvider: React.FC<NavigationProviderProps> = ({
+  children,
+}) => {
   const location = useLocation();
   const [moduleData, setModuleDataState] = useState<{ [key: string]: any }>({});
   const [breadcrumbPath, setBreadcrumbPath] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Get current module from location
-  const currentModule = location.pathname.split('/')[1] || 'dashboard';
+  const currentModule = location.pathname.split("/")[1] || "dashboard";
 
   const setModuleData = useCallback((module: string, data: any) => {
-    setModuleDataState(prev => ({
+    setModuleDataState((prev) => ({
       ...prev,
-      [module]: { ...prev[module], ...data }
+      [module]: { ...prev[module], ...data },
     }));
   }, []);
 
   const clearModuleData = useCallback((module: string) => {
-    setModuleDataState(prev => {
+    setModuleDataState((prev) => {
       const newData = { ...prev };
       delete newData[module];
       return newData;

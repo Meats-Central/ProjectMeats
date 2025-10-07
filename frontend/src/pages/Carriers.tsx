@@ -1,5 +1,5 @@
-import React from 'react';
-import styled from 'styled-components';
+import React from "react";
+import styled from "styled-components";
 
 const Carriers: React.FC = () => {
   return (
@@ -8,7 +8,7 @@ const Carriers: React.FC = () => {
         <Title>Carriers</Title>
         <Subtitle>Manage shipping carriers and logistics partners</Subtitle>
       </Header>
-      
+
       <ComingSoon>
         <Icon>🚛</Icon>
         <Text>Carrier Management</Text>

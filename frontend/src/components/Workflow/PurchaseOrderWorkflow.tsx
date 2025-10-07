@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -9,14 +9,14 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Background,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-import styled from 'styled-components';
+} from "reactflow";
+import "reactflow/dist/style.css";
+import styled from "styled-components";
 
 export interface WorkflowStage {
   id: string;
   label: string;
-  status: 'pending' | 'active' | 'completed' | 'exception';
+  status: "pending" | "active" | "completed" | "exception";
   description?: string;
 }
 
@@ -25,30 +25,32 @@ interface PurchaseOrderWorkflowProps {
   height?: number;
 }
 
-const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({ 
-  stages, 
-  height = 400 
+const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({
+  stages,
+  height = 400,
 }) => {
   // Create nodes from stages
   const initialNodes: Node[] = stages.map((stage, index) => ({
     id: stage.id,
     position: { x: index * 200, y: 100 },
-    data: { 
+    data: {
       label: (
         <StageNode status={stage.status}>
           <StageName>{stage.label}</StageName>
-          {stage.description && <StageDescription>{stage.description}</StageDescription>}
+          {stage.description && (
+            <StageDescription>{stage.description}</StageDescription>
+          )}
           <StageStatus status={stage.status}>
             {getStatusIcon(stage.status)}
           </StageStatus>
         </StageNode>
-      )
+      ),
     },
     style: {
       background: getNodeColor(stage.status),
       border: `2px solid ${getBorderColor(stage.status)}`,
-      borderRadius: '8px',
-      padding: '10px',
+      borderRadius: "8px",
+      padding: "10px",
       width: 180,
     },
   }));
@@ -58,8 +60,8 @@ const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({
     id: `${stage.id}-${stages[index + 1].id}`,
     source: stage.id,
     target: stages[index + 1].id,
-    animated: stages[index + 1].status === 'active',
-    style: { stroke: '#6c757d' },
+    animated: stages[index + 1].status === "active",
+    style: { stroke: "#6c757d" },
   }));
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
@@ -67,7 +69,7 @@ const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    [setEdges],
   );
 
   return (
@@ -96,28 +98,40 @@ const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'completed': return '✓';
-    case 'active': return '⏳';
-    case 'exception': return '⚠️';
-    default: return '○';
+    case "completed":
+      return "✓";
+    case "active":
+      return "⏳";
+    case "exception":
+      return "⚠️";
+    default:
+      return "○";
   }
 };
 
 const getNodeColor = (status: string) => {
   switch (status) {
-    case 'completed': return '#d4edda';
-    case 'active': return '#fff3cd';
-    case 'exception': return '#f8d7da';
-    default: return '#e2e3e5';
+    case "completed":
+      return "#d4edda";
+    case "active":
+      return "#fff3cd";
+    case "exception":
+      return "#f8d7da";
+    default:
+      return "#e2e3e5";
   }
 };
 
 const getBorderColor = (status: string) => {
   switch (status) {
-    case 'completed': return '#28a745';
-    case 'active': return '#ffc107';
-    case 'exception': return '#dc3545';
-    default: return '#6c757d';
+    case "completed":
+      return "#28a745";
+    case "active":
+      return "#ffc107";
+    case "exception":
+      return "#dc3545";
+    default:
+      return "#6c757d";
   }
 };
 
@@ -164,12 +178,16 @@ const StageDescription = styled.div`
 
 const StageStatus = styled.div<{ status: string }>`
   font-size: 20px;
-  color: ${props => {
+  color: ${(props) => {
     switch (props.status) {
-      case 'completed': return '#28a745';
-      case 'active': return '#ffc107';
-      case 'exception': return '#dc3545';
-      default: return '#6c757d';
+      case "completed":
+        return "#28a745";
+      case "active":
+        return "#ffc107";
+      case "exception":
+        return "#dc3545";
+      default:
+        return "#6c757d";
     }
   }};
 `;

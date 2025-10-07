@@ -1,10 +1,11 @@
 /**
  * Authentication service for managing user authentication state.
  */
-import axios from 'axios';
-import { UserProfile } from '../types';
+import axios from "axios";
+import { UserProfile } from "../types";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export interface LoginCredentials {
   username: string;
@@ -31,33 +32,36 @@ export class AuthService {
 
   constructor() {
     // Initialize from localStorage
-    this.token = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('user');
+    this.token = localStorage.getItem("authToken");
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         this.user = JSON.parse(storedUser);
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('user');
+        console.error("Error parsing stored user data:", error);
+        localStorage.removeItem("user");
       }
     }
   }
 
   async login(credentials: LoginCredentials): Promise<UserProfile> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login/`, credentials);
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/login/`,
+        credentials,
+      );
       const { token, user } = response.data;
 
       this.token = token;
       this.user = user;
 
       // Store in localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       return user;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Login failed');
+      throw new Error(error.response?.data?.error || "Login failed");
     }
   }
 
@@ -68,39 +72,43 @@ export class AuthService {
         email: credentials.email,
         password: credentials.password,
         firstName: credentials.firstName,
-        lastName: credentials.lastName
+        lastName: credentials.lastName,
       });
-      
+
       const { token, user } = response.data;
 
       this.token = token;
       this.user = user;
 
       // Store in localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       return user;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Sign up failed');
+      throw new Error(error.response?.data?.error || "Sign up failed");
     }
   }
 
   async logout(): Promise<void> {
     try {
       if (this.token) {
-        await axios.post(`${API_BASE_URL}/auth/logout/`, {}, {
-          headers: { Authorization: `Token ${this.token}` }
-        });
+        await axios.post(
+          `${API_BASE_URL}/auth/logout/`,
+          {},
+          {
+            headers: { Authorization: `Token ${this.token}` },
+          },
+        );
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
       // Clear local state and storage regardless of API call success
       this.token = null;
       this.user = null;
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
     }
   }
 
@@ -115,19 +123,19 @@ export class AuthService {
     }
 
     // Try to get user from localStorage if we have a token but no user in memory
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         this.user = JSON.parse(storedUser);
         return this.user;
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('user');
+        console.error("Error parsing stored user data:", error);
+        localStorage.removeItem("user");
       }
     }
 
     // If we have a token but no user data, something went wrong - clear auth state
-    console.warn('Token exists but no user data found - clearing auth state');
+    console.warn("Token exists but no user data found - clearing auth state");
     await this.logout();
     return null;
   }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import styled from 'styled-components';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import styled from "styled-components";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SignUpFormData {
   username: string;
@@ -15,47 +15,47 @@ interface SignUpFormData {
 
 const SignUp: React.FC = () => {
   const [formData, setFormData] = useState<SignUpFormData>({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    company: ''
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+    company: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const validateForm = (): string | null => {
-    if (!formData.username.trim()) return 'Username is required';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!formData.password) return 'Password is required';
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    
+    if (!formData.username.trim()) return "Username is required";
+    if (!formData.email.trim()) return "Email is required";
+    if (!formData.password) return "Password is required";
+    if (!formData.firstName.trim()) return "First name is required";
+    if (!formData.lastName.trim()) return "Last name is required";
+
     if (formData.password !== formData.confirmPassword) {
-      return 'Passwords do not match';
+      return "Passwords do not match";
     }
-    
+
     if (formData.password.length < 6) {
-      return 'Password must be at least 6 characters long';
+      return "Password must be at least 6 characters long";
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      return 'Please enter a valid email address';
+      return "Please enter a valid email address";
     }
-    
+
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -73,18 +73,17 @@ const SignUp: React.FC = () => {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        company: formData.company
+        company: formData.company,
       });
-      
+
       // Show success and redirect to dashboard (user is already logged in)
       setSuccess(true);
-      
+
       setTimeout(() => {
-        navigate('/');
+        navigate("/");
       }, 2000);
-      
     } catch (error: any) {
-      setError(error.message || 'Sign up failed. Please try again.');
+      setError(error.message || "Sign up failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -92,9 +91,9 @@ const SignUp: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (error) setError(null);
@@ -108,7 +107,8 @@ const SignUp: React.FC = () => {
             <SuccessIcon>✅</SuccessIcon>
             <SuccessTitle>Account Created Successfully!</SuccessTitle>
             <SuccessMessage>
-              Welcome to ProjectMeats! Your account has been created and you're now logged in.
+              Welcome to ProjectMeats! Your account has been created and you're
+              now logged in.
             </SuccessMessage>
             <SuccessSubMessage>
               Redirecting you to the dashboard...
@@ -128,7 +128,9 @@ const SignUp: React.FC = () => {
             <LogoText>ProjectMeats</LogoText>
           </LogoSection>
           <Title>Create Account</Title>
-          <Subtitle>Join ProjectMeats to manage your business operations</Subtitle>
+          <Subtitle>
+            Join ProjectMeats to manage your business operations
+          </Subtitle>
         </Header>
 
         {error && (
@@ -238,18 +240,19 @@ const SignUp: React.FC = () => {
                 Creating Account...
               </>
             ) : (
-              'Create Account'
+              "Create Account"
             )}
           </SignUpButton>
         </SignUpForm>
 
         <Footer>
           <FooterText>
-            Already have an account?{' '}
+            Already have an account?{" "}
             <StyledLink to="/login">Sign in here</StyledLink>
           </FooterText>
           <FooterNote>
-            Note: For now, accounts are activated immediately. In the future, admin approval may be required.
+            Note: For now, accounts are activated immediately. In the future,
+            admin approval may be required.
           </FooterNote>
         </Footer>
       </SignUpCard>
@@ -339,7 +342,7 @@ const FormRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  
+
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
@@ -364,12 +367,12 @@ const Input = styled.input`
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #667eea;
   }
-  
+
   &:disabled {
     background-color: #f8f9fa;
     cursor: not-allowed;
@@ -391,12 +394,12 @@ const SignUpButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   }
-  
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
@@ -411,10 +414,14 @@ const LoadingSpinner = styled.div`
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
+
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -441,7 +448,7 @@ const StyledLink = styled(Link)`
   color: #667eea;
   text-decoration: none;
   font-weight: 600;
-  
+
   &:hover {
     text-decoration: underline;
   }

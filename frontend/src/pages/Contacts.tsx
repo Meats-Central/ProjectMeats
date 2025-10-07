@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { apiService, Contact } from '../services/apiService';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import { apiService, Contact } from "../services/apiService";
 
 // Styled Components
 const Container = styled.div`
@@ -297,12 +297,12 @@ const Contacts: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    company: '',
-    position: ''
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    company: "",
+    position: "",
   });
 
   useEffect(() => {
@@ -315,7 +315,7 @@ const Contacts: React.FC = () => {
       const data = await apiService.getContacts();
       setContacts(data);
     } catch (error) {
-      console.error('Error loading contacts:', error);
+      console.error("Error loading contacts:", error);
     } finally {
       setLoading(false);
     }
@@ -329,20 +329,20 @@ const Contacts: React.FC = () => {
       } else {
         await apiService.createContact(formData);
       }
-      
+
       await loadContacts();
       setShowForm(false);
       setEditingContact(null);
       setFormData({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        company: '',
-        position: ''
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        company: "",
+        position: "",
       });
     } catch (error) {
-      console.error('Error saving contact:', error);
+      console.error("Error saving contact:", error);
     }
   };
 
@@ -351,30 +351,32 @@ const Contacts: React.FC = () => {
     setFormData({
       first_name: contact.first_name,
       last_name: contact.last_name,
-      email: contact.email || '',
-      phone: contact.phone || '',
-      company: contact.company || '',
-      position: contact.position || ''
+      email: contact.email || "",
+      phone: contact.phone || "",
+      company: contact.company || "",
+      position: contact.position || "",
     });
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
+    if (window.confirm("Are you sure you want to delete this contact?")) {
       try {
         await apiService.deleteContact(id);
         await loadContacts();
       } catch (error) {
-        console.error('Error deleting contact:', error);
+        console.error("Error deleting contact:", error);
       }
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -390,9 +392,7 @@ const Contacts: React.FC = () => {
     <Container>
       <Header>
         <Title>Contacts</Title>
-        <AddButton onClick={() => setShowForm(true)}>
-          + Add Contact
-        </AddButton>
+        <AddButton onClick={() => setShowForm(true)}>+ Add Contact</AddButton>
       </Header>
 
       <StatsCards>
@@ -401,15 +401,15 @@ const Contacts: React.FC = () => {
           <StatLabel>Total Contacts</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.company).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.company).length}</StatNumber>
           <StatLabel>With Company</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.email).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.email).length}</StatNumber>
           <StatLabel>With Email</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.phone).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.phone).length}</StatNumber>
           <StatLabel>With Phone</StatLabel>
         </StatCard>
       </StatsCards>
@@ -418,7 +418,9 @@ const Contacts: React.FC = () => {
         <EmptyState>
           <EmptyIcon>👥</EmptyIcon>
           <EmptyTitle>No Contacts</EmptyTitle>
-          <EmptyDescription>Get started by creating your first contact</EmptyDescription>
+          <EmptyDescription>
+            Get started by creating your first contact
+          </EmptyDescription>
         </EmptyState>
       ) : (
         <Table>
@@ -435,14 +437,20 @@ const Contacts: React.FC = () => {
           <TableBody>
             {contacts.map((contact) => (
               <TableRow key={contact.id}>
-                <TableCell>{contact.first_name} {contact.last_name}</TableCell>
-                <TableCell>{contact.company || '-'}</TableCell>
-                <TableCell>{contact.position || '-'}</TableCell>
-                <TableCell>{contact.email || '-'}</TableCell>
-                <TableCell>{contact.phone || '-'}</TableCell>
                 <TableCell>
-                  <ActionButton onClick={() => handleEdit(contact)}>Edit</ActionButton>
-                  <DeleteButton onClick={() => handleDelete(contact.id)}>Delete</DeleteButton>
+                  {contact.first_name} {contact.last_name}
+                </TableCell>
+                <TableCell>{contact.company || "-"}</TableCell>
+                <TableCell>{contact.position || "-"}</TableCell>
+                <TableCell>{contact.email || "-"}</TableCell>
+                <TableCell>{contact.phone || "-"}</TableCell>
+                <TableCell>
+                  <ActionButton onClick={() => handleEdit(contact)}>
+                    Edit
+                  </ActionButton>
+                  <DeleteButton onClick={() => handleDelete(contact.id)}>
+                    Delete
+                  </DeleteButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -454,7 +462,9 @@ const Contacts: React.FC = () => {
         <FormOverlay>
           <FormContainer>
             <FormHeader>
-              <FormTitle>{editingContact ? 'Edit Contact' : 'Add New Contact'}</FormTitle>
+              <FormTitle>
+                {editingContact ? "Edit Contact" : "Add New Contact"}
+              </FormTitle>
               <CloseButton onClick={() => setShowForm(false)}>×</CloseButton>
             </FormHeader>
             <Form onSubmit={handleSubmit}>
@@ -519,7 +529,7 @@ const Contacts: React.FC = () => {
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  {editingContact ? 'Update' : 'Create'} Contact
+                  {editingContact ? "Update" : "Create"} Contact
                 </SubmitButton>
               </FormActions>
             </Form>

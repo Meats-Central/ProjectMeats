@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { apiService, PurchaseOrder } from '../services/apiService';
-import PurchaseOrderWorkflow from '../components/Workflow/PurchaseOrderWorkflow';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import { apiService, PurchaseOrder } from "../services/apiService";
+import PurchaseOrderWorkflow from "../components/Workflow/PurchaseOrderWorkflow";
 
 // Styled Components
 const Container = styled.div`
@@ -139,7 +139,7 @@ const TableCell = styled.td`
 `;
 
 const StatusBadge = styled.span<{ $color: string }>`
-  background: ${props => props.$color};
+  background: ${(props) => props.$color};
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -334,15 +334,16 @@ const PurchaseOrders: React.FC = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingPurchaseOrder, setEditingPurchaseOrder] = useState<PurchaseOrder | null>(null);
+  const [editingPurchaseOrder, setEditingPurchaseOrder] =
+    useState<PurchaseOrder | null>(null);
   const [formData, setFormData] = useState({
-    order_number: '',
-    supplier: '',
-    total_amount: '',
-    status: 'pending',
-    order_date: '',
-    delivery_date: '',
-    notes: ''
+    order_number: "",
+    supplier: "",
+    total_amount: "",
+    status: "pending",
+    order_date: "",
+    delivery_date: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -355,7 +356,7 @@ const PurchaseOrders: React.FC = () => {
       const data = await apiService.getPurchaseOrders();
       setPurchaseOrders(data);
     } catch (error) {
-      console.error('Error loading purchase orders:', error);
+      console.error("Error loading purchase orders:", error);
     } finally {
       setLoading(false);
     }
@@ -367,29 +368,32 @@ const PurchaseOrders: React.FC = () => {
       const purchaseOrderData = {
         ...formData,
         total_amount: parseFloat(formData.total_amount),
-        supplier: parseInt(formData.supplier)
+        supplier: parseInt(formData.supplier),
       };
 
       if (editingPurchaseOrder) {
-        await apiService.updatePurchaseOrder(editingPurchaseOrder.id, purchaseOrderData);
+        await apiService.updatePurchaseOrder(
+          editingPurchaseOrder.id,
+          purchaseOrderData,
+        );
       } else {
         await apiService.createPurchaseOrder(purchaseOrderData);
       }
-      
+
       await loadPurchaseOrders();
       setShowForm(false);
       setEditingPurchaseOrder(null);
       setFormData({
-        order_number: '',
-        supplier: '',
-        total_amount: '',
-        status: 'pending',
-        order_date: '',
-        delivery_date: '',
-        notes: ''
+        order_number: "",
+        supplier: "",
+        total_amount: "",
+        status: "pending",
+        order_date: "",
+        delivery_date: "",
+        notes: "",
       });
     } catch (error) {
-      console.error('Error saving purchase order:', error);
+      console.error("Error saving purchase order:", error);
     }
   };
 
@@ -401,38 +405,49 @@ const PurchaseOrders: React.FC = () => {
       total_amount: purchaseOrder.total_amount.toString(),
       status: purchaseOrder.status,
       order_date: purchaseOrder.order_date,
-      delivery_date: purchaseOrder.delivery_date || '',
-      notes: purchaseOrder.notes || ''
+      delivery_date: purchaseOrder.delivery_date || "",
+      notes: purchaseOrder.notes || "",
     });
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
+    if (
+      window.confirm("Are you sure you want to delete this purchase order?")
+    ) {
       try {
         await apiService.deletePurchaseOrder(id);
         await loadPurchaseOrders();
       } catch (error) {
-        console.error('Error deleting purchase order:', error);
+        console.error("Error deleting purchase order:", error);
       }
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return '#ffc107';
-      case 'approved': return '#28a745';
-      case 'delivered': return '#007bff';
-      case 'cancelled': return '#dc3545';
-      default: return '#6c757d';
+      case "pending":
+        return "#ffc107";
+      case "approved":
+        return "#28a745";
+      case "delivered":
+        return "#007bff";
+      case "cancelled":
+        return "#dc3545";
+      default:
+        return "#6c757d";
     }
   };
 
@@ -459,18 +474,25 @@ const PurchaseOrders: React.FC = () => {
           <StatLabel>Total Orders</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{purchaseOrders.filter(po => po.status === 'pending').length}</StatNumber>
+          <StatNumber>
+            {purchaseOrders.filter((po) => po.status === "pending").length}
+          </StatNumber>
           <StatLabel>Pending</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{purchaseOrders.filter(po => po.status === 'approved').length}</StatNumber>
+          <StatNumber>
+            {purchaseOrders.filter((po) => po.status === "approved").length}
+          </StatNumber>
           <StatLabel>Approved</StatLabel>
         </StatCard>
         <StatCard>
           <StatNumber>
-            ${Array.isArray(purchaseOrders)
-              ? purchaseOrders.reduce((sum, po) => sum + (Number(po.total_amount) || 0), 0).toFixed(2)
-              : '0.00'}
+            $
+            {Array.isArray(purchaseOrders)
+              ? purchaseOrders
+                  .reduce((sum, po) => sum + (Number(po.total_amount) || 0), 0)
+                  .toFixed(2)
+              : "0.00"}
           </StatNumber>
           <StatLabel>Total Value</StatLabel>
         </StatCard>
@@ -479,11 +501,36 @@ const PurchaseOrders: React.FC = () => {
       {/* Sample Workflow Visualization */}
       <PurchaseOrderWorkflow
         stages={[
-          { id: 'draft', label: 'Draft', status: 'completed', description: 'Order created' },
-          { id: 'approval', label: 'Approval', status: 'completed', description: 'Management review' },
-          { id: 'processing', label: 'Processing', status: 'active', description: 'Supplier processing' },
-          { id: 'shipping', label: 'Shipping', status: 'pending', description: 'In transit' },
-          { id: 'delivered', label: 'Delivered', status: 'pending', description: 'Order complete' },
+          {
+            id: "draft",
+            label: "Draft",
+            status: "completed",
+            description: "Order created",
+          },
+          {
+            id: "approval",
+            label: "Approval",
+            status: "completed",
+            description: "Management review",
+          },
+          {
+            id: "processing",
+            label: "Processing",
+            status: "active",
+            description: "Supplier processing",
+          },
+          {
+            id: "shipping",
+            label: "Shipping",
+            status: "pending",
+            description: "In transit",
+          },
+          {
+            id: "delivered",
+            label: "Delivered",
+            status: "pending",
+            description: "Order complete",
+          },
         ]}
       />
 
@@ -491,7 +538,9 @@ const PurchaseOrders: React.FC = () => {
         <EmptyState>
           <EmptyIcon>📋</EmptyIcon>
           <EmptyTitle>No Purchase Orders</EmptyTitle>
-          <EmptyDescription>Get started by creating your first purchase order</EmptyDescription>
+          <EmptyDescription>
+            Get started by creating your first purchase order
+          </EmptyDescription>
         </EmptyState>
       ) : (
         <Table>
@@ -511,22 +560,29 @@ const PurchaseOrders: React.FC = () => {
               <TableRow key={purchaseOrder.id}>
                 <TableCell>{purchaseOrder.order_number}</TableCell>
                 <TableCell>{purchaseOrder.supplier}</TableCell>
-                <TableCell>${(Number(purchaseOrder.total_amount) || 0).toFixed(2)}</TableCell>
+                <TableCell>
+                  ${(Number(purchaseOrder.total_amount) || 0).toFixed(2)}
+                </TableCell>
                 <TableCell>
                   <StatusBadge $color={getStatusColor(purchaseOrder.status)}>
                     {purchaseOrder.status.toUpperCase()}
                   </StatusBadge>
                 </TableCell>
-                <TableCell>{new Date(purchaseOrder.order_date).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  {purchaseOrder.delivery_date 
-                    ? new Date(purchaseOrder.delivery_date).toLocaleDateString() 
-                    : 'Not set'
-                  }
+                  {new Date(purchaseOrder.order_date).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <ActionButton onClick={() => handleEdit(purchaseOrder)}>Edit</ActionButton>
-                  <DeleteButton onClick={() => handleDelete(purchaseOrder.id)}>Delete</DeleteButton>
+                  {purchaseOrder.delivery_date
+                    ? new Date(purchaseOrder.delivery_date).toLocaleDateString()
+                    : "Not set"}
+                </TableCell>
+                <TableCell>
+                  <ActionButton onClick={() => handleEdit(purchaseOrder)}>
+                    Edit
+                  </ActionButton>
+                  <DeleteButton onClick={() => handleDelete(purchaseOrder.id)}>
+                    Delete
+                  </DeleteButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -538,7 +594,11 @@ const PurchaseOrders: React.FC = () => {
         <FormOverlay>
           <FormContainer>
             <FormHeader>
-              <FormTitle>{editingPurchaseOrder ? 'Edit Purchase Order' : 'Add New Purchase Order'}</FormTitle>
+              <FormTitle>
+                {editingPurchaseOrder
+                  ? "Edit Purchase Order"
+                  : "Add New Purchase Order"}
+              </FormTitle>
               <CloseButton onClick={() => setShowForm(false)}>×</CloseButton>
             </FormHeader>
             <Form onSubmit={handleSubmit}>
@@ -620,7 +680,7 @@ const PurchaseOrders: React.FC = () => {
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  {editingPurchaseOrder ? 'Update' : 'Create'} Purchase Order
+                  {editingPurchaseOrder ? "Update" : "Create"} Purchase Order
                 </SubmitButton>
               </FormActions>
             </Form>

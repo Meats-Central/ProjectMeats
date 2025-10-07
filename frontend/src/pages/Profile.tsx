@@ -1,24 +1,27 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import styled from 'styled-components';
+import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import styled from "styled-components";
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: user?.first_name || '',
-    lastName: user?.last_name || '',
-    email: user?.email || '',
-    username: user?.username || ''
+    firstName: user?.first_name || "",
+    lastName: user?.last_name || "",
+    email: user?.email || "",
+    username: user?.username || "",
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     if (message) setMessage(null);
   };
@@ -31,8 +34,8 @@ const Profile: React.FC = () => {
     try {
       // For now, simulate the update (since we're using mock auth)
       // In the future, this would call an actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Update local storage with new data (for demo)
       if (user) {
         const updatedUser = {
@@ -40,16 +43,19 @@ const Profile: React.FC = () => {
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
-          username: formData.username
+          username: formData.username,
         };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem("user", JSON.stringify(updatedUser));
         await refreshUser();
       }
-      
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+
+      setMessage({ type: "success", text: "Profile updated successfully!" });
       setIsEditing(false);
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+      setMessage({
+        type: "error",
+        text: "Failed to update profile. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -57,10 +63,10 @@ const Profile: React.FC = () => {
 
   const handleCancel = () => {
     setFormData({
-      firstName: user?.first_name || '',
-      lastName: user?.last_name || '',
-      email: user?.email || '',
-      username: user?.username || ''
+      firstName: user?.first_name || "",
+      lastName: user?.last_name || "",
+      email: user?.email || "",
+      username: user?.username || "",
     });
     setIsEditing(false);
     setMessage(null);
@@ -83,7 +89,7 @@ const Profile: React.FC = () => {
 
       {message && (
         <Message $type={message.type}>
-          <MessageIcon>{message.type === 'success' ? '✅' : '❌'}</MessageIcon>
+          <MessageIcon>{message.type === "success" ? "✅" : "❌"}</MessageIcon>
           {message.text}
         </Message>
       )}
@@ -91,21 +97,26 @@ const Profile: React.FC = () => {
       <ProfileCard>
         <ProfileHeader>
           <Avatar>
-            {user.first_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '👤'}
+            {user.first_name?.[0]?.toUpperCase() ||
+              user.username?.[0]?.toUpperCase() ||
+              "👤"}
           </Avatar>
           <ProfileInfo>
             <DisplayName>
-              {user.first_name && user.last_name 
-                ? `${user.first_name} ${user.last_name}` 
+              {user.first_name && user.last_name
+                ? `${user.first_name} ${user.last_name}`
                 : user.username}
             </DisplayName>
             <UserRole>
-              {user.is_superuser ? 'Super Administrator' : 
-               user.is_staff ? 'Administrator' : 'User'}
+              {user.is_superuser
+                ? "Super Administrator"
+                : user.is_staff
+                  ? "Administrator"
+                  : "User"}
             </UserRole>
           </ProfileInfo>
           <EditButton onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? 'Cancel' : 'Edit Profile'}
+            {isEditing ? "Cancel" : "Edit Profile"}
           </EditButton>
         </ProfileHeader>
 
@@ -157,11 +168,15 @@ const Profile: React.FC = () => {
             </FormGroup>
 
             <FormActions>
-              <CancelButton type="button" onClick={handleCancel} disabled={loading}>
+              <CancelButton
+                type="button"
+                onClick={handleCancel}
+                disabled={loading}
+              >
                 Cancel
               </CancelButton>
               <SaveButton type="submit" disabled={loading}>
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? "Saving..." : "Save Changes"}
               </SaveButton>
             </FormActions>
           </ProfileForm>
@@ -173,21 +188,21 @@ const Profile: React.FC = () => {
             </DetailRow>
             <DetailRow>
               <DetailLabel>Email</DetailLabel>
-              <DetailValue>{user.email || 'Not provided'}</DetailValue>
+              <DetailValue>{user.email || "Not provided"}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel>First Name</DetailLabel>
-              <DetailValue>{user.first_name || 'Not provided'}</DetailValue>
+              <DetailValue>{user.first_name || "Not provided"}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel>Last Name</DetailLabel>
-              <DetailValue>{user.last_name || 'Not provided'}</DetailValue>
+              <DetailValue>{user.last_name || "Not provided"}</DetailValue>
             </DetailRow>
             <DetailRow>
               <DetailLabel>Account Status</DetailLabel>
               <DetailValue>
                 <StatusBadge $active={user.is_active}>
-                  {user.is_active ? 'Active' : 'Inactive'}
+                  {user.is_active ? "Active" : "Inactive"}
                 </StatusBadge>
               </DetailValue>
             </DetailRow>
@@ -203,8 +218,11 @@ const Profile: React.FC = () => {
             <InfoContent>
               <InfoLabel>Account Type</InfoLabel>
               <InfoText>
-                {user.is_superuser ? 'Super Administrator' : 
-                 user.is_staff ? 'Administrator' : 'Standard User'}
+                {user.is_superuser
+                  ? "Super Administrator"
+                  : user.is_staff
+                    ? "Administrator"
+                    : "Standard User"}
               </InfoText>
             </InfoContent>
           </InfoCard>
@@ -212,7 +230,9 @@ const Profile: React.FC = () => {
             <InfoIcon>⚡</InfoIcon>
             <InfoContent>
               <InfoLabel>Status</InfoLabel>
-              <InfoText>{user.is_active ? 'Active Account' : 'Inactive Account'}</InfoText>
+              <InfoText>
+                {user.is_active ? "Active Account" : "Inactive Account"}
+              </InfoText>
             </InfoContent>
           </InfoCard>
         </InfoGrid>
@@ -251,16 +271,17 @@ const Subtitle = styled.p`
   margin: 0;
 `;
 
-const Message = styled.div<{ $type: 'success' | 'error' }>`
+const Message = styled.div<{ $type: "success" | "error" }>`
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  background: ${props => props.$type === 'success' ? '#f0fdf4' : '#fef2f2'};
-  border: 1px solid ${props => props.$type === 'success' ? '#bbf7d0' : '#fecaca'};
-  color: ${props => props.$type === 'success' ? '#16a34a' : '#dc2626'};
+  background: ${(props) => (props.$type === "success" ? "#f0fdf4" : "#fef2f2")};
+  border: 1px solid
+    ${(props) => (props.$type === "success" ? "#bbf7d0" : "#fecaca")};
+  color: ${(props) => (props.$type === "success" ? "#16a34a" : "#dc2626")};
 `;
 
 const MessageIcon = styled.span`
@@ -453,8 +474,8 @@ const DetailValue = styled.span`
 `;
 
 const StatusBadge = styled.span<{ $active: boolean }>`
-  background: ${props => props.$active ? '#d4edda' : '#f8d7da'};
-  color: ${props => props.$active ? '#155724' : '#721c24'};
+  background: ${(props) => (props.$active ? "#d4edda" : "#f8d7da")};
+  color: ${(props) => (props.$active ? "#155724" : "#721c24")};
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
