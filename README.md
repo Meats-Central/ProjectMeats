@@ -4,7 +4,7 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 ## 🚀 Quick Start (5 Minutes)
 
-**📖 For deployment, see [USER_DEPLOYMENT_GUIDE.md](USER_DEPLOYMENT_GUIDE.md) - Simple 30-minute deployment checklist**
+**📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
 
 **Prerequisites**: Python 3.9+, Node.js 16+
 
@@ -195,18 +195,14 @@ cd frontend && npm install
 
 ## 🚀 Production Deployment
 
-**📖 See [USER_DEPLOYMENT_GUIDE.md](USER_DEPLOYMENT_GUIDE.md) for complete step-by-step deployment instructions**
+**📖 See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for complete step-by-step deployment instructions**
 
-### Quick Deploy to Digital Ocean (30 minutes)
-```bash
-# 1. Set up production environment
-python config/manage_env.py setup production
-python config/manage_env.py generate-secrets
-
-# 2. Create Digital Ocean App from app.yaml
-# 3. Configure environment variables  
-# 4. Deploy and test
-```
+### Deployment Process
+The application is deployed via SSH to development, UAT, and production servers. See the deployment guide for detailed instructions on:
+- Environment setup and configuration
+- SSH-based deployment process
+- Database migrations and backups
+- Monitoring and troubleshooting
 
 **That's it!** The USER_DEPLOYMENT_GUIDE walks you through each step with a simple checklist format.
 
@@ -251,7 +247,7 @@ make test-frontend     # React tests only
 
 This repository includes comprehensive deployment tools:
 
-- **[USER_DEPLOYMENT_GUIDE.md](USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment checklist (30 minutes)
+- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Complete deployment documentation
 - **[test_deployment.py](test_deployment.py)** - Automated deployment configuration validation
 - **[health_check.py](health_check.py)** - Live application health verification  
 - **[simulate_deployment.py](simulate_deployment.py)** - Full deployment process simulation
@@ -269,7 +265,7 @@ This repository includes comprehensive deployment tools:
 ### Essential Documentation
 - **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-- **[User Deployment Guide](USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment (30 minutes)
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
 
 ### Architecture & Development
 - **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns

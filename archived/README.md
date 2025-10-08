@@ -7,13 +7,12 @@ This directory contains files that are no longer actively used in the project bu
 ### docs/
 Contains archived documentation files:
 - **Legacy deployment documentation** (from docs/legacy/):
-  - `DEPLOYMENT_GUIDE.md` - Original comprehensive deployment guide (replaced by USER_DEPLOYMENT_GUIDE.md)
+  - `DEPLOYMENT_GUIDE.md` - Original comprehensive deployment guide (replaced by docs/DEPLOYMENT_GUIDE.md)
   - `QUICK_SETUP.md` - Original quick setup guide (consolidated into main guide)
   - `production_checklist.md` - Original production checklist (integrated into DEPLOYMENT_GUIDE.md)
   - `README.md` - Explains legacy status
-- **Copilot files** (moved from root):
-  - `copilot-instructions.md` - Enhanced Copilot instructions (outdated)
-  - `copilot-log.md` - Copilot learning log (outdated)
+- **Outdated deployment guide**:
+  - `USER_DEPLOYMENT_GUIDE.md` - DigitalOcean App Platform deployment guide (project uses SSH-based deployment)
 
 ### code/
 Contains archived code and configuration files:
@@ -53,14 +52,12 @@ Contains archived Terraform infrastructure-as-code files:
 ## Rationale
 
 ### Documentation Archive (docs/)
-- **Legacy deployment docs**: Replaced by streamlined USER_DEPLOYMENT_GUIDE.md
-- **Copilot files**: Outdated internal development files not needed in root
+- **Legacy deployment docs**: Replaced by streamlined docs/DEPLOYMENT_GUIDE.md
 
 ### Code Archive (code/)
-- **app.yaml**: Not used for DigitalOcean deployment (project uses App Platform specs)
-- **pyproject.toml**: Project uses requirements.txt for dependency management
+- **app.yaml**: DigitalOcean App Platform spec file (project uses SSH-based deployment instead)
 - **.python-version**: Version control handled by pyenv or Dockerfile
-- **deploy/**: Superseded by simulate_deployment.py script
+- **deploy/**: Superseded by SSH-based deployment in workflows
 - **Workflow backups**: Development artifacts, not needed in active workflows
 
 ### Infrastructure Archive (docker/, deployment-scripts/, terraform/)

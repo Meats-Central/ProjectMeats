@@ -98,9 +98,9 @@ This checklist provides actionable items from the Platform Core Components audit
 
 - [x] Move copilot files - **COMPLETED**
   ```bash
-  # Archived to archived/docs/
-  # copilot-instructions.md → archived/docs/copilot-instructions.md
-  # copilot-log.md → archived/docs/copilot-log.md
+  # Moved to .github/ per GitHub best practices
+  # copilot-instructions.md → .github/copilot-instructions.md
+  # copilot-log.md → .github/copilot-log.md
   ```
 
 ---
@@ -162,7 +162,7 @@ This checklist provides actionable items from the Platform Core Components audit
 
 - [ ] Update CONTRIBUTING.md
   - [ ] Document new scripts/ directory
-  - [ ] Document copilot files location (.github/)
+  - [x] Document copilot files location (.github/) - **COMPLETED**
   - [ ] Update configuration references
 
 ---

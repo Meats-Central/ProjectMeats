@@ -165,14 +165,14 @@ ProjectMeats/
 
 | Category | Files | Status |
 |----------|-------|--------|
-| Documentation | README.md, CONTRIBUTING.md, USER_DEPLOYMENT_GUIDE.md | ✅ Appropriate |
+| Documentation | README.md, CONTRIBUTING.md | ✅ Appropriate |
 | Config | .gitignore, pyproject.toml | ✅ Appropriate |
 | Docker | Dockerfile.backend, Dockerfile.frontend | ✅ Appropriate |
 | Docker Compose | docker-compose.dev.yml, docker-compose.prod.yml, docker-compose.uat.yml | ⚠️ Move to config/ |
 | Build | Makefile, setup.py | ✅ Appropriate |
 | Scripts | health_check.py, setup_env.py, simulate_deployment.py, test_deployment.py | ⚠️ Move to scripts/ |
-| Deployment | app.yaml | ✅ Appropriate (GCP config) |
-| Internal | copilot-instructions.md, copilot-log.md | ✅ Archived to archived/docs/ |
+| Internal | copilot-instructions.md, copilot-log.md | ✅ Moved to .github/ |
+| Archived | app.yaml, USER_DEPLOYMENT_GUIDE.md | ✅ Archived (not used in SSH deployment) |
 
 ### 4.2 Recommendations
 
@@ -191,10 +191,10 @@ config/deployment/
 ├── docker-compose.prod.yml  # From root
 └── docker-compose.uat.yml   # From root (rename to staging)
 
-# Copilot files - Already archived
-archived/docs/
-├── copilot-instructions.md  # ✅ Archived from root
-└── copilot-log.md           # ✅ Archived from root
+# Copilot files - Moved to .github/
+.github/
+├── copilot-instructions.md  # ✅ Moved from root
+└── copilot-log.md           # ✅ Moved from root
 ```
 
 ---
@@ -354,7 +354,7 @@ config/
    - **Recommendation**: Archive completed sprints, keep only current sprint active
 
 2. **copilot-instructions.md** and **copilot-log.md** in root
-   - **Status**: ✅ Archived to `archived/docs/` directory
+   - **Status**: ✅ Moved to `.github/` directory per GitHub best practices
 
 ---
 
@@ -552,11 +552,15 @@ Implementing these recommendations will:
 - archived/docs/DEPLOYMENT_GUIDE.md (previously docs/legacy/)
 - archived/docs/QUICK_SETUP.md (previously docs/legacy/)
 - archived/docs/production_checklist.md (previously docs/legacy/)
-- archived/docs/copilot-instructions.md (previously root)
-- archived/docs/copilot-log.md (previously root)
+- archived/docs/USER_DEPLOYMENT_GUIDE.md (previously root - obsolete App Platform guide)
+- archived/code/app.yaml (previously root - not used in SSH deployment)
 - archived/code/.python-version (previously root)
 - archived/code/deploy/ (previously root)
 - archived/code/ci-cd.yml.sajid-workflow-backup (previously .github/workflows/)
+
+### Files Moved to Appropriate Locations
+- .github/copilot-instructions.md (previously root - moved per GitHub best practices)
+- .github/copilot-log.md (previously root - moved per GitHub best practices)
 
 ### Cleanup Candidates
 Total: 22 files/directories requiring action
