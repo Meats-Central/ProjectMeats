@@ -112,21 +112,21 @@ ProjectMeats/
 
 ### 3.1 Legacy Documentation Directory
 
-**Location**: `docs/legacy/`
+**Location**: `archived/docs/` (previously `docs/legacy/`)
 
 | File | Size | Status | Notes |
 |------|------|--------|-------|
-| `DEPLOYMENT_GUIDE.md` | 13 KB | ⚠️ Archived | Replaced by USER_DEPLOYMENT_GUIDE.md |
-| `QUICK_SETUP.md` | 5.1 KB | ⚠️ Archived | Consolidated into main guide |
-| `production_checklist.md` | 7.4 KB | ⚠️ Archived | Integrated into DEPLOYMENT_GUIDE.md |
-| `README.md` | 1.6 KB | ✅ Keep | Explains legacy status |
+| `DEPLOYMENT_GUIDE.md` | 13 KB | ✅ Archived | Replaced by USER_DEPLOYMENT_GUIDE.md |
+| `QUICK_SETUP.md` | 5.1 KB | ✅ Archived | Consolidated into main guide |
+| `production_checklist.md` | 7.4 KB | ✅ Archived | Integrated into DEPLOYMENT_GUIDE.md |
+| `README.md` | 1.6 KB | ✅ Archived | Explains legacy status |
 
 **Status**: Properly archived with clear README explaining why files are legacy
 
 **Recommendation**: 
-- ✅ Current state is good - legacy docs are properly labeled
+- ✅ Completed - legacy docs moved to centralized `archived/docs/` directory
 - Consider compressing into single archive file after 6 months
-- Keep README.md in legacy folder as explanation
+- README.md in archived/docs/ explains archival status
 
 ### 3.2 Secrets Directory
 
@@ -148,12 +148,13 @@ ProjectMeats/
 
 ### 3.3 GitHub Workflow Backup
 
-**Location**: `.github/workflows/ci-cd.yml.sajid-workflow-backup`
+**Location**: `archived/code/ci-cd.yml.sajid-workflow-backup` (previously `.github/workflows/`)
 
 **Size**: 22.5 KB
 
 **Recommendation**:
-- Remove backup file (git history preserves old versions)
+- ✅ Completed - backup file archived to `archived/code/`
+- Git history preserves old versions
 - Add `*.backup` pattern to `.gitignore` for workflows directory
 
 ---
@@ -340,7 +341,7 @@ config/
 - ✅ `docs/implementation-summaries/` - Feature docs
 - ✅ `docs/workflows/` - CI/CD docs
 - ✅ `docs/reference/` - Reference docs
-- ✅ `docs/legacy/` - Archived docs
+- ✅ `archived/docs/` - Archived docs (previously `docs/legacy/`)
 
 **Root Level**:
 - ✅ `README.md` - Project overview
@@ -545,13 +546,17 @@ Implementing these recommendations will:
 ### Duplicate Files Detected
 - Docker compose configs (root vs config/deployment)
 - Environment templates (component-level vs config/)
-- Backup files (*.backup)
-- Workflow backup file
+- ~~Backup files (*.backup)~~ - Workflow backup archived to archived/code/
 
 ### Legacy Files Properly Archived
-- docs/legacy/DEPLOYMENT_GUIDE.md
-- docs/legacy/QUICK_SETUP.md
-- docs/legacy/production_checklist.md
+- archived/docs/DEPLOYMENT_GUIDE.md (previously docs/legacy/)
+- archived/docs/QUICK_SETUP.md (previously docs/legacy/)
+- archived/docs/production_checklist.md (previously docs/legacy/)
+- archived/docs/copilot-instructions.md (previously root)
+- archived/docs/copilot-log.md (previously root)
+- archived/code/.python-version (previously root)
+- archived/code/deploy/ (previously root)
+- archived/code/ci-cd.yml.sajid-workflow-backup (previously .github/workflows/)
 
 ### Cleanup Candidates
 Total: 22 files/directories requiring action
