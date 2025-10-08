@@ -7,7 +7,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 ### Getting Started
 - **[Main README](../README.md)** - Project overview and quick setup
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
-- **[User Deployment Guide](../USER_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment (30 minutes)
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
 
 ### Core Documentation
 
@@ -55,12 +55,15 @@ docs/
 ├── implementation-summaries/          # Feature implementation summaries
 │   ├── dashboard-enhancement.md      # Dashboard enhancements
 │   └── allowed-hosts-fix.md          # ALLOWED_HOSTS configuration fix
-├── templates/                         # Documentation templates
-└── legacy/                            # Archived documentation
-    ├── README.md                      # Legacy documentation index
-    ├── DEPLOYMENT_GUIDE.md           # Legacy deployment guide
-    ├── QUICK_SETUP.md                # Legacy quick setup
-    └── production_checklist.md       # Legacy production checklist
+└── templates/                         # Documentation templates
+
+archived/docs/                          # Archived documentation (in root/archived/)
+├── README.md                          # Legacy documentation index
+├── DEPLOYMENT_GUIDE.md               # Legacy deployment guide
+├── QUICK_SETUP.md                    # Legacy quick setup
+├── production_checklist.md           # Legacy production checklist
+├── copilot-instructions.md           # Outdated Copilot instructions
+└── copilot-log.md                    # Outdated Copilot log
 ```
 
 ## 🎯 Finding What You Need
@@ -68,9 +71,8 @@ docs/
 ### I want to...
 
 **Deploy the application:**
-- Start with [User Deployment Guide](../USER_DEPLOYMENT_GUIDE.md) for step-by-step instructions
+- Start with [Deployment Guide](DEPLOYMENT_GUIDE.md) for comprehensive deployment instructions
 - Reference [Environment Guide](ENVIRONMENT_GUIDE.md) for configuration details
-- Check [Deployment Guide](DEPLOYMENT_GUIDE.md) for comprehensive information
 
 **Set up my development environment:**
 - Follow [Main README Quick Setup](../README.md#-quick-setup)
@@ -91,7 +93,7 @@ docs/
 
 **Troubleshoot issues:**
 - Check relevant guide's troubleshooting section
-- Review [legacy deployment guide](legacy/DEPLOYMENT_GUIDE.md#-troubleshooting) for detailed troubleshooting
+- Review [archived deployment guide](../archived/docs/DEPLOYMENT_GUIDE.md#-troubleshooting) for detailed troubleshooting
 
 **Learn about implemented features:**
 - Browse [implementation summaries](implementation-summaries/)
@@ -102,7 +104,7 @@ docs/
 ### Sources of Truth (Most Recent Updates)
 Based on git history analysis (latest: 2025-10-05):
 
-- **Deployment**: [USER_DEPLOYMENT_GUIDE.md](../USER_DEPLOYMENT_GUIDE.md) - Streamlined, tested deployment guide
+- **Deployment**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide
 - **CI/CD**: [Unified Workflow](workflows/unified-workflow.md) - Most comprehensive workflow documentation
 - **Environment**: [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) - Centralized environment configuration
 - **Contributing**: [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
@@ -111,18 +113,18 @@ Based on git history analysis (latest: 2025-10-05):
 ### When Documentation Conflicts
 If you find conflicting information:
 1. Trust the source of truth listed above for each topic
-2. Recent documentation (in main docs/ folder) supersedes legacy documentation
-3. [USER_DEPLOYMENT_GUIDE.md](../USER_DEPLOYMENT_GUIDE.md) is the preferred deployment guide
-4. Legacy documentation is preserved in `legacy/` for reference only
+2. Recent documentation (in main docs/ folder) supersedes archived documentation
+3. [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) is the preferred deployment guide
+4. Archived documentation is preserved in `archived/docs/` for reference only
 
 ## 📝 Maintaining Documentation
 
 ### Documentation Location Guidelines
-- **Root directory** (max 5 files): README.md, CONTRIBUTING.md, USER_DEPLOYMENT_GUIDE.md, and critical top-level docs
+- **Root directory** (max 5 files): README.md, CONTRIBUTING.md, and critical top-level docs
 - **docs/** directory: All detailed documentation
 - **docs/workflows/**: CI/CD and automation documentation
 - **docs/implementation-summaries/**: Feature implementation details
-- **docs/legacy/**: Archived/outdated documentation
+- **archived/docs/**: Archived/outdated documentation (in root/archived/)
 
 ### Naming Conventions
 - Use descriptive, kebab-case filenames (e.g., `deployment-guide.md`)

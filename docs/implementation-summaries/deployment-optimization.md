@@ -24,7 +24,7 @@ We have successfully **thoroughly reviewed, simplified, enhanced, and optimized 
 - **Validated entire process** including Digital Ocean App Platform configuration
 
 ### ✅ 4. Documentation Cleanup
-- **Removed redundant documentation** - moved to `docs/legacy/` with explanations
+- **Removed redundant documentation** - moved to `archived/docs/` with explanations
 - **Simplified documentation structure** - single source of truth
 - **Updated all references** to point to new streamlined guide
 

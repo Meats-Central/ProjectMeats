@@ -112,21 +112,21 @@ ProjectMeats/
 
 ### 3.1 Legacy Documentation Directory
 
-**Location**: `docs/legacy/`
+**Location**: `archived/docs/` (previously `docs/legacy/`)
 
 | File | Size | Status | Notes |
 |------|------|--------|-------|
-| `DEPLOYMENT_GUIDE.md` | 13 KB | ⚠️ Archived | Replaced by USER_DEPLOYMENT_GUIDE.md |
-| `QUICK_SETUP.md` | 5.1 KB | ⚠️ Archived | Consolidated into main guide |
-| `production_checklist.md` | 7.4 KB | ⚠️ Archived | Integrated into DEPLOYMENT_GUIDE.md |
-| `README.md` | 1.6 KB | ✅ Keep | Explains legacy status |
+| `DEPLOYMENT_GUIDE.md` | 13 KB | ✅ Archived | Replaced by USER_DEPLOYMENT_GUIDE.md |
+| `QUICK_SETUP.md` | 5.1 KB | ✅ Archived | Consolidated into main guide |
+| `production_checklist.md` | 7.4 KB | ✅ Archived | Integrated into DEPLOYMENT_GUIDE.md |
+| `README.md` | 1.6 KB | ✅ Archived | Explains legacy status |
 
 **Status**: Properly archived with clear README explaining why files are legacy
 
 **Recommendation**: 
-- ✅ Current state is good - legacy docs are properly labeled
+- ✅ Completed - legacy docs moved to centralized `archived/docs/` directory
 - Consider compressing into single archive file after 6 months
-- Keep README.md in legacy folder as explanation
+- README.md in archived/docs/ explains archival status
 
 ### 3.2 Secrets Directory
 
@@ -148,12 +148,13 @@ ProjectMeats/
 
 ### 3.3 GitHub Workflow Backup
 
-**Location**: `.github/workflows/ci-cd.yml.sajid-workflow-backup`
+**Location**: `archived/code/ci-cd.yml.sajid-workflow-backup` (previously `.github/workflows/`)
 
 **Size**: 22.5 KB
 
 **Recommendation**:
-- Remove backup file (git history preserves old versions)
+- ✅ Completed - backup file archived to `archived/code/`
+- Git history preserves old versions
 - Add `*.backup` pattern to `.gitignore` for workflows directory
 
 ---
@@ -164,14 +165,14 @@ ProjectMeats/
 
 | Category | Files | Status |
 |----------|-------|--------|
-| Documentation | README.md, CONTRIBUTING.md, USER_DEPLOYMENT_GUIDE.md | ✅ Appropriate |
-| Config | .gitignore, .python-version, pyproject.toml | ✅ Appropriate |
+| Documentation | README.md, CONTRIBUTING.md | ✅ Appropriate |
+| Config | .gitignore, pyproject.toml | ✅ Appropriate |
 | Docker | Dockerfile.backend, Dockerfile.frontend | ✅ Appropriate |
 | Docker Compose | docker-compose.dev.yml, docker-compose.prod.yml, docker-compose.uat.yml | ⚠️ Move to config/ |
 | Build | Makefile, setup.py | ✅ Appropriate |
 | Scripts | health_check.py, setup_env.py, simulate_deployment.py, test_deployment.py | ⚠️ Move to scripts/ |
-| Deployment | app.yaml | ✅ Appropriate (GCP config) |
-| Internal | copilot-instructions.md, copilot-log.md | ⚠️ Should be in .github/ |
+| Internal | copilot-instructions.md, copilot-log.md | ✅ Moved to .github/ |
+| Archived | app.yaml, USER_DEPLOYMENT_GUIDE.md | ✅ Archived (not used in SSH deployment) |
 
 ### 4.2 Recommendations
 
@@ -190,10 +191,10 @@ config/deployment/
 ├── docker-compose.prod.yml  # From root
 └── docker-compose.uat.yml   # From root (rename to staging)
 
-# Move copilot files
+# Copilot files - Moved to .github/
 .github/
-├── copilot-instructions.md  # From root
-└── copilot-log.md           # From root
+├── copilot-instructions.md  # ✅ Moved from root
+└── copilot-log.md           # ✅ Moved from root
 ```
 
 ---
@@ -340,7 +341,7 @@ config/
 - ✅ `docs/implementation-summaries/` - Feature docs
 - ✅ `docs/workflows/` - CI/CD docs
 - ✅ `docs/reference/` - Reference docs
-- ✅ `docs/legacy/` - Archived docs
+- ✅ `archived/docs/` - Archived docs (previously `docs/legacy/`)
 
 **Root Level**:
 - ✅ `README.md` - Project overview
@@ -353,7 +354,7 @@ config/
    - **Recommendation**: Archive completed sprints, keep only current sprint active
 
 2. **copilot-instructions.md** and **copilot-log.md** in root
-   - **Recommendation**: Move to `.github/` directory
+   - **Status**: ✅ Moved to `.github/` directory per GitHub best practices
 
 ---
 
@@ -545,13 +546,21 @@ Implementing these recommendations will:
 ### Duplicate Files Detected
 - Docker compose configs (root vs config/deployment)
 - Environment templates (component-level vs config/)
-- Backup files (*.backup)
-- Workflow backup file
+- ~~Backup files (*.backup)~~ - Workflow backup archived to archived/code/
 
 ### Legacy Files Properly Archived
-- docs/legacy/DEPLOYMENT_GUIDE.md
-- docs/legacy/QUICK_SETUP.md
-- docs/legacy/production_checklist.md
+- archived/docs/DEPLOYMENT_GUIDE.md (previously docs/legacy/)
+- archived/docs/QUICK_SETUP.md (previously docs/legacy/)
+- archived/docs/production_checklist.md (previously docs/legacy/)
+- archived/docs/USER_DEPLOYMENT_GUIDE.md (previously root - obsolete App Platform guide)
+- archived/code/app.yaml (previously root - not used in SSH deployment)
+- archived/code/.python-version (previously root)
+- archived/code/deploy/ (previously root)
+- archived/code/ci-cd.yml.sajid-workflow-backup (previously .github/workflows/)
+
+### Files Moved to Appropriate Locations
+- .github/copilot-instructions.md (previously root - moved per GitHub best practices)
+- .github/copilot-log.md (previously root - moved per GitHub best practices)
 
 ### Cleanup Candidates
 Total: 22 files/directories requiring action
