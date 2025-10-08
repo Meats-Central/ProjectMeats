@@ -15,10 +15,20 @@ class ContactAdmin(admin.ModelAdmin):
         "phone",
         "company",
         "position",
+        "contact_type",
         "created_on",
     )
-    list_filter = ("created_on",)
-    search_fields = ("first_name", "last_name", "email", "phone", "company")
+    list_filter = ("contact_type", "created_on")
+    search_fields = (
+        "first_name",
+        "last_name",
+        "email",
+        "phone",
+        "main_phone",
+        "direct_phone",
+        "cell_phone",
+        "company",
+    )
     readonly_fields = ("created_on", "modified_on")
 
     def get_full_name(self, obj):
@@ -32,10 +42,16 @@ class ContactAdmin(admin.ModelAdmin):
             "Personal Information",
             {"fields": ("first_name", "last_name", "email", "phone")},
         ),
-        ("Professional Information", {"fields": ("company", "position")}),
-        ("Status", {"fields": ("status",)}),
+        (
+            "Additional Contact Methods",
+            {"fields": ("main_phone", "direct_phone", "cell_phone")},
+        ),
+        (
+            "Professional Information",
+            {"fields": ("company", "position", "contact_title", "contact_type")},
+        ),
         (
             "Metadata",
-            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+            {"fields": ("tenant", "created_on", "modified_on"), "classes": ("collapse",)},
         ),
     )
