@@ -203,3 +203,44 @@ class CreateSuperTenantCommandTests(TestCase):
         # Check output indicates existing link
         output = out.getvalue()
         self.assertIn('already linked', output)
+
+    def test_handles_duplicate_username_scenario(self):
+        """Test that command handles existing user with same username but different email."""
+        # Create a user with username 'admin' but different email
+        existing_user = User.objects.create_user(
+            username='admin',
+            email='different@example.com',
+            password='existingpass'
+        )
+        
+        out = StringIO()
+        
+        # Try to create super tenant with admin@meatscentral.com (username would be 'admin')
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_EMAIL': 'admin@meatscentral.com',
+            'SUPERUSER_PASSWORD': 'newpass'
+        }):
+            # This should NOT raise IntegrityError
+            call_command('create_super_tenant', stdout=out)
+        
+        # Should use the existing user with username 'admin'
+        self.assertEqual(User.objects.filter(username='admin').count(), 1)
+        
+        # The existing user should be used (not create a new one)
+        user = User.objects.get(username='admin')
+        self.assertEqual(user.id, existing_user.id)
+        self.assertEqual(user.email, 'different@example.com')  # Email should not change
+        
+        # Tenant should be created
+        self.assertTrue(Tenant.objects.filter(slug='root').exists())
+        
+        # User should be linked to tenant
+        tenant = Tenant.objects.get(slug='root')
+        self.assertTrue(
+            TenantUser.objects.filter(tenant=tenant, user=user).exists()
+        )
+        
+        # Check output indicates existing user
+        output = out.getvalue()
+        self.assertIn('already exists', output)
+
