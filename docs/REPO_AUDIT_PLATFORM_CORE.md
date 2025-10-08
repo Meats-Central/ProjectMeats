@@ -165,13 +165,13 @@ ProjectMeats/
 | Category | Files | Status |
 |----------|-------|--------|
 | Documentation | README.md, CONTRIBUTING.md, USER_DEPLOYMENT_GUIDE.md | ✅ Appropriate |
-| Config | .gitignore, .python-version, pyproject.toml | ✅ Appropriate |
+| Config | .gitignore, pyproject.toml | ✅ Appropriate |
 | Docker | Dockerfile.backend, Dockerfile.frontend | ✅ Appropriate |
 | Docker Compose | docker-compose.dev.yml, docker-compose.prod.yml, docker-compose.uat.yml | ⚠️ Move to config/ |
 | Build | Makefile, setup.py | ✅ Appropriate |
 | Scripts | health_check.py, setup_env.py, simulate_deployment.py, test_deployment.py | ⚠️ Move to scripts/ |
 | Deployment | app.yaml | ✅ Appropriate (GCP config) |
-| Internal | copilot-instructions.md, copilot-log.md | ⚠️ Should be in .github/ |
+| Internal | copilot-instructions.md, copilot-log.md | ✅ Archived to archived/docs/ |
 
 ### 4.2 Recommendations
 
@@ -190,10 +190,10 @@ config/deployment/
 ├── docker-compose.prod.yml  # From root
 └── docker-compose.uat.yml   # From root (rename to staging)
 
-# Move copilot files
-.github/
-├── copilot-instructions.md  # From root
-└── copilot-log.md           # From root
+# Copilot files - Already archived
+archived/docs/
+├── copilot-instructions.md  # ✅ Archived from root
+└── copilot-log.md           # ✅ Archived from root
 ```
 
 ---
@@ -353,7 +353,7 @@ config/
    - **Recommendation**: Archive completed sprints, keep only current sprint active
 
 2. **copilot-instructions.md** and **copilot-log.md** in root
-   - **Recommendation**: Move to `.github/` directory
+   - **Status**: ✅ Archived to `archived/docs/` directory
 
 ---
 

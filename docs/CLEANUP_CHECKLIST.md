@@ -16,12 +16,12 @@ This checklist provides actionable items from the Platform Core Components audit
   - After removal: Review screenshots to check for exposed secrets
   - If secrets found: Rotate all credentials immediately
 
-- [ ] **Remove backup files**
+- [x] **Remove backup files** - **PARTIALLY COMPLETED**
   ```bash
   rm backend/.env.env.backup
   rm frontend/.env.env.local.backup
   rm backend/projectmeats/settings_original_backup.py
-  rm .github/workflows/ci-cd.yml.sajid-workflow-backup
+  # ✅ Archived: .github/workflows/ci-cd.yml.sajid-workflow-backup → archived/code/
   ```
 
 - [ ] **Update .gitignore**
@@ -96,10 +96,11 @@ This checklist provides actionable items from the Platform Core Components audit
   - [ ] Update documentation
   - [ ] Update any deployment scripts
 
-- [ ] Move copilot files
+- [x] Move copilot files - **COMPLETED**
   ```bash
-  mv copilot-instructions.md .github/
-  mv copilot-log.md .github/
+  # Archived to archived/docs/
+  # copilot-instructions.md → archived/docs/copilot-instructions.md
+  # copilot-log.md → archived/docs/copilot-log.md
   ```
 
 ---
