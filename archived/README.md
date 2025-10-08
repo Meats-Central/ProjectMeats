@@ -1,8 +1,29 @@
 # Archived Files
 
-This directory contains Docker and Terraform related files that are no longer actively used in the project.
+This directory contains files that are no longer actively used in the project but are kept for historical reference.
 
 ## Contents
+
+### docs/
+Contains archived documentation files:
+- **Legacy deployment documentation** (from docs/legacy/):
+  - `DEPLOYMENT_GUIDE.md` - Original comprehensive deployment guide (replaced by USER_DEPLOYMENT_GUIDE.md)
+  - `QUICK_SETUP.md` - Original quick setup guide (consolidated into main guide)
+  - `production_checklist.md` - Original production checklist (integrated into DEPLOYMENT_GUIDE.md)
+  - `README.md` - Explains legacy status
+- **Copilot files** (moved from root):
+  - `copilot-instructions.md` - Enhanced Copilot instructions (outdated)
+  - `copilot-log.md` - Copilot learning log (outdated)
+
+### code/
+Contains archived code and configuration files:
+- **Configuration files** (moved from root):
+  - `app.yaml` - Google App Platform config (not used for DigitalOcean deployment)
+  - `pyproject.toml` - Python project config (project uses requirements.txt)
+  - `.python-version` - Python version file (use pyenv or Dockerfile for version control)
+- **Deployment files**:
+  - `deploy/` - Legacy deployment scripts (superseded by simulate_deployment.py)
+  - `ci-cd.yml.sajid-workflow-backup` - Backup workflow file
 
 ### docker/
 Contains archived Docker-related files:
@@ -29,6 +50,26 @@ Contains archived Terraform infrastructure-as-code files:
 - `terraform.gitignore` - Terraform-specific gitignore
 - `.terraform.lock.hcl` - Terraform dependency lock file
 
-## Note
+## Rationale
 
-These files have been archived as the project has moved away from Docker-based and Terraform-based deployment strategies. They are kept for historical reference and potential future use.
+### Documentation Archive (docs/)
+- **Legacy deployment docs**: Replaced by streamlined USER_DEPLOYMENT_GUIDE.md
+- **Copilot files**: Outdated internal development files not needed in root
+
+### Code Archive (code/)
+- **app.yaml**: Not used for DigitalOcean deployment (project uses App Platform specs)
+- **pyproject.toml**: Project uses requirements.txt for dependency management
+- **.python-version**: Version control handled by pyenv or Dockerfile
+- **deploy/**: Superseded by simulate_deployment.py script
+- **Workflow backups**: Development artifacts, not needed in active workflows
+
+### Infrastructure Archive (docker/, deployment-scripts/, terraform/)
+- Project has moved away from Docker-based and Terraform-based deployment strategies
+- Files kept for historical reference and potential future use
+
+## Current Documentation
+
+For active documentation, see:
+- **Main Guide**: [USER_DEPLOYMENT_GUIDE.md](../USER_DEPLOYMENT_GUIDE.md)
+- **Documentation Hub**: [docs/README.md](../docs/README.md)
+- **Contributing**: [CONTRIBUTING.md](../CONTRIBUTING.md)

@@ -55,12 +55,15 @@ docs/
 ├── implementation-summaries/          # Feature implementation summaries
 │   ├── dashboard-enhancement.md      # Dashboard enhancements
 │   └── allowed-hosts-fix.md          # ALLOWED_HOSTS configuration fix
-├── templates/                         # Documentation templates
-└── legacy/                            # Archived documentation
-    ├── README.md                      # Legacy documentation index
-    ├── DEPLOYMENT_GUIDE.md           # Legacy deployment guide
-    ├── QUICK_SETUP.md                # Legacy quick setup
-    └── production_checklist.md       # Legacy production checklist
+└── templates/                         # Documentation templates
+
+archived/docs/                          # Archived documentation (in root/archived/)
+├── README.md                          # Legacy documentation index
+├── DEPLOYMENT_GUIDE.md               # Legacy deployment guide
+├── QUICK_SETUP.md                    # Legacy quick setup
+├── production_checklist.md           # Legacy production checklist
+├── copilot-instructions.md           # Outdated Copilot instructions
+└── copilot-log.md                    # Outdated Copilot log
 ```
 
 ## 🎯 Finding What You Need
@@ -91,7 +94,7 @@ docs/
 
 **Troubleshoot issues:**
 - Check relevant guide's troubleshooting section
-- Review [legacy deployment guide](legacy/DEPLOYMENT_GUIDE.md#-troubleshooting) for detailed troubleshooting
+- Review [archived deployment guide](../archived/docs/DEPLOYMENT_GUIDE.md#-troubleshooting) for detailed troubleshooting
 
 **Learn about implemented features:**
 - Browse [implementation summaries](implementation-summaries/)
@@ -111,9 +114,9 @@ Based on git history analysis (latest: 2025-10-05):
 ### When Documentation Conflicts
 If you find conflicting information:
 1. Trust the source of truth listed above for each topic
-2. Recent documentation (in main docs/ folder) supersedes legacy documentation
+2. Recent documentation (in main docs/ folder) supersedes archived documentation
 3. [USER_DEPLOYMENT_GUIDE.md](../USER_DEPLOYMENT_GUIDE.md) is the preferred deployment guide
-4. Legacy documentation is preserved in `legacy/` for reference only
+4. Archived documentation is preserved in `archived/docs/` for reference only
 
 ## 📝 Maintaining Documentation
 
@@ -122,7 +125,7 @@ If you find conflicting information:
 - **docs/** directory: All detailed documentation
 - **docs/workflows/**: CI/CD and automation documentation
 - **docs/implementation-summaries/**: Feature implementation details
-- **docs/legacy/**: Archived/outdated documentation
+- **archived/docs/**: Archived/outdated documentation (in root/archived/)
 
 ### Naming Conventions
 - Use descriptive, kebab-case filenames (e.g., `deployment-guide.md`)
