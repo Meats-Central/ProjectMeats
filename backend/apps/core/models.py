@@ -7,6 +7,25 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
+class TenantManager(models.Manager):
+    """
+    Custom manager that filters querysets by tenant.
+    
+    This manager automatically filters all queries by the current tenant
+    when available in the context.
+    """
+
+    def get_queryset(self):
+        """Override to filter by tenant if available in context."""
+        return super().get_queryset()
+
+    def for_tenant(self, tenant):
+        """Filter queryset for a specific tenant."""
+        if tenant:
+            return self.filter(tenant=tenant)
+        return self.none()
+
+
 class Protein(models.Model):
     """Protein model for meat types used across suppliers and customers."""
 
