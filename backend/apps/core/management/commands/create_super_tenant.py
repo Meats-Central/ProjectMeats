@@ -6,6 +6,7 @@ import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.utils import IntegrityError
 from apps.tenants.models import Tenant, TenantUser
 
 
@@ -18,19 +19,35 @@ class Command(BaseCommand):
         # Get credentials from environment variables with defaults
         email = os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
         password = os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+        username = email.split('@')[0]
         
         # Create superuser if it doesn't exist
         try:
             with transaction.atomic():
-                user, user_created = User.objects.get_or_create(
-                    email=email,
-                    defaults={
-                        'username': email.split('@')[0],
-                        'is_staff': True,
-                        'is_superuser': True,
-                        'is_active': True,
-                    }
-                )
+                # Try to get existing user by username or email
+                # This prevents UNIQUE constraint errors on username
+                user = None
+                user_created = False
+                
+                # First, try to find by username (most likely to cause constraint issues)
+                try:
+                    user = User.objects.get(username=username)
+                    user_created = False
+                except User.DoesNotExist:
+                    # If not found by username, try by email
+                    try:
+                        user = User.objects.get(email=email)
+                        user_created = False
+                    except User.DoesNotExist:
+                        # User doesn't exist, create it
+                        user = User.objects.create(
+                            username=username,
+                            email=email,
+                            is_staff=True,
+                            is_superuser=True,
+                            is_active=True,
+                        )
+                        user_created = True
                 
                 if user_created:
                     user.set_password(password)
@@ -40,7 +57,7 @@ class Command(BaseCommand):
                     )
                 else:
                     self.stdout.write(
-                        self.style.WARNING(f'⚠️  Superuser already exists: {email}')
+                        self.style.WARNING(f'⚠️  Superuser already exists: {user.email}')
                     )
                 
                 # Create root tenant if it doesn't exist
@@ -87,6 +104,15 @@ class Command(BaseCommand):
                     self.style.SUCCESS('\n🎉 Super tenant setup complete!')
                 )
                 
+        except IntegrityError as e:
+            self.stdout.write(
+                self.style.ERROR(
+                    f'❌ Database integrity error: {str(e)}\n'
+                    f'This usually means a user with username "{username}" or email "{email}" '
+                    f'already exists with different attributes.'
+                )
+            )
+            raise
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'❌ Error during super tenant creation: {str(e)}')
