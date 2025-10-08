@@ -313,16 +313,18 @@ config/
 
 ## 9. CI/CD Workflows
 
-### 9.1 Workflow Files (11 total)
+### 9.1 Workflow Files (7 total)
 
 | File | Purpose | Status |
 |------|---------|--------|
 | `unified-deployment.yml` | Main deployment | ✅ Active (41 KB) |
 | `db-backup-restore-do.yml` | Database backup | ✅ Active |
-| `deployment-failure-monitor.yml` | Monitoring | ✅ Active |
-| `test-deployment-failure.yml` | Testing | ✅ Active |
 | `planner-*.yml` | Planning automations | ✅ Active (4 files) |
 | `ci-cd.yml.sajid-workflow-backup` | Backup | ⚠️ Remove |
+
+**Removed** (no longer relevant):
+- `deployment-failure-monitor.yml` - Monitored non-existent "UAT2 Staging" workflows
+- `test-deployment-failure.yml` - Test workflow for the removed monitor
 
 ### 9.2 Recommendations
 
