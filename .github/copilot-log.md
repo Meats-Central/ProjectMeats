@@ -23,3 +23,29 @@ This file tracks lessons learned, misses, and efficiency improvements for each t
   - Use the created checklists systematically for all future database tasks
   - Review this log before starting similar tasks to avoid repeated mistakes
   - Consider creating automated tools to verify common requirements
+
+## Task: Fix IntegrityError in create_super_tenant Management Command - 2025-10-08
+
+- **Actions Taken**: 
+  - Analyzed existing create_super_tenant.py command and identified root cause
+  - Changed user lookup strategy from email-only to username-first, then email fallback
+  - Added explicit IntegrityError handling with descriptive error messages
+  - Added new test case for duplicate username scenario (test_handles_duplicate_username_scenario)
+  - All tests passing (7/7) including the new edge case test
+  - Manual testing verified the fix prevents IntegrityError when username exists
+
+- **Misses/Failures**: 
+  - Initial approach used `get_or_create` with username only, which broke existing tests
+  - Needed to implement a more sophisticated lookup strategy (try username first, then email, then create)
+
+- **Lessons Learned**: 
+  - When fixing constraint issues, consider all existing usage patterns and tests
+  - Username is the UNIQUE constraint in Django's default User model, not email
+  - Use try/except with User.DoesNotExist for multiple lookup attempts rather than complex get_or_create
+  - Always test both creation and idempotency scenarios
+  - Check for existing tests before making changes - they provide valuable context
+
+- **Efficiency Suggestions**: 
+  - When dealing with UNIQUE constraints, always look up by the constrained field first
+  - For management commands, test with actual database to catch edge cases
+  - Consider adding a database constraint diagram to documentation for quick reference
