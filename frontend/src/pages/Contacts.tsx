@@ -302,7 +302,7 @@ const Contacts: React.FC = () => {
     email: '',
     phone: '',
     company: '',
-    position: ''
+    position: '',
   });
 
   useEffect(() => {
@@ -329,7 +329,7 @@ const Contacts: React.FC = () => {
       } else {
         await apiService.createContact(formData);
       }
-      
+
       await loadContacts();
       setShowForm(false);
       setEditingContact(null);
@@ -339,7 +339,7 @@ const Contacts: React.FC = () => {
         email: '',
         phone: '',
         company: '',
-        position: ''
+        position: '',
       });
     } catch (error) {
       console.error('Error saving contact:', error);
@@ -354,7 +354,7 @@ const Contacts: React.FC = () => {
       email: contact.email || '',
       phone: contact.phone || '',
       company: contact.company || '',
-      position: contact.position || ''
+      position: contact.position || '',
     });
     setShowForm(true);
   };
@@ -372,9 +372,9 @@ const Contacts: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -390,9 +390,7 @@ const Contacts: React.FC = () => {
     <Container>
       <Header>
         <Title>Contacts</Title>
-        <AddButton onClick={() => setShowForm(true)}>
-          + Add Contact
-        </AddButton>
+        <AddButton onClick={() => setShowForm(true)}>+ Add Contact</AddButton>
       </Header>
 
       <StatsCards>
@@ -401,15 +399,15 @@ const Contacts: React.FC = () => {
           <StatLabel>Total Contacts</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.company).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.company).length}</StatNumber>
           <StatLabel>With Company</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.email).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.email).length}</StatNumber>
           <StatLabel>With Email</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{contacts.filter(c => c.phone).length}</StatNumber>
+          <StatNumber>{contacts.filter((c) => c.phone).length}</StatNumber>
           <StatLabel>With Phone</StatLabel>
         </StatCard>
       </StatsCards>
@@ -435,7 +433,9 @@ const Contacts: React.FC = () => {
           <TableBody>
             {contacts.map((contact) => (
               <TableRow key={contact.id}>
-                <TableCell>{contact.first_name} {contact.last_name}</TableCell>
+                <TableCell>
+                  {contact.first_name} {contact.last_name}
+                </TableCell>
                 <TableCell>{contact.company || '-'}</TableCell>
                 <TableCell>{contact.position || '-'}</TableCell>
                 <TableCell>{contact.email || '-'}</TableCell>

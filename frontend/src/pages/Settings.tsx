@@ -29,21 +29,24 @@ const Settings: React.FC = () => {
       email: true,
       push: true,
       orderUpdates: true,
-      systemUpdates: false
+      systemUpdates: false,
     },
     preferences: {
       language: 'en',
       timezone: 'UTC',
       dateFormat: 'MM/DD/YYYY',
-      currency: 'USD'
+      currency: 'USD',
     },
     privacy: {
       profileVisible: true,
-      shareData: false
-    }
+      shareData: false,
+    },
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     // Load settings from localStorage (in a real app, this would come from an API)
@@ -63,48 +66,51 @@ const Settings: React.FC = () => {
 
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Save to localStorage (in a real app, this would be an API call)
       localStorage.setItem('userSettings', JSON.stringify(settings));
-      
+
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save settings. Please try again.' });
+      setMessage({
+        type: 'error',
+        text: 'Failed to save settings. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleNotificationChange = (key: keyof UserSettings['notifications']) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       notifications: {
         ...prev.notifications,
-        [key]: !prev.notifications[key]
-      }
+        [key]: !prev.notifications[key],
+      },
     }));
     if (message) setMessage(null);
   };
 
   const handlePreferenceChange = (key: keyof UserSettings['preferences'], value: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       preferences: {
         ...prev.preferences,
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
     if (message) setMessage(null);
   };
 
   const handlePrivacyChange = (key: keyof UserSettings['privacy']) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       privacy: {
         ...prev.privacy,
-        [key]: !prev.privacy[key]
-      }
+        [key]: !prev.privacy[key],
+      },
     }));
     if (message) setMessage(null);
   };
@@ -115,18 +121,18 @@ const Settings: React.FC = () => {
         email: true,
         push: true,
         orderUpdates: true,
-        systemUpdates: false
+        systemUpdates: false,
       },
       preferences: {
         language: 'en',
         timezone: 'UTC',
         dateFormat: 'MM/DD/YYYY',
-        currency: 'USD'
+        currency: 'USD',
       },
       privacy: {
         profileVisible: true,
-        shareData: false
-      }
+        shareData: false,
+      },
     });
     setMessage({ type: 'success', text: 'Settings reset to defaults!' });
   };
@@ -207,7 +213,9 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>System Updates</SettingLabel>
-                <SettingDescription>Receive notifications about system maintenance and updates</SettingDescription>
+                <SettingDescription>
+                  Receive notifications about system maintenance and updates
+                </SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.notifications.systemUpdates}
@@ -225,7 +233,9 @@ const Settings: React.FC = () => {
             <SectionIcon>⚙️</SectionIcon>
             <div>
               <SectionTitle>Preferences</SectionTitle>
-              <SectionDescription>Customize your interface and regional settings</SectionDescription>
+              <SectionDescription>
+                Customize your interface and regional settings
+              </SectionDescription>
             </div>
           </SectionHeader>
 
@@ -302,7 +312,9 @@ const Settings: React.FC = () => {
             <SectionIcon>🔒</SectionIcon>
             <div>
               <SectionTitle>Privacy</SectionTitle>
-              <SectionDescription>Control your privacy and data sharing preferences</SectionDescription>
+              <SectionDescription>
+                Control your privacy and data sharing preferences
+              </SectionDescription>
             </div>
           </SectionHeader>
 
@@ -310,7 +322,9 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Profile Visibility</SettingLabel>
-                <SettingDescription>Allow other users to see your profile information</SettingDescription>
+                <SettingDescription>
+                  Allow other users to see your profile information
+                </SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.privacy.profileVisible}
@@ -323,7 +337,9 @@ const Settings: React.FC = () => {
             <SettingItem>
               <SettingInfo>
                 <SettingLabel>Data Sharing</SettingLabel>
-                <SettingDescription>Allow anonymous usage data to be shared for improvements</SettingDescription>
+                <SettingDescription>
+                  Allow anonymous usage data to be shared for improvements
+                </SettingDescription>
               </SettingInfo>
               <Toggle
                 $active={settings.privacy.shareData}
@@ -385,9 +401,9 @@ const Message = styled.div<{ $type: 'success' | 'error' }>`
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  background: ${props => props.$type === 'success' ? '#f0fdf4' : '#fef2f2'};
-  border: 1px solid ${props => props.$type === 'success' ? '#bbf7d0' : '#fecaca'};
-  color: ${props => props.$type === 'success' ? '#16a34a' : '#dc2626'};
+  background: ${(props) => (props.$type === 'success' ? '#f0fdf4' : '#fef2f2')};
+  border: 1px solid ${(props) => (props.$type === 'success' ? '#bbf7d0' : '#fecaca')};
+  color: ${(props) => (props.$type === 'success' ? '#16a34a' : '#dc2626')};
 `;
 
 const MessageIcon = styled.span`
@@ -473,7 +489,7 @@ const Toggle = styled.button<{ $active: boolean }>`
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  background: ${props => props.$active ? '#667eea' : '#e9ecef'};
+  background: ${(props) => (props.$active ? '#667eea' : '#e9ecef')};
   position: relative;
 `;
 
@@ -484,7 +500,7 @@ const ToggleSlider = styled.div<{ $active: boolean }>`
   background: white;
   position: absolute;
   top: 2px;
-  left: ${props => props.$active ? '26px' : '2px'};
+  left: ${(props) => (props.$active ? '26px' : '2px')};
   transition: left 0.2s ease;
 `;
 

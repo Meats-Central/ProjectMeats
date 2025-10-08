@@ -9,8 +9,8 @@ from .base import *
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config(
-    "SECRET_KEY", 
-    default="django-insecure-dev-key-change-in-production-3k2j5h2k5j3h5k2j3h5k2j3"
+    "SECRET_KEY",
+    default="django-insecure-dev-key-change-in-production-3k2j5h2k5j3h5k2j3h5k2j3",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -23,7 +23,7 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "dev.meatscentral.com",
     "dev-backend.meatscentral.com",
-    "157.245.114.182"
+    "157.245.114.182",
 ]
 
 
@@ -47,7 +47,27 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS=True
+CORS_ALLOW_ALL_ORIGINS = True  # Temporarily enabled for debugging
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

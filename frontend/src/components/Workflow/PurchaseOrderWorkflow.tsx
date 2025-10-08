@@ -25,24 +25,19 @@ interface PurchaseOrderWorkflowProps {
   height?: number;
 }
 
-const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({ 
-  stages, 
-  height = 400 
-}) => {
+const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({ stages, height = 400 }) => {
   // Create nodes from stages
   const initialNodes: Node[] = stages.map((stage, index) => ({
     id: stage.id,
     position: { x: index * 200, y: 100 },
-    data: { 
+    data: {
       label: (
         <StageNode status={stage.status}>
           <StageName>{stage.label}</StageName>
           {stage.description && <StageDescription>{stage.description}</StageDescription>}
-          <StageStatus status={stage.status}>
-            {getStatusIcon(stage.status)}
-          </StageStatus>
+          <StageStatus status={stage.status}>{getStatusIcon(stage.status)}</StageStatus>
         </StageNode>
-      )
+      ),
     },
     style: {
       background: getNodeColor(stage.status),
@@ -96,28 +91,40 @@ const PurchaseOrderWorkflow: React.FC<PurchaseOrderWorkflowProps> = ({
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'completed': return '✓';
-    case 'active': return '⏳';
-    case 'exception': return '⚠️';
-    default: return '○';
+    case 'completed':
+      return '✓';
+    case 'active':
+      return '⏳';
+    case 'exception':
+      return '⚠️';
+    default:
+      return '○';
   }
 };
 
 const getNodeColor = (status: string) => {
   switch (status) {
-    case 'completed': return '#d4edda';
-    case 'active': return '#fff3cd';
-    case 'exception': return '#f8d7da';
-    default: return '#e2e3e5';
+    case 'completed':
+      return '#d4edda';
+    case 'active':
+      return '#fff3cd';
+    case 'exception':
+      return '#f8d7da';
+    default:
+      return '#e2e3e5';
   }
 };
 
 const getBorderColor = (status: string) => {
   switch (status) {
-    case 'completed': return '#28a745';
-    case 'active': return '#ffc107';
-    case 'exception': return '#dc3545';
-    default: return '#6c757d';
+    case 'completed':
+      return '#28a745';
+    case 'active':
+      return '#ffc107';
+    case 'exception':
+      return '#dc3545';
+    default:
+      return '#6c757d';
   }
 };
 
@@ -164,12 +171,16 @@ const StageDescription = styled.div`
 
 const StageStatus = styled.div<{ status: string }>`
   font-size: 20px;
-  color: ${props => {
+  color: ${(props) => {
     switch (props.status) {
-      case 'completed': return '#28a745';
-      case 'active': return '#ffc107';
-      case 'exception': return '#dc3545';
-      default: return '#6c757d';
+      case 'completed':
+        return '#28a745';
+      case 'active':
+        return '#ffc107';
+      case 'exception':
+        return '#dc3545';
+      default:
+        return '#6c757d';
     }
   }};
 `;

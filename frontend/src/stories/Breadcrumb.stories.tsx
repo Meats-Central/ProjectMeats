@@ -10,7 +10,8 @@ const meta: Meta<typeof Breadcrumb> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A breadcrumb navigation component that shows the current page path with clickable links.',
+        component:
+          'A breadcrumb navigation component that shows the current page path with clickable links.',
       },
     },
   },
@@ -55,7 +56,8 @@ export const MultiLevel: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'How the breadcrumb would appear on a multi-level path like /purchase-orders/123/edit.',
+        story:
+          'How the breadcrumb would appear on a multi-level path like /purchase-orders/123/edit.',
       },
     },
   },

@@ -59,10 +59,12 @@ mobile/
     ├── types/           # TypeScript type definitions
     │   └── index.ts
     ├── utils/           # Utility functions
-    ├── shared/          # Code shared with web app
-    │   └── utils.ts
+    ├── shared/          # Re-exports from /shared (cross-platform utilities)
+    │   └── utils.ts     # Re-exports from ../../../shared/utils.ts
     └── styles/          # Global styles and themes
 ```
+
+**Note**: The `src/shared/utils.ts` file re-exports utilities from the repository root's `/shared/utils.ts` to maintain a consistent import path across the mobile app while keeping the actual utilities in a centralized location shared between frontend and mobile.
 
 ## Getting Started
 
@@ -123,16 +125,18 @@ The app automatically detects development vs production based on the `__DEV__` f
 2. Add navigation routes in `App.tsx`
 3. Create API service methods in `src/services/ApiService.ts`
 4. Add type definitions in `src/types/index.ts`
-5. Share common utilities in `src/shared/utils.ts`
+5. Use shared utilities from `/shared/utils.ts` (re-exported via `src/shared/utils.ts`)
 
 ### Code Sharing with Web App
 
 The mobile app is designed to share as much code as possible with the web application:
 
 - **Types**: Located in `src/types/index.ts`
-- **Utilities**: Shared functions in `src/shared/utils.ts`
+- **Utilities**: Shared functions from `/shared/utils.ts` (re-exported in `src/shared/utils.ts`)
 - **API Interfaces**: Same endpoints and data structures
 - **Business Logic**: Consistent validation and processing
+
+All shared utilities are centralized in the `/shared` directory at the repository root and re-exported in both `frontend/src/shared/utils.ts` and `mobile/src/shared/utils.ts` for easy access.
 
 ## Building for Production
 

@@ -10,13 +10,7 @@ interface ModalProps {
   maxWidth?: string;
 }
 
-const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  children,
-  maxWidth = '600px',
-}) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -32,9 +26,7 @@ const Modal: React.FC<ModalProps> = ({
           <ModalTitle>{title}</ModalTitle>
           <CloseButton onClick={onClose}>&times;</CloseButton>
         </ModalHeader>
-        <ModalContent>
-          {children}
-        </ModalContent>
+        <ModalContent>{children}</ModalContent>
       </ModalContainer>
     </ModalBackdrop>,
     document.body
@@ -59,7 +51,7 @@ const ModalContainer = styled.div<{ maxWidth: string }>`
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-width: ${props => props.maxWidth};
+  max-width: ${(props) => props.maxWidth};
   width: 100%;
   max-height: 90vh;
   overflow: hidden;

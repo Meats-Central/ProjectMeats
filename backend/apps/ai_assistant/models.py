@@ -16,6 +16,7 @@ from apps.core.models import OwnedModel, StatusModel
 
 class ChatSessionStatusChoices(models.TextChoices):
     """Status choices for chat sessions."""
+
     ACTIVE = "active", "Active"
     COMPLETED = "completed", "Completed"
     ARCHIVED = "archived", "Archived"
@@ -23,7 +24,7 @@ class ChatSessionStatusChoices(models.TextChoices):
 
 class ChatSession(OwnedModel, StatusModel):
     """Chat session model for managing conversations with the AI assistant."""
-    
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -67,6 +68,7 @@ class ChatSession(OwnedModel, StatusModel):
 
 class MessageTypeChoices(models.TextChoices):
     """Message type choices for chat messages."""
+
     USER = "user", "User Message"
     ASSISTANT = "assistant", "AI Assistant Response"
     SYSTEM = "system", "System Message"
@@ -75,7 +77,7 @@ class MessageTypeChoices(models.TextChoices):
 
 class ChatMessage(OwnedModel):
     """Individual chat message within a session."""
-    
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -121,7 +123,7 @@ class ChatMessage(OwnedModel):
 
 class AIConfiguration(models.Model):
     """Configuration settings for AI providers and models."""
-    
+
     name = models.CharField(max_length=100, unique=True)
     provider = models.CharField(max_length=50, default="openai")
     model_name = models.CharField(max_length=100, default="gpt-4o-mini")

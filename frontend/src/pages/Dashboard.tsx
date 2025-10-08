@@ -19,17 +19,35 @@ interface RecentActivity {
   timestamp: string;
 }
 
+interface SupplierPerformanceData {
+  name: string;
+  orders: number;
+  revenue: number;
+  rating: number;
+}
+
+interface PurchaseOrderTrendData {
+  date: string;
+  orders: number;
+  value: number;
+  averageValue: number;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     suppliers: 0,
     customers: 0,
     purchaseOrders: 0,
-    accountsReceivables: 0
+    accountsReceivables: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [supplierPerformanceData, setSupplierPerformanceData] = useState<any[]>([]);
-  const [purchaseOrderTrendData, setPurchaseOrderTrendData] = useState<any[]>([]);
+  const [supplierPerformanceData, setSupplierPerformanceData] = useState<SupplierPerformanceData[]>(
+    []
+  );
+  const [purchaseOrderTrendData, setPurchaseOrderTrendData] = useState<PurchaseOrderTrendData[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,167 +55,169 @@ const Dashboard: React.FC = () => {
     try {
       setError(null);
       setLoading(true);
-      
+
       // Fetch data from all endpoints to get real counts
-      const [
-        suppliersData,
-        customersData,
-        purchaseOrdersData,
-        accountsReceivablesData
-      ] = await Promise.all([
-        apiService.getSuppliers().catch(() => []),
-        apiService.getCustomers().catch(() => []),
-        apiService.getPurchaseOrders().catch(() => []),
-        apiService.getAccountsReceivables().catch(() => [])
-      ]);
+      const [suppliersData, customersData, purchaseOrdersData, accountsReceivablesData] =
+        await Promise.all([
+          apiService.getSuppliers().catch(() => []),
+          apiService.getCustomers().catch(() => []),
+          apiService.getPurchaseOrders().catch(() => []),
+          apiService.getAccountsReceivables().catch(() => []),
+        ]);
 
-        // Set real stats
-        setStats({
-          suppliers: suppliersData.length,
-          customers: customersData.length,
-          purchaseOrders: purchaseOrdersData.length,
-          accountsReceivables: accountsReceivablesData.length
+      // Set real stats
+      setStats({
+        suppliers: suppliersData.length,
+        customers: customersData.length,
+        purchaseOrders: purchaseOrdersData.length,
+        accountsReceivables: accountsReceivablesData.length,
+      });
+
+      // Generate supplier performance data from real API data
+      const supplierMap = new Map<
+        number,
+        { name: string; orders: number; revenue: number; rating: number }
+      >();
+
+      // First, create a map of all suppliers
+      suppliersData.forEach((supplier: Supplier) => {
+        supplierMap.set(supplier.id, {
+          name: supplier.name,
+          orders: 0,
+          revenue: 0,
+          rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0 since we don't have ratings in DB yet
         });
+      });
 
-        // Generate supplier performance data from real API data
-        const supplierMap = new Map<number, { name: string; orders: number; revenue: number; rating: number }>();
-        
-        // First, create a map of all suppliers
-        suppliersData.forEach((supplier: Supplier) => {
-          supplierMap.set(supplier.id, {
+      // Then, aggregate purchase order data by supplier
+      purchaseOrdersData.forEach((order: PurchaseOrder) => {
+        const supplierId = order.supplier;
+        if (supplierMap.has(supplierId)) {
+          const supplierData = supplierMap.get(supplierId)!;
+          supplierData.orders += 1;
+          supplierData.revenue += Number(order.total_amount) || 0;
+        }
+      });
+
+      // Convert to array and round ratings to 1 decimal place
+      const supplierChartData = Array.from(supplierMap.values())
+        .filter((supplier) => supplier.orders > 0) // Only show suppliers with orders
+        .map((supplier) => ({
+          ...supplier,
+          rating: Math.round(supplier.rating * 10) / 10,
+        }))
+        .sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
+        .slice(0, 10); // Show top 10 suppliers
+
+      // Add fallback data if no suppliers have orders
+      if (supplierChartData.length === 0 && suppliersData.length > 0) {
+        setSupplierPerformanceData(
+          suppliersData.slice(0, 4).map((supplier) => ({
             name: supplier.name,
             orders: 0,
             revenue: 0,
-            rating: 4.0 + Math.random() * 1.0, // Random rating between 4.0-5.0 since we don't have ratings in DB yet
-          });
-        });
-
-        // Then, aggregate purchase order data by supplier
-        purchaseOrdersData.forEach((order: PurchaseOrder) => {
-          const supplierId = order.supplier;
-          if (supplierMap.has(supplierId)) {
-            const supplierData = supplierMap.get(supplierId)!;
-            supplierData.orders += 1;
-            supplierData.revenue += Number(order.total_amount) || 0;
-          }
-        });
-
-        // Convert to array and round ratings to 1 decimal place
-        const supplierChartData = Array.from(supplierMap.values())
-          .filter(supplier => supplier.orders > 0) // Only show suppliers with orders
-          .map(supplier => ({
-            ...supplier,
-            rating: Math.round(supplier.rating * 10) / 10
+            rating: 4.0 + Math.random() * 1.0,
           }))
-          .sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
-          .slice(0, 10); // Show top 10 suppliers
-
-        // Add fallback data if no suppliers have orders
-        if (supplierChartData.length === 0 && suppliersData.length > 0) {
-          setSupplierPerformanceData(
-            suppliersData.slice(0, 4).map(supplier => ({
-              name: supplier.name,
-              orders: 0,
-              revenue: 0,
-              rating: 4.0 + Math.random() * 1.0
-            }))
-          );
-        } else {
-          setSupplierPerformanceData(supplierChartData);
-        }
-
-        // Generate purchase order trends data from real API data
-        const monthlyData = new Map<string, { date: string; orders: number; value: number }>();
-        
-        purchaseOrdersData.forEach((order: PurchaseOrder) => {
-          const orderDate = new Date(order.order_date);
-          const monthKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}`;
-          
-          if (!monthlyData.has(monthKey)) {
-            monthlyData.set(monthKey, {
-              date: monthKey,
-              orders: 0,
-              value: 0
-            });
-          }
-          
-          const monthData = monthlyData.get(monthKey)!;
-          monthData.orders += 1;
-          monthData.value += Number(order.total_amount) || 0;
-        });
-
-        // Convert to array, calculate average values, and sort by date
-        const trendChartData = Array.from(monthlyData.values())
-          .map(monthData => ({
-            ...monthData,
-            averageValue: monthData.orders > 0 ? Math.round(monthData.value / monthData.orders) : 0
-          }))
-          .sort((a, b) => a.date.localeCompare(b.date))
-          .slice(-12); // Show last 12 months
-
-        // Add fallback data if no purchase orders exist
-        if (trendChartData.length === 0) {
-          const currentDate = new Date();
-          const fallbackData = [];
-          for (let i = 5; i >= 0; i--) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-            fallbackData.push({
-              date: monthKey,
-              orders: 0,
-              value: 0,
-              averageValue: 0
-            });
-          }
-          setPurchaseOrderTrendData(fallbackData);
-        } else {
-          setPurchaseOrderTrendData(trendChartData);
-        }
-
-        // Generate recent activity from the data
-        const activities: RecentActivity[] = [];
-        
-        // Add recent suppliers
-        suppliersData.slice(-3).forEach(supplier => {
-          activities.push({
-            type: 'supplier',
-            title: `New Supplier: ${supplier.name}`,
-            description: supplier.contact_person ? `Contact: ${supplier.contact_person}` : 'No contact person',
-            timestamp: supplier.created_at || new Date().toISOString()
-          });
-        });
-
-        // Add recent customers
-        customersData.slice(-3).forEach(customer => {
-          activities.push({
-            type: 'customer',
-            title: `New Customer: ${customer.name}`,
-            description: customer.contact_person ? `Contact: ${customer.contact_person}` : 'No contact person',
-            timestamp: customer.created_at || new Date().toISOString()
-          });
-        });
-
-        // Add recent purchase orders
-        purchaseOrdersData.slice(-2).forEach(order => {
-          activities.push({
-            type: 'purchase_order',
-            title: `Purchase Order: ${order.order_number}`,
-            description: `Amount: $${order.total_amount.toLocaleString()} - Status: ${order.status}`,
-            timestamp: order.created_at || new Date().toISOString()
-          });
-        });
-
-        // Sort by timestamp and take the most recent
-        activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setRecentActivity(activities.slice(0, 8));
-
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        setError('Failed to load dashboard data. Please check your connection.');
-      } finally {
-        setLoading(false);
+        );
+      } else {
+        setSupplierPerformanceData(supplierChartData);
       }
-    };
+
+      // Generate purchase order trends data from real API data
+      const monthlyData = new Map<string, { date: string; orders: number; value: number }>();
+
+      purchaseOrdersData.forEach((order: PurchaseOrder) => {
+        const orderDate = new Date(order.order_date);
+        const monthKey = `${orderDate.getFullYear()}-${(orderDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        if (!monthlyData.has(monthKey)) {
+          monthlyData.set(monthKey, {
+            date: monthKey,
+            orders: 0,
+            value: 0,
+          });
+        }
+
+        const monthData = monthlyData.get(monthKey)!;
+        monthData.orders += 1;
+        monthData.value += Number(order.total_amount) || 0;
+      });
+
+      // Convert to array, calculate average values, and sort by date
+      const trendChartData = Array.from(monthlyData.values())
+        .map((monthData) => ({
+          ...monthData,
+          averageValue: monthData.orders > 0 ? Math.round(monthData.value / monthData.orders) : 0,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-12); // Show last 12 months
+
+      // Add fallback data if no purchase orders exist
+      if (trendChartData.length === 0) {
+        const currentDate = new Date();
+        const fallbackData = [];
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+          const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+          fallbackData.push({
+            date: monthKey,
+            orders: 0,
+            value: 0,
+            averageValue: 0,
+          });
+        }
+        setPurchaseOrderTrendData(fallbackData);
+      } else {
+        setPurchaseOrderTrendData(trendChartData);
+      }
+
+      // Generate recent activity from the data
+      const activities: RecentActivity[] = [];
+
+      // Add recent suppliers
+      suppliersData.slice(-3).forEach((supplier) => {
+        activities.push({
+          type: 'supplier',
+          title: `New Supplier: ${supplier.name}`,
+          description: supplier.contact_person
+            ? `Contact: ${supplier.contact_person}`
+            : 'No contact person',
+          timestamp: supplier.created_at || new Date().toISOString(),
+        });
+      });
+
+      // Add recent customers
+      customersData.slice(-3).forEach((customer) => {
+        activities.push({
+          type: 'customer',
+          title: `New Customer: ${customer.name}`,
+          description: customer.contact_person
+            ? `Contact: ${customer.contact_person}`
+            : 'No contact person',
+          timestamp: customer.created_at || new Date().toISOString(),
+        });
+      });
+
+      // Add recent purchase orders
+      purchaseOrdersData.slice(-2).forEach((order) => {
+        activities.push({
+          type: 'purchase_order',
+          title: `Purchase Order: ${order.order_number}`,
+          description: `Amount: $${order.total_amount.toLocaleString()} - Status: ${order.status}`,
+          timestamp: order.created_at || new Date().toISOString(),
+        });
+      });
+
+      // Sort by timestamp and take the most recent
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setRecentActivity(activities.slice(0, 8));
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setError('Failed to load dashboard data. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchStats();
@@ -222,7 +242,7 @@ const Dashboard: React.FC = () => {
         navigate('/ai-assistant');
         break;
       default:
-        console.log('Unknown action:', action);
+        console.warn('Unknown action:', action);
     }
   };
 
@@ -270,9 +290,7 @@ const Dashboard: React.FC = () => {
         <ErrorIcon>⚠️</ErrorIcon>
         <ErrorTitle>Error Loading Dashboard</ErrorTitle>
         <ErrorMessage>{error}</ErrorMessage>
-        <RetryButton onClick={handleRefresh}>
-          Retry
-        </RetryButton>
+        <RetryButton onClick={handleRefresh}>Retry</RetryButton>
       </ErrorContainer>
     );
   }
@@ -285,9 +303,7 @@ const Dashboard: React.FC = () => {
             <Title>Dashboard</Title>
             <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
           </TitleSection>
-          <RefreshButton onClick={handleRefresh}>
-            🔄 Refresh Data
-          </RefreshButton>
+          <RefreshButton onClick={handleRefresh}>🔄 Refresh Data</RefreshButton>
         </HeaderTop>
       </DashboardHeader>
 
@@ -359,7 +375,12 @@ const Dashboard: React.FC = () => {
           <StatsOverview>
             <OverviewStat>
               <OverviewLabel>Total Entities</OverviewLabel>
-              <OverviewNumber>{stats.suppliers + stats.customers + stats.purchaseOrders + stats.accountsReceivables}</OverviewNumber>
+              <OverviewNumber>
+                {stats.suppliers +
+                  stats.customers +
+                  stats.purchaseOrders +
+                  stats.accountsReceivables}
+              </OverviewNumber>
             </OverviewStat>
             <OverviewStat>
               <OverviewLabel>Active POs</OverviewLabel>
@@ -483,7 +504,9 @@ const StatCard = styled.div`
   align-items: center;
   gap: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);

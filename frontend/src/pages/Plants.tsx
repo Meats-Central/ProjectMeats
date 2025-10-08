@@ -8,7 +8,7 @@ const Plants: React.FC = () => {
         <Title>Plants</Title>
         <Subtitle>Manage your processing facilities and locations</Subtitle>
       </Header>
-      
+
       <ComingSoon>
         <Icon>🏢</Icon>
         <Text>Plant Management</Text>

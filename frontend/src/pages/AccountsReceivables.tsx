@@ -138,7 +138,7 @@ const TableCell = styled.td`
 `;
 
 const StatusBadge = styled.span<{ $color: string }>`
-  background: ${props => props.$color};
+  background: ${(props) => props.$color};
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
@@ -324,7 +324,7 @@ const AccountsReceivables: React.FC = () => {
     customer: '',
     amount: '',
     due_date: '',
-    status: 'pending'
+    status: 'pending',
   });
 
   useEffect(() => {
@@ -349,7 +349,7 @@ const AccountsReceivables: React.FC = () => {
       const receivableData = {
         ...formData,
         amount: parseFloat(formData.amount),
-        customer: parseInt(formData.customer)
+        customer: parseInt(formData.customer),
       };
 
       if (editingReceivable) {
@@ -357,7 +357,7 @@ const AccountsReceivables: React.FC = () => {
       } else {
         await apiService.createAccountsReceivable(receivableData);
       }
-      
+
       await loadReceivables();
       setShowForm(false);
       setEditingReceivable(null);
@@ -366,7 +366,7 @@ const AccountsReceivables: React.FC = () => {
         customer: '',
         amount: '',
         due_date: '',
-        status: 'pending'
+        status: 'pending',
       });
     } catch (error) {
       console.error('Error saving accounts receivable:', error);
@@ -380,7 +380,7 @@ const AccountsReceivables: React.FC = () => {
       customer: receivable.customer.toString(),
       amount: receivable.amount.toString(),
       due_date: receivable.due_date,
-      status: receivable.status
+      status: receivable.status,
     });
     setShowForm(true);
   };
@@ -396,33 +396,47 @@ const AccountsReceivables: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return '#ffc107';
-      case 'paid': return '#28a745';
-      case 'overdue': return '#dc3545';
-      case 'disputed': return '#6f42c1';
-      default: return '#6c757d';
+      case 'pending':
+        return '#ffc107';
+      case 'paid':
+        return '#28a745';
+      case 'overdue':
+        return '#dc3545';
+      case 'disputed':
+        return '#6f42c1';
+      default:
+        return '#6c757d';
     }
   };
 
-  const getTotalAmount = () => Array.isArray(receivables) 
-    ? receivables.reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
-    : 0;
-  const getPendingAmount = () => Array.isArray(receivables) 
-    ? receivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
-    : 0;
-  const getOverdueAmount = () => Array.isArray(receivables) 
-    ? receivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + (Number(r.amount) || 0), 0) 
-    : 0;
+  const getTotalAmount = () =>
+    Array.isArray(receivables)
+      ? receivables.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+      : 0;
+  const getPendingAmount = () =>
+    Array.isArray(receivables)
+      ? receivables
+          .filter((r) => r.status === 'pending')
+          .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+      : 0;
+  const getOverdueAmount = () =>
+    Array.isArray(receivables)
+      ? receivables
+          .filter((r) => r.status === 'overdue')
+          .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+      : 0;
 
   if (loading) {
     return (
@@ -436,9 +450,7 @@ const AccountsReceivables: React.FC = () => {
     <Container>
       <Header>
         <Title>Accounts Receivables</Title>
-        <AddButton onClick={() => setShowForm(true)}>
-          + Add Receivable
-        </AddButton>
+        <AddButton onClick={() => setShowForm(true)}>+ Add Receivable</AddButton>
       </Header>
 
       <StatsCards>
@@ -551,12 +563,7 @@ const AccountsReceivables: React.FC = () => {
               </FormGroup>
               <FormGroup>
                 <Label>Status</Label>
-                <Select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  required
-                >
+                <Select name="status" value={formData.status} onChange={handleInputChange} required>
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
                   <option value="overdue">Overdue</option>

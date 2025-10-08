@@ -8,7 +8,8 @@ const meta: Meta<typeof PurchaseOrderWorkflow> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A workflow visualization component using React Flow to show purchase order stages and their status.',
+        component:
+          'A workflow visualization component using React Flow to show purchase order stages and their status.',
       },
     },
   },
@@ -29,7 +30,12 @@ export const InProgress: Story = {
     stages: [
       { id: 'draft', label: 'Draft', status: 'completed', description: 'Order created' },
       { id: 'approval', label: 'Approval', status: 'completed', description: 'Management review' },
-      { id: 'processing', label: 'Processing', status: 'active', description: 'Supplier processing' },
+      {
+        id: 'processing',
+        label: 'Processing',
+        status: 'active',
+        description: 'Supplier processing',
+      },
       { id: 'shipping', label: 'Shipping', status: 'pending', description: 'In transit' },
       { id: 'delivered', label: 'Delivered', status: 'pending', description: 'Order complete' },
     ],
@@ -42,7 +48,12 @@ export const WithException: Story = {
     stages: [
       { id: 'draft', label: 'Draft', status: 'completed', description: 'Order created' },
       { id: 'approval', label: 'Approval', status: 'completed', description: 'Management review' },
-      { id: 'processing', label: 'Processing', status: 'exception', description: 'Supplier issue detected' },
+      {
+        id: 'processing',
+        label: 'Processing',
+        status: 'exception',
+        description: 'Supplier issue detected',
+      },
       { id: 'shipping', label: 'Shipping', status: 'pending', description: 'In transit' },
       { id: 'delivered', label: 'Delivered', status: 'pending', description: 'Order complete' },
     ],
@@ -55,8 +66,18 @@ export const Completed: Story = {
     stages: [
       { id: 'draft', label: 'Draft', status: 'completed', description: 'Order created' },
       { id: 'approval', label: 'Approval', status: 'completed', description: 'Management review' },
-      { id: 'processing', label: 'Processing', status: 'completed', description: 'Supplier processed' },
-      { id: 'shipping', label: 'Shipping', status: 'completed', description: 'Shipped successfully' },
+      {
+        id: 'processing',
+        label: 'Processing',
+        status: 'completed',
+        description: 'Supplier processed',
+      },
+      {
+        id: 'shipping',
+        label: 'Shipping',
+        status: 'completed',
+        description: 'Shipped successfully',
+      },
       { id: 'delivered', label: 'Delivered', status: 'completed', description: 'Order delivered' },
     ],
     height: 400,

@@ -16,7 +16,7 @@ const Customers: React.FC = () => {
     city: '',
     state: '',
     zip_code: '',
-    country: ''
+    country: '',
   });
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Customers: React.FC = () => {
       city: customer.city || '',
       state: customer.state || '',
       zip_code: customer.zip_code || '',
-      country: customer.country || ''
+      country: customer.country || '',
     });
     setShowForm(true);
   };
@@ -89,7 +89,7 @@ const Customers: React.FC = () => {
       city: '',
       state: '',
       zip_code: '',
-      country: ''
+      country: '',
     });
   };
 
@@ -117,7 +117,7 @@ const Customers: React.FC = () => {
               <FormTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</FormTitle>
               <CloseButton onClick={handleCancel}>×</CloseButton>
             </FormHeader>
-            
+
             <Form onSubmit={handleSubmit}>
               <FormGrid>
                 <FormGroup>
@@ -125,7 +125,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </FormGroup>
@@ -135,7 +135,12 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.contact_person}
-                    onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contact_person: e.target.value,
+                      })
+                    }
                   />
                 </FormGroup>
 
@@ -144,7 +149,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </FormGroup>
 
@@ -153,7 +158,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </FormGroup>
 
@@ -162,7 +167,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </FormGroup>
 
@@ -171,7 +176,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
                 </FormGroup>
 
@@ -180,7 +185,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.state}
-                    onChange={(e) => setFormData({...formData, state: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   />
                 </FormGroup>
 
@@ -189,7 +194,7 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.zip_code}
-                    onChange={(e) => setFormData({...formData, zip_code: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
                   />
                 </FormGroup>
 
@@ -198,13 +203,15 @@ const Customers: React.FC = () => {
                   <Input
                     type="text"
                     value={formData.country}
-                    onChange={(e) => setFormData({...formData, country: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   />
                 </FormGroup>
               </FormGrid>
 
               <FormActions>
-                <CancelButton type="button" onClick={handleCancel}>Cancel</CancelButton>
+                <CancelButton type="button" onClick={handleCancel}>
+                  Cancel
+                </CancelButton>
                 <SubmitButton type="submit">
                   {editingCustomer ? 'Update' : 'Create'} Customer
                 </SubmitButton>
@@ -243,10 +250,9 @@ const Customers: React.FC = () => {
                   <TableCell>{customer.email || '-'}</TableCell>
                   <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>
-                    {customer.city && customer.state 
-                      ? `${customer.city}, ${customer.state}` 
-                      : customer.city || customer.state || '-'
-                    }
+                    {customer.city && customer.state
+                      ? `${customer.city}, ${customer.state}`
+                      : customer.city || customer.state || '-'}
                   </TableCell>
                   <TableCell>
                     <ActionButton onClick={() => handleEdit(customer)}>Edit</ActionButton>
@@ -349,7 +355,7 @@ const CloseButton = styled.button`
   font-size: 24px;
   cursor: pointer;
   color: #6c757d;
-  
+
   &:hover {
     color: #2c3e50;
   }
@@ -367,7 +373,7 @@ const FormGrid = styled.div`
 `;
 
 const FormGroup = styled.div<{ $fullWidth?: boolean }>`
-  grid-column: ${props => props.$fullWidth ? '1 / -1' : 'auto'};
+  grid-column: ${(props) => (props.$fullWidth ? '1 / -1' : 'auto')};
 `;
 
 const Label = styled.label`

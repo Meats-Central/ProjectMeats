@@ -33,7 +33,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
 
   useEffect(() => {
     if (command.length > 2) {
-      const filtered = sampleCommands.filter(cmd =>
+      const filtered = sampleCommands.filter((cmd) =>
         cmd.toLowerCase().includes(command.toLowerCase())
       );
       setSuggestions(filtered.slice(0, 5));
@@ -48,12 +48,10 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedSuggestionIndex(prev => 
-        prev < suggestions.length - 1 ? prev + 1 : prev
-      );
+      setSelectedSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+      setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (selectedSuggestionIndex >= 0) {
@@ -89,7 +87,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
           onKeyDown={handleKeyDown}
           placeholder="Type your command (e.g., 'Create purchase order for ABC Meats')"
         />
-        
+
         {suggestions.length > 0 && (
           <SuggestionsList>
             {suggestions.map((suggestion, index) => (
@@ -116,9 +114,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ isOpen, onClose, onSubmit }) => {
               <HelpItem>"Generate report for [entity type]"</HelpItem>
             </HelpList>
           </HelpSection>
-          <TipText>
-            💡 Tip: Use natural language - the AI will interpret your intent
-          </TipText>
+          <TipText>💡 Tip: Use natural language - the AI will interpret your intent</TipText>
         </HelpText>
       </OmniboxContainer>
     </Modal>
@@ -167,7 +163,7 @@ const SuggestionItem = styled.div<{ isSelected: boolean }>`
   gap: 12px;
   padding: 12px 16px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#e3f2fd' : 'white'};
+  background: ${(props) => (props.isSelected ? '#e3f2fd' : 'white')};
   border-bottom: 1px solid #f1f3f4;
   transition: background-color 0.2s;
 

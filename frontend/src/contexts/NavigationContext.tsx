@@ -3,8 +3,8 @@ import { useLocation } from 'react-router-dom';
 
 interface NavigationContextType {
   currentModule: string;
-  moduleData: { [key: string]: any };
-  setModuleData: (module: string, data: any) => void;
+  moduleData: { [key: string]: Record<string, unknown> };
+  setModuleData: (module: string, data: Record<string, unknown>) => void;
   clearModuleData: (module: string) => void;
   breadcrumbPath: string[];
   setBreadcrumbPath: (path: string[]) => void;
@@ -28,22 +28,24 @@ interface NavigationProviderProps {
 
 export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children }) => {
   const location = useLocation();
-  const [moduleData, setModuleDataState] = useState<{ [key: string]: any }>({});
+  const [moduleData, setModuleDataState] = useState<{
+    [key: string]: Record<string, unknown>;
+  }>({});
   const [breadcrumbPath, setBreadcrumbPath] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Get current module from location
   const currentModule = location.pathname.split('/')[1] || 'dashboard';
 
-  const setModuleData = useCallback((module: string, data: any) => {
-    setModuleDataState(prev => ({
+  const setModuleData = useCallback((module: string, data: Record<string, unknown>) => {
+    setModuleDataState((prev) => ({
       ...prev,
-      [module]: { ...prev[module], ...data }
+      [module]: { ...prev[module], ...data },
     }));
   }, []);
 
   const clearModuleData = useCallback((module: string) => {
-    setModuleDataState(prev => {
+    setModuleDataState((prev) => {
       const newData = { ...prev };
       delete newData[module];
       return newData;
@@ -61,9 +63,5 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
     setSidebarOpen,
   };
 
-  return (
-    <NavigationContext.Provider value={value}>
-      {children}
-    </NavigationContext.Provider>
-  );
+  return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
 };

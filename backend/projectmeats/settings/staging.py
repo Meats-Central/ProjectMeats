@@ -28,8 +28,7 @@ CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bo
 
 # Email backend for staging (console or file)
 EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", 
-    default="django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
 )
 
 # Staging-specific cache (can be less robust)
@@ -47,8 +46,8 @@ CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
 # Staging health checks (more lenient)
 HEALTH_CHECK = {
     "DISK_USAGE_MAX": 95,  # percent
-    "MEMORY_MIN": 50,      # MB
+    "MEMORY_MIN": 50,  # MB
 }
 
-STATIC_URL = '/static/'
-MEDIA_URL = '/media/'
+STATIC_URL = "/static/"
+MEDIA_URL = "/media/"

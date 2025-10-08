@@ -97,9 +97,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
               <ItemIcon>🔐</ItemIcon>
               Login
             </DropdownItem>
-            
+
             <DropdownDivider />
-            
+
             <DropdownItem onClick={handleSignUpClick}>
               <ItemIcon>📝</ItemIcon>
               Sign Up
@@ -110,9 +110,8 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     );
   }
 
-  const displayName = user.first_name && user.last_name 
-    ? `${user.first_name} ${user.last_name}` 
-    : user.username;
+  const displayName =
+    user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
 
   return (
     <DropdownContainer ref={dropdownRef}>
@@ -128,7 +127,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
             <ItemIcon>👤</ItemIcon>
             View Profile
           </DropdownItem>
-          
+
           <DropdownItem onClick={handleSettingsClick}>
             <ItemIcon>⚙️</ItemIcon>
             Settings
@@ -165,7 +164,7 @@ const UserMenu = styled.div<{ $isOpen?: boolean }>`
   padding: 8px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  background-color: ${props => props.$isOpen ? '#f8f9fa' : 'transparent'};
+  background-color: ${(props) => (props.$isOpen ? '#f8f9fa' : 'transparent')};
 
   &:hover {
     background-color: #f8f9fa;
@@ -192,7 +191,7 @@ const UserName = styled.span`
 const DropdownArrow = styled.span<{ $isOpen: boolean }>`
   font-size: 10px;
   color: #6c757d;
-  transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+  transform: ${(props) => (props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)')};
   transition: transform 0.2s ease;
 `;
 
@@ -234,16 +233,16 @@ const DropdownItem = styled.button<{ $isLogout?: boolean }>`
   background: none;
   cursor: pointer;
   font-size: 14px;
-  color: ${props => props.$isLogout ? '#dc3545' : '#2c3e50'};
+  color: ${(props) => (props.$isLogout ? '#dc3545' : '#2c3e50')};
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: ${props => props.$isLogout ? '#fff5f5' : '#f8f9fa'};
+    background-color: ${(props) => (props.$isLogout ? '#fff5f5' : '#f8f9fa')};
   }
 
   &:focus {
     outline: none;
-    background-color: ${props => props.$isLogout ? '#fff5f5' : '#f8f9fa'};
+    background-color: ${(props) => (props.$isLogout ? '#fff5f5' : '#f8f9fa')};
   }
 `;
 

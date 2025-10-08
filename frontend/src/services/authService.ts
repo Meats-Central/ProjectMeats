@@ -56,8 +56,11 @@ export class AuthService {
       localStorage.setItem('user', JSON.stringify(user));
 
       return user;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Login failed');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.error || 'Login failed');
+      }
+      throw new Error('Login failed');
     }
   }
 
@@ -68,9 +71,9 @@ export class AuthService {
         email: credentials.email,
         password: credentials.password,
         firstName: credentials.firstName,
-        lastName: credentials.lastName
+        lastName: credentials.lastName,
       });
-      
+
       const { token, user } = response.data;
 
       this.token = token;
@@ -81,17 +84,24 @@ export class AuthService {
       localStorage.setItem('user', JSON.stringify(user));
 
       return user;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Sign up failed');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.error || 'Sign up failed');
+      }
+      throw new Error('Sign up failed');
     }
   }
 
   async logout(): Promise<void> {
     try {
       if (this.token) {
-        await axios.post(`${API_BASE_URL}/auth/logout/`, {}, {
-          headers: { Authorization: `Token ${this.token}` }
-        });
+        await axios.post(
+          `${API_BASE_URL}/auth/logout/`,
+          {},
+          {
+            headers: { Authorization: `Token ${this.token}` },
+          }
+        );
       }
     } catch (error) {
       console.error('Logout error:', error);
