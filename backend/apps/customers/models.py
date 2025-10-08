@@ -6,12 +6,23 @@ Defines customer entities and related business logic.
 from django.db import models
 
 from apps.contacts.models import Contact
-from apps.core.models import EdibleInedibleChoices, Protein, TimestampModel
+from apps.core.models import EdibleInedibleChoices, Protein, TimestampModel, TenantManager
 from apps.plants.models import Plant
+from apps.tenants.models import Tenant
 
 
 class Customer(TimestampModel):
     """Customer model for managing customer information."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="customers",
+        help_text="Tenant that owns this customer",
+        null=True,
+        blank=True,
+    )
 
     # Basic information - keeping existing fields with same names
     name = models.CharField(max_length=255, help_text="Customer company name")
@@ -90,6 +101,9 @@ class Customer(TimestampModel):
         blank=True,
         help_text="Line of credit amount (e.g., $50,000 - $100,000)",
     )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["name"]

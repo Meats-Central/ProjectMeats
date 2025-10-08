@@ -4,7 +4,8 @@ Purchase Orders models for ProjectMeats.
 Defines purchase order entities and related business logic.
 """
 from django.db import models
-from apps.core.models import TimestampModel
+from apps.core.models import TimestampModel, TenantManager
+from apps.tenants.models import Tenant
 
 
 class PurchaseOrderStatus(models.TextChoices):
@@ -18,6 +19,16 @@ class PurchaseOrderStatus(models.TextChoices):
 
 class PurchaseOrder(TimestampModel):
     """Purchase Order model for managing purchase orders."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="purchase_orders",
+        help_text="Tenant that owns this purchase order",
+        null=True,
+        blank=True,
+    )
 
     order_number = models.CharField(
         max_length=50, unique=True, help_text="Unique order number"
@@ -41,6 +52,9 @@ class PurchaseOrder(TimestampModel):
         blank=True, null=True, help_text="Expected delivery date"
     )
     notes = models.TextField(blank=True, null=True, help_text="Additional notes")
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["-order_date", "-created_on"]
