@@ -25,6 +25,11 @@ class Plant(models.Model):
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
+    plant_est_num = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Plant establishment number",
+    )
     plant_type = models.CharField(
         max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
     )

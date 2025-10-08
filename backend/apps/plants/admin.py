@@ -12,6 +12,7 @@ class PlantAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "code",
+        "plant_est_num",
         "plant_type",
         "city",
         "state",
@@ -24,14 +25,17 @@ class PlantAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
     fieldsets = (
-        ("Basic Information", {"fields": ("name", "code", "plant_type", "manager")}),
+        (
+            "Basic Information",
+            {"fields": ("name", "code", "plant_est_num", "plant_type", "manager")},
+        ),
         ("Address", {"fields": ("address", "city", "state", "zip_code", "country")}),
         ("Contact Information", {"fields": ("phone", "email")}),
         ("Operational Details", {"fields": ("capacity", "is_active")}),
         (
             "Metadata",
             {
-                "fields": ("created_by", "created_at", "updated_at"),
+                "fields": ("tenant", "created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
