@@ -4,7 +4,7 @@ Contacts models for ProjectMeats.
 Defines contact entities and related business logic.
 """
 from django.db import models
-from apps.core.models import TimestampModel, TenantManager
+from apps.core.models import ContactTypeChoices, TimestampModel, TenantManager
 from apps.tenants.models import Tenant
 
 
@@ -32,6 +32,34 @@ class Contact(TimestampModel):
     )
     position = models.CharField(
         max_length=100, blank=True, null=True, help_text="Job position or title"
+    )
+    
+    # Enhanced fields from Excel requirements
+    contact_type = models.CharField(
+        max_length=50,
+        choices=ContactTypeChoices.choices,
+        blank=True,
+        help_text="Type of contact (e.g., Sales, Accounting, Shipping)",
+    )
+    contact_title = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Contact title/designation",
+    )
+    main_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Main phone number",
+    )
+    direct_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Direct phone number",
+    )
+    cell_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Cell phone number",
     )
 
     # Custom manager for tenant filtering
