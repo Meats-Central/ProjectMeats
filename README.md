@@ -54,7 +54,9 @@ ProjectMeats3/
 ├── shared/                     # Cross-platform shared utilities
 │   └── utils.ts              # Common TypeScript utilities
 ├── docs/                      # Documentation
-│   └── legacy/               # Archived legacy documentation
+├── archived/                  # Archived files (legacy docs, outdated code)
+│   ├── docs/                  # Archived documentation
+│   └── code/                  # Archived code/config files
 └── config/                    # Centralized configuration
 ```
 
