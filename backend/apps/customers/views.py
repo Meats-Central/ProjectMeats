@@ -3,10 +3,17 @@ Customers views for ProjectMeats.
 
 Provides REST API endpoints for customer management.
 """
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError
 from apps.customers.models import Customer
 from apps.customers.serializers import CustomerSerializer
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -24,4 +31,56 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the tenant when creating a new customer."""
+        if not hasattr(self.request, 'tenant') or not self.request.tenant:
+            logger.error(
+                'Customer creation attempted without tenant context',
+                extra={
+                    'user': self.request.user.username if self.request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            raise ValidationError('Tenant context is required to create a customer.')
         serializer.save(tenant=self.request.tenant)
+
+    def create(self, request, *args, **kwargs):
+        """Create a new customer with enhanced error handling."""
+        try:
+            return super().create(request, *args, **kwargs)
+        except DRFValidationError as e:
+            logger.error(
+                f'Validation error creating customer: {str(e.detail)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            # Re-raise DRF validation errors to return 400
+            raise
+        except ValidationError as e:
+            logger.error(
+                f'Validation error creating customer: {str(e)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Validation failed', 'details': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(
+                f'Error creating customer: {str(e)}',
+                exc_info=True,
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Failed to create customer', 'details': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

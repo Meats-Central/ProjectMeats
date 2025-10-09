@@ -32,6 +32,18 @@ class AccountsReceivableSerializer(serializers.ModelSerializer):
             "created_by_name",
         ]
 
+    def validate_invoice_number(self, value):
+        """Validate invoice number is provided and is a valid string."""
+        if not value or not isinstance(value, str) or not value.strip():
+            raise serializers.ValidationError("Invoice number is required and must be a non-empty string.")
+        return value.strip()
+
+    def validate_amount(self, value):
+        """Validate amount is a positive number."""
+        if value is None or value <= 0:
+            raise serializers.ValidationError("Amount must be a positive number.")
+        return value
+
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
         return super().create(validated_data)

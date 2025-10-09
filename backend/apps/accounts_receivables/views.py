@@ -1,8 +1,15 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.exceptions import ValidationError
 from apps.accounts_receivables.models import AccountsReceivable
 from apps.accounts_receivables.serializers import AccountsReceivableSerializer
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class AccountsReceivableViewSet(viewsets.ModelViewSet):
@@ -22,3 +29,46 @@ class AccountsReceivableViewSet(viewsets.ModelViewSet):
         if customer_id:
             queryset = queryset.filter(customer_id=customer_id)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        """Create a new accounts receivable record with enhanced error handling."""
+        try:
+            return super().create(request, *args, **kwargs)
+        except DRFValidationError as e:
+            logger.error(
+                f'Validation error creating accounts receivable: {str(e.detail)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            # Re-raise DRF validation errors to return 400
+            raise
+        except ValidationError as e:
+            logger.error(
+                f'Validation error creating accounts receivable: {str(e)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Validation failed', 'details': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(
+                f'Error creating accounts receivable: {str(e)}',
+                exc_info=True,
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user.is_authenticated else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Failed to create accounts receivable', 'details': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
