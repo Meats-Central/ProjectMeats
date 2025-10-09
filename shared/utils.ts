@@ -203,22 +203,36 @@ export const CONSTANTS = {
  * Type guards for better type safety
  */
 export const isValidTenantRole = (role: string): role is keyof typeof CONSTANTS.TENANT_ROLES => {
-  return Object.values(CONSTANTS.TENANT_ROLES).includes(role as any);
+  return (Object.values(CONSTANTS.TENANT_ROLES) as readonly string[]).includes(role);
 };
 
 /**
  * Error handling utilities
  */
-export const getErrorMessage = (error: any): string => {
+export const getErrorMessage = (error: unknown): string => {
   if (typeof error === 'string') return error;
-  if (error?.response?.data?.detail) return error.response.data.detail;
-  if (error?.response?.data?.message) return error.response.data.message;
-  if (error?.message) return error.message;
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    // Handle axios-style errors
+    if ('response' in error) {
+      const response = (error as { response?: { data?: { detail?: string; message?: string } } }).response;
+      if (response?.data?.detail) return response.data.detail;
+      if (response?.data?.message) return response.data.message;
+    }
+    // Handle errors with message property
+    if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+      return (error as { message: string }).message;
+    }
+  }
   return 'An unexpected error occurred';
 };
 
-export const isNetworkError = (error: any): boolean => {
-  return error?.code === 'NETWORK_ERROR' || 
-         error?.message === 'Network Error' ||
-         !navigator?.onLine;
+export const isNetworkError = (error: unknown): boolean => {
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { code?: string; message?: string };
+    return err.code === 'NETWORK_ERROR' || 
+           err.message === 'Network Error' ||
+           !navigator?.onLine;
+  }
+  return !navigator?.onLine;
 };
