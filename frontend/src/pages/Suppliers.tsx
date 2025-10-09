@@ -47,8 +47,18 @@ const Suppliers: React.FC = () => {
       setEditingSupplier(null);
       resetForm();
       fetchSuppliers();
-    } catch (error) {
-      console.error('Error saving supplier:', error);
+    } catch (error: any) {
+      // Log detailed error information
+      console.error('Error saving supplier:', {
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data
+        } : 'No response data'
+      });
+      // Display user-friendly error to the UI
+      alert(`Failed to save supplier: ${error.message || 'Please try again later'}`);
     }
   };
 
