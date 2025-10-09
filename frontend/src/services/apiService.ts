@@ -150,8 +150,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/suppliers/', supplier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create supplier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create supplier: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -159,8 +160,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update supplier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update supplier: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -183,8 +185,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/customers/', customer);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create customer: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create customer: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -192,8 +195,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/customers/${id}/`, customer);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update customer: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update customer: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -223,8 +227,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/purchase-orders/', order);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create purchase order: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create purchase order: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -232,8 +237,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/purchase-orders/${id}/`, order);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update purchase order: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update purchase order: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -256,8 +262,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/contacts/', contact);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create contact: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create contact: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -265,8 +272,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/contacts/${id}/`, contact);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update contact: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update contact: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -289,8 +297,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/plants/', plant);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create plant: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create plant: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -298,8 +307,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/plants/${id}/`, plant);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update plant: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update plant: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -322,8 +332,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/carriers/', carrier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create carrier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create carrier: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -331,8 +342,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/carriers/${id}/`, carrier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update carrier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update carrier: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -355,8 +367,9 @@ export class ApiService {
     try {
       const response = await apiClient.post('/accounts-receivables/', ar);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create accounts receivable: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to create accounts receivable: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -367,8 +380,9 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update accounts receivable: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      throw new Error(`Failed to update accounts receivable: ${err.response?.data?.message || err.message}`);
     }
   }
 

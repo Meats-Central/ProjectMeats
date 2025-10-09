@@ -134,3 +134,4 @@ celerybeat.pid
 dmypy.json
 *storybook.log
 storybook-static
+*.bak

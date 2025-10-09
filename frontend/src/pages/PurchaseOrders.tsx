@@ -388,18 +388,19 @@ const PurchaseOrders: React.FC = () => {
         delivery_date: '',
         notes: '',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Log detailed error information
+      const err = error as { message?: string; stack?: string; response?: { status: number; data: unknown } };
       console.error('Error saving purchase order:', {
-        message: error.message || 'Unknown error',
-        stack: error.stack || 'No stack trace available',
-        response: error.response ? {
-          status: error.response.status,
-          data: error.response.data
+        message: err.message || 'Unknown error',
+        stack: err.stack || 'No stack trace available',
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data
         } : 'No response data'
       });
       // Display user-friendly error to the UI
-      alert(`Failed to save purchase order: ${error.message || 'Please try again later'}`);
+      alert(`Failed to save purchase order: ${err.message || 'Please try again later'}`);
     }
   };
 
