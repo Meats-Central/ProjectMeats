@@ -38,3 +38,15 @@ class CustomerSerializer(serializers.ModelSerializer):
             "modified_on",
         ]
         read_only_fields = ["id", "created_on", "modified_on"]
+
+    def validate_name(self, value):
+        """Validate customer name is provided and is a valid string."""
+        if not value or not isinstance(value, str) or not value.strip():
+            raise serializers.ValidationError("Customer name is required and must be a non-empty string.")
+        return value.strip()
+
+    def validate_email(self, value):
+        """Validate email format if provided."""
+        if value and '@' not in value:
+            raise serializers.ValidationError("Invalid email format.")
+        return value
