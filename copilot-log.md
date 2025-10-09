@@ -325,3 +325,63 @@ None. All violations addressed successfully with proper type safety.
 ### Note:
 The `debounce` function (line 132) also uses `any[]` in its generic constraint (`<T extends (...args: any[]) => void>`), but this is a reasonable use case for a generic utility function and was not part of the violations specified in the task. This is documented for future review.
 
+## Task: Fix ESLint @typescript-eslint/no-explicit-any Violations in Component Files - [Date: 2025-01-10]
+
+### Actions Taken:
+1. **Identified all violations:**
+   - Located 5 violations in component files (Suppliers.tsx line 50, Customers.tsx line 50, Contacts.tsx line 344, PurchaseOrders.tsx line 391, AccountsReceivables.tsx line 371)
+   - Discovered additional 14 violations in apiService.ts that were blocking CI build
+   - All violations were in error catch blocks using `error: any`
+
+2. **Fixed component files (5 violations):**
+   - Replaced `catch (error: any)` with `catch (error: unknown)`
+   - Added type assertion: `const err = error as { message?: string; stack?: string; response?: { status: number; data: unknown } };`
+   - Updated all error references from `error.property` to `err.property`
+   - Maintained existing error logging and user feedback functionality
+
+3. **Fixed apiService.ts (14 violations):**
+   - Applied same pattern to all catch blocks in API methods
+   - Used type assertion: `const err = error as { message?: string; response?: { data?: { message?: string } } };`
+   - Updated error references in throw statements to use `err` instead of `error`
+   - Methods affected: createSupplier, updateSupplier, createCustomer, updateCustomer, createPurchaseOrder, updatePurchaseOrder, createContact, updateContact, createPlant, updatePlant, createCarrier, updateCarrier, createAccountsReceivable, updateAccountsReceivable
+
+4. **Verified changes:**
+   - Ran ESLint on all modified files: ✅ No violations
+   - Ran full ESLint check: ✅ Clean (0 errors, 0 warnings)
+   - Built frontend: ✅ Successful compilation
+   - Maintained backward compatibility: ✅ No breaking changes
+
+### Misses/Failures:
+None. All violations were identified and fixed on the first pass. Build succeeded immediately after fixes.
+
+### Lessons Learned:
+1. **Use `unknown` for error types**: TypeScript-idiomatic approach that maintains type safety while allowing runtime property access
+2. **Type assertions for known error shapes**: Using `as { ... }` with optional properties allows safe property access without losing type information
+3. **CI build treats warnings as errors**: When `process.env.CI = true`, even ESLint warnings will fail the build, requiring comprehensive fixes
+4. **Consistent error handling patterns**: Using the same pattern across all files (components and services) improves maintainability
+5. **Don't ignore related violations**: While apiService.ts wasn't in the original task scope, it was blocking CI and needed to be fixed
+
+### Efficiency Suggestions:
+1. **Create shared error type**: Define a common error interface for axios errors to avoid repetitive type assertions
+2. **Error utility function**: Create a helper function to extract error messages, reducing code duplication
+3. **Pre-commit ESLint hook**: Add a git hook to catch `any` violations before commit
+4. **Type-safe error library**: Consider using a typed error library like `ts-results` or creating custom error classes
+5. **CI lint configuration**: Ensure CI runs the same ESLint config as local development to catch issues early
+
+### Files Modified:
+1. `frontend/src/pages/Suppliers.tsx` - Line 50: Changed `error: any` to `error: unknown`
+2. `frontend/src/pages/Customers.tsx` - Line 50: Changed `error: any` to `error: unknown`
+3. `frontend/src/pages/Contacts.tsx` - Line 344: Changed `error: any` to `error: unknown`
+4. `frontend/src/pages/PurchaseOrders.tsx` - Line 391: Changed `error: any` to `error: unknown`
+5. `frontend/src/pages/AccountsReceivables.tsx` - Line 371: Changed `error: any` to `error: unknown`
+6. `frontend/src/services/apiService.ts` - Lines 153, 162, 186, 195, 226, 235, 259, 268, 292, 301, 325, 334, 358, 370: Changed all `error: any` to `error: unknown`
+7. `.gitignore` - Added `*.bak` to exclude backup files
+
+### Impact:
+- ✅ All 19 `@typescript-eslint/no-explicit-any` violations resolved (5 in components + 14 in apiService)
+- ✅ CI build now passes successfully
+- ✅ Improved type safety across error handling code
+- ✅ Maintained all existing error logging and user feedback functionality
+- ✅ No breaking changes to runtime behavior
+- ✅ More maintainable and TypeScript-idiomatic codebase
+
