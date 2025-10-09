@@ -24,7 +24,7 @@ class Tenant(models.Model):
         help_text="Custom domain for the tenant (optional)",
     )
     contact_email = models.EmailField(help_text="Primary contact email")
-    contact_phone = models.CharField(max_length=20, blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True, default='')
 
     # Status and configuration
     is_active = models.BooleanField(default=True)

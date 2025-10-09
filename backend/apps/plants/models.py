@@ -28,19 +28,20 @@ class Plant(models.Model):
     plant_est_num = models.CharField(
         max_length=50,
         blank=True,
+        default='',
         help_text="Plant establishment number",
     )
     plant_type = models.CharField(
         max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
     )
-    address = models.TextField()
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
-    zip_code = models.CharField(max_length=20)
+    address = models.TextField(default='')
+    city = models.CharField(max_length=100, default='')
+    state = models.CharField(max_length=100, default='')
+    zip_code = models.CharField(max_length=20, default='')
     country = models.CharField(max_length=100, default="USA")
-    phone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField(blank=True)
-    manager = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=20, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    manager = models.CharField(max_length=100, blank=True, default='')
     capacity = models.PositiveIntegerField(
         help_text="Capacity in units", null=True, blank=True
     )

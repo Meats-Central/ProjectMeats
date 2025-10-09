@@ -44,30 +44,35 @@ class Product(TimestampModel):
         max_length=50,
         choices=ProteinTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Type of protein (e.g., Beef, Chicken, Pork)",
     )
     fresh_or_frozen = models.CharField(
         max_length=20,
         choices=FreshOrFrozenChoices.choices,
         blank=True,
+        default='',
         help_text="Product state (Fresh or Frozen)",
     )
     package_type = models.CharField(
         max_length=50,
         choices=PackageTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Package type (e.g., Boxed wax lined, Combo bins)",
     )
     net_or_catch = models.CharField(
         max_length=20,
         choices=NetOrCatchChoices.choices,
         blank=True,
+        default='',
         help_text="Weight type (Net or Catch)",
     )
     edible_or_inedible = models.CharField(
         max_length=50,
         choices=EdibleInedibleChoices.choices,
         blank=True,
+        default='',
         help_text="Edible or inedible product",
     )
     tested_product = models.BooleanField(

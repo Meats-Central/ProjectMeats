@@ -3,6 +3,7 @@ Purchase Orders models for ProjectMeats.
 
 Defines purchase order entities and related business logic.
 """
+from decimal import Decimal
 from django.db import models
 from apps.core.models import (
     TimestampModel,
@@ -44,7 +45,7 @@ class PurchaseOrder(TimestampModel):
         help_text="Supplier for this purchase order",
     )
     total_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, help_text="Total order amount"
+        max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Total order amount"
     )
     status = models.CharField(
         max_length=20,
@@ -73,11 +74,13 @@ class PurchaseOrder(TimestampModel):
     our_purchase_order_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Our internal purchase order number",
     )
     supplier_confirmation_order_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Supplier's confirmation order number",
     )
     carrier = models.ForeignKey(
@@ -90,11 +93,13 @@ class PurchaseOrder(TimestampModel):
     carrier_release_format = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Carrier release format",
     )
     carrier_release_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Carrier release number",
     )
     quantity = models.IntegerField(
@@ -119,6 +124,7 @@ class PurchaseOrder(TimestampModel):
         max_length=50,
         choices=AppointmentMethodChoices.choices,
         blank=True,
+        default='',
         help_text="How carrier makes appointments",
     )
     plant = models.ForeignKey(
