@@ -4,7 +4,7 @@ Contacts models for ProjectMeats.
 Defines contact entities and related business logic.
 """
 from django.db import models
-from apps.core.models import ContactTypeChoices, TimestampModel, TenantManager
+from apps.core.models import ContactTypeChoices, StatusChoices, TimestampModel, TenantManager
 from apps.tenants.models import Tenant
 
 
@@ -19,6 +19,14 @@ class Contact(TimestampModel):
         help_text="Tenant that owns this contact",
         null=True,
         blank=True,
+    )
+    
+    # Status field for tracking active/inactive contacts
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.ACTIVE,
+        help_text="Current status of the contact",
     )
 
     first_name = models.CharField(max_length=100, help_text="Contact's first name")
@@ -61,6 +69,10 @@ class Contact(TimestampModel):
         blank=True,
         help_text="Cell phone number",
     )
+    
+    # Additional timestamp fields for consistency with newer models
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     # Custom manager for tenant filtering
     objects = TenantManager()
