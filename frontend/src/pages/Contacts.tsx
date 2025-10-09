@@ -341,18 +341,19 @@ const Contacts: React.FC = () => {
         company: '',
         position: '',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Log detailed error information
+      const err = error as Error & { response?: { status: number; data: unknown }; stack?: string };
       console.error('Error saving contact:', {
-        message: error.message || 'Unknown error',
-        stack: error.stack || 'No stack trace available',
-        response: error.response ? {
-          status: error.response.status,
-          data: error.response.data
+        message: err.message || 'Unknown error',
+        stack: err.stack || 'No stack trace available',
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data
         } : 'No response data'
       });
       // Display user-friendly error to the UI
-      alert(`Failed to save contact: ${error.message || 'Please try again later'}`);
+      alert(`Failed to save contact: ${err.message || 'Please try again later'}`);
     }
   };
 
