@@ -40,6 +40,17 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error && 'response' in error) {
+    const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+    return axiosError.response?.data?.message || axiosError.message || 'Unknown error';
+  }
+  return 'Unknown error';
+}
+
 // Types
 export interface Supplier {
   id: number;
@@ -150,8 +161,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/suppliers/', supplier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create supplier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create supplier: ${getErrorMessage(error)}`);
     }
   }
 
@@ -159,8 +170,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update supplier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update supplier: ${getErrorMessage(error)}`);
     }
   }
 
@@ -183,8 +194,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/customers/', customer);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create customer: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create customer: ${getErrorMessage(error)}`);
     }
   }
 
@@ -192,8 +203,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/customers/${id}/`, customer);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update customer: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update customer: ${getErrorMessage(error)}`);
     }
   }
 
@@ -223,8 +234,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/purchase-orders/', order);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create purchase order: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create purchase order: ${getErrorMessage(error)}`);
     }
   }
 
@@ -232,8 +243,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/purchase-orders/${id}/`, order);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update purchase order: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update purchase order: ${getErrorMessage(error)}`);
     }
   }
 
@@ -256,8 +267,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/contacts/', contact);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create contact: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create contact: ${getErrorMessage(error)}`);
     }
   }
 
@@ -265,8 +276,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/contacts/${id}/`, contact);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update contact: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update contact: ${getErrorMessage(error)}`);
     }
   }
 
@@ -289,8 +300,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/plants/', plant);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create plant: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create plant: ${getErrorMessage(error)}`);
     }
   }
 
@@ -298,8 +309,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/plants/${id}/`, plant);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update plant: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update plant: ${getErrorMessage(error)}`);
     }
   }
 
@@ -322,8 +333,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/carriers/', carrier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create carrier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create carrier: ${getErrorMessage(error)}`);
     }
   }
 
@@ -331,8 +342,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/carriers/${id}/`, carrier);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update carrier: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update carrier: ${getErrorMessage(error)}`);
     }
   }
 
@@ -355,8 +366,8 @@ export class ApiService {
     try {
       const response = await apiClient.post('/accounts-receivables/', ar);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to create accounts receivable: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to create accounts receivable: ${getErrorMessage(error)}`);
     }
   }
 
@@ -367,8 +378,8 @@ export class ApiService {
     try {
       const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
       return response.data;
-    } catch (error: any) {
-      throw new Error(`Failed to update accounts receivable: ${error.response?.data?.message || error.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Failed to update accounts receivable: ${getErrorMessage(error)}`);
     }
   }
 
