@@ -152,6 +152,7 @@ class Supplier(TimestampModel):
         max_length=50,
         choices=AccountLineOfCreditChoices.choices,
         blank=True,
+        default='',
         help_text="Line of credit amount range",
     )
     fresh_or_frozen = models.CharField(
