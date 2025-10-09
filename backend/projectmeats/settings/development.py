@@ -28,9 +28,18 @@ ALLOWED_HOSTS = [
 
 
 # Database Configuration
+# Development now uses PostgreSQL to match staging/production environments
+# This prevents database-specific issues like IntegrityError discrepancies
 DATABASES = {
     "default": dj_database_url.config(
-        default=config("DATABASE_URL", default=f"sqlite:///{BASE_DIR}/db.sqlite3")
+        default=config(
+            "DATABASE_URL",
+            default=f"postgresql://{config('DB_USER', default='projectmeats_dev')}:"
+            f"{config('DB_PASSWORD', default='devpassword')}@"
+            f"{config('DB_HOST', default='localhost')}:"
+            f"{config('DB_PORT', default='5432')}/"
+            f"{config('DB_NAME', default='projectmeats_dev')}"
+        )
     )
 }
 
