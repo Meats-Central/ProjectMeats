@@ -39,6 +39,9 @@ LOCAL_APPS = [
     "apps.bug_reports",
     "apps.ai_assistant",
     "apps.tenants",  # Multi-tenancy support
+    "apps.products",  # Master product list
+    "apps.sales_orders",  # Sales orders
+    "apps.invoices",  # Customer invoices
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -51,6 +54,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.tenants.middleware.TenantMiddleware",  # Multi-tenancy middleware
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

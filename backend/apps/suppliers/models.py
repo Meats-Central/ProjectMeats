@@ -6,12 +6,40 @@ Defines supplier entities and related business logic.
 from django.db import models
 
 from apps.contacts.models import Contact
-from apps.core.models import EdibleInedibleChoices, Protein, TimestampModel
+from apps.core.models import (
+    AccountingPaymentTermsChoices,
+    AccountLineOfCreditChoices,
+    CertificateTypeChoices,
+    CountryOriginChoices,
+    CreditLimitChoices,
+    EdibleInedibleChoices,
+    FreshOrFrozenChoices,
+    NetOrCatchChoices,
+    OriginChoices,
+    PackageTypeChoices,
+    PlantTypeChoices,
+    Protein,
+    ProteinTypeChoices,
+    ShippingOfferedChoices,
+    TimestampModel,
+    TenantManager,
+)
 from apps.plants.models import Plant
+from apps.tenants.models import Tenant
 
 
 class Supplier(TimestampModel):
     """Supplier model for managing supplier information."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="suppliers",
+        help_text="Tenant that owns this supplier",
+        null=True,
+        blank=True,
+    )
 
     # Basic information - keeping existing fields with same names
     name = models.CharField(max_length=255, help_text="Supplier company name")
@@ -60,22 +88,30 @@ class Supplier(TimestampModel):
     )
     type_of_plant = models.CharField(
         max_length=100,
+        choices=PlantTypeChoices.choices,
         blank=True,
         help_text="Type of plant (e.g., Vertical, Processor)",
     )
     type_of_certificate = models.CharField(
-        max_length=100, blank=True, help_text="Certificate type (e.g., 3rd Party, BRC)"
+        max_length=100,
+        choices=CertificateTypeChoices.choices,
+        blank=True,
+        help_text="Certificate type (e.g., 3rd Party, BRC)",
     )
     tested_product = models.BooleanField(
         default=False, help_text="Does supplier provide tested products?"
     )
     origin = models.CharField(
         max_length=100,
+        choices=OriginChoices.choices,
         blank=True,
         help_text="Product origin (e.g., Domestic, Imported)",
     )
     country_origin = models.CharField(
-        max_length=100, blank=True, help_text="Country of origin (e.g., U.S, CAN)"
+        max_length=100,
+        choices=CountryOriginChoices.choices,
+        blank=True,
+        help_text="Country of origin (e.g., USA, CAN)",
     )
     contacts = models.ManyToManyField(
         Contact,
@@ -85,6 +121,7 @@ class Supplier(TimestampModel):
     )
     shipping_offered = models.CharField(
         max_length=100,
+        choices=ShippingOfferedChoices.choices,
         blank=True,
         help_text="Shipping services offered (e.g., Yes - Domestic)",
     )
@@ -97,11 +134,56 @@ class Supplier(TimestampModel):
     offers_export_documents = models.BooleanField(
         default=False, help_text="Does supplier offer export documents?"
     )
+    
+    # Additional fields from Excel requirements
+    accounting_payment_terms = models.CharField(
+        max_length=50,
+        choices=AccountingPaymentTermsChoices.choices,
+        blank=True,
+        help_text="Payment terms (e.g., Wire, ACH, Check)",
+    )
+    credit_limits = models.CharField(
+        max_length=50,
+        choices=CreditLimitChoices.choices,
+        blank=True,
+        help_text="Credit limits/terms (e.g., Net 30, Wire 1 day prior)",
+    )
+    account_line_of_credit = models.CharField(
+        max_length=50,
+        choices=AccountLineOfCreditChoices.choices,
+        blank=True,
+        help_text="Line of credit amount range",
+    )
+    fresh_or_frozen = models.CharField(
+        max_length=20,
+        choices=FreshOrFrozenChoices.choices,
+        blank=True,
+        help_text="Product state (Fresh or Frozen)",
+    )
+    package_type = models.CharField(
+        max_length=50,
+        choices=PackageTypeChoices.choices,
+        blank=True,
+        help_text="Package type (e.g., Boxed wax lined, Combo bins)",
+    )
+    net_or_catch = models.CharField(
+        max_length=20,
+        choices=NetOrCatchChoices.choices,
+        blank=True,
+        help_text="Weight type (Net or Catch)",
+    )
+    departments = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Departments (comma-separated: Sales, BOL, COA, etc.)",
+    )
+    
+    # Deprecated fields - keeping for backward compatibility
     accounting_terms = models.CharField(
-        max_length=100, blank=True, help_text="Accounting terms"
+        max_length=100, blank=True, help_text="Accounting terms (deprecated, use accounting_payment_terms)"
     )
     accounting_line_of_credit = models.CharField(
-        max_length=100, blank=True, help_text="Line of credit amount"
+        max_length=100, blank=True, help_text="Line of credit amount (deprecated, use account_line_of_credit)"
     )
     credit_app_sent = models.BooleanField(
         default=False, help_text="Has credit application been sent?"
@@ -109,6 +191,9 @@ class Supplier(TimestampModel):
     credit_app_set_up = models.BooleanField(
         default=False, help_text="Has credit application been set up?"
     )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["name"]

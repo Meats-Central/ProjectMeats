@@ -4,7 +4,7 @@ Purchase Orders views for ProjectMeats.
 Provides REST API endpoints for purchase order management.
 """
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.purchase_orders.models import PurchaseOrder
 from apps.purchase_orders.serializers import PurchaseOrderSerializer
 
@@ -14,12 +14,14 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Filter purchase orders based on user permissions."""
-        return self.queryset
+        """Filter purchase orders by current tenant."""
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return PurchaseOrder.objects.for_tenant(self.request.tenant)
+        return PurchaseOrder.objects.none()
 
     def perform_create(self, serializer):
-        """Set the creator when creating a new purchase order."""
-        serializer.save()
+        """Set the tenant when creating a new purchase order."""
+        serializer.save(tenant=self.request.tenant)

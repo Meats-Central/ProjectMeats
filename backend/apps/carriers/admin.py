@@ -32,6 +32,39 @@ class CarrierAdmin(admin.ModelAdmin):
         ("Address", {"fields": ("address", "city", "state", "zip_code", "country")}),
         ("Transportation Details", {"fields": ("mc_number", "dot_number")}),
         (
+            "Enhanced Contact Information",
+            {
+                "fields": (
+                    "my_customer_num_from_carrier",
+                    "accounting_payable_contact_name",
+                    "accounting_payable_contact_phone",
+                    "accounting_payable_contact_email",
+                    "sales_contact_name",
+                    "sales_contact_phone",
+                    "sales_contact_email",
+                )
+            },
+        ),
+        (
+            "Payment & Credit",
+            {
+                "fields": (
+                    "accounting_payment_terms",
+                    "credit_limits",
+                    "account_line_of_credit",
+                )
+            },
+        ),
+        (
+            "Operations",
+            {
+                "fields": (
+                    "how_carrier_make_appointment",
+                    "departments",
+                )
+            },
+        ),
+        (
             "Insurance Information",
             {
                 "fields": (
@@ -41,12 +74,17 @@ class CarrierAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        (
+            "Relationships",
+            {"fields": ("contacts",)},
+        ),
         ("Status & Notes", {"fields": ("is_active", "notes")}),
         (
             "Metadata",
             {
-                "fields": ("created_by", "created_at", "updated_at"),
+                "fields": ("tenant", "created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
     )
+    filter_horizontal = ("contacts",)

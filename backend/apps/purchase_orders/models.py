@@ -4,7 +4,13 @@ Purchase Orders models for ProjectMeats.
 Defines purchase order entities and related business logic.
 """
 from django.db import models
-from apps.core.models import TimestampModel
+from apps.core.models import (
+    TimestampModel,
+    TenantManager,
+    WeightUnitChoices,
+    AppointmentMethodChoices,
+)
+from apps.tenants.models import Tenant
 
 
 class PurchaseOrderStatus(models.TextChoices):
@@ -18,6 +24,16 @@ class PurchaseOrderStatus(models.TextChoices):
 
 class PurchaseOrder(TimestampModel):
     """Purchase Order model for managing purchase orders."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="purchase_orders",
+        help_text="Tenant that owns this purchase order",
+        null=True,
+        blank=True,
+    )
 
     order_number = models.CharField(
         max_length=50, unique=True, help_text="Unique order number"
@@ -41,6 +57,87 @@ class PurchaseOrder(TimestampModel):
         blank=True, null=True, help_text="Expected delivery date"
     )
     notes = models.TextField(blank=True, null=True, help_text="Additional notes")
+    
+    # Enhanced fields from Excel requirements
+    date_time_stamp = models.DateTimeField(
+        auto_now_add=True,
+        null=True,
+        blank=True,
+        help_text="Date and time when PO was created",
+    )
+    pick_up_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Scheduled pick up date",
+    )
+    our_purchase_order_num = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Our internal purchase order number",
+    )
+    supplier_confirmation_order_num = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Supplier's confirmation order number",
+    )
+    carrier = models.ForeignKey(
+        "carriers.Carrier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Carrier for this purchase order",
+    )
+    carrier_release_format = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Carrier release format",
+    )
+    carrier_release_num = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Carrier release number",
+    )
+    quantity = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Quantity of items",
+    )
+    total_weight = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Total weight",
+    )
+    weight_unit = models.CharField(
+        max_length=10,
+        choices=WeightUnitChoices.choices,
+        default=WeightUnitChoices.LBS,
+        help_text="Unit of weight (LBS or KG)",
+    )
+    how_carrier_make_appointment = models.CharField(
+        max_length=50,
+        choices=AppointmentMethodChoices.choices,
+        blank=True,
+        help_text="How carrier makes appointments",
+    )
+    plant = models.ForeignKey(
+        "plants.Plant",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Plant/facility for this order",
+    )
+    contact = models.ForeignKey(
+        "contacts.Contact",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Primary contact for this order",
+    )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["-order_date", "-created_on"]

@@ -4,7 +4,7 @@ Customers views for ProjectMeats.
 Provides REST API endpoints for customer management.
 """
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.customers.models import Customer
 from apps.customers.serializers import CustomerSerializer
 
@@ -14,12 +14,14 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Filter customers based on user permissions."""
-        return self.queryset
+        """Filter customers by current tenant."""
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return Customer.objects.for_tenant(self.request.tenant)
+        return Customer.objects.none()
 
     def perform_create(self, serializer):
-        """Set the creator when creating a new customer."""
-        serializer.save()
+        """Set the tenant when creating a new customer."""
+        serializer.save(tenant=self.request.tenant)

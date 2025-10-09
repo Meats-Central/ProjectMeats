@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from apps.tenants.models import Tenant
+from apps.core.models import TenantManager
 
 
 class Plant(models.Model):
@@ -11,8 +13,23 @@ class Plant(models.Model):
         ("other", "Other"),
     ]
 
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="plants",
+        help_text="Tenant that owns this plant",
+        null=True,
+        blank=True,
+    )
+
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
+    plant_est_num = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Plant establishment number",
+    )
     plant_type = models.CharField(
         max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
     )
@@ -33,6 +50,9 @@ class Plant(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["name"]

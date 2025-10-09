@@ -6,12 +6,34 @@ Defines customer entities and related business logic.
 from django.db import models
 
 from apps.contacts.models import Contact
-from apps.core.models import EdibleInedibleChoices, Protein, TimestampModel
+from apps.core.models import (
+    AccountingPaymentTermsChoices,
+    AccountLineOfCreditChoices,
+    CertificateTypeChoices,
+    CreditLimitChoices,
+    EdibleInedibleChoices,
+    IndustryChoices,
+    OriginChoices,
+    Protein,
+    TimestampModel,
+    TenantManager,
+)
 from apps.plants.models import Plant
+from apps.tenants.models import Tenant
 
 
 class Customer(TimestampModel):
     """Customer model for managing customer information."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="customers",
+        help_text="Tenant that owns this customer",
+        null=True,
+        blank=True,
+    )
 
     # Basic information - keeping existing fields with same names
     name = models.CharField(max_length=255, help_text="Customer company name")
@@ -65,11 +87,13 @@ class Customer(TimestampModel):
     )
     purchasing_preference_origin = models.CharField(
         max_length=100,
+        choices=OriginChoices.choices,
         blank=True,
         help_text="Purchasing preference origin (e.g., Domestic, Imported)",
     )
     industry = models.CharField(
         max_length=100,
+        choices=IndustryChoices.choices,
         blank=True,
         help_text="Industry sector (e.g., Pet Sector, Retail)",
     )
@@ -82,14 +106,66 @@ class Customer(TimestampModel):
     will_pickup_load = models.BooleanField(
         default=False, help_text="Will customer pickup load?"
     )
+    
+    # Enhanced payment/credit fields with standardized choices
+    accounting_payment_terms = models.CharField(
+        max_length=50,
+        choices=AccountingPaymentTermsChoices.choices,
+        blank=True,
+        help_text="Payment terms (e.g., Wire, ACH, Check)",
+    )
+    credit_limits = models.CharField(
+        max_length=50,
+        choices=CreditLimitChoices.choices,
+        blank=True,
+        help_text="Credit limits/terms (e.g., Net 30, Wire 1 day prior)",
+    )
+    account_line_of_credit = models.CharField(
+        max_length=50,
+        choices=AccountLineOfCreditChoices.choices,
+        blank=True,
+        help_text="Line of credit amount range",
+    )
+    
+    # Additional buyer contact fields
+    buyer_contact_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Buyer contact name",
+    )
+    buyer_contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Buyer contact phone",
+    )
+    buyer_contact_email = models.EmailField(
+        blank=True,
+        help_text="Buyer contact email",
+    )
+    
+    type_of_certificate = models.CharField(
+        max_length=100,
+        choices=CertificateTypeChoices.choices,
+        blank=True,
+        help_text="Certificate type required (e.g., 3rd Party, BRC)",
+    )
+    product_exportable = models.BooleanField(
+        default=False,
+        help_text="Does customer require exportable products?",
+    )
+    
+    # Deprecated fields - keeping for backward compatibility
     accounting_terms = models.CharField(
-        max_length=100, blank=True, help_text="Accounting terms (e.g., Wire, ACH)"
+        max_length=100, blank=True, help_text="Accounting terms (deprecated, use accounting_payment_terms)"
     )
     accounting_line_of_credit = models.CharField(
         max_length=100,
         blank=True,
-        help_text="Line of credit amount (e.g., $50,000 - $100,000)",
+        help_text="Line of credit amount (deprecated, use account_line_of_credit)",
     )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["name"]

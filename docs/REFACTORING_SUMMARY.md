@@ -46,10 +46,10 @@
 - `/README.md` - Updated project structure section to:
   - Remove `powerapps_export/` reference
   - Add new `/shared/` directory
-  - Add `/docs/legacy/` for archived documentation
+  - Add `archived/docs/` for archived documentation
   - Include mobile and frontend shared directories
 
-**Note**: The legacy documentation is already properly organized in `/docs/legacy/` directory.
+**Note**: The legacy documentation is now properly organized in `archived/docs/` directory.
 
 ### 3. ✅ Added Pre-commit Hooks
 
@@ -144,7 +144,7 @@ import { formatCurrency } from '../../shared/utils';
 ## Alignment with Requirements
 
 ✅ **No duplicates**: Utilities centralized in `/shared/`, duplicates removed  
-✅ **Legacy archived**: Non-existent `powerapps_export/` reference removed; existing legacy docs already in `/docs/legacy/`  
+✅ **Legacy archived**: Non-existent `powerapps_export/` reference removed; existing legacy docs in `archived/docs/`  
 ✅ **Styles enforced**: Pre-commit hooks added for automatic code formatting and linting
 
 ## Next Steps (Optional)

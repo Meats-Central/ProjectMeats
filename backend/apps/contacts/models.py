@@ -4,11 +4,22 @@ Contacts models for ProjectMeats.
 Defines contact entities and related business logic.
 """
 from django.db import models
-from apps.core.models import TimestampModel
+from apps.core.models import ContactTypeChoices, TimestampModel, TenantManager
+from apps.tenants.models import Tenant
 
 
 class Contact(TimestampModel):
     """Contact model for managing contact information."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="contacts",
+        help_text="Tenant that owns this contact",
+        null=True,
+        blank=True,
+    )
 
     first_name = models.CharField(max_length=100, help_text="Contact's first name")
     last_name = models.CharField(max_length=100, help_text="Contact's last name")
@@ -22,6 +33,37 @@ class Contact(TimestampModel):
     position = models.CharField(
         max_length=100, blank=True, null=True, help_text="Job position or title"
     )
+    
+    # Enhanced fields from Excel requirements
+    contact_type = models.CharField(
+        max_length=50,
+        choices=ContactTypeChoices.choices,
+        blank=True,
+        help_text="Type of contact (e.g., Sales, Accounting, Shipping)",
+    )
+    contact_title = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Contact title/designation",
+    )
+    main_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Main phone number",
+    )
+    direct_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Direct phone number",
+    )
+    cell_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Cell phone number",
+    )
+
+    # Custom manager for tenant filtering
+    objects = TenantManager()
 
     class Meta:
         ordering = ["last_name", "first_name"]
