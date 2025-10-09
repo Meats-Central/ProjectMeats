@@ -97,7 +97,7 @@ superuser:
 
 sync-superuser:
 	@echo "🔄 Syncing superuser password from environment..."
-	cd backend && python manage.py setup_superuser
+	cd backend && DJANGO_ENV=development python manage.py setup_superuser
 
 # Testing commands
 test: test-backend test-frontend

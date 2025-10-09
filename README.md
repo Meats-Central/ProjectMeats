@@ -137,31 +137,37 @@ make dev
 - **API Docs**: http://localhost:8000/api/docs/
 - **Admin Panel**: http://localhost:8000/admin/
 
-> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `SUPERUSER_USERNAME`, `SUPERUSER_EMAIL`, and `ENVIRONMENT_SUPERUSER_PASSWORD` settings.
+> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `DEVELOPMENT_SUPERUSER_USERNAME`, `DEVELOPMENT_SUPERUSER_EMAIL`, and `DEVELOPMENT_SUPERUSER_PASSWORD` settings.
 
 ## 👤 Superuser Management
 
-The application provides two management commands for superuser handling:
+The application provides two management commands for superuser handling with environment-specific configuration.
 
-### `setup_superuser` - Password Synchronization
+### `setup_superuser` - Password & Credential Synchronization
 
-Syncs superuser password from environment variables during deployment. **Always updates password** when user exists.
+Syncs superuser credentials (username, email, password) from environment-specific variables during deployment. **Always updates credentials** when user exists.
 
 ```bash
-# Sync superuser password from environment
+# Sync superuser credentials from environment
 make sync-superuser
 
-# Or directly
-cd backend && python manage.py setup_superuser
+# Or directly (for development)
+cd backend && DJANGO_ENV=development python manage.py setup_superuser
 ```
 
-**Required Environment Variable:**
-- `ENVIRONMENT_SUPERUSER_PASSWORD` - Password to sync (required in production/staging)
+**Environment-Specific Variables:**
+
+| Environment | Username Variable | Email Variable | Password Variable |
+|-------------|-------------------|----------------|-------------------|
+| Development | `DEVELOPMENT_SUPERUSER_USERNAME` | `DEVELOPMENT_SUPERUSER_EMAIL` | `DEVELOPMENT_SUPERUSER_PASSWORD` |
+| Staging/UAT | `STAGING_SUPERUSER_USERNAME` | `STAGING_SUPERUSER_EMAIL` | `STAGING_SUPERUSER_PASSWORD` |
+| Production | `PRODUCTION_SUPERUSER_USERNAME` | `PRODUCTION_SUPERUSER_EMAIL` | `PRODUCTION_SUPERUSER_PASSWORD` |
 
 **Use Cases:**
 - ✅ Deployment automation (runs on every deploy)
 - ✅ Password rotation
-- ✅ Environment-specific password management
+- ✅ Dynamic username/email configuration per environment
+- ✅ Environment-specific credential management
 
 ### `create_super_tenant` - Full Tenant Setup
 
@@ -180,24 +186,24 @@ cd backend && python manage.py create_super_tenant
 **Development Environment:**
 ```bash
 # Set in config/environments/development.env
-SUPERUSER_USERNAME=admin
-SUPERUSER_EMAIL=admin@meatscentral.com
-SUPERUSER_PASSWORD=DevAdmin123!SecurePass
-ENVIRONMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com
+DEVELOPMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```
 
 **Staging/Production Environments:**
-Set these as deployment secrets (GitHub Secrets, AWS Secrets Manager, etc.):
-- `SUPERUSER_USERNAME` - Admin username (default: admin)
-- `SUPERUSER_EMAIL` - Admin email address
-- `SUPERUSER_PASSWORD` - Initial password for tenant creation
-- `ENVIRONMENT_SUPERUSER_PASSWORD` - Current/rotated password (required)
+Set these as GitHub Secrets in respective environments (`uat2-backend`, `prod2-backend`):
+- `STAGING_SUPERUSER_USERNAME` / `PRODUCTION_SUPERUSER_USERNAME`
+- `STAGING_SUPERUSER_EMAIL` / `PRODUCTION_SUPERUSER_EMAIL`
+- `STAGING_SUPERUSER_PASSWORD` / `PRODUCTION_SUPERUSER_PASSWORD`
 
 **Deployment Integration:**
 
 Both commands run automatically during deployment:
-1. `setup_superuser` - Syncs password from environment
+1. `setup_superuser` - Syncs credentials from environment
 2. `create_super_tenant` - Ensures tenant infrastructure exists
+
+**For detailed configuration:** See [Environment Variables Reference](docs/environment-variables.md)
 
 ## 🔧 Development Guide
 

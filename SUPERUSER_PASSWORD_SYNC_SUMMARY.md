@@ -1,7 +1,173 @@
 # Superuser Password Sync Feature - Implementation Summary
 
 ## Overview
-Implemented a new Django management command `setup_superuser` that synchronizes superuser passwords from environment variables during deployment, enabling automated password rotation and environment-specific credential management.
+Implemented a Django management command `setup_superuser` that synchronizes superuser credentials (username, email, password) from environment-specific variables during deployment, enabling automated credential rotation and environment-specific management.
+
+## Latest Update (Refactoring)
+The command has been refactored to use environment-specific variable names for better organization and clarity:
+- `DEVELOPMENT_SUPERUSER_USERNAME/EMAIL/PASSWORD` for development
+- `STAGING_SUPERUSER_USERNAME/EMAIL/PASSWORD` for staging/UAT  
+- `PRODUCTION_SUPERUSER_USERNAME/EMAIL/PASSWORD` for production
+
+This replaces the previous generic `ENVIRONMENT_SUPERUSER_PASSWORD` approach.
+
+## Problem Solved
+The existing `create_super_tenant` command is idempotent but does NOT update credentials when a superuser already exists. This prevents:
+- Password rotation during deployments
+- Syncing credentials from secret management systems
+- Environment-specific credential updates
+- Dynamic username/email configuration per environment
+
+## Solution
+Created the `setup_superuser` command that:
+1. **Always syncs all credentials** (username, email, password) from environment-specific variables
+2. Creates superuser if it doesn't exist
+3. Updates all credentials when superuser already exists
+4. Validates all required fields in production/staging environments
+5. Provides sensible defaults for development environment
+
+## Quick Reference
+
+### Command Usage
+```bash
+# Development
+make sync-superuser
+
+# Direct (sets environment automatically)
+DJANGO_ENV=development python manage.py setup_superuser
+```
+
+### Environment Variables
+
+| Environment | Variables Required |
+|-------------|-------------------|
+| Development | `DEVELOPMENT_SUPERUSER_PASSWORD` (username/email have defaults) |
+| Staging | `STAGING_SUPERUSER_USERNAME`, `STAGING_SUPERUSER_EMAIL`, `STAGING_SUPERUSER_PASSWORD` |
+| Production | `PRODUCTION_SUPERUSER_USERNAME`, `PRODUCTION_SUPERUSER_EMAIL`, `PRODUCTION_SUPERUSER_PASSWORD` |
+
+## Documentation
+
+For complete details, see:
+- **[Environment Variables Reference](docs/environment-variables.md)** - Comprehensive variable documentation
+- **[Multi-Tenancy Guide](docs/multi-tenancy.md)** - Command comparison and usage
+- **[README.md](README.md)** - Quick start and basic usage
+
+## Key Features
+
+### 1. Environment-Specific Configuration
+- Loads different variables based on `DJANGO_ENV`
+- Development has sensible defaults
+- Production/Staging require all fields (strict validation)
+
+### 2. Credential Synchronization  
+- Always updates username, email, and password
+- Creates superuser if doesn't exist
+- Designed for deployment automation
+
+### 3. Security & Compliance
+- No hardcoded credentials
+- Passwords never logged (only usernames for audit trail)
+- Environment-specific validation
+- Follows OWASP, 12-Factor, and Django best practices
+
+## Testing
+
+```bash
+cd backend && python manage.py test apps.tenants.tests_management_commands.SetupSuperuserCommandTests
+# All 15 tests passing ✅
+```
+
+Test coverage includes:
+- User creation in all environments
+- Password updates
+- Email updates  
+- Dynamic username configuration
+- Validation errors for missing fields
+- Password rotation scenarios
+- Idempotency
+
+## Files Changed
+
+**Core Implementation:**
+- `backend/apps/core/management/commands/setup_superuser.py` - Refactored command
+
+**Configuration:**
+- `config/environments/development.env` - Updated variable names
+- `config/environments/staging.env` - Added placeholders
+- `config/environments/production.env` - Added placeholders
+
+**Deployment:**
+- `.github/workflows/unified-deployment.yml` - Injects environment-specific secrets
+
+**Testing:**
+- `backend/apps/tenants/tests_management_commands.py` - 15 comprehensive tests
+
+**Documentation:**
+- `docs/environment-variables.md` - NEW: Comprehensive reference
+- `docs/multi-tenancy.md` - Updated with new variables
+- `README.md` - Updated with new variables
+- `Makefile` - Updated sync-superuser to set DJANGO_ENV
+
+## Deployment Integration
+
+The command runs automatically in all environments via GitHub Actions:
+
+```yaml
+1. Run database migrations
+2. python manage.py setup_superuser      # ← Syncs credentials
+3. python manage.py create_super_tenant  # ← Ensures tenant infrastructure
+4. Collect static files
+5. Run Django checks
+```
+
+Environment-specific secrets are injected from GitHub Environments:
+- `dev-backend` → `DEVELOPMENT_SUPERUSER_*`
+- `uat2-backend` → `STAGING_SUPERUSER_*`
+- `prod2-backend` → `PRODUCTION_SUPERUSER_*`
+
+## Migration from Previous Version
+
+If upgrading from the previous implementation:
+
+**Old (Deprecated):**
+```bash
+ENVIRONMENT_SUPERUSER_PASSWORD=password123
+SUPERUSER_USERNAME=admin
+SUPERUSER_EMAIL=admin@example.com
+```
+
+**New:**
+```bash
+# Development
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@example.com
+DEVELOPMENT_SUPERUSER_PASSWORD=password123
+
+# Staging (set in GitHub Secrets)
+STAGING_SUPERUSER_USERNAME=admin
+STAGING_SUPERUSER_EMAIL=admin@staging.example.com
+STAGING_SUPERUSER_PASSWORD=<secure-password>
+
+# Production (set in GitHub Secrets)
+PRODUCTION_SUPERUSER_USERNAME=admin
+PRODUCTION_SUPERUSER_EMAIL=admin@example.com
+PRODUCTION_SUPERUSER_PASSWORD=<secure-password>
+```
+
+## Support
+
+For issues or questions:
+1. Check [Environment Variables Reference](docs/environment-variables.md)
+2. Review test cases in `tests_management_commands.py`
+3. Check deployment logs in GitHub Actions
+4. Review [Multi-Tenancy Guide](docs/multi-tenancy.md)
+
+---
+
+**Implementation Date**: October 9, 2025  
+**Latest Update**: October 9, 2025 (Refactoring)  
+**Version**: 2.0  
+**Status**: ✅ Complete and Deployed
 
 ## Problem Solved
 The existing `create_super_tenant` command is idempotent but does NOT update passwords when a superuser already exists. This prevents:

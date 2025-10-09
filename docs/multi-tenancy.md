@@ -82,21 +82,22 @@ The command uses environment variables for credentials:
 
 ### Management Command: `setup_superuser`
 
-The `setup_superuser` management command provides password synchronization functionality:
+The `setup_superuser` management command provides comprehensive credential synchronization:
 1. Creates a superuser if it doesn't exist
-2. **Always syncs password** from environment variable when user exists
-3. Designed for deployment automation and password rotation
+2. **Always syncs username, email, and password** from environment-specific variables
+3. Designed for deployment automation and credential rotation
+4. Environment-aware with strict validation for production/staging
 
 #### Usage
 
 ```bash
-# Run manually (requires ENVIRONMENT_SUPERUSER_PASSWORD)
-ENVIRONMENT_SUPERUSER_PASSWORD=your_password python manage.py setup_superuser
+# Run manually in development
+DJANGO_ENV=development python manage.py setup_superuser
 
 # Run during deployment (automatically called in CI/CD)
 python manage.py setup_superuser
 
-# Makefile command
+# Makefile command (automatically sets DJANGO_ENV=development)
 make sync-superuser
 ```
 
@@ -108,45 +109,62 @@ make sync-superuser
 | Creates tenant | ✅ Yes | ❌ No |
 | Links to tenant | ✅ Yes | ❌ No |
 | Updates password on existing user | ❌ No (idempotent) | ✅ Yes (always syncs) |
-| Purpose | Initial setup | Password rotation/sync |
+| Updates email on existing user | ❌ No | ✅ Yes (always syncs) |
+| Dynamic username support | ❌ No | ✅ Yes |
+| Environment-specific variables | ❌ No | ✅ Yes |
+| Purpose | Initial tenant setup | Credential rotation/sync |
 
 #### Configuration
 
-The command uses environment variables:
+The command uses **environment-specific** variables based on `DJANGO_ENV`:
 
-- `SUPERUSER_USERNAME`: Username (default: `admin`)
-- `SUPERUSER_EMAIL`: Email address (default: `admin@meatscentral.com`)
-- `ENVIRONMENT_SUPERUSER_PASSWORD`: **Required** in production/staging, falls back to `SUPERUSER_PASSWORD` in development
+**Development Environment (`DJANGO_ENV=development`):**
+- `DEVELOPMENT_SUPERUSER_USERNAME`: Username (default: `admin`)
+- `DEVELOPMENT_SUPERUSER_EMAIL`: Email (default: `admin@meatscentral.com`)
+- `DEVELOPMENT_SUPERUSER_PASSWORD`: Password (**required**)
 
-⚠️ **Production/Staging Requirement**: `ENVIRONMENT_SUPERUSER_PASSWORD` must be set or the command will raise a `ValueError`
+**Staging Environment (`DJANGO_ENV=staging` or `uat`):**
+- `STAGING_SUPERUSER_USERNAME`: Username (**required**, no default)
+- `STAGING_SUPERUSER_EMAIL`: Email (**required**, no default)
+- `STAGING_SUPERUSER_PASSWORD`: Password (**required**, no default)
+
+**Production Environment (`DJANGO_ENV=production`):**
+- `PRODUCTION_SUPERUSER_USERNAME`: Username (**required**, no default)
+- `PRODUCTION_SUPERUSER_EMAIL`: Email (**required**, no default)
+- `PRODUCTION_SUPERUSER_PASSWORD`: Password (**required**, no default)
+
+⚠️ **Production/Staging Requirement**: All fields must be set or the command will raise a `ValueError` with a clear error message.
 
 #### Environment Variables
 
 ##### Development (`config/environments/development.env`)
 ```bash
-SUPERUSER_EMAIL=admin@meatscentral.com
-SUPERUSER_PASSWORD=DevAdmin123!SecurePass
-ENVIRONMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com
+DEVELOPMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```
 
 ##### Staging (`config/environments/staging.env`)
 ```bash
-SUPERUSER_EMAIL=${STAGING_SUPERUSER_EMAIL}
-SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
-ENVIRONMENT_SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
+# Set these in GitHub Secrets for uat2-backend environment
+STAGING_SUPERUSER_USERNAME=change_me_in_secrets
+STAGING_SUPERUSER_EMAIL=change_me_in_secrets
+STAGING_SUPERUSER_PASSWORD=change_me_in_secrets
 ```
 
 ##### Production (`config/environments/production.env`)
 ```bash
-SUPERUSER_EMAIL=${PRODUCTION_SUPERUSER_EMAIL}
-SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
-ENVIRONMENT_SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
+# Set these in GitHub Secrets for prod2-backend environment
+PRODUCTION_SUPERUSER_USERNAME=change_me_in_secrets
+PRODUCTION_SUPERUSER_EMAIL=change_me_in_secrets
+PRODUCTION_SUPERUSER_PASSWORD=change_me_in_secrets
 ```
 
 **Important**: Use secure secret management for staging and production:
-- Use GitHub Secrets for CI/CD pipelines
+- Use GitHub Secrets for CI/CD pipelines (configured per environment: `dev-backend`, `uat2-backend`, `prod2-backend`)
 - Use environment-specific secret managers (AWS Secrets Manager, Azure Key Vault, etc.)
 - Never commit actual passwords to version control
+- Rotate credentials regularly (recommended: every 90 days)
 
 ### Idempotency
 
