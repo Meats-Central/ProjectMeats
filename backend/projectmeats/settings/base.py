@@ -146,6 +146,7 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "apps.core.exceptions.exception_handler",
 }
 
 # API Documentation
@@ -182,6 +183,12 @@ LOGGING = {
             "filename": BASE_DIR / "logs" / "django.log",
             "formatter": "verbose",
         },
+        "debug_file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs" / "debug.log",
+            "formatter": "verbose",
+            "level": "DEBUG",
+        },
     },
     "root": {
         "handlers": ["console"],
@@ -194,32 +201,37 @@ LOGGING = {
             "propagate": False,
         },
         "projectmeats": {
-            "handlers": ["console", "file"],
+            "handlers": ["console", "file", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "apps.suppliers.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "apps.customers.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "apps.contacts.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "apps.purchase_orders.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
         "apps.accounts_receivables.views": {
-            "handlers": ["console"],
+            "handlers": ["console", "debug_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "apps.core.exceptions": {
+            "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },

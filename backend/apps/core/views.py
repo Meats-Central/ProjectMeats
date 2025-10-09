@@ -123,3 +123,4 @@ def logout(request):
         return Response({"message": "Successfully logged out"})
     except Token.DoesNotExist:
         return Response({"message": "Already logged out"})
+

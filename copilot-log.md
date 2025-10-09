@@ -493,3 +493,71 @@ None. Initially focused only on apiService.ts as specified, but discovered that 
 - ✅ No breaking changes or regression in functionality
 - ✅ Production build compiles successfully with 0 warnings
 
+
+## Task: Implement Global Exception Handler and Enhanced Logging - [Date: 2025-10-09]
+
+### Actions Taken:
+1. **Created Global DRF Exception Handler** (`backend/apps/core/exceptions.py`):
+   - Implemented custom exception handler following DRF best practices
+   - Handles DRF ValidationError, Django ValidationError, Http404, DatabaseError, and generic exceptions
+   - Logs all exceptions with full context (view, method, path, user, stack trace)
+   - Returns consistent error responses with appropriate HTTP status codes
+   - Uses different log levels: ERROR for validation/HTTP errors, CRITICAL for database errors, WARNING for 404s
+
+2. **Registered Exception Handler in Settings** (`backend/projectmeats/settings/base.py`):
+   - Added `EXCEPTION_HANDLER` to REST_FRAMEWORK configuration
+   - Points to `apps.core.exceptions.exception_handler`
+   - Ensures all DRF errors are centrally handled and logged
+
+3. **Enhanced Logging Configuration**:
+   - Added `debug_file` handler writing to `backend/logs/debug.log`
+   - Updated existing loggers to use debug_file handler
+   - Added logger for `apps.core.exceptions` module
+   - Created `backend/logs/` directory with `.gitkeep` to ensure it's tracked
+   - All app view loggers now write to both console and debug.log
+
+4. **Verified Existing Health Check Implementation**:
+   - Confirmed health check endpoints already exist in `projectmeats/health.py`
+   - Basic health check at `/api/v1/health/` verifies database connectivity
+   - Detailed health check at `/api/v1/health/detailed/` includes system metrics
+   - Both endpoints return 200 for healthy, 503 for unhealthy status
+   - Avoided duplicate implementation
+
+5. **Testing and Validation**:
+   - All 6 supplier tests passed
+   - Created and ran exception handler tests for all error types
+   - Verified logging to debug.log works correctly
+   - Confirmed psycopg[binary] present in requirements.txt
+   - Django configuration check passed with no issues
+
+### Misses/Failures:
+- Initially tried to create a duplicate health check endpoint in `apps/core/views.py`
+- Discovered existing health check implementation in `projectmeats/health.py` after implementation
+- Had to revert duplicate health check code to avoid conflicts
+
+### Lessons Learned:
+1. **Always search for existing implementations first** - Check the entire codebase for existing functionality before implementing
+2. **Global exception handlers provide better error visibility** - Centralized logging helps debug production issues
+3. **Consistent error responses improve API usability** - Clients can rely on standard error format
+4. **File handlers need directories to exist** - Always create log directories with .gitkeep for git tracking
+5. **Test exception handlers thoroughly** - Different exception types need different handling strategies
+
+### Efficiency Suggestions:
+1. **Use grep/find before implementing** - Search for keywords like "health", "exception", "handler" before starting
+2. **Create a checklist of existing endpoints** - Maintain list of all API endpoints to avoid duplicates
+3. **Add automated tests for exception handling** - Include tests that verify different error scenarios
+4. **Document error response formats** - Add to API documentation so clients know what to expect
+5. **Consider structured logging** - Use JSON format for easier parsing in production monitoring tools
+
+### Root Cause Analysis:
+The 500 errors on supplier creation were likely caused by:
+1. Unhandled exceptions not being caught by DRF's default handler
+2. Missing validation causing Django-level errors instead of DRF ValidationErrors
+3. Database errors not being properly caught and logged
+4. Lack of centralized error handling made debugging difficult
+
+The global exception handler now ensures:
+- All errors are logged with full context
+- Appropriate status codes are returned (400 for validation, 500 for server errors)
+- Error messages don't expose sensitive information
+- Stack traces are logged for debugging but not returned to clients
