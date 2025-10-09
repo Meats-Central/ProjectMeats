@@ -262,6 +262,9 @@ jobs:
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
+        echo "👤 Setting up superuser with environment password..."
+        python manage.py setup_superuser
+
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
 
@@ -395,6 +398,9 @@ jobs:
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
+        echo "👤 Setting up superuser with environment password..."
+        python manage.py setup_superuser
+
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
 
@@ -527,6 +533,9 @@ jobs:
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate
+
+        echo "👤 Setting up superuser with environment password..."
+        python manage.py setup_superuser
 
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2

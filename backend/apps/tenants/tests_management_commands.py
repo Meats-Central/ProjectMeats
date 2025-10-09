@@ -317,3 +317,164 @@ class CreateSuperTenantCommandTests(TestCase):
         # Password should be verifiable
         self.assertTrue(user.check_password('complexpass456!'))
 
+
+class SetupSuperuserCommandTests(TestCase):
+    """Test cases for setup_superuser management command."""
+
+    def setUp(self):
+        """Set up test environment."""
+        # Clean up any existing data
+        User.objects.all().delete()
+
+    def test_creates_superuser_when_none_exists(self):
+        """Test that command creates superuser when none exists."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_USERNAME': 'admin',
+            'SUPERUSER_EMAIL': 'admin@example.com',
+            'ENVIRONMENT_SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # Check superuser was created
+        self.assertTrue(User.objects.filter(username='admin').exists())
+        user = User.objects.get(username='admin')
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password('testpass123'))
+        
+        # Check output
+        output = out.getvalue()
+        self.assertIn('Superuser created', output)
+
+    def test_updates_password_when_user_exists(self):
+        """Test that command updates password when superuser already exists."""
+        # Create existing superuser with old password
+        User.objects.create_superuser(
+            username='admin',
+            email='admin@example.com',
+            password='oldpass123'
+        )
+        
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_USERNAME': 'admin',
+            'SUPERUSER_EMAIL': 'admin@example.com',
+            'ENVIRONMENT_SUPERUSER_PASSWORD': 'newpass456'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # Should only have one user
+        self.assertEqual(User.objects.filter(username='admin').count(), 1)
+        
+        # Password SHOULD be changed (this is the key difference from create_super_tenant)
+        user = User.objects.get(username='admin')
+        self.assertFalse(user.check_password('oldpass123'))
+        self.assertTrue(user.check_password('newpass456'))
+        
+        # Check output
+        output = out.getvalue()
+        self.assertIn('password synced/updated', output)
+
+    def test_raises_error_when_password_missing_in_production(self):
+        """Test that command raises error when ENVIRONMENT_SUPERUSER_PASSWORD is missing in production."""
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'production',
+            'SUPERUSER_USERNAME': 'admin',
+            'SUPERUSER_EMAIL': 'admin@example.com'
+        }, clear=True):
+            with self.assertRaises(ValueError) as context:
+                call_command('setup_superuser')
+            
+            self.assertIn('ENVIRONMENT_SUPERUSER_PASSWORD', str(context.exception))
+
+    def test_raises_error_when_password_missing_in_staging(self):
+        """Test that command raises error when ENVIRONMENT_SUPERUSER_PASSWORD is missing in staging."""
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'staging',
+            'SUPERUSER_USERNAME': 'admin',
+            'SUPERUSER_EMAIL': 'admin@example.com'
+        }, clear=True):
+            with self.assertRaises(ValueError) as context:
+                call_command('setup_superuser')
+            
+            self.assertIn('ENVIRONMENT_SUPERUSER_PASSWORD', str(context.exception))
+
+    def test_falls_back_to_superuser_password_in_dev(self):
+        """Test that command falls back to SUPERUSER_PASSWORD in development."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'development',
+            'SUPERUSER_USERNAME': 'admin',
+            'SUPERUSER_EMAIL': 'admin@example.com',
+            'SUPERUSER_PASSWORD': 'fallbackpass'
+        }, clear=True):
+            call_command('setup_superuser', stdout=out)
+        
+        # User should be created with fallback password
+        user = User.objects.get(username='admin')
+        self.assertTrue(user.check_password('fallbackpass'))
+        
+        # Check warning message
+        output = out.getvalue()
+        self.assertIn('fallback', output)
+
+    def test_uses_default_username_and_email(self):
+        """Test that command uses default username and email when not provided."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'ENVIRONMENT_SUPERUSER_PASSWORD': 'testpass123'
+        }, clear=True):
+            call_command('setup_superuser', stdout=out)
+        
+        # Check default username was used
+        self.assertTrue(User.objects.filter(username='admin').exists())
+        user = User.objects.get(username='admin')
+        self.assertEqual(user.email, 'admin@meatscentral.com')
+
+    def test_idempotent_password_sync(self):
+        """Test that command can be run multiple times with same password."""
+        # Create initial user
+        with mock.patch.dict('os.environ', {
+            'ENVIRONMENT_SUPERUSER_PASSWORD': 'samepass123'
+        }):
+            call_command('setup_superuser')
+        
+        # Run again with same password
+        out = StringIO()
+        with mock.patch.dict('os.environ', {
+            'ENVIRONMENT_SUPERUSER_PASSWORD': 'samepass123'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # Should still only have one user
+        self.assertEqual(User.objects.filter(username='admin').count(), 1)
+        
+        # Password should still work
+        user = User.objects.get(username='admin')
+        self.assertTrue(user.check_password('samepass123'))
+
+    def test_password_rotation_scenario(self):
+        """Test password rotation scenario with multiple updates."""
+        passwords = ['pass1', 'pass2', 'pass3']
+        
+        for password in passwords:
+            with mock.patch.dict('os.environ', {
+                'ENVIRONMENT_SUPERUSER_PASSWORD': password
+            }):
+                call_command('setup_superuser')
+            
+            # Verify password was updated
+            user = User.objects.get(username='admin')
+            self.assertTrue(user.check_password(password))
+            
+            # Verify old passwords don't work
+            for old_pass in passwords[:passwords.index(password)]:
+                self.assertFalse(user.check_password(old_pass))
+        
+        # Should still only have one user
+        self.assertEqual(User.objects.filter(username='admin').count(), 1)
+

@@ -23,6 +23,7 @@ help:
 	@echo "  make migrations - Create new migrations"
 	@echo "  make shell      - Open Django shell"
 	@echo "  make superuser  - Create/update superuser and root tenant"
+	@echo "  make sync-superuser - Sync superuser password from environment"
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test       - Run all tests (backend + frontend)"
@@ -93,6 +94,10 @@ shell:
 superuser:
 	@echo "👤 Creating superuser and root tenant..."
 	cd backend && python manage.py create_super_tenant
+
+sync-superuser:
+	@echo "🔄 Syncing superuser password from environment..."
+	cd backend && python manage.py setup_superuser
 
 # Testing commands
 test: test-backend test-frontend
