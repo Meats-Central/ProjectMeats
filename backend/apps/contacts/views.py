@@ -4,7 +4,7 @@ Contacts views for ProjectMeats.
 Provides REST API endpoints for contact management.
 """
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from apps.contacts.models import Contact
 from apps.contacts.serializers import ContactSerializer
 
@@ -14,12 +14,14 @@ class ContactViewSet(viewsets.ModelViewSet):
 
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Filter contacts based on user permissions."""
-        return self.queryset
+        """Filter contacts by current tenant."""
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return Contact.objects.for_tenant(self.request.tenant)
+        return Contact.objects.none()
 
     def perform_create(self, serializer):
-        """Set the creator when creating a new contact."""
-        serializer.save()
+        """Set the tenant when creating a new contact."""
+        serializer.save(tenant=self.request.tenant)
