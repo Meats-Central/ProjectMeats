@@ -47,26 +47,31 @@ class Contact(TimestampModel):
         max_length=50,
         choices=ContactTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Type of contact (e.g., Sales, Accounting, Shipping)",
     )
     contact_title = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Contact title/designation",
     )
     main_phone = models.CharField(
         max_length=20,
         blank=True,
+        default='',
         help_text="Main phone number",
     )
     direct_phone = models.CharField(
         max_length=20,
         blank=True,
+        default='',
         help_text="Direct phone number",
     )
     cell_phone = models.CharField(
         max_length=20,
         blank=True,
+        default='',
         help_text="Cell phone number",
     )
     

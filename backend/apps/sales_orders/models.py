@@ -102,11 +102,13 @@ class SalesOrder(TimestampModel):
     delivery_po_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Delivery PO number",
     )
     carrier_release_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Carrier release number",
     )
     quantity = models.IntegerField(
@@ -144,6 +146,7 @@ class SalesOrder(TimestampModel):
     )
     notes = models.TextField(
         blank=True,
+        default='',
         help_text="Additional notes",
     )
 

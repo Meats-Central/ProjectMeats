@@ -50,6 +50,7 @@ class Customer(TimestampModel):
     street_address = models.CharField(
         max_length=255,
         blank=True,
+        default='',
         help_text="Street address (alternative to address field)",
     )
     city = models.CharField(max_length=100, blank=True, null=True, help_text="City")
@@ -78,23 +79,27 @@ class Customer(TimestampModel):
         max_length=50,
         choices=EdibleInedibleChoices.choices,
         blank=True,
+        default='',
         help_text="Type of products handled",
     )
     type_of_plant = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Customer type of plant (e.g., Vertical, Processor)",
     )
     purchasing_preference_origin = models.CharField(
         max_length=100,
         choices=OriginChoices.choices,
         blank=True,
+        default='',
         help_text="Purchasing preference origin (e.g., Domestic, Imported)",
     )
     industry = models.CharField(
         max_length=100,
         choices=IndustryChoices.choices,
         blank=True,
+        default='',
         help_text="Industry sector (e.g., Pet Sector, Retail)",
     )
     contacts = models.ManyToManyField(
@@ -112,18 +117,21 @@ class Customer(TimestampModel):
         max_length=50,
         choices=AccountingPaymentTermsChoices.choices,
         blank=True,
+        default='',
         help_text="Payment terms (e.g., Wire, ACH, Check)",
     )
     credit_limits = models.CharField(
         max_length=50,
         choices=CreditLimitChoices.choices,
         blank=True,
+        default='',
         help_text="Credit limits/terms (e.g., Net 30, Wire 1 day prior)",
     )
     account_line_of_credit = models.CharField(
         max_length=50,
         choices=AccountLineOfCreditChoices.choices,
         blank=True,
+        default='',
         help_text="Line of credit amount range",
     )
     
@@ -131,15 +139,18 @@ class Customer(TimestampModel):
     buyer_contact_name = models.CharField(
         max_length=255,
         blank=True,
+        default='',
         help_text="Buyer contact name",
     )
     buyer_contact_phone = models.CharField(
         max_length=20,
         blank=True,
+        default='',
         help_text="Buyer contact phone",
     )
     buyer_contact_email = models.EmailField(
         blank=True,
+        default='',
         help_text="Buyer contact email",
     )
     
@@ -147,6 +158,7 @@ class Customer(TimestampModel):
         max_length=100,
         choices=CertificateTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Certificate type required (e.g., 3rd Party, BRC)",
     )
     product_exportable = models.BooleanField(
@@ -156,11 +168,12 @@ class Customer(TimestampModel):
     
     # Deprecated fields - keeping for backward compatibility
     accounting_terms = models.CharField(
-        max_length=100, blank=True, help_text="Accounting terms (deprecated, use accounting_payment_terms)"
+        max_length=100, blank=True, default='', help_text="Accounting terms (deprecated, use accounting_payment_terms)"
     )
     accounting_line_of_credit = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Line of credit amount (deprecated, use account_line_of_credit)",
     )
 

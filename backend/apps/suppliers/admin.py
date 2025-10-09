@@ -42,36 +42,37 @@ class SupplierAdmin(admin.ModelAdmin):
             {"fields": ("address", "street_address", "city", "state", "zip_code", "country")},
         ),
         (
+            "Plant Information",
+            {
+                "classes": ("collapse",),
+                "fields": ("plant", "edible_inedible", "type_of_plant", "type_of_certificate", "tested_product"),
+            },
+        ),
+        (
+            "Origin and Shipping",
+            {
+                "classes": ("collapse",),
+                "fields": ("origin", "country_origin", "shipping_offered", "how_to_book_pickup"),
+            },
+        ),
+        (
             "Product Details",
             {
-                "fields": (
-                    "type_of_plant",
-                    "origin",
-                    "country_origin",
-                    "fresh_or_frozen",
-                    "package_type",
-                    "net_or_catch",
-                    "edible_inedible",
-                    "tested_product",
-                )
+                "classes": ("collapse",),
+                "fields": ("fresh_or_frozen", "package_type", "net_or_catch", "departments"),
             },
         ),
         (
-            "Certifications & Capabilities",
+            "Contracts and Documents",
             {
-                "fields": (
-                    "type_of_certificate",
-                    "shipping_offered",
-                    "how_to_book_pickup",
-                    "offer_contracts",
-                    "offers_export_documents",
-                    "departments",
-                )
+                "classes": ("collapse",),
+                "fields": ("offer_contracts", "offers_export_documents"),
             },
         ),
         (
-            "Payment & Credit",
+            "Accounting",
             {
+                "classes": ("collapse",),
                 "fields": (
                     "accounting_payment_terms",
                     "credit_limits",
@@ -80,12 +81,15 @@ class SupplierAdmin(admin.ModelAdmin):
                     "accounting_line_of_credit",
                     "credit_app_sent",
                     "credit_app_set_up",
-                )
+                ),
             },
         ),
         (
             "Relationships",
-            {"fields": ("plant", "proteins", "contacts")},
+            {
+                "classes": ("collapse",),
+                "fields": ("proteins", "contacts"),
+            },
         ),
         (
             "Metadata",

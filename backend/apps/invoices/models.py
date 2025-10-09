@@ -3,6 +3,7 @@ Invoices models for ProjectMeats.
 
 Defines invoice entities and related business logic.
 """
+from decimal import Decimal
 from django.db import models
 from apps.core.models import (
     EdibleInedibleChoices,
@@ -89,11 +90,13 @@ class Invoice(TimestampModel):
     our_sales_order_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Our sales order number",
     )
     delivery_po_num = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Delivery PO number",
     )
     
@@ -101,15 +104,18 @@ class Invoice(TimestampModel):
     accounting_payable_contact_name = models.CharField(
         max_length=255,
         blank=True,
+        default='',
         help_text="Accounting payable contact name",
     )
     accounting_payable_contact_phone = models.CharField(
         max_length=20,
         blank=True,
+        default='',
         help_text="Accounting payable contact phone",
     )
     accounting_payable_contact_email = models.EmailField(
         blank=True,
+        default='',
         help_text="Accounting payable contact email",
     )
     
@@ -117,10 +123,12 @@ class Invoice(TimestampModel):
     type_of_protein = models.CharField(
         max_length=100,
         blank=True,
+        default='',
         help_text="Type of protein",
     )
     description_of_product_item = models.TextField(
         blank=True,
+        default='',
         help_text="Description of product item",
     )
     quantity = models.IntegerField(
@@ -145,6 +153,7 @@ class Invoice(TimestampModel):
         max_length=50,
         choices=EdibleInedibleChoices.choices,
         blank=True,
+        default='',
         help_text="Edible or inedible product",
     )
     tested_product = models.BooleanField(
@@ -163,6 +172,7 @@ class Invoice(TimestampModel):
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
+        default=Decimal('0.00'),
         help_text="Total invoice amount",
     )
     tax_amount = models.DecimalField(
@@ -182,6 +192,7 @@ class Invoice(TimestampModel):
     )
     notes = models.TextField(
         blank=True,
+        default='',
         help_text="Additional notes",
     )
 
