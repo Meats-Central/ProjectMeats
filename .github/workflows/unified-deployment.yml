@@ -222,6 +222,9 @@ jobs:
       env:
         SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        DEVELOPMENT_SUPERUSER_USERNAME: ${{ secrets.DEVELOPMENT_SUPERUSER_USERNAME }}
+        DEVELOPMENT_SUPERUSER_EMAIL: ${{ secrets.DEVELOPMENT_SUPERUSER_EMAIL }}
+        DEVELOPMENT_SUPERUSER_PASSWORD: ${{ secrets.DEVELOPMENT_SUPERUSER_PASSWORD }}
       run: |
         cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
@@ -262,6 +265,13 @@ jobs:
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
+        echo "👤 Setting up superuser with environment password..."
+        DJANGO_ENV=development \
+        DEVELOPMENT_SUPERUSER_USERNAME="${DEVELOPMENT_SUPERUSER_USERNAME}" \
+        DEVELOPMENT_SUPERUSER_EMAIL="${DEVELOPMENT_SUPERUSER_EMAIL}" \
+        DEVELOPMENT_SUPERUSER_PASSWORD="${DEVELOPMENT_SUPERUSER_PASSWORD}" \
+        python manage.py setup_superuser
+
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
 
@@ -274,8 +284,21 @@ jobs:
         echo "✅ Backend deployment completed successfully!"
         DEPLOY_SCRIPT
 
-        sshpass -e scp deploy_script.sh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }}:/tmp/
-        sshpass -e ssh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+        # Pass environment variables to the remote script
+        sshpass -e ssh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
+          "export GIT_TOKEN='${GIT_TOKEN}' && \
+           export DEVELOPMENT_SUPERUSER_USERNAME='${DEVELOPMENT_SUPERUSER_USERNAME}' && \
+           export DEVELOPMENT_SUPERUSER_EMAIL='${DEVELOPMENT_SUPERUSER_EMAIL}' && \
+           export DEVELOPMENT_SUPERUSER_PASSWORD='${DEVELOPMENT_SUPERUSER_PASSWORD}' && \
+           cat > /tmp/deploy_script.sh" < deploy_script.sh
+        
+        sshpass -e ssh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
+          "chmod +x /tmp/deploy_script.sh && \
+           export GIT_TOKEN='${GIT_TOKEN}' && \
+           export DEVELOPMENT_SUPERUSER_USERNAME='${DEVELOPMENT_SUPERUSER_USERNAME}' && \
+           export DEVELOPMENT_SUPERUSER_EMAIL='${DEVELOPMENT_SUPERUSER_EMAIL}' && \
+           export DEVELOPMENT_SUPERUSER_PASSWORD='${DEVELOPMENT_SUPERUSER_PASSWORD}' && \
+           /tmp/deploy_script.sh"
 
     - name: 🔄 Restart backend services
       env:
@@ -355,6 +378,9 @@ jobs:
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        STAGING_SUPERUSER_USERNAME: ${{ secrets.STAGING_SUPERUSER_USERNAME }}
+        STAGING_SUPERUSER_EMAIL: ${{ secrets.STAGING_SUPERUSER_EMAIL }}
+        STAGING_SUPERUSER_PASSWORD: ${{ secrets.STAGING_SUPERUSER_PASSWORD }}
       run: |
         cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
@@ -395,6 +421,13 @@ jobs:
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
+        echo "👤 Setting up superuser with environment password..."
+        DJANGO_ENV=staging \
+        STAGING_SUPERUSER_USERNAME="${STAGING_SUPERUSER_USERNAME}" \
+        STAGING_SUPERUSER_EMAIL="${STAGING_SUPERUSER_EMAIL}" \
+        STAGING_SUPERUSER_PASSWORD="${STAGING_SUPERUSER_PASSWORD}" \
+        python manage.py setup_superuser
+
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
 
@@ -407,8 +440,21 @@ jobs:
         echo "✅ Backend deployment completed successfully!"
         DEPLOY_SCRIPT
 
-        sshpass -e scp deploy_script.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
-        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+        # Pass environment variables to the remote script
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+          "export GIT_TOKEN='${GIT_TOKEN}' && \
+           export STAGING_SUPERUSER_USERNAME='${STAGING_SUPERUSER_USERNAME}' && \
+           export STAGING_SUPERUSER_EMAIL='${STAGING_SUPERUSER_EMAIL}' && \
+           export STAGING_SUPERUSER_PASSWORD='${STAGING_SUPERUSER_PASSWORD}' && \
+           cat > /tmp/deploy_script.sh" < deploy_script.sh
+        
+        sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+          "chmod +x /tmp/deploy_script.sh && \
+           export GIT_TOKEN='${GIT_TOKEN}' && \
+           export STAGING_SUPERUSER_USERNAME='${STAGING_SUPERUSER_USERNAME}' && \
+           export STAGING_SUPERUSER_EMAIL='${STAGING_SUPERUSER_EMAIL}' && \
+           export STAGING_SUPERUSER_PASSWORD='${STAGING_SUPERUSER_PASSWORD}' && \
+           /tmp/deploy_script.sh"
 
     - name: 🔄 Restart backend services
       env:
@@ -488,6 +534,9 @@ jobs:
       env:
         SSHPASS: ${{ secrets.SSH_PASSWORD }}
         GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+        PRODUCTION_SUPERUSER_USERNAME: ${{ secrets.PRODUCTION_SUPERUSER_USERNAME }}
+        PRODUCTION_SUPERUSER_EMAIL: ${{ secrets.PRODUCTION_SUPERUSER_EMAIL }}
+        PRODUCTION_SUPERUSER_PASSWORD: ${{ secrets.PRODUCTION_SUPERUSER_PASSWORD }}
       run: |
         cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
@@ -528,6 +577,13 @@ jobs:
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
+        echo "👤 Setting up superuser with environment password..."
+        DJANGO_ENV=production \
+        PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
+        PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
+        PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
+        python manage.py setup_superuser
+
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
 
@@ -540,8 +596,21 @@ jobs:
         echo "✅ Production backend deployment completed successfully!"
         DEPLOY_SCRIPT
 
-        sshpass -e scp deploy_script.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
-        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+        # Pass environment variables to the remote script
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+          "export GIT_TOKEN='${GIT_TOKEN}' && \
+           export PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' && \
+           export PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' && \
+           export PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' && \
+           cat > /tmp/deploy_script.sh" < deploy_script.sh
+        
+        sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+          "chmod +x /tmp/deploy_script.sh && \
+           export GIT_TOKEN='${GIT_TOKEN}' && \
+           export PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' && \
+           export PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' && \
+           export PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' && \
+           /tmp/deploy_script.sh"
 
     - name: 🔄 Restart production services
       env:
