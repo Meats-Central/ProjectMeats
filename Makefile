@@ -22,6 +22,7 @@ help:
 	@echo "  make migrate    - Apply database migrations"
 	@echo "  make migrations - Create new migrations"
 	@echo "  make shell      - Open Django shell"
+	@echo "  make superuser  - Create/update superuser and root tenant"
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test       - Run all tests (backend + frontend)"
@@ -88,6 +89,10 @@ migrations:
 
 shell:
 	cd backend && python manage.py shell
+
+superuser:
+	@echo "👤 Creating superuser and root tenant..."
+	cd backend && python manage.py create_super_tenant
 
 # Testing commands
 test: test-backend test-frontend

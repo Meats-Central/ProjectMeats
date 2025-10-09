@@ -113,6 +113,13 @@ config/
 | `OPENAI_API_KEY` | OpenAI API key | Optional |
 | `ANTHROPIC_API_KEY` | Anthropic API key | Optional |
 
+#### Superuser Configuration
+| Variable | Description | Development | Staging | Production |
+|----------|-------------|-------------|---------|-----------|
+| `SUPERUSER_USERNAME` | Admin username | `admin` | `${STAGING_SUPERUSER_USERNAME}` | `${PRODUCTION_SUPERUSER_USERNAME}` |
+| `SUPERUSER_EMAIL` | Admin email | `admin@meatscentral.com` | `${STAGING_SUPERUSER_EMAIL}` | `${PRODUCTION_SUPERUSER_EMAIL}` |
+| `SUPERUSER_PASSWORD` | Admin password | Dev password | `${STAGING_SUPERUSER_PASSWORD}` | `${PRODUCTION_SUPERUSER_PASSWORD}` |
+
 ### Frontend Variables
 
 #### API Configuration
@@ -134,22 +141,80 @@ config/
 1. **Setup**: `python config/manage_env.py setup development`
 2. **Install**: `pip install -r backend/requirements.txt && cd frontend && npm install`
 3. **Migrate**: `cd backend && python manage.py migrate`
-4. **Run**: `make dev`
+4. **Superuser**: `make superuser` (creates admin user from environment variables)
+5. **Run**: `make dev`
 
 ### Staging Deployment
-1. **Environment Variables**: Set staging environment variables in your deployment system
+1. **Environment Variables**: Set staging environment variables in your deployment system (including `STAGING_SUPERUSER_*` variables)
 2. **Setup**: `python config/manage_env.py setup staging`
 3. **Validate**: `python config/manage_env.py validate`
 4. **Deploy**: Follow your staging deployment process
+5. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
 
 ### Production Deployment
-1. **Environment Variables**: Set production environment variables securely
+1. **Environment Variables**: Set production environment variables securely (including `PRODUCTION_SUPERUSER_*` variables)
 2. **Setup**: `python config/manage_env.py setup production`
 3. **Validate**: `python config/manage_env.py validate`
 4. **Security Check**: Verify all security settings are enabled
 5. **Deploy**: Follow your production deployment process
+6. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
 
 ## Security Best Practices
+
+### Superuser Management
+
+**Overview:**
+ProjectMeats uses environment variables for all superuser credentials to ensure security and prevent hardcoded credentials in the codebase. The `create_super_tenant` management command automatically handles superuser creation and updates.
+
+**Environment Variables:**
+- `SUPERUSER_USERNAME` - Admin username (default: admin)
+- `SUPERUSER_EMAIL` - Admin email address
+- `SUPERUSER_PASSWORD` - Admin password (must be secure for production)
+
+**Development Environment:**
+```bash
+# Set in config/environments/development.env
+SUPERUSER_USERNAME=admin
+SUPERUSER_EMAIL=admin@meatscentral.com
+SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+**Staging/Production Environments:**
+```bash
+# Set as deployment secrets in GitHub or your platform
+STAGING_SUPERUSER_USERNAME=admin
+STAGING_SUPERUSER_EMAIL=admin@staging.projectmeats.com
+STAGING_SUPERUSER_PASSWORD=<secure-password>
+
+PRODUCTION_SUPERUSER_USERNAME=admin
+PRODUCTION_SUPERUSER_EMAIL=admin@projectmeats.com
+PRODUCTION_SUPERUSER_PASSWORD=<secure-password>
+```
+
+**Creating/Updating Superuser:**
+```bash
+# Via Make command (recommended)
+make superuser
+
+# Direct command
+python manage.py create_super_tenant
+
+# With verbose output
+python manage.py create_super_tenant --verbosity 2
+```
+
+**Automatic Execution:**
+The superuser creation command runs automatically:
+- During initial setup (`python setup_env.py`)
+- After migrations in development setup
+- In deployment workflows (after migrations)
+
+**Command Features:**
+- **Idempotent**: Safe to run multiple times
+- **Updates existing users**: Updates password if user already exists
+- **Multi-tenancy support**: Creates root tenant and links superuser
+- **Secure**: Uses Django's password hashing
+- **Configurable**: All settings from environment variables
 
 ### Secret Management
 - **Generate unique secrets** for each environment

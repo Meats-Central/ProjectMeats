@@ -135,7 +135,42 @@ make dev
 **Access your application:**
 - **Frontend**: http://localhost:3000
 - **API Docs**: http://localhost:8000/api/docs/
-- **Admin Panel**: http://localhost:8000/admin/ (admin/WATERMELON1219)
+- **Admin Panel**: http://localhost:8000/admin/
+
+> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `SUPERUSER_USERNAME`, `SUPERUSER_EMAIL`, and `SUPERUSER_PASSWORD` settings.
+
+## 👤 Superuser Management
+
+The application automatically creates a superuser and root tenant during setup. Credentials are managed via environment variables for security:
+
+**Development Environment:**
+```bash
+# Set in config/environments/development.env
+SUPERUSER_USERNAME=admin
+SUPERUSER_EMAIL=admin@meatscentral.com
+SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+**Staging/Production Environments:**
+Set these as deployment secrets:
+- `SUPERUSER_USERNAME` - Admin username (default: admin)
+- `SUPERUSER_EMAIL` - Admin email address
+- `SUPERUSER_PASSWORD` - Secure password (required for production)
+
+**Manual Superuser Creation:**
+```bash
+# Create or update superuser
+make superuser
+
+# Or directly
+cd backend && python manage.py create_super_tenant
+```
+
+The command is idempotent and safe to run multiple times. It will:
+- Create a superuser if one doesn't exist
+- Update credentials if the user already exists
+- Create a root tenant for multi-tenancy
+- Link the superuser to the root tenant
 
 ## 🔧 Development Guide
 

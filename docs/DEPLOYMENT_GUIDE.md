@@ -87,8 +87,8 @@ cd frontend && npm install && cd ..
 # Set up database
 cd backend && python manage.py migrate && cd ..
 
-# Create admin user
-cd backend && python manage.py createsuperuser && cd ..
+# Create superuser and root tenant (uses environment variables)
+cd backend && python manage.py create_super_tenant && cd ..
 
 # Start development servers
 make dev
@@ -101,6 +101,7 @@ cd backend
 pip install -r requirements.txt
 python manage.py collectstatic --noinput
 python manage.py migrate
+python manage.py create_super_tenant  # Creates/updates superuser from env vars
 python -m gunicorn projectmeats.wsgi:application --bind 0.0.0.0:8000
 
 # Frontend deployment
@@ -109,6 +110,68 @@ npm install
 npm run build
 # Serve build files with nginx or similar
 ```
+
+## Superuser Management
+
+### Environment Variables
+
+All environments use environment variables for superuser credentials to ensure security and avoid hardcoded credentials in code.
+
+**Required Environment Variables:**
+- `SUPERUSER_USERNAME` - Username for the superuser (default: admin)
+- `SUPERUSER_EMAIL` - Email address for the superuser
+- `SUPERUSER_PASSWORD` - Password for the superuser
+
+**Development:**
+Set in `config/environments/development.env`:
+```bash
+SUPERUSER_USERNAME=admin
+SUPERUSER_EMAIL=admin@meatscentral.com
+SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+**Staging:**
+Set as GitHub Secrets or deployment platform environment variables:
+```bash
+STAGING_SUPERUSER_USERNAME=admin
+STAGING_SUPERUSER_EMAIL=admin@staging.projectmeats.com
+STAGING_SUPERUSER_PASSWORD=<secure-staging-password>
+```
+
+**Production:**
+Set as GitHub Secrets or deployment platform environment variables:
+```bash
+PRODUCTION_SUPERUSER_USERNAME=admin
+PRODUCTION_SUPERUSER_EMAIL=admin@projectmeats.com
+PRODUCTION_SUPERUSER_PASSWORD=<secure-production-password>
+```
+
+### Creating/Updating Superuser
+
+The `create_super_tenant` management command is idempotent and can be run safely multiple times:
+
+```bash
+# Development
+make superuser
+
+# Staging/Production (run after migrations)
+python manage.py create_super_tenant
+
+# With custom verbosity for debugging
+python manage.py create_super_tenant --verbosity 2
+```
+
+**What the command does:**
+1. Reads credentials from environment variables
+2. Creates a superuser if one doesn't exist (or updates if exists)
+3. Creates a root tenant for multi-tenancy support
+4. Links the superuser to the root tenant with owner role
+
+**Automatic Execution:**
+The command runs automatically during:
+- Initial setup via `python setup_env.py`
+- Deployment workflows (after migrations)
+- Can be manually triggered with `make superuser`
 
 ### Method 2: Docker Deployment (Archived)
 
