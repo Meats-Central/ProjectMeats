@@ -137,11 +137,45 @@ make dev
 - **API Docs**: http://localhost:8000/api/docs/
 - **Admin Panel**: http://localhost:8000/admin/
 
-> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `SUPERUSER_USERNAME`, `SUPERUSER_EMAIL`, and `SUPERUSER_PASSWORD` settings.
+> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `SUPERUSER_USERNAME`, `SUPERUSER_EMAIL`, and `ENVIRONMENT_SUPERUSER_PASSWORD` settings.
 
 ## 👤 Superuser Management
 
-The application automatically creates a superuser and root tenant during setup. Credentials are managed via environment variables for security:
+The application provides two management commands for superuser handling:
+
+### `setup_superuser` - Password Synchronization
+
+Syncs superuser password from environment variables during deployment. **Always updates password** when user exists.
+
+```bash
+# Sync superuser password from environment
+make sync-superuser
+
+# Or directly
+cd backend && python manage.py setup_superuser
+```
+
+**Required Environment Variable:**
+- `ENVIRONMENT_SUPERUSER_PASSWORD` - Password to sync (required in production/staging)
+
+**Use Cases:**
+- ✅ Deployment automation (runs on every deploy)
+- ✅ Password rotation
+- ✅ Environment-specific password management
+
+### `create_super_tenant` - Full Tenant Setup
+
+Creates superuser, root tenant, and links them together. Idempotent and safe to run multiple times.
+
+```bash
+# Create or update superuser and tenant
+make superuser
+
+# Or directly
+cd backend && python manage.py create_super_tenant
+```
+
+**Environment Configuration:**
 
 **Development Environment:**
 ```bash
@@ -149,28 +183,21 @@ The application automatically creates a superuser and root tenant during setup. 
 SUPERUSER_USERNAME=admin
 SUPERUSER_EMAIL=admin@meatscentral.com
 SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+ENVIRONMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```
 
 **Staging/Production Environments:**
-Set these as deployment secrets:
+Set these as deployment secrets (GitHub Secrets, AWS Secrets Manager, etc.):
 - `SUPERUSER_USERNAME` - Admin username (default: admin)
 - `SUPERUSER_EMAIL` - Admin email address
-- `SUPERUSER_PASSWORD` - Secure password (required for production)
+- `SUPERUSER_PASSWORD` - Initial password for tenant creation
+- `ENVIRONMENT_SUPERUSER_PASSWORD` - Current/rotated password (required)
 
-**Manual Superuser Creation:**
-```bash
-# Create or update superuser
-make superuser
+**Deployment Integration:**
 
-# Or directly
-cd backend && python manage.py create_super_tenant
-```
-
-The command is idempotent and safe to run multiple times. It will:
-- Create a superuser if one doesn't exist
-- Update credentials if the user already exists
-- Create a root tenant for multi-tenancy
-- Link the superuser to the root tenant
+Both commands run automatically during deployment:
+1. `setup_superuser` - Syncs password from environment
+2. `create_super_tenant` - Ensures tenant infrastructure exists
 
 ## 🔧 Development Guide
 

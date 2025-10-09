@@ -80,24 +80,67 @@ The command uses environment variables for credentials:
 
 ⚠️ **Security Note**: Always override default credentials in production environments!
 
+### Management Command: `setup_superuser`
+
+The `setup_superuser` management command provides password synchronization functionality:
+1. Creates a superuser if it doesn't exist
+2. **Always syncs password** from environment variable when user exists
+3. Designed for deployment automation and password rotation
+
+#### Usage
+
+```bash
+# Run manually (requires ENVIRONMENT_SUPERUSER_PASSWORD)
+ENVIRONMENT_SUPERUSER_PASSWORD=your_password python manage.py setup_superuser
+
+# Run during deployment (automatically called in CI/CD)
+python manage.py setup_superuser
+
+# Makefile command
+make sync-superuser
+```
+
+#### Key Differences from `create_super_tenant`
+
+| Feature | `create_super_tenant` | `setup_superuser` |
+|---------|----------------------|-------------------|
+| Creates superuser | ✅ Yes | ✅ Yes |
+| Creates tenant | ✅ Yes | ❌ No |
+| Links to tenant | ✅ Yes | ❌ No |
+| Updates password on existing user | ❌ No (idempotent) | ✅ Yes (always syncs) |
+| Purpose | Initial setup | Password rotation/sync |
+
+#### Configuration
+
+The command uses environment variables:
+
+- `SUPERUSER_USERNAME`: Username (default: `admin`)
+- `SUPERUSER_EMAIL`: Email address (default: `admin@meatscentral.com`)
+- `ENVIRONMENT_SUPERUSER_PASSWORD`: **Required** in production/staging, falls back to `SUPERUSER_PASSWORD` in development
+
+⚠️ **Production/Staging Requirement**: `ENVIRONMENT_SUPERUSER_PASSWORD` must be set or the command will raise a `ValueError`
+
 #### Environment Variables
 
 ##### Development (`config/environments/development.env`)
 ```bash
 SUPERUSER_EMAIL=admin@meatscentral.com
 SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+ENVIRONMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```
 
 ##### Staging (`config/environments/staging.env`)
 ```bash
 SUPERUSER_EMAIL=${STAGING_SUPERUSER_EMAIL}
 SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
+ENVIRONMENT_SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
 ```
 
 ##### Production (`config/environments/production.env`)
 ```bash
 SUPERUSER_EMAIL=${PRODUCTION_SUPERUSER_EMAIL}
 SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
+ENVIRONMENT_SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
 ```
 
 **Important**: Use secure secret management for staging and production:
@@ -113,16 +156,28 @@ The `create_super_tenant` command is idempotent:
 - ✅ Won't overwrite existing data
 - ✅ Will link existing users to tenants if needed
 
+The `setup_superuser` command behavior:
+- ✅ Safe to run multiple times
+- ✅ Won't create duplicate users
+- ✅ **WILL update password** on every run (by design)
+- ✅ Ideal for password rotation scenarios
+
 ## Deployment Integration
 
-The command is automatically executed during deployment in the unified workflow:
+Both commands are automatically executed during deployment in the unified workflow:
 
 ```yaml
 - Run database migrations
-- Create superuser and root tenant  # ← Automated
+- Sync superuser password        # ← setup_superuser (NEW)
+- Create superuser and root tenant  # ← create_super_tenant
 - Collect static files
 - Run Django checks
 ```
+
+**Deployment Order**: `setup_superuser` runs BEFORE `create_super_tenant` to ensure:
+1. Password is synced from environment first
+2. Tenant setup happens with correct credentials
+3. Both commands work together harmoniously
 
 This happens in all environments:
 - Development
