@@ -256,7 +256,7 @@ jobs:
         python manage.py migrate
 
         echo "👤 Creating superuser and root tenant..."
-        python manage.py create_super_tenant
+        python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."
         python manage.py collectstatic --noinput
@@ -386,7 +386,7 @@ jobs:
         python manage.py migrate
 
         echo "👤 Creating superuser and root tenant..."
-        python manage.py create_super_tenant
+        python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."
         python manage.py collectstatic --noinput
@@ -516,7 +516,7 @@ jobs:
         python manage.py migrate
 
         echo "👤 Creating superuser and root tenant..."
-        python manage.py create_super_tenant
+        python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."
         python manage.py collectstatic --noinput

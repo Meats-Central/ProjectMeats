@@ -225,6 +225,185 @@ pytest apps/tenants/tests_management_commands.py --cov=apps.core.management.comm
 
 ## Troubleshooting
 
+### Common Issues and Solutions
+
+#### 1. Superuser Not Created
+
+**Symptoms:**
+- Command completes but no superuser exists
+- Can't log into Django admin
+
+**Possible Causes and Fixes:**
+
+**a) Argument Mismatch in User Creation**
+- **Issue**: Code uses `User.objects.create()` instead of `create_superuser()`
+- **Solution**: Update to use `User.objects.create_superuser(username=..., email=..., password=...)`
+- **Verification**: Check if password is hashed in database (should start with `pbkdf2_sha256$`)
+
+**b) Missing Environment Variables**
+- **Issue**: `SUPERUSER_EMAIL`, `SUPERUSER_PASSWORD`, or `SUPERUSER_USERNAME` not set
+- **Solution**: 
+  ```bash
+  # Development
+  export SUPERUSER_USERNAME=admin
+  export SUPERUSER_EMAIL=admin@meatscentral.com
+  export SUPERUSER_PASSWORD=YourSecurePassword
+  
+  # Or update config/environments/development.env
+  ```
+- **Verification**: Run with verbosity to see configuration:
+  ```bash
+  python manage.py create_super_tenant --verbosity 2
+  ```
+
+**c) Silent Failures**
+- **Issue**: Exceptions caught but not displayed
+- **Solution**: Run command with `--verbosity 2` for detailed output
+- **Example**:
+  ```bash
+  python manage.py create_super_tenant --verbosity 2
+  ```
+  
+#### 2. Tenant Model Import Error
+
+**Symptoms:**
+- Error: "Tenant model missing—ensure Multi-Tenancy base is implemented"
+
+**Solution:**
+- Ensure `apps.tenants` is in `INSTALLED_APPS` in Django settings
+- Run migrations: `python manage.py migrate tenants`
+- Verify models exist: `python manage.py showmigrations tenants`
+
+#### 3. Django Admin Not Accessible
+
+**Symptoms:**
+- `/admin/` returns 404 or shows frontend page
+- Admin interface not loading
+
+**Possible Causes and Fixes:**
+
+**a) URL Routing Conflict**
+- **Issue**: Catch-all route intercepts `/admin/` before Django can handle it
+- **Solution**: Ensure `path('admin/', admin.site.urls)` comes BEFORE any catch-all patterns in `urls.py`
+  ```python
+  urlpatterns = [
+      path("admin/", admin.site.urls),  # Must be first!
+      # ... other specific paths ...
+      re_path(r'^.*', catch_all_view),  # Catch-all last
+  ]
+  ```
+- **Verification**: Check `backend/projectmeats/urls.py` pattern order
+
+**b) Superuser Not Properly Created**
+- **Issue**: User exists but is_superuser or is_staff is False
+- **Solution**: Use `create_superuser()` method which sets these automatically
+- **Verification**:
+  ```bash
+  python manage.py shell
+  >>> from django.contrib.auth import get_user_model
+  >>> User = get_user_model()
+  >>> user = User.objects.get(email='admin@meatscentral.com')
+  >>> user.is_superuser, user.is_staff
+  (True, True)  # Should both be True
+  ```
+
+#### 4. Database Integrity Errors
+
+**Symptoms:**
+- Error: "UNIQUE constraint failed: auth_user.username"
+- Command fails with IntegrityError
+
+**Solution:**
+- Command is idempotent but checks username and email separately
+- If a user exists with same username but different email, existing user is used
+- To force new username, set `SUPERUSER_USERNAME` explicitly:
+  ```bash
+  export SUPERUSER_USERNAME=superadmin
+  python manage.py create_super_tenant
+  ```
+
+#### 5. GitHub Actions Deployment Failures
+
+**Symptoms:**
+- Workflow step "Create Super Tenant" fails
+- No detailed error message in logs
+
+**Solutions:**
+
+**a) Check Environment Secrets**
+- Ensure GitHub Secrets are set:
+  - `STAGING_SUPERUSER_USERNAME`
+  - `STAGING_SUPERUSER_EMAIL`
+  - `STAGING_SUPERUSER_PASSWORD`
+  - `PRODUCTION_SUPERUSER_USERNAME`
+  - `PRODUCTION_SUPERUSER_EMAIL`
+  - `PRODUCTION_SUPERUSER_PASSWORD`
+
+**b) Enable Verbose Logging**
+- Workflow now includes `--verbosity 2` flag
+- Check GitHub Actions logs for detailed output
+- Look for emoji indicators:
+  - 🔧 Configuration
+  - 🔍 Attempting superuser creation
+  - 🏢 Attempting root tenant creation
+  - 🔗 Linking user to tenant
+  - ✅ Success messages
+  - ❌ Error messages
+
+**c) Verify Migrations**
+- Ensure migrations run before `create_super_tenant`
+- Check workflow order:
+  1. Pull code
+  2. Install dependencies
+  3. **Run migrations** ← Must happen first
+  4. Create super tenant
+  5. Collect static files
+
+### Debugging Commands
+
+```bash
+# 1. Test with maximum verbosity
+python manage.py create_super_tenant --verbosity 2
+
+# 2. Check if user exists
+python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); print(User.objects.filter(email='admin@meatscentral.com').exists())"
+
+# 3. Check if tenant exists
+python manage.py shell -c "from apps.tenants.models import Tenant; print(Tenant.objects.filter(slug='root').exists())"
+
+# 4. Verify user is superuser
+python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); u = User.objects.get(email='admin@meatscentral.com'); print(f'Superuser: {u.is_superuser}, Staff: {u.is_staff}')"
+
+# 5. Check tenant-user link
+python manage.py shell -c "from apps.tenants.models import TenantUser; print(TenantUser.objects.all().values('tenant__slug', 'user__email', 'role'))"
+
+# 6. Manually verify admin access
+curl http://localhost:8000/admin/
+# Should return Django admin login page HTML
+```
+
+### Best Practices for Troubleshooting
+
+1. **Always run with verbosity first**: `--verbosity 2` provides detailed insights
+2. **Check logs in order**:
+   - Configuration values (redacted passwords)
+   - User creation attempts
+   - Tenant creation attempts
+   - Linking attempts
+   - Final success/error messages
+3. **Verify environment variables** are loaded before running command
+4. **Test locally first** before deploying to UAT/production
+5. **Use atomic transactions**: Command wraps operations in `transaction.atomic()` for rollback on failure
+
+### Getting Help
+
+If issues persist:
+1. Run command with `--verbosity 2` and capture full output
+2. Check Django logs for additional error details
+3. Verify database state manually using Django shell
+4. Review GitHub Actions logs for deployment-specific issues
+5. Check that all migrations are applied: `python manage.py showmigrations`
+
 ### Command Not Found
 
 If `create_super_tenant` command is not found:

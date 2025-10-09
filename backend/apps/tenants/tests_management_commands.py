@@ -244,3 +244,76 @@ class CreateSuperTenantCommandTests(TestCase):
         output = out.getvalue()
         self.assertIn('already exists', output)
 
+    def test_handles_missing_env_vars(self):
+        """Test that command works even when env vars are missing."""
+        out = StringIO()
+        
+        # Ensure env vars are completely unset
+        with mock.patch.dict('os.environ', {}, clear=True):
+            # Should use defaults and not raise an error
+            call_command('create_super_tenant', stdout=out)
+        
+        # Check default credentials were used
+        self.assertTrue(
+            User.objects.filter(email='admin@meatscentral.com').exists()
+        )
+        user = User.objects.get(email='admin@meatscentral.com')
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.username, 'admin')
+
+    def test_verbosity_level_logging(self):
+        """Test that verbosity level 2 produces detailed logging."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_EMAIL': 'verbose@example.com',
+            'SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            call_command('create_super_tenant', stdout=out, verbosity=2)
+        
+        output = out.getvalue()
+        
+        # Check for detailed logging messages
+        self.assertIn('Configuration:', output)
+        self.assertIn('Email:', output)
+        self.assertIn('Username:', output)
+        self.assertIn('Attempting superuser creation', output)
+        self.assertIn('Attempting root tenant creation', output)
+        self.assertIn('Attempting to link superuser to tenant', output)
+
+    def test_uses_superuser_username_env_var(self):
+        """Test that SUPERUSER_USERNAME env var is used."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_USERNAME': 'customadmin',
+            'SUPERUSER_EMAIL': 'custom@example.com',
+            'SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            call_command('create_super_tenant', stdout=out)
+        
+        # Check custom username was used
+        self.assertTrue(User.objects.filter(username='customadmin').exists())
+        user = User.objects.get(username='customadmin')
+        self.assertEqual(user.email, 'custom@example.com')
+        self.assertTrue(user.is_superuser)
+
+    def test_create_superuser_method_used(self):
+        """Test that create_superuser method is used (password handling)."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_EMAIL': 'password@example.com',
+            'SUPERUSER_PASSWORD': 'complexpass456!'
+        }):
+            call_command('create_super_tenant', stdout=out)
+        
+        user = User.objects.get(email='password@example.com')
+        
+        # Password should be properly hashed
+        self.assertNotEqual(user.password, 'complexpass456!')
+        self.assertTrue(user.password.startswith('pbkdf2_sha256$'))
+        
+        # Password should be verifiable
+        self.assertTrue(user.check_password('complexpass456!'))
+
