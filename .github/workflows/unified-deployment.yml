@@ -122,6 +122,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: 📁 Ensure logs directory exists
+      working-directory: ./backend
+      run: mkdir -p logs
+
     - name: 🔧 Setup test environment
       working-directory: ./backend
       env:
@@ -251,6 +255,9 @@ jobs:
 
         echo "📦 Installing dependencies..."
         pip install -r requirements.txt
+
+        echo "📁 Ensuring logs directory exists..."
+        mkdir -p logs
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate
@@ -382,6 +389,9 @@ jobs:
         echo "📦 Installing dependencies..."
         pip install -r requirements.txt
 
+        echo "📁 Ensuring logs directory exists..."
+        mkdir -p logs
+
         echo "🗃️ Running database migrations..."
         python manage.py migrate
 
@@ -511,6 +521,9 @@ jobs:
 
         echo "📦 Installing dependencies..."
         pip install -r requirements.txt
+
+        echo "📁 Ensuring logs directory exists..."
+        mkdir -p logs
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate

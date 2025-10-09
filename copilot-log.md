@@ -561,3 +561,59 @@ The global exception handler now ensures:
 - Appropriate status codes are returned (400 for validation, 500 for server errors)
 - Error messages don't expose sensitive information
 - Stack traces are logged for debugging but not returned to clients
+
+## Task: Fix Deployment Error Due to Missing Logs Directory in CI Pipeline - [Date: 2025-10-09]
+
+### Actions Taken:
+1. **Analyzed the logging configuration issue:**
+   - Reviewed `backend/projectmeats/settings/base.py` logging configuration
+   - Identified file handlers writing to `BASE_DIR / "logs" / "django.log"` and `BASE_DIR / "logs" / "debug.log"`
+   - Confirmed logs directory doesn't exist and is in .gitignore (preventing git tracking)
+   - Reproduced FileNotFoundError by running `python manage.py check` without logs directory
+
+2. **Implemented dual fix approach (CI workflow + code-based):**
+   - **CI Workflow Fix**: Added `mkdir -p logs` step in `.github/workflows/unified-deployment.yml`
+     - Added in test-backend job before `python manage.py check` (line 125)
+     - Added in deploy-backend-development deployment script (line 259)
+     - Added in deploy-backend-staging deployment script (line 392)
+     - Added in deploy-backend-production deployment script (line 525)
+   - **Code-Based Fix**: Added `os.makedirs(BASE_DIR / "logs", exist_ok=True)` in `settings/base.py`
+     - Placed immediately before LOGGING configuration (line 165)
+     - Added reference to Python logging documentation
+     - Ensures portability across CI, local development, and production environments
+
+3. **Tested both fixes:**
+   - Removed logs directory and verified FileNotFoundError occurs
+   - Created logs directory manually and verified check passes
+   - Tested code-based fix by removing logs directory - automatic creation works
+   - Verified logs directory created with proper permissions
+
+### Misses/Failures:
+None. The implementation was straightforward once the root cause was identified.
+
+### Lessons Learned:
+1. **Logs directories need special handling**: Directories in .gitignore won't exist in fresh clones/CI environments
+2. **Dual approach is best for portability**: CI workflow fix ensures tests pass, code-based fix ensures local/production works
+3. **Python logging requires directories to exist**: FileHandler doesn't create parent directories automatically
+4. **Use exist_ok=True for idempotency**: Prevents errors if directory already exists
+5. **Document why code exists**: Added comment referencing Python docs helps future maintainers understand the necessity
+
+### Efficiency Suggestions:
+1. **Create logs/.gitkeep instead of mkdir**: Track an empty .gitkeep file in logs/ to ensure directory exists in git
+2. **Add CI check for missing directories**: Pre-flight check that validates required directories exist
+3. **Use environment-specific logging**: Consider different log locations for dev/staging/prod
+4. **Automated directory creation**: Create a management command to set up all required directories
+5. **Log to cloud services in production**: Consider using cloud logging services (CloudWatch, Stackdriver) instead of file handlers
+
+### Files Modified:
+1. `.github/workflows/unified-deployment.yml` - Added mkdir -p logs in 4 locations (test job + 3 deployment scripts)
+2. `backend/projectmeats/settings/base.py` - Added os.makedirs before LOGGING configuration
+
+### Impact:
+- ✅ CI pipeline will no longer fail with FileNotFoundError during test-backend job
+- ✅ Deployment scripts create logs directory before running Django commands
+- ✅ Local development automatically creates logs directory on first run
+- ✅ Production deployments handle logs directory creation properly
+- ✅ Minimal changes - only 13 lines added across 2 files
+- ✅ No changes to production runtime behavior (directory creation is fast and idempotent)
+
