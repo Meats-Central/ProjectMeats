@@ -75,3 +75,30 @@ This file tracks lessons learned, misses, and efficiency improvements for each t
   - Consider creating a workflow validation script to check for non-existent workflow references
   - Regularly audit and clean up abandoned prototype workflows
   - Document workflow relationships in a central location for easier maintenance
+
+## Task: Add status, created_at, and updated_at fields to Contact model - 2025-10-09
+
+- **Actions Taken**: 
+  - Added `status` field to Contact model using StatusChoices (active/inactive/archived)
+  - Added `created_at` and `updated_at` timestamp fields for consistency with newer models
+  - Updated ContactAdmin to display and filter by new fields
+  - Updated ContactSerializer to include new fields in API responses
+  - Created database migration (0004_contact_created_at_contact_status_contact_updated_at.py)
+  - Made new timestamp fields nullable to support existing data migration
+  - Maintained backward compatibility by keeping TimestampModel inheritance
+
+- **Misses/Failures**: 
+  - Initial migration failed because created_at/updated_at couldn't be added with auto_now_add to existing rows without a default
+  - Resolved by making the new timestamp fields nullable (null=True, blank=True)
+
+- **Lessons Learned**: 
+  - When adding DateTimeField with auto_now_add to existing models, must provide null=True or a default value
+  - The codebase has inconsistent timestamp naming: older models use created_on/modified_on (via TimestampModel), newer models use created_at/updated_at
+  - Can maintain both timestamp sets during transition period for backward compatibility
+  - Status field enables better contact management (active/inactive tracking)
+
+- **Efficiency Suggestions**: 
+  - Consider standardizing timestamp field names across the entire codebase in a future refactoring
+  - When adding fields to existing models, always consider migration implications for existing data
+  - Use nullable fields for non-critical additions to avoid migration complexity
+  - Follow the established pattern in newer models for consistency in new code
