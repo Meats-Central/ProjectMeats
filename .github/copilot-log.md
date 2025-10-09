@@ -49,3 +49,29 @@ This file tracks lessons learned, misses, and efficiency improvements for each t
   - When dealing with UNIQUE constraints, always look up by the constrained field first
   - For management commands, test with actual database to catch edge cases
   - Consider adding a database constraint diagram to documentation for quick reference
+## Task: Review and Remove deployment-failure-monitor.yml - 2025-01-28
+
+- **Actions Taken**: 
+  - Analyzed deployment-failure-monitor.yml workflow and its dependencies
+  - Determined that workflows "Deploy Frontend to UAT2 Staging" and "Deploy Backend to UAT2 Staging" don't exist
+  - Removed deployment-failure-monitor.yml (monitoring non-existent workflows)
+  - Removed test-deployment-failure.yml (test workflow for the removed monitor)
+  - Removed docs/reference/testing-deployment-monitor.md (testing instructions)
+  - Removed docs/reference/example-issue.md (example documentation)
+  - Updated docs/REPO_AUDIT_PLATFORM_CORE.md to reflect removed workflows
+  - Updated docs/README.md to remove references to deleted files
+
+- **Misses/Failures**: 
+  - None - thorough investigation revealed these workflows were never functional
+
+- **Lessons Learned**: 
+  - Always verify that workflow dependencies actually exist before assuming functionality
+  - GitHub Actions workflow_run triggers only work when the referenced workflow names match exactly
+  - Check git history to understand whether features were ever completed or were abandoned prototypes
+  - When removing files, also search for and update all documentation references
+
+- **Efficiency Suggestions**: 
+  - Before implementing monitoring workflows, ensure target workflows exist and names match
+  - Consider creating a workflow validation script to check for non-existent workflow references
+  - Regularly audit and clean up abandoned prototype workflows
+  - Document workflow relationships in a central location for easier maintenance

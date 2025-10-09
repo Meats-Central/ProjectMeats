@@ -49,8 +49,6 @@ docs/
 │   ├── cicd-infrastructure.md        # CI/CD infrastructure details
 │   └── database-backup.md            # Database backup workflow
 ├── reference/                         # Reference documentation
-│   ├── testing-deployment-monitor.md # Deployment monitoring testing
-│   └── example-issue.md              # Example generated issue
 ├── troubleshooting/                   # Troubleshooting guides
 ├── implementation-summaries/          # Feature implementation summaries
 │   ├── dashboard-enhancement.md      # Dashboard enhancements
@@ -129,7 +127,7 @@ If you find conflicting information:
 ### Naming Conventions
 - Use descriptive, kebab-case filenames (e.g., `deployment-guide.md`)
 - Keep implementation summaries in past tense (e.g., `dashboard-enhancement.md`)
-- Prefix test/example files clearly (e.g., `example-issue.md`)
+- Prefix test/example files clearly for temporary files
 
 ## 🆘 Need Help?
 
