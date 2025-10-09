@@ -368,8 +368,18 @@ const AccountsReceivables: React.FC = () => {
         due_date: '',
         status: 'pending',
       });
-    } catch (error) {
-      console.error('Error saving accounts receivable:', error);
+    } catch (error: any) {
+      // Log detailed error information
+      console.error('Error saving accounts receivable:', {
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data
+        } : 'No response data'
+      });
+      // Display user-friendly error to the UI
+      alert(`Failed to save accounts receivable: ${error.message || 'Please try again later'}`);
     }
   };
 

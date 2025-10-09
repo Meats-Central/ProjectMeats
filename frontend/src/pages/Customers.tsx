@@ -47,8 +47,18 @@ const Customers: React.FC = () => {
       setEditingCustomer(null);
       resetForm();
       fetchCustomers();
-    } catch (error) {
-      console.error('Error saving customer:', error);
+    } catch (error: any) {
+      // Log detailed error information
+      console.error('Error saving customer:', {
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data
+        } : 'No response data'
+      });
+      // Display user-friendly error to the UI
+      alert(`Failed to save customer: ${error.message || 'Please try again later'}`);
     }
   };
 
