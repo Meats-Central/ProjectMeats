@@ -159,6 +159,12 @@ SPECTACULAR_SETTINGS = {
     "SORT_OPERATIONS": False,
 }
 
+# Ensure logs directory exists for file handlers
+# Reference: https://docs.python.org/3/library/logging.html#logging.FileHandler
+# This ensures the logs directory is created before Django configures logging,
+# preventing FileNotFoundError in CI/CD environments and local development.
+os.makedirs(BASE_DIR / "logs", exist_ok=True)
+
 # Logging Configuration
 LOGGING = {
     "version": 1,
