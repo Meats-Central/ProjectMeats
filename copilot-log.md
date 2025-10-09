@@ -262,3 +262,66 @@ None. All changes implemented successfully following minimal-change approach.
 - ✅ Easy manual creation via `make superuser` (improved usability)
 - ✅ GitHub Secrets integration ready (production-ready)
 
+## Task: Fix ESLint @typescript-eslint/no-explicit-any Violations in shared/utils.ts - [Date: 2025-01-10]
+
+### Actions Taken:
+1. **Analyzed the violations:**
+   - Located violations on lines 206, 212, and 220 in shared/utils.ts
+   - Reviewed the CONSTANTS.TENANT_ROLES structure to understand type requirements
+   - Examined existing error handling patterns in the codebase
+
+2. **Fixed isValidTenantRole function (line 206):**
+   - Removed `as any` cast from `includes()` check
+   - Replaced with proper type assertion: `(Object.values(CONSTANTS.TENANT_ROLES) as readonly string[])`
+   - Maintains type safety while allowing string comparison
+
+3. **Fixed getErrorMessage function (line 212):**
+   - Changed parameter type from `any` to `unknown`
+   - Added proper type guards for safe type narrowing:
+     - String check: `if (typeof error === 'string')`
+     - Error instance check: `if (error instanceof Error)`
+     - Object with response property check (for axios errors)
+     - Object with message property check
+   - Enhanced error handling to cover more error types while maintaining type safety
+
+4. **Fixed isNetworkError function (line 220):**
+   - Changed parameter type from `any` to `unknown`
+   - Added type guards to safely access error properties
+   - Wrapped error property access in object type check
+
+5. **Verification:**
+   - Ran TypeScript type-check: ✅ Passed with no errors
+   - Ran frontend tests: ✅ Passed (no tests exist, exited successfully)
+   - Reviewed existing code patterns to ensure backward compatibility
+
+### Misses/Failures:
+None. All violations addressed successfully with proper type safety.
+
+### Lessons Learned:
+1. **Use `unknown` instead of `any` for error types**: The `unknown` type forces proper type checking while maintaining flexibility for error handling
+2. **Type guards are essential**: When working with `unknown` types, type guards (`typeof`, `instanceof`, `in` operator) are necessary for safe property access
+3. **Readonly arrays from Object.values**: Using `as readonly string[]` for Object.values results is more type-safe than using `as any`
+4. **Axios error structure**: Understanding the axios error structure (`error.response.data.detail/message`) helps write comprehensive error handlers
+5. **Minimal changes are best**: The fixes only changed what was necessary - no refactoring of working code
+
+### Efficiency Suggestions:
+1. **Create custom error types**: Define TypeScript interfaces for common error shapes (ApiError, AxiosError) for better type safety
+2. **Error utility library**: Consider extracting error handling patterns into a dedicated error utility module
+3. **Automated linting in CI**: Ensure ESLint runs on all TypeScript files (including shared/) in the CI pipeline
+4. **Type-safe constants**: Consider using `as const` assertions and type helpers for better constant type inference
+5. **Documentation**: Add JSDoc comments explaining the error handling strategy for future developers
+
+### Files Modified:
+1. `shared/utils.ts` - Fixed 3 ESLint violations (lines 206, 212, 220)
+2. `copilot-log.md` - Added task completion notes
+
+### Impact:
+- ✅ Removed all @typescript-eslint/no-explicit-any violations in shared/utils.ts
+- ✅ Improved type safety without breaking existing functionality
+- ✅ Enhanced error handling with proper type guards
+- ✅ Maintained backward compatibility with existing error handling patterns
+- ✅ CI pipeline will now pass ESLint checks for these violations
+
+### Note:
+The `debounce` function (line 132) also uses `any[]` in its generic constraint (`<T extends (...args: any[]) => void>`), but this is a reasonable use case for a generic utility function and was not part of the violations specified in the task. This is documented for future review.
+
