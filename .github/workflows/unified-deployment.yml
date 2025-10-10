@@ -306,9 +306,9 @@ jobs:
       run: |
         sshpass -e ssh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} << 'RESTART_SCRIPT'
         echo "🔄 Restarting backend services..."
-        sudo supervisorctl restart projectmeats-development
+        sudo systemctl restart gunicorn.service
         sleep 5
-        sudo supervisorctl status projectmeats-development
+        sudo systemctl status gunicorn.service
         sudo systemctl reload nginx
         echo "✅ Services restarted successfully!"
         RESTART_SCRIPT
@@ -462,9 +462,9 @@ jobs:
       run: |
         sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'RESTART_SCRIPT'
         echo "🔄 Restarting backend services..."
-        sudo supervisorctl restart projectmeats-staging
+        sudo systemctl restart gunicorn.service
         sleep 5
-        sudo supervisorctl status projectmeats-staging
+        sudo systemctl status gunicorn.service
         sudo systemctl reload nginx
         echo "✅ Services restarted successfully!"
         RESTART_SCRIPT
@@ -618,9 +618,9 @@ jobs:
       run: |
         sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'RESTART_SCRIPT'
         echo "🔄 Restarting production backend services..."
-        sudo supervisorctl restart projectmeats-production
+        sudo systemctl restart gunicorn.service
         sleep 10
-        sudo supervisorctl status projectmeats-production
+        sudo systemctl status gunicorn.service
         sudo systemctl reload nginx
         echo "✅ Production services restarted successfully!"
         RESTART_SCRIPT
@@ -1060,10 +1060,10 @@ jobs:
 
         echo "📦 Rolling back to previous version..."
 
-        sudo supervisorctl stop projectmeats-development
+        sudo systemctl stop gunicorn.service
         rm -rf backend
         mv backend_backup backend
-        sudo supervisorctl start projectmeats-development
+        sudo systemctl start gunicorn.service
         sleep 10
         sudo systemctl reload nginx
 
@@ -1102,10 +1102,10 @@ jobs:
 
         echo "📦 Rolling back to previous version..."
 
-        sudo supervisorctl stop projectmeats-staging
+        sudo systemctl stop gunicorn.service
         rm -rf backend
         mv backend_backup backend
-        sudo supervisorctl start projectmeats-staging
+        sudo systemctl start gunicorn.service
         sleep 10
         sudo systemctl reload nginx
 
@@ -1145,10 +1145,10 @@ jobs:
 
         echo "📦 Rolling back production to previous version..."
 
-        sudo supervisorctl stop projectmeats-production
+        sudo systemctl stop gunicorn.service
         rm -rf backend
         mv backend_backup backend
-        sudo supervisorctl start projectmeats-production
+        sudo systemctl start gunicorn.service
         sleep 15
         sudo systemctl reload nginx
 
