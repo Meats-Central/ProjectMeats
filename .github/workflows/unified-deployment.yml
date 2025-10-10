@@ -1031,7 +1031,7 @@ jobs:
   rollback-backend-development:
     name: Rollback Backend Development
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/development'
     environment: dev-backend
 
     steps:
@@ -1073,7 +1073,7 @@ jobs:
   rollback-backend-staging:
     name: Rollback Backend Staging
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/development'
     environment: uat2-backend
 
     steps:
@@ -1115,7 +1115,7 @@ jobs:
   rollback-backend-production:
     name: Rollback Backend Production
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/main'
     environment: prod2-backend
 
     steps:
@@ -1159,7 +1159,7 @@ jobs:
   rollback-frontend-development:
     name: Rollback Frontend Development
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/development'
     environment: dev-frontend
 
     steps:
@@ -1200,7 +1200,7 @@ jobs:
   rollback-frontend-staging:
     name: Rollback Frontend Staging
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/development'
     environment: uat2
 
     steps:
@@ -1241,7 +1241,7 @@ jobs:
   rollback-frontend-production:
     name: Rollback Frontend Production
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback' && github.ref == 'refs/heads/main'
     environment: prod2-frontend
 
     steps:
