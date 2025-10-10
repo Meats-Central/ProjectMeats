@@ -34,6 +34,7 @@ jobs:
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action != 'rollback'
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -1182,7 +1183,7 @@ jobs:
 
         echo "🔄 Starting Development frontend rollback..."
 
-        BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+        BACKUP_DIR=$(find /var/www/ProjectMeats/frontend -maxdepth 1 -type d -name "build.backup.*" 2>/dev/null | sort -r | head -n1)
 
         if [ -z "$BACKUP_DIR" ]; then
           echo "❌ No backup found for rollback!"
@@ -1223,7 +1224,7 @@ jobs:
 
         echo "🔄 Starting UAT Staging frontend rollback..."
 
-        BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+        BACKUP_DIR=$(find /var/www/ProjectMeats/frontend -maxdepth 1 -type d -name "build.backup.*" 2>/dev/null | sort -r | head -n1)
 
         if [ -z "$BACKUP_DIR" ]; then
           echo "❌ No backup found for rollback!"
@@ -1264,7 +1265,7 @@ jobs:
 
         echo "🚨 Starting EMERGENCY PRODUCTION frontend rollback..."
 
-        BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+        BACKUP_DIR=$(find /var/www/ProjectMeats/frontend -maxdepth 1 -type d -name "build.backup.*" 2>/dev/null | sort -r | head -n1)
 
         if [ -z "$BACKUP_DIR" ]; then
           echo "❌ No backup found for rollback!"
