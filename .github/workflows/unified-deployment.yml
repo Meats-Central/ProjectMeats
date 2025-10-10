@@ -261,6 +261,7 @@ jobs:
 
         echo "📁 Ensuring logs directory exists..."
         mkdir -p logs
+        chown -R django:www-data logs
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate
@@ -417,6 +418,7 @@ jobs:
 
         echo "📁 Ensuring logs directory exists..."
         mkdir -p logs
+        chown -R django:www-data logs
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate
@@ -573,6 +575,7 @@ jobs:
 
         echo "📁 Ensuring logs directory exists..."
         mkdir -p logs
+        chown -R django:www-data logs
 
         echo "🗃️ Running database migrations..."
         python manage.py migrate

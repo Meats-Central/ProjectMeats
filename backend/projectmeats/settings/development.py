@@ -81,9 +81,9 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Development-specific logging
-LOGGING["handlers"]["console"]["level"] = "DEBUG"
-LOGGING["loggers"]["django"]["level"] = "DEBUG"
-LOGGING["loggers"]["projectmeats"]["level"] = "DEBUG"
+# LOGGING["handlers"]["console"]["level"] = "DEBUG"
+# LOGGING["loggers"]["django"]["level"] = "DEBUG"
+# LOGGING["loggers"]["projectmeats"]["level"] = "DEBUG"
 
 # Remove file handler in development to avoid directory issues
 LOGGING["handlers"].pop("file", None)
