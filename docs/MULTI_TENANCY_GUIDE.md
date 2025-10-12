@@ -256,6 +256,203 @@ def my_view(request):
     suppliers = Supplier.objects.for_tenant(request.tenant)
 ```
 
+## ViewSet Patterns
+
+### Standard Tenant-Aware ViewSet
+
+All ViewSets that manage tenant-scoped data should follow this pattern:
+
+```python
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing suppliers."""
+    
+    queryset = Supplier.objects.all()
+    serializer_class = SupplierSerializer
+    permission_classes = [IsAuthenticated]  # Always require authentication
+
+    def get_queryset(self):
+        """Filter suppliers by current tenant."""
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return Supplier.objects.for_tenant(self.request.tenant)
+        return Supplier.objects.none()  # Return empty queryset if no tenant
+
+    def perform_create(self, serializer):
+        """Set the tenant when creating a new supplier."""
+        tenant = None
+        
+        # First, try to get tenant from middleware (request.tenant)
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        
+        # If middleware didn't set tenant, try to get user's default tenant
+        elif self.request.user and self.request.user.is_authenticated:
+            from apps.tenants.models import TenantUser
+            tenant_user = (
+                TenantUser.objects.filter(user=self.request.user, is_active=True)
+                .select_related('tenant')
+                .order_by('-role')  # Prioritize owner/admin roles
+                .first()
+            )
+            if tenant_user:
+                tenant = tenant_user.tenant
+        
+        # If still no tenant, raise error
+        if not tenant:
+            logger.error(
+                'Supplier creation attempted without tenant context',
+                extra={
+                    'user': self.request.user.username if self.request.user and self.request.user.is_authenticated else 'Anonymous',
+                    'has_request_tenant': hasattr(self.request, 'tenant'),
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            raise ValidationError('Tenant context is required to create a supplier.')
+        
+        serializer.save(tenant=tenant)
+
+    def create(self, request, *args, **kwargs):
+        """Create a new supplier with enhanced error handling."""
+        try:
+            return super().create(request, *args, **kwargs)
+        except DRFValidationError as e:
+            logger.error(
+                f'Validation error creating supplier: {str(e.detail)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            # Re-raise DRF validation errors to return 400
+            raise
+        except ValidationError as e:
+            logger.error(
+                f'Validation error creating supplier: {str(e)}',
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Validation failed', 'details': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(
+                f'Error creating supplier: {str(e)}',
+                exc_info=True,
+                extra={
+                    'request_data': request.data,
+                    'user': request.user.username if request.user else 'Anonymous',
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+            return Response(
+                {'error': 'Failed to create supplier', 'details': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+```
+
+### Key Pattern Elements
+
+1. **Authentication Required**: Use `permission_classes = [IsAuthenticated]` for all tenant-aware endpoints
+2. **Filtered Querysets**: `get_queryset()` returns data only for the current tenant
+3. **Tenant Fallback**: `perform_create()` tries multiple sources for tenant context:
+   - `request.tenant` (set by middleware)
+   - User's default tenant (from TenantUser association)
+   - ValidationError if no tenant found
+4. **Comprehensive Logging**: Log all tenant-related operations and errors
+5. **Error Handling**: Distinguish between DRF ValidationError (400) and other errors (500)
+
+### Tenant Resolution Order
+
+The tenant context is resolved in this order:
+
+1. **X-Tenant-ID Header** (highest priority)
+   - For explicit tenant selection in API requests
+   - Middleware validates user has access to this tenant
+   
+2. **Subdomain**
+   - For multi-tenant web applications
+   - Matches against `tenant.slug` field
+   
+3. **User's Default Tenant** (fallback)
+   - Automatically assigned in ViewSet's `perform_create()`
+   - Queries active TenantUser associations
+   - Prioritizes owner/admin roles
+
+### ViewSets with This Pattern
+
+All the following ViewSets implement this pattern:
+
+- `SupplierViewSet` (apps.suppliers.views)
+- `CustomerViewSet` (apps.customers.views)
+- `ContactViewSet` (apps.contacts.views)
+- `CarrierViewSet` (apps.carriers.views)
+- `PlantViewSet` (apps.plants.views)
+- `PurchaseOrderViewSet` (apps.purchase_orders.views)
+- `AccountsReceivableViewSet` (apps.accounts_receivables.views)
+
+### Creating New Tenant-Aware ViewSets
+
+When creating a new ViewSet for a tenant-aware model:
+
+1. Copy the pattern from `SupplierViewSet`
+2. Replace model name and serializer class
+3. Update logger messages with entity name
+4. Ensure model has `tenant` ForeignKey and `TenantManager`
+5. Add tests for tenant isolation
+
+```python
+# Example for a new "Product" model
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter products by current tenant."""
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return Product.objects.for_tenant(self.request.tenant)
+        return Product.objects.none()
+    
+    def perform_create(self, serializer):
+        """Set the tenant when creating a new product."""
+        tenant = None
+        
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        elif self.request.user and self.request.user.is_authenticated:
+            from apps.tenants.models import TenantUser
+            tenant_user = (
+                TenantUser.objects.filter(user=self.request.user, is_active=True)
+                .select_related('tenant')
+                .order_by('-role')
+                .first()
+            )
+            if tenant_user:
+                tenant = tenant_user.tenant
+        
+        if not tenant:
+            logger.error('Product creation attempted without tenant context', ...)
+            raise ValidationError('Tenant context is required to create a product.')
+        
+        serializer.save(tenant=tenant)
+```
+```
+
 ## Admin Configuration
 
 ### Superuser Access
