@@ -162,7 +162,7 @@ STAGING_SUPERUSER_PASSWORD=<secure-staging-password>
 Set as GitHub Secrets or deployment platform environment variables:
 ```bash
 PRODUCTION_SUPERUSER_USERNAME=admin
-PRODUCTION_SUPERUSER_EMAIL=admin@projectmeats.com
+PRODUCTION_SUPERUSER_EMAIL=admin@meatscentral.com
 PRODUCTION_SUPERUSER_PASSWORD=<secure-production-password>
 ```
 

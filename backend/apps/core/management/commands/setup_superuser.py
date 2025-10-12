@@ -75,6 +75,18 @@ class Command(BaseCommand):
             user = User.objects.get(username=username)
             user_existed = True
             
+            # Check for email mismatch and log a warning
+            if user.email != email:
+                logger.warning(
+                    f'Email mismatch detected for user {username}: '
+                    f'current={user.email}, new={email}. Updating to new email.'
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'⚠️  Email mismatch detected! Updating from {user.email} to {email}'
+                    )
+                )
+            
             # Always update the password
             user.set_password(password)
             # Update email in case it changed

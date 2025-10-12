@@ -24,6 +24,7 @@ help:
 	@echo "  make shell      - Open Django shell"
 	@echo "  make superuser  - Create/update superuser and root tenant"
 	@echo "  make sync-superuser - Sync superuser password from environment"
+	@echo "  make setup-superuser - Alias for sync-superuser"
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test       - Run all tests (backend + frontend)"
@@ -98,6 +99,9 @@ superuser:
 sync-superuser:
 	@echo "🔄 Syncing superuser password from environment..."
 	cd backend && DJANGO_ENV=development python manage.py setup_superuser
+
+# Alias for setup-superuser (for consistency with setup_superuser.py command)
+setup-superuser: sync-superuser
 
 # Testing commands
 test: test-backend test-frontend

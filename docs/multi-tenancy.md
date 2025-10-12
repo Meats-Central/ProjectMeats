@@ -1,5 +1,8 @@
 # Multi-Tenancy Guide
 
+> **📍 Consolidated Documentation**: This guide consolidates all superuser management and multi-tenancy documentation. 
+> The legacy `SUPERUSER_PASSWORD_SYNC_SUMMARY.md` file has been deprecated in favor of this comprehensive guide.
+
 ## Overview
 
 ProjectMeats implements a multi-tenancy architecture that allows multiple organizations (tenants) to use the same application instance while maintaining data isolation. This guide covers the multi-tenancy setup, configuration, and usage.

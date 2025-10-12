@@ -1,3 +1,16 @@
+# Superuser Password Sync Feature - DEPRECATED
+
+> **⚠️ DEPRECATED**: This document has been superseded and consolidated into the comprehensive [Multi-Tenancy Guide](docs/multi-tenancy.md).
+>
+> **Please refer to:**
+> - [docs/multi-tenancy.md](docs/multi-tenancy.md) - Complete superuser setup and management documentation
+> - [docs/environment-variables.md](docs/environment-variables.md) - Environment variable reference
+> - [README.md](README.md) - Quick start guide
+>
+> **This file is kept for historical reference only and will be archived in a future update.**
+
+---
+
 # Superuser Password Sync Feature - Implementation Summary
 
 ## Overview
