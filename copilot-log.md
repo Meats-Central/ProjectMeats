@@ -2,6 +2,71 @@
 
 This file tracks all tasks completed by GitHub Copilot, including actions taken, misses/failures, lessons learned, and efficiency suggestions.
 
+## Task: Fix Tenant Validation for Supplier Creation - [Date: 2025-10-12]
+
+### Actions Taken:
+1. **Analyzed the tenant validation issue:**
+   - Reviewed `SupplierViewSet.perform_create()` which raises `ValidationError` when `request.tenant` is None
+   - Examined `TenantMiddleware` which already sets `request.tenant` from X-Tenant-ID header, subdomain, or user's default tenant
+   - Identified that the issue occurs when middleware can't resolve a tenant (no header, no subdomain, user has no TenantUser)
+   - User model uses `TenantUser` many-to-many relationship, not a direct tenant field
+
+2. **Implemented automatic tenant assignment fallback:**
+   - Updated `SupplierViewSet.perform_create()` to try multiple sources for tenant:
+     1. First checks `request.tenant` (set by middleware)
+     2. Falls back to querying user's TenantUser association if middleware didn't set it
+     3. Only raises ValidationError if no tenant can be found
+   - Added enhanced logging to track tenant resolution attempts
+   - Maintains security by requiring authenticated users and valid TenantUser associations
+
+3. **Updated tests to reflect new behavior:**
+   - Modified `test_create_supplier_without_tenant` to test successful auto-assignment from user's default tenant
+   - Added new `test_create_supplier_without_tenant_and_no_tenant_user` to test failure when user has no TenantUser
+   - All 7 tests passing (6 original + 1 new)
+
+4. **Created test settings for local development:**
+   - Added `backend/projectmeats/settings/test.py` to use SQLite for faster local testing
+   - Allows running tests without PostgreSQL database connection
+
+### Misses/Failures:
+None. All changes implemented successfully with comprehensive test coverage.
+
+### Lessons Learned:
+1. **Middleware already does heavy lifting**: The TenantMiddleware was already well-designed to handle multiple tenant resolution strategies
+2. **Defense in depth**: Adding a fallback in the ViewSet provides additional safety when middleware can't resolve tenant
+3. **Test-driven development**: Running tests immediately revealed the impact of changes and guided the test updates
+4. **Multi-tenancy requires careful user association**: Users must have TenantUser records to create tenant-scoped resources
+5. **Logging context matters**: Enhanced logging with request details helps troubleshoot tenant resolution issues in production
+
+### Efficiency Suggestions:
+1. **Apply to other ViewSets**: The same fallback pattern could be applied to CustomerViewSet, ContactViewSet, etc.
+2. **Create base class**: Consider creating a `TenantAwareViewSet` base class with this logic built-in
+3. **Middleware enhancement**: Could add a warning log in middleware when tenant can't be resolved
+4. **User onboarding**: Consider auto-creating TenantUser when creating new users in certain contexts
+5. **Documentation**: Add developer guide section explaining tenant resolution order and fallbacks
+
+### Test Results:
+- ✅ 7 tests passing (6 original + 1 new)
+- ✅ Auto-assignment from user's default tenant works
+- ✅ Explicit X-Tenant-ID header still works
+- ✅ Validation still fails when user has no TenantUser
+- ✅ No regressions in existing functionality
+
+### Files Modified:
+1. `backend/apps/suppliers/views.py` - Enhanced `perform_create()` with tenant fallback logic
+2. `backend/apps/suppliers/tests.py` - Updated test expectations and added new test case
+3. `backend/projectmeats/settings/test.py` - Created for local testing with SQLite (NEW)
+
+### Impact:
+- ✅ Resolves "Tenant context is required" validation error when X-Tenant-ID header not provided
+- ✅ Improves user experience by auto-assigning tenant from user's association
+- ✅ Maintains multi-tenancy security by requiring valid TenantUser
+- ✅ Better error logging for troubleshooting tenant issues
+- ✅ Backward compatible with existing API clients using X-Tenant-ID header
+- ✅ Reduces API integration complexity for frontend/mobile clients
+
+---
+
 ## Task: Fix PostgreSQL NOT NULL Constraint Issues in Supplier Model - [Date: 2025-10-12]
 
 ### Actions Taken:

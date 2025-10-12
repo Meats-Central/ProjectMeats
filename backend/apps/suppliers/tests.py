@@ -89,13 +89,34 @@ class SupplierAPITests(APITestCase):
         self.assertEqual(Supplier.objects.count(), 0)
 
     def test_create_supplier_without_tenant(self):
-        """Test that creating a supplier without tenant context fails."""
+        """Test that creating a supplier without X-Tenant-ID header uses user's default tenant."""
         url = reverse("suppliers:supplier-list")
         data = {
             "name": "Test Supplier",
         }
 
-        # Don't send tenant header
+        # Don't send tenant header - should use user's default tenant from TenantUser
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Supplier.objects.count(), 1)
+        supplier = Supplier.objects.first()
+        self.assertEqual(supplier.tenant, self.tenant)  # Should use user's default tenant
+        
+    def test_create_supplier_without_tenant_and_no_tenant_user(self):
+        """Test that creating a supplier fails when user has no TenantUser association."""
+        # Create a new user with no TenantUser association
+        new_user = User.objects.create_user(
+            username="newuser", email="newuser@example.com", password="testpass123"
+        )
+        self.client.force_authenticate(user=new_user)
+        
+        url = reverse("suppliers:supplier-list")
+        data = {
+            "name": "Test Supplier",
+        }
+
+        # Don't send tenant header and user has no TenantUser
         response = self.client.post(url, data)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
