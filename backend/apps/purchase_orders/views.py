@@ -31,16 +31,37 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the tenant when creating a new purchase order."""
-        if not hasattr(self.request, 'tenant') or not self.request.tenant:
+        tenant = None
+        
+        # First, try to get tenant from middleware (request.tenant)
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        
+        # If middleware didn't set tenant, try to get user's default tenant
+        elif self.request.user and self.request.user.is_authenticated:
+            from apps.tenants.models import TenantUser
+            tenant_user = (
+                TenantUser.objects.filter(user=self.request.user, is_active=True)
+                .select_related('tenant')
+                .order_by('-role')  # Prioritize owner/admin roles
+                .first()
+            )
+            if tenant_user:
+                tenant = tenant_user.tenant
+        
+        # If still no tenant, raise error
+        if not tenant:
             logger.error(
                 'Purchase order creation attempted without tenant context',
                 extra={
-                    'user': self.request.user.username if self.request.user else 'Anonymous',
+                    'user': self.request.user.username if self.request.user and self.request.user.is_authenticated else 'Anonymous',
+                    'has_request_tenant': hasattr(self.request, 'tenant'),
                     'timestamp': timezone.now().isoformat()
                 }
             )
             raise ValidationError('Tenant context is required to create a purchase order.')
-        serializer.save(tenant=self.request.tenant)
+        
+        serializer.save(tenant=tenant)
 
     def create(self, request, *args, **kwargs):
         """Create a new purchase order with enhanced error handling."""
