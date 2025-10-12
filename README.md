@@ -6,7 +6,9 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 **📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
 
-**Prerequisites**: Python 3.9+, Node.js 16+, **PostgreSQL 12+**
+**Prerequisites**: Python 3.9+, Node.js 16+
+
+**Note**: Development environment temporarily uses SQLite (not PostgreSQL) due to Postgres server setup issues. This is a temporary measure to unblock deployments and will be reverted to PostgreSQL for environment parity once resolved. See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for details.
 
 ```bash
 # Option 1: Automated Setup (Recommended)
@@ -18,11 +20,9 @@ python config/manage_env.py setup development
 
 The automated setup script configures everything needed including authentication, database, and AI features. For advanced environment management, use the centralized configuration system detailed below.
 
-**Note**: Development environment now uses PostgreSQL (instead of SQLite) for environment parity with staging/production. See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for PostgreSQL setup instructions.
-
 ## 🏗️ Technology Stack
 
-- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL
+- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (Staging/Prod), SQLite (Dev - temporary)
 - **Frontend**: React 18.2.0 + TypeScript + Styled Components  
 - **AI Assistant**: OpenAI GPT-4 integration with modern Copilot-style interface
 - **Authentication**: Django User system with profile management

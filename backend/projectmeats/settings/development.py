@@ -28,19 +28,15 @@ ALLOWED_HOSTS = [
 
 
 # Database Configuration
-# Development now uses PostgreSQL to match staging/production environments
-# This prevents database-specific issues like IntegrityError discrepancies
+# TEMPORARY: Development uses SQLite for simplicity due to Postgres server not being set up
+# This is a temporary measure to unblock deployments - plan to revert to PostgreSQL
+# for environment parity with staging/production once Postgres is properly configured.
+# Note: This deviates from UAT/prod environments which use PostgreSQL.
 DATABASES = {
-    "default": dj_database_url.config(
-        default=config(
-            "DATABASE_URL",
-            default=f"postgresql://{config('DB_USER', default='projectmeats_dev')}:"
-            f"{config('DB_PASSWORD', default='devpassword')}@"
-            f"{config('DB_HOST', default='localhost')}:"
-            f"{config('DB_PORT', default='5432')}/"
-            f"{config('DB_NAME', default='projectmeats_dev')}"
-        )
-    )
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
 }
 
 # CORS Settings for React development server

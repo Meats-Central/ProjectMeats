@@ -4,9 +4,17 @@
 
 ProjectMeats supports deployment across three environments using a centralized configuration system:
 
-- **Development** - Local development with SQLite/PostgreSQL
+- **Development** - Local development with SQLite (temporary - see note below)
 - **Staging** - Pre-production testing with PostgreSQL and monitoring
 - **Production** - Full production deployment with high availability and monitoring
+
+### Important Note: Development Database Configuration
+
+**TEMPORARY**: The development environment currently uses SQLite instead of PostgreSQL due to Postgres server not being set up. This is a temporary measure to unblock deployments and resolve OperationalError issues. 
+
+**Plan**: We will revert to PostgreSQL for development once the Postgres server is properly configured to ensure environment parity with staging/production.
+
+**Contributors**: Be aware that this deviates from UAT/prod environments for now. When working on database-specific features, test thoroughly on staging/UAT before deploying to production.
 
 ## Prerequisites
 
@@ -19,8 +27,9 @@ ProjectMeats supports deployment across three environments using a centralized c
 ### Environment-Specific Requirements
 
 #### Development
-- PostgreSQL database server (for environment parity)
+- SQLite (built-in with Python, no additional setup required)
 - Local development tools
+- **Note**: Temporarily using SQLite instead of PostgreSQL for simplicity
 
 #### Staging/Production
 - PostgreSQL database server
@@ -80,32 +89,28 @@ python config/manage_env.py validate
 
 #### Development
 ```bash
+# TEMPORARY: Development now uses SQLite (no PostgreSQL setup needed)
+# When PostgreSQL is set up in the future, follow these steps instead:
 # 1. Install PostgreSQL locally
-# macOS:
-brew install postgresql
-brew services start postgresql
+#    macOS: brew install postgresql && brew services start postgresql
+#    Ubuntu/Debian: sudo apt-get install postgresql postgresql-contrib && sudo systemctl start postgresql
+# 2. Create database: createdb projectmeats_dev
+# 3. Create user: createuser -P projectmeats_dev (password: devpassword)
+# 4. Grant privileges: psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
 
-# Ubuntu/Debian:
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-sudo systemctl start postgresql
+# Current SQLite setup (no database server needed):
 
-# 2. Create PostgreSQL database and user
-createdb projectmeats_dev
-createuser -P projectmeats_dev  # Enter password: devpassword when prompted
-psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
-
-# 3. Install Python dependencies
+# 1. Install Python dependencies
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 4. Set up database migrations
+# 2. Set up database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 5. Create superuser and root tenant (uses environment variables)
+# 3. Create superuser and root tenant (uses environment variables)
 cd backend && python manage.py create_super_tenant && cd ..
 
-# 6. Start development servers
+# 4. Start development servers
 make dev
 ```
 
