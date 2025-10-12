@@ -2,6 +2,45 @@
 
 This file tracks all tasks completed by GitHub Copilot, including actions taken, misses/failures, lessons learned, and efficiency suggestions.
 
+## Task: Fix PostgreSQL NOT NULL Constraint Issues in Supplier Model - [Date: 2025-10-12]
+
+### Actions Taken:
+1. **Identified the root cause:**
+   - User reported "NOT NULL constraint failed: suppliers_supplier.account_line_of_credit" error
+   - Root cause: CharField fields in migrations 0002 and 0004 were created with `blank=True` but without `default=''`
+   - SQLite is lenient and allows this, but PostgreSQL strictly enforces NOT NULL constraints
+   
+2. **Created migration 0005_add_defaults_for_postgres_compatibility.py:**
+   - Added `default=''` to all CharField fields that had `blank=True` but no default
+   - Updated 16 CharField fields across the Supplier model:
+     - From migration 0002: country_origin, edible_inedible, how_to_book_pickup, origin, shipping_offered, street_address, type_of_certificate, type_of_plant
+     - From migration 0004: account_line_of_credit, accounting_payment_terms, credit_limits, departments, fresh_or_frozen, net_or_catch, package_type
+     - Deprecated fields: accounting_line_of_credit, accounting_terms
+   
+3. **Maintained model consistency:**
+   - All fields in models.py already had `default=''` defined
+   - Migration ensures database schema matches the model definition
+   - This prevents NOT NULL constraint failures when switching from SQLite to PostgreSQL
+
+### Misses/Failures:
+- **Initial oversight**: The original PostgreSQL switch PR (Task from 2025-10-09) didn't catch that existing migrations lacked default values
+- This was exposed when attempting to run migrations on a fresh PostgreSQL database
+- Should have run `makemigrations` after switching database backends to catch schema discrepancies
+
+### Lessons Learned:
+- **Database engine differences**: SQLite and PostgreSQL handle `blank=True` CharField fields differently
+  - SQLite: Allows NULL values implicitly even without `null=True`
+  - PostgreSQL: Requires explicit `default` or `null=True` for optional fields
+- **Migration best practices**: When adding CharField with `blank=True`, always include `default=''` to ensure cross-database compatibility
+- **Testing migrations**: Always test migrations on the target database engine (PostgreSQL) before deploying
+- **Environment parity validation**: When switching database engines, regenerate migrations or at minimum run `makemigrations --check` to verify schema compatibility
+
+### Efficiency Suggestions:
+- Add a pre-commit hook or CI check to ensure CharField fields with `blank=True` always have `default=''`
+- Create a migration linter that validates PostgreSQL compatibility
+- Document this pattern in CONTRIBUTING.md or development guidelines
+- Consider creating a custom CharField that automatically sets `default=''` when `blank=True`
+
 ## Task: Switch Development Environment from SQLite to PostgreSQL - [Date: 2025-10-09]
 
 ### Actions Taken:
