@@ -61,11 +61,13 @@ config/
 ### Environment Files
 
 #### Development (config/environments/development.env)
-- **Database**: PostgreSQL for local development (environment parity)
+- **Database**: SQLite for local development (temporary - see note below)
 - **Debug**: Enabled for development
 - **CORS**: Allows localhost origins
 - **Security**: Disabled for development ease
 - **AI Services**: Optional API keys
+
+**Note**: Development temporarily uses SQLite instead of PostgreSQL due to Postgres server setup issues. This will be reverted to PostgreSQL for environment parity once resolved.
 
 #### Staging (config/environments/staging.env)  
 - **Database**: PostgreSQL with environment variables
@@ -98,7 +100,7 @@ config/
 #### Database
 | Variable | Description | Development | Staging | Production |
 |----------|-------------|-------------|---------|-----------|
-| `DATABASE_URL` | Database connection | `postgresql://user:pass@localhost:5432/db` | PostgreSQL URL | PostgreSQL URL with pooling |
+| `DATABASE_URL` | Database connection | `sqlite:///db.sqlite3` (temporary) | PostgreSQL URL | PostgreSQL URL with pooling |
 
 #### Security & CORS
 | Variable | Description | Development | Staging | Production |
