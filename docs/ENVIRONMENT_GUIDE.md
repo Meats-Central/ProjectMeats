@@ -61,7 +61,7 @@ config/
 ### Environment Files
 
 #### Development (config/environments/development.env)
-- **Database**: SQLite for local development
+- **Database**: PostgreSQL for local development (environment parity)
 - **Debug**: Enabled for development
 - **CORS**: Allows localhost origins
 - **Security**: Disabled for development ease
@@ -98,7 +98,7 @@ config/
 #### Database
 | Variable | Description | Development | Staging | Production |
 |----------|-------------|-------------|---------|-----------|
-| `DATABASE_URL` | Database connection | `sqlite:///db.sqlite3` | PostgreSQL URL | PostgreSQL URL with pooling |
+| `DATABASE_URL` | Database connection | `postgresql://user:pass@localhost:5432/db` | PostgreSQL URL | PostgreSQL URL with pooling |
 
 #### Security & CORS
 | Variable | Description | Development | Staging | Production |
@@ -138,11 +138,16 @@ config/
 ## Deployment Guide
 
 ### Development Deployment
-1. **Setup**: `python config/manage_env.py setup development`
-2. **Install**: `pip install -r backend/requirements.txt && cd frontend && npm install`
-3. **Migrate**: `cd backend && python manage.py migrate`
-4. **Superuser**: `make superuser` (creates admin user from environment variables)
-5. **Run**: `make dev`
+1. **PostgreSQL Setup**: 
+   - Install PostgreSQL locally (see docs/DEPLOYMENT_GUIDE.md for OS-specific instructions)
+   - Create database: `createdb projectmeats_dev`
+   - Create user: `createuser -P projectmeats_dev` (password: devpassword)
+   - Grant privileges: `psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"`
+2. **Setup**: `python config/manage_env.py setup development`
+3. **Install**: `pip install -r backend/requirements.txt && cd frontend && npm install`
+4. **Migrate**: `cd backend && python manage.py migrate`
+5. **Superuser**: `make superuser` (creates admin user from environment variables)
+6. **Run**: `make dev`
 
 ### Staging Deployment
 1. **Environment Variables**: Set staging environment variables in your deployment system (including `STAGING_SUPERUSER_*` variables)

@@ -2,6 +2,89 @@
 
 This file tracks all tasks completed by GitHub Copilot, including actions taken, misses/failures, lessons learned, and efficiency suggestions.
 
+## Task: Fix PostgreSQL NOT NULL Constraint Issues in Supplier Model - [Date: 2025-10-12]
+
+### Actions Taken:
+1. **Identified the root cause:**
+   - User reported "NOT NULL constraint failed: suppliers_supplier.account_line_of_credit" error
+   - Root cause: CharField fields in migrations 0002 and 0004 were created with `blank=True` but without `default=''`
+   - SQLite is lenient and allows this, but PostgreSQL strictly enforces NOT NULL constraints
+   
+2. **Created migration 0005_add_defaults_for_postgres_compatibility.py:**
+   - Added `default=''` to all CharField fields that had `blank=True` but no default
+   - Updated 16 CharField fields across the Supplier model:
+     - From migration 0002: country_origin, edible_inedible, how_to_book_pickup, origin, shipping_offered, street_address, type_of_certificate, type_of_plant
+     - From migration 0004: account_line_of_credit, accounting_payment_terms, credit_limits, departments, fresh_or_frozen, net_or_catch, package_type
+     - Deprecated fields: accounting_line_of_credit, accounting_terms
+   
+3. **Maintained model consistency:**
+   - All fields in models.py already had `default=''` defined
+   - Migration ensures database schema matches the model definition
+   - This prevents NOT NULL constraint failures when switching from SQLite to PostgreSQL
+
+### Misses/Failures:
+- **Initial oversight**: The original PostgreSQL switch PR (Task from 2025-10-09) didn't catch that existing migrations lacked default values
+- This was exposed when attempting to run migrations on a fresh PostgreSQL database
+- Should have run `makemigrations` after switching database backends to catch schema discrepancies
+
+### Lessons Learned:
+- **Database engine differences**: SQLite and PostgreSQL handle `blank=True` CharField fields differently
+  - SQLite: Allows NULL values implicitly even without `null=True`
+  - PostgreSQL: Requires explicit `default` or `null=True` for optional fields
+- **Migration best practices**: When adding CharField with `blank=True`, always include `default=''` to ensure cross-database compatibility
+- **Testing migrations**: Always test migrations on the target database engine (PostgreSQL) before deploying
+- **Environment parity validation**: When switching database engines, regenerate migrations or at minimum run `makemigrations --check` to verify schema compatibility
+
+### Efficiency Suggestions:
+- Add a pre-commit hook or CI check to ensure CharField fields with `blank=True` always have `default=''`
+- Create a migration linter that validates PostgreSQL compatibility
+- Document this pattern in CONTRIBUTING.md or development guidelines
+- Consider creating a custom CharField that automatically sets `default=''` when `blank=True`
+
+## Task: Switch Development Environment from SQLite to PostgreSQL - [Date: 2025-10-09]
+
+### Actions Taken:
+1. **Updated backend/projectmeats/settings/development.py:**
+   - Changed DATABASES configuration from SQLite to PostgreSQL
+   - Used dj_database_url.config with PostgreSQL connection string
+   - Added individual DB connection parameters (DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME) as fallbacks
+   - Set sensible defaults: user=projectmeats_dev, password=devpassword, host=localhost, port=5432
+
+2. **Updated config/environments/development.env:**
+   - Changed DATABASE_URL from sqlite:///db.sqlite3 to postgresql connection string
+   - Added individual PostgreSQL parameters for flexibility
+   - Added comments explaining the environment parity rationale
+
+3. **Updated backend/.env.example:**
+   - Replaced SQLite configuration with PostgreSQL
+   - Added comprehensive setup instructions for PostgreSQL installation
+   - Included commands for macOS (brew) and Linux (apt-get) setup
+   - Documented database and user creation steps
+
+4. **Updated documentation files:**
+   - **docs/DEPLOYMENT_GUIDE.md**: Added PostgreSQL setup steps for development, updated environment-specific configurations
+   - **docs/ENVIRONMENT_GUIDE.md**: Updated database descriptions, deployment steps, and environment variable tables
+   - **README.md**: Added PostgreSQL 12+ to prerequisites and note about environment parity
+   - **config/README.md**: Updated development environment description
+
+5. **Verified PostgreSQL adapter:**
+   - Confirmed psycopg[binary]==3.2.9 is already in backend/requirements.txt
+
+### Misses/Failures:
+- None identified - all planned changes completed successfully
+- Did not test local migrations (would require PostgreSQL installation which is not available in this environment)
+
+### Lessons Learned:
+- Environment parity is crucial for preventing database-specific issues (e.g., IntegrityError differences between SQLite and PostgreSQL)
+- Using individual connection parameters (DB_USER, DB_HOST, etc.) as fallbacks provides better flexibility than DATABASE_URL alone
+- Clear setup documentation in .env.example significantly improves developer onboarding experience
+- The repository already had PostgreSQL adapter (psycopg) installed, showing good preparation
+
+### Efficiency Suggestions:
+- Consider adding a setup script that automates PostgreSQL database/user creation for new developers
+- Could add a docker-compose.yml for PostgreSQL to make local development even easier
+- May want to add a check in manage.py or settings to verify PostgreSQL is running before attempting connection
+
 ## Task: Standardize Superuser Secrets Naming and Make Username/Email Dynamic - [Date: 2025-10-09]
 
 ### Actions Taken:

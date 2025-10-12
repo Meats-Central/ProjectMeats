@@ -6,7 +6,7 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 **📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
 
-**Prerequisites**: Python 3.9+, Node.js 16+
+**Prerequisites**: Python 3.9+, Node.js 16+, **PostgreSQL 12+**
 
 ```bash
 # Option 1: Automated Setup (Recommended)
@@ -17,6 +17,8 @@ python config/manage_env.py setup development
 ```
 
 The automated setup script configures everything needed including authentication, database, and AI features. For advanced environment management, use the centralized configuration system detailed below.
+
+**Note**: Development environment now uses PostgreSQL (instead of SQLite) for environment parity with staging/production. See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for PostgreSQL setup instructions.
 
 ## 🏗️ Technology Stack
 

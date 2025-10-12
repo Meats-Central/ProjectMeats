@@ -19,7 +19,7 @@ ProjectMeats supports deployment across three environments using a centralized c
 ### Environment-Specific Requirements
 
 #### Development
-- SQLite (included with Python) or PostgreSQL (optional)
+- PostgreSQL database server (for environment parity)
 - Local development tools
 
 #### Staging/Production
@@ -80,17 +80,32 @@ python config/manage_env.py validate
 
 #### Development
 ```bash
-# Install dependencies
+# 1. Install PostgreSQL locally
+# macOS:
+brew install postgresql
+brew services start postgresql
+
+# Ubuntu/Debian:
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+sudo systemctl start postgresql
+
+# 2. Create PostgreSQL database and user
+createdb projectmeats_dev
+createuser -P projectmeats_dev  # Enter password: devpassword when prompted
+psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
+
+# 3. Install Python dependencies
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# Set up database
+# 4. Set up database migrations
 cd backend && python manage.py migrate && cd ..
 
-# Create superuser and root tenant (uses environment variables)
+# 5. Create superuser and root tenant (uses environment variables)
 cd backend && python manage.py create_super_tenant && cd ..
 
-# Start development servers
+# 6. Start development servers
 make dev
 ```
 
@@ -320,7 +335,7 @@ git subtree push --prefix backend heroku main
 ## Environment-Specific Configurations
 
 ### Development Configuration
-- **Database**: SQLite or local PostgreSQL
+- **Database**: PostgreSQL (for environment parity with staging/production)
 - **Debug**: Enabled
 - **Security**: Minimal (for development ease)
 - **CORS**: Localhost origins allowed
