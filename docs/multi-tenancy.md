@@ -516,6 +516,261 @@ python manage.py migrate
 python manage.py create_super_tenant
 ```
 
+## Troubleshooting Database Issues
+
+This section covers common database-related issues and their solutions, with a focus on readonly database errors.
+
+### Readonly Database Error
+
+**Symptoms:**
+- Error message: "attempt to write a readonly database"
+- Session creation/deletion failures
+- Unable to save models or run migrations
+
+**Common Causes:**
+
+1. **SQLite File Permissions (DEPRECATED - SQLite usage)**
+   - Database file lacks write permissions
+   - Directory containing database lacks write permissions
+   - File owned by different user
+
+2. **PostgreSQL User Permissions**
+   - Database user lacks `INSERT`, `UPDATE`, `DELETE` permissions
+   - Database is in read-only mode
+   - Connection user is different from database owner
+
+**Solutions:**
+
+#### For SQLite (DEPRECATED):
+
+```bash
+# Check current permissions
+ls -la db.sqlite3
+
+# Fix file permissions
+sudo chown $USER:$USER db.sqlite3
+chmod 664 db.sqlite3
+
+# Fix directory permissions
+sudo chown $USER:$USER .
+chmod 755 .
+```
+
+**Note:** SQLite is deprecated for development. Migrate to PostgreSQL for environment parity.
+
+#### For PostgreSQL:
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Grant all privileges on database
+GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO your_user;
+
+# Grant privileges on schema
+GRANT ALL PRIVILEGES ON SCHEMA public TO your_user;
+
+# Grant privileges on all tables
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_user;
+
+# Grant privileges on sequences (for auto-increment IDs)
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO your_user;
+
+# Exit psql
+\q
+```
+
+#### Verify Database Permissions:
+
+```bash
+# Test database connectivity
+python manage.py check --database default
+
+# Test write operations
+python manage.py shell
+>>> from django.contrib.auth.models import User
+>>> User.objects.count()
+>>> # Should return without error
+```
+
+### Session-Related Errors
+
+**Symptoms:**
+- "DatabaseError: database is locked" (SQLite)
+- "OperationalError: readonly database" during login/logout
+- Session middleware failures
+
+**Solutions:**
+
+1. **Check Session Backend Configuration:**
+```python
+# In settings.py, verify:
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Database sessions
+# Or
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'  # Cache sessions
+```
+
+2. **Clear Expired Sessions:**
+```bash
+python manage.py clearsessions
+```
+
+3. **Verify Database Permissions:**
+```bash
+# Check django_session table permissions
+python manage.py dbshell
+# For PostgreSQL:
+SELECT grantee, privilege_type FROM information_schema.role_table_grants 
+WHERE table_name='django_session';
+```
+
+### Connection Timeout Errors
+
+**Symptoms:**
+- "OperationalError: could not connect to server"
+- "timeout expired"
+- Intermittent database connection failures
+
+**Solutions:**
+
+1. **Increase Connection Timeout:**
+```python
+# In settings/development.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        # ... other settings ...
+        'OPTIONS': {
+            'connect_timeout': 10,  # Increase if needed
+        },
+    }
+}
+```
+
+2. **Verify Database Server:**
+```bash
+# Test PostgreSQL connection
+psql -U your_user -h your_host -d your_database
+
+# Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# Check PostgreSQL logs
+sudo tail -f /var/log/postgresql/postgresql-*.log
+```
+
+3. **Check Firewall Rules:**
+```bash
+# Allow PostgreSQL port (default 5432)
+sudo ufw allow 5432/tcp
+
+# Or for specific IP
+sudo ufw allow from <app-server-ip> to any port 5432
+```
+
+### Migration Failures
+
+**Symptoms:**
+- "django.db.utils.OperationalError" during migrations
+- "relation already exists"
+- "column does not exist"
+
+**Solutions:**
+
+1. **Check Migration Status:**
+```bash
+python manage.py showmigrations
+```
+
+2. **Rollback and Reapply:**
+```bash
+# Rollback last migration
+python manage.py migrate app_name previous_migration_name
+
+# Reapply
+python manage.py migrate
+```
+
+3. **Fake Migrations (if tables already exist):**
+```bash
+python manage.py migrate --fake-initial
+```
+
+### Performance Issues
+
+**Symptoms:**
+- Slow database queries
+- High database CPU usage
+- Connection pool exhaustion
+
+**Solutions:**
+
+1. **Enable Connection Pooling:**
+```python
+# Install psycopg2
+pip install psycopg2-binary
+
+# In settings/production.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        # ... other settings ...
+        'CONN_MAX_AGE': 600,  # Keep connections alive for 10 minutes
+    }
+}
+```
+
+2. **Optimize Queries:**
+```bash
+# Enable query logging
+# In settings.py, add to LOGGING configuration
+'loggers': {
+    'django.db.backends': {
+        'level': 'DEBUG',
+        'handlers': ['console'],
+    },
+}
+```
+
+3. **Add Database Indexes:**
+```python
+# In models.py
+class Meta:
+    indexes = [
+        models.Index(fields=['field_name']),
+    ]
+```
+
+### Security Best Practices
+
+Following OWASP and Django best practices for database security:
+
+1. **Use Environment Variables:**
+   - Never hard-code database credentials
+   - Store secrets in GitHub Secrets or secret management system
+   - Use different credentials per environment
+
+2. **Least Privilege Principle:**
+   - Grant only necessary database permissions
+   - Use separate database users for different services
+   - Restrict network access to database server
+
+3. **Connection Security:**
+   - Enable SSL/TLS for PostgreSQL connections in production
+   - Use certificate-based authentication when possible
+   - Restrict database connections to application servers only
+
+4. **Regular Maintenance:**
+   - Implement automated database backups
+   - Test backup restoration regularly
+   - Monitor database logs for suspicious activity
+   - Rotate database credentials periodically
+
+**References:**
+- [OWASP Database Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html)
+- [Django Database Best Practices](https://docs.djangoproject.com/en/stable/ref/databases/)
+- [PostgreSQL Security Documentation](https://www.postgresql.org/docs/current/security.html)
+
 ## Future Enhancements
 
 Planned improvements for multi-tenancy:

@@ -28,16 +28,40 @@ ALLOWED_HOSTS = [
 
 
 # Database Configuration
-# TEMPORARY: Development uses SQLite for simplicity due to Postgres server not being set up
-# This is a temporary measure to unblock deployments - plan to revert to PostgreSQL
-# for environment parity with staging/production once Postgres is properly configured.
-# Note: This deviates from UAT/prod environments which use PostgreSQL.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Development now uses PostgreSQL for environment parity with staging/production
+# Falls back to SQLite if PostgreSQL environment variables are not configured
+DB_ENGINE = config("DB_ENGINE", default="django.db.backends.sqlite3")
+
+if DB_ENGINE == "django.db.backends.postgresql":
+    # PostgreSQL configuration - requires all environment variables
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "HOST": config("DB_HOST"),
+            "PORT": config("DB_PORT", default="5432"),
+            "CONN_MAX_AGE": 0,  # Close connections after each request in development
+            "OPTIONS": {
+                "connect_timeout": 10,
+            },
+        }
     }
-}
+elif DB_ENGINE == "django.db.backends.sqlite3":
+    # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
+    # This is maintained for backward compatibility during migration period
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    raise ValueError(
+        f"Unsupported DB_ENGINE: {DB_ENGINE}. "
+        "Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'"
+    )
 
 # CORS Settings for React development server
 CORS_ALLOWED_ORIGINS = [

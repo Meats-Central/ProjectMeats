@@ -145,6 +145,24 @@ class TenantMiddleware:
                     f"No TenantUser association found: "
                     f"user={request.user.username}, tenant={tenant.slug}"
                 )
+            except Exception as e:
+                # Catch database errors (e.g., readonly database, connection issues)
+                logger.error(
+                    f"Database error when fetching TenantUser: "
+                    f"user={request.user.username}, tenant={tenant.slug}, "
+                    f"error={type(e).__name__}: {str(e)}"
+                )
 
-        response = self.get_response(request)
+        try:
+            response = self.get_response(request)
+        except Exception as e:
+            # Log session-related errors that may indicate readonly database
+            if "readonly" in str(e).lower() or "read-only" in str(e).lower():
+                logger.error(
+                    f"Readonly database error detected: "
+                    f"user={request.user.username if request.user.is_authenticated else 'Anonymous'}, "
+                    f"path={request.path}, error={type(e).__name__}: {str(e)}"
+                )
+            raise
+        
         return response
