@@ -61,9 +61,17 @@ Superusers have special privileges:
 ### Management Command: `create_super_tenant`
 
 The `create_super_tenant` management command automates the creation of:
-1. A superuser account
+1. A superuser account (or syncs password if user exists)
 2. A default "root" tenant
 3. The association between the superuser and root tenant
+
+**Password Sync Behavior:**
+- If the superuser doesn't exist, it will be created with the password from environment variables
+- If the superuser already exists, the password will be **updated/synced** from environment variables
+- Ensures all superuser flags (is_superuser, is_staff, is_active) are always set correctly
+- Secure password hashing via Django's `set_password()` method
+
+This ensures that password changes in GitHub Secrets or environment variables are automatically applied during deployment.
 
 #### Usage
 
@@ -111,11 +119,11 @@ make sync-superuser
 | Creates superuser | ✅ Yes | ✅ Yes |
 | Creates tenant | ✅ Yes | ❌ No |
 | Links to tenant | ✅ Yes | ❌ No |
-| Updates password on existing user | ❌ No (idempotent) | ✅ Yes (always syncs) |
+| Updates password on existing user | ✅ Yes (syncs from env) | ✅ Yes (always syncs) |
 | Updates email on existing user | ❌ No | ✅ Yes (always syncs) |
 | Dynamic username support | ❌ No | ✅ Yes |
-| Environment-specific variables | ❌ No | ✅ Yes |
-| Purpose | Initial tenant setup | Credential rotation/sync |
+| Environment-specific variables | ✅ Yes | ✅ Yes |
+| Purpose | Tenant setup + password sync | Credential rotation/sync |
 
 #### Configuration
 
@@ -171,16 +179,20 @@ PRODUCTION_SUPERUSER_PASSWORD=change_me_in_secrets
 
 ### Idempotency
 
-The `create_super_tenant` command is idempotent:
+Both commands are idempotent and safe to run multiple times:
+
+**`create_super_tenant` command behavior:**
 - ✅ Safe to run multiple times
 - ✅ Won't create duplicates
-- ✅ Won't overwrite existing data
+- ✅ **WILL update password** when user exists (syncs from environment)
 - ✅ Will link existing users to tenants if needed
+- ✅ Ensures superuser flags (is_superuser, is_staff, is_active) are always set
 
-The `setup_superuser` command behavior:
+**`setup_superuser` command behavior:**
 - ✅ Safe to run multiple times
 - ✅ Won't create duplicate users
 - ✅ **WILL update password** on every run (by design)
+- ✅ **WILL update email** on every run (by design)
 - ✅ Ideal for password rotation scenarios
 
 ## Deployment Integration
