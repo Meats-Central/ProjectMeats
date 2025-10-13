@@ -99,7 +99,6 @@ class Migration(migrations.Migration):
         ),
         migrations.CreateModel(
             name="ColdStorageEntry",
-            name="PurchaseOrderHistory",
             fields=[
                 (
                     "id",
