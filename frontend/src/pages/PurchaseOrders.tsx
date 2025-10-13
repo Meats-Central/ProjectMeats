@@ -422,9 +422,15 @@ const PurchaseOrders: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this purchase order?')) {
       try {
         await apiService.deletePurchaseOrder(id);
-        await loadPurchaseOrders();
-      } catch (error) {
+        alert('Purchase order deleted successfully!');
+        await loadPurchaseOrders(); // Re-fetch to update the list
+      } catch (error: any) {
         console.error('Error deleting purchase order:', error);
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.message 
+          || error?.message 
+          || 'Failed to delete purchase order';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

@@ -83,9 +83,15 @@ const Customers: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
         await apiService.deleteCustomer(id);
-        fetchCustomers();
-      } catch (error) {
+        alert('Customer deleted successfully!');
+        await fetchCustomers(); // Re-fetch to update the list
+      } catch (error: any) {
         console.error('Error deleting customer:', error);
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.message 
+          || error?.message 
+          || 'Failed to delete customer';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

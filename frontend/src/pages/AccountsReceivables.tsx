@@ -400,9 +400,15 @@ const AccountsReceivables: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this receivable?')) {
       try {
         await apiService.deleteAccountsReceivable(id);
-        await loadReceivables();
-      } catch (error) {
+        alert('Accounts receivable deleted successfully!');
+        await loadReceivables(); // Re-fetch to update the list
+      } catch (error: any) {
         console.error('Error deleting accounts receivable:', error);
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.message 
+          || error?.message 
+          || 'Failed to delete accounts receivable';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

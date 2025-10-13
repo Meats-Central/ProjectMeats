@@ -83,9 +83,15 @@ const Suppliers: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this supplier?')) {
       try {
         await apiService.deleteSupplier(id);
-        fetchSuppliers();
-      } catch (error) {
+        alert('Supplier deleted successfully!');
+        await fetchSuppliers(); // Re-fetch to update the list
+      } catch (error: any) {
         console.error('Error deleting supplier:', error);
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.message 
+          || error?.message 
+          || 'Failed to delete supplier';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

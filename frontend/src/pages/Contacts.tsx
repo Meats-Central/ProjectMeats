@@ -374,9 +374,15 @@ const Contacts: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       try {
         await apiService.deleteContact(id);
-        await loadContacts();
-      } catch (error) {
+        alert('Contact deleted successfully!');
+        await loadContacts(); // Re-fetch to update the list
+      } catch (error: any) {
         console.error('Error deleting contact:', error);
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.message 
+          || error?.message 
+          || 'Failed to delete contact';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };
