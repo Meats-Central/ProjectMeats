@@ -63,7 +63,7 @@ class CreateSuperTenantCommandTests(TestCase):
         self.assertIn('linked to root tenant', output)
 
     def test_idempotent_when_superuser_already_exists(self):
-        """Test that command is idempotent when superuser exists."""
+        """Test that command syncs password when superuser exists."""
         # Create existing superuser
         User.objects.create_superuser(
             username='admin',
@@ -82,13 +82,19 @@ class CreateSuperTenantCommandTests(TestCase):
         # Should only have one user
         self.assertEqual(User.objects.filter(email='test@example.com').count(), 1)
         
-        # Password should NOT be changed
+        # Password SHOULD be changed to sync with environment variable
         user = User.objects.get(email='test@example.com')
-        self.assertTrue(user.check_password('oldpass'))
+        self.assertTrue(user.check_password('newpass'))
+        self.assertFalse(user.check_password('oldpass'))
         
-        # Check output indicates existing user
+        # Ensure superuser flags are set
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_active)
+        
+        # Check output indicates password sync
         output = out.getvalue()
-        self.assertIn('already exists', output)
+        self.assertIn('synced/updated', output)
 
     def test_command_line_arguments_override_env_vars(self):
         """Test that command-line arguments override environment variables."""
@@ -262,6 +268,15 @@ class CreateSuperTenantCommandTests(TestCase):
         self.assertEqual(user.id, existing_user.id)
         self.assertEqual(user.email, 'different@example.com')  # Email should not change
         
+        # Password should be synced to the new password
+        self.assertTrue(user.check_password('newpass'))
+        self.assertFalse(user.check_password('existingpass'))
+        
+        # Superuser flags should be set
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_active)
+        
         # Tenant should be created
         self.assertTrue(Tenant.objects.filter(slug='root').exists())
         
@@ -271,9 +286,9 @@ class CreateSuperTenantCommandTests(TestCase):
             TenantUser.objects.filter(tenant=tenant, user=user).exists()
         )
         
-        # Check output indicates existing user
+        # Check output indicates password sync
         output = out.getvalue()
-        self.assertIn('already exists', output)
+        self.assertIn('synced/updated', output)
 
     def test_handles_missing_env_vars(self):
         """Test that command works even when env vars are missing."""
@@ -291,6 +306,48 @@ class CreateSuperTenantCommandTests(TestCase):
         user = User.objects.get(email='admin@meatscentral.com')
         self.assertTrue(user.is_superuser)
         self.assertEqual(user.username, 'admin')
+
+    def test_password_rotation_on_existing_user(self):
+        """Test that password can be rotated multiple times for existing user."""
+        # Create initial superuser
+        User.objects.create_superuser(
+            username='admin',
+            email='test@example.com',
+            password='password1'
+        )
+        
+        passwords = ['password2', 'password3', 'password4']
+        
+        for new_password in passwords:
+            out = StringIO()
+            
+            with mock.patch.dict('os.environ', {
+                'SUPERUSER_EMAIL': 'test@example.com',
+                'SUPERUSER_PASSWORD': new_password
+            }):
+                call_command('create_super_tenant', stdout=out)
+            
+            # Should only have one user
+            self.assertEqual(User.objects.filter(email='test@example.com').count(), 1)
+            
+            # Password should be updated to the new one
+            user = User.objects.get(email='test@example.com')
+            self.assertTrue(user.check_password(new_password))
+            
+            # Old passwords should not work
+            self.assertFalse(user.check_password('password1'))
+            for old_pass in passwords[:passwords.index(new_password)]:
+                self.assertFalse(user.check_password(old_pass))
+            
+            # Superuser flags should be maintained
+            self.assertTrue(user.is_superuser)
+            self.assertTrue(user.is_staff)
+            self.assertTrue(user.is_active)
+            
+            # Check output
+            output = out.getvalue()
+            self.assertIn('synced/updated', output)
+
 
     def test_verbosity_level_logging(self):
         """Test that verbosity level 2 produces detailed logging."""

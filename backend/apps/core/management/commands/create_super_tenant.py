@@ -182,8 +182,18 @@ class Command(BaseCommand):
                         self.style.SUCCESS(f'✅ Superuser created: {email}')
                     )
                 else:
+                    # Update password and ensure superuser flags are set
+                    user.set_password(password)
+                    user.is_superuser = True
+                    user.is_staff = True
+                    user.is_active = True
+                    user.save()
+                    
+                    if verbosity >= 2:
+                        self.stdout.write(f'   - Updated password for existing superuser')
+                    
                     self.stdout.write(
-                        self.style.WARNING(f'⚠️  Superuser already exists: {user.email}')
+                        self.style.SUCCESS(f'✅ Superuser password synced/updated: {user.email}')
                     )
                 
                 # Create root tenant if it doesn't exist
