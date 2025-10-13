@@ -236,49 +236,6 @@ Settings are loaded via `DJANGO_SETTINGS_MODULE` environment variable:
 - **Interactive Docs**: Available at `/api/schema/swagger-ui/`
 - **ReDoc**: Available at `/api/schema/redoc/`
 
-## Error Handling
-
-### Custom Exception Handler
-
-The application uses a custom exception handler (`apps.core.exceptions.exception_handler`) that provides:
-
-- **Centralized Error Logging**: All errors are logged with context (view, user, path)
-- **Consistent Response Format**: DRF-compatible JSON error responses
-- **Database Error Handling**: Special handling for database-related errors
-  - Read-only database detection with HTTP 503 responses
-  - Generic database errors with HTTP 500 responses
-  - Detailed logging for debugging and monitoring
-
-### Read-Only Database Protection
-
-Enhanced error handling for read-only database scenarios:
-
-- **Detection**: Identifies various readonly error messages
-  - "attempt to write a readonly database"
-  - "database is read-only"
-  - "database is in read only mode"
-- **Response**: Returns HTTP 503 (Service Unavailable) with clear message
-- **Logging**: Critical-level logging for monitoring and alerting
-- **Error Type**: Includes `error_type: 'readonly_database'` for client handling
-
-### TenantMiddleware Error Handling
-
-The TenantMiddleware includes robust error handling:
-
-- **Database Connection Errors**: Gracefully handles connection issues
-- **TenantUser Query Errors**: Logs errors without crashing the request
-- **Session Errors**: Detects and logs read-only database errors in authentication
-
-### Error Response Format
-
-```json
-{
-  "error": "Error Type",
-  "details": "Human-readable error message",
-  "error_type": "optional_classification"
-}
-```
-
 ## Multi-Tenancy Pattern
 
 ### Current Implementation
