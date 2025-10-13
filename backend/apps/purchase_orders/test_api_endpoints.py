@@ -4,7 +4,6 @@ Tests the 404 fix for purchase-orders endpoint.
 """
 import pytest
 from django.test import Client
-from django.urls import reverse
 from rest_framework import status
 
 
