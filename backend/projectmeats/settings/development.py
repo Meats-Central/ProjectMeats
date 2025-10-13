@@ -2,10 +2,14 @@
 Development settings for ProjectMeats.
 """
 import os
+import logging
 from decouple import config
 import dj_database_url
 
 from .base import *
+
+# Get logger for database configuration
+logger = logging.getLogger(__name__)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config(
@@ -30,7 +34,8 @@ ALLOWED_HOSTS = [
 # Database Configuration
 # Development now uses PostgreSQL for environment parity with staging/production
 # Falls back to SQLite if PostgreSQL environment variables are not configured
-DB_ENGINE = config("DB_ENGINE", default="django.db.backends.sqlite3")
+# Get DB_ENGINE with fallback for empty values
+DB_ENGINE = os.environ.get("DB_ENGINE", "").strip() or "django.db.backends.sqlite3"
 
 if DB_ENGINE == "django.db.backends.postgresql":
     # PostgreSQL configuration - requires all environment variables
@@ -58,10 +63,22 @@ elif DB_ENGINE == "django.db.backends.sqlite3":
         }
     }
 else:
-    raise ValueError(
-        f"Unsupported DB_ENGINE: {DB_ENGINE}. "
-        "Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'"
+    # Log invalid DB_ENGINE value for debugging
+    logger.error(
+        f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
+        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+        f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
     )
+    raise ValueError(
+        f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
+        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+        f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
+        f"or configure it in config/environments/development.env. "
+        f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
+    )
+
+# Log which database backend is being used
+logger.info(f"Development environment using database backend: {DB_ENGINE}")
 
 # CORS Settings for React development server
 CORS_ALLOWED_ORIGINS = [
