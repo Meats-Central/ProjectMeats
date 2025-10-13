@@ -341,9 +341,17 @@ class CreateSuperTenantCommandTests(TestCase):
         
         user = User.objects.get(email='password@example.com')
         
-        # Password should be properly hashed
+        # Password should be properly hashed (not stored as plain text)
         self.assertNotEqual(user.password, 'complexpass456!')
-        self.assertTrue(user.password.startswith('pbkdf2_sha256$'))
+        # Password should start with a hash algorithm identifier
+        # In test settings, we use MD5 for speed; in production we use PBKDF2
+        self.assertTrue(
+            user.password.startswith('pbkdf2_sha256$') or 
+            user.password.startswith('md5$') or
+            user.password.startswith('argon2') or
+            user.password.startswith('bcrypt'),
+            f'Password does not appear to be hashed: {user.password[:20]}'
+        )
         
         # Password should be verifiable
         self.assertTrue(user.check_password('complexpass456!'))

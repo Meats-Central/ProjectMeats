@@ -328,6 +328,10 @@ jobs:
         python manage.py setup_superuser
 
         echo "👤 Creating superuser and root tenant..."
+        DJANGO_ENV=development \
+        DEVELOPMENT_SUPERUSER_USERNAME="${DEVELOPMENT_SUPERUSER_USERNAME}" \
+        DEVELOPMENT_SUPERUSER_EMAIL="${DEVELOPMENT_SUPERUSER_EMAIL}" \
+        DEVELOPMENT_SUPERUSER_PASSWORD="${DEVELOPMENT_SUPERUSER_PASSWORD}" \
         python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."
@@ -502,6 +506,10 @@ jobs:
         python manage.py setup_superuser --verbosity 3
 
         echo "👤 Creating superuser and root tenant..."
+        DJANGO_ENV=staging \
+        STAGING_SUPERUSER_USERNAME="${STAGING_SUPERUSER_USERNAME}" \
+        STAGING_SUPERUSER_EMAIL="${STAGING_SUPERUSER_EMAIL}" \
+        STAGING_SUPERUSER_PASSWORD="${STAGING_SUPERUSER_PASSWORD}" \
         python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."
@@ -659,6 +667,10 @@ jobs:
         python manage.py setup_superuser
 
         echo "👤 Creating superuser and root tenant..."
+        DJANGO_ENV=production \
+        PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
+        PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
+        PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
         python manage.py create_super_tenant --verbosity 2
 
         echo "📁 Collecting static files..."

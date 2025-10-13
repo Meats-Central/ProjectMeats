@@ -45,10 +45,38 @@ class Command(BaseCommand):
         # Get verbosity level
         verbosity = options.get('verbosity', 1)
         
-        # Get credentials from command-line arguments or environment variables
-        email = options.get('email') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
-        password = options.get('password') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
-        username = options.get('username') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+        # Determine environment and load appropriate credentials
+        django_env = os.getenv('DJANGO_ENV', 'development')
+        is_test_context = 'test' in django_env.lower() or os.getenv('DJANGO_SETTINGS_MODULE', '').endswith('test')
+        
+        if verbosity >= 2:
+            self.stdout.write(f'🌍 Running in environment: {django_env} (test_context={is_test_context})')
+        
+        # Get credentials from command-line arguments or environment-specific variables
+        # Command-line arguments take precedence
+        if options.get('email') or options.get('password') or options.get('username'):
+            email = options.get('email') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+            password = options.get('password') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+            username = options.get('username') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+        else:
+            # Use environment-specific variables with fallback to generic SUPERUSER_* vars
+            if django_env == 'development':
+                email = os.getenv('DEVELOPMENT_SUPERUSER_EMAIL') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                password = os.getenv('DEVELOPMENT_SUPERUSER_PASSWORD') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+                username = os.getenv('DEVELOPMENT_SUPERUSER_USERNAME') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+            elif django_env in ['staging', 'uat']:
+                email = os.getenv('STAGING_SUPERUSER_EMAIL') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                password = os.getenv('STAGING_SUPERUSER_PASSWORD') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+                username = os.getenv('STAGING_SUPERUSER_USERNAME') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+            elif django_env == 'production':
+                email = os.getenv('PRODUCTION_SUPERUSER_EMAIL') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                password = os.getenv('PRODUCTION_SUPERUSER_PASSWORD') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+                username = os.getenv('PRODUCTION_SUPERUSER_USERNAME') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+            else:
+                # Fallback for unknown environments or test contexts
+                email = os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                password = os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+                username = os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
         
         if verbosity >= 2:
             self.stdout.write('🔧 Configuration:')
