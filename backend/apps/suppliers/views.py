@@ -1,13 +1,30 @@
 """
 Suppliers views for ProjectMeats.
 
-Provides REST API endpoints for supplier management.
+Provides REST API endpoints for supplier management with multi-tenant isolation.
+
+SECURITY MODEL:
+===============
+Development (DEBUG=True):
+    - Authentication is OPTIONAL to allow easier local testing
+    - Automatically creates a "Development Tenant" for unauth requests
+    - Returns all suppliers regardless of tenant context
+    - ⚠️ WARNING: This is intentionally insecure for development convenience
+
+Production/Staging (DEBUG=False):
+    - Authentication is REQUIRED (IsAuthenticated permission)
+    - Tenant context is MANDATORY from middleware or user association
+    - Strict tenant isolation enforced
+    - ✅ SECURE: Proper multi-tenant data isolation
+
+IMPORTANT: The DEBUG setting controls this behavior. Never set DEBUG=True in production.
 """
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from apps.suppliers.models import Supplier
 from apps.suppliers.serializers import SupplierSerializer
 import logging
@@ -17,20 +34,102 @@ logger = logging.getLogger(__name__)
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing suppliers."""
+    """
+    ViewSet for managing suppliers with environment-aware security.
+    
+    Authentication and permissions are dynamically configured based on DEBUG setting:
+    - DEBUG=True (dev): No auth required, auto-creates development tenant
+    - DEBUG=False (prod/staging): Auth required, strict tenant isolation
+    """
 
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_authenticators(self):
+        """
+        Control authentication requirements based on environment.
+        
+        Development (DEBUG=True):
+            Returns empty list to bypass authentication entirely.
+            This allows frontend to make requests without valid tokens.
+            
+        Production (DEBUG=False):
+            Uses default authenticators (SessionAuthentication, TokenAuthentication).
+            All requests must have valid authentication credentials.
+            
+        Returns:
+            list: Empty list in development, default authenticators in production
+        """
+        if settings.DEBUG:
+            logger.debug('Development mode: Authentication disabled for supplier endpoints')
+            return []
+        return super().get_authenticators()
+    
+    def get_permissions(self):
+        """
+        Control permission requirements based on environment.
+        
+        Development (DEBUG=True):
+            AllowAny permission - no restrictions
+            
+        Production (DEBUG=False):
+            IsAuthenticated permission - must be logged in
+            
+        Returns:
+            list: Permission classes for this viewset
+        """
+        if settings.DEBUG:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter suppliers by current tenant."""
+        """
+        Filter suppliers by tenant with environment-aware behavior.
+        
+        Tenant Resolution Order:
+        1. request.tenant (set by TenantMiddleware)
+        2. User's default tenant (from TenantUser relationship)
+        3. Development fallback (all suppliers) if DEBUG=True
+        4. Empty queryset if no tenant found and DEBUG=False
+        
+        Development (DEBUG=True):
+            Returns all suppliers without tenant filtering for easier testing.
+            
+        Production (DEBUG=False):
+            Strictly enforces tenant isolation. Returns empty queryset if no tenant context.
+            
+        Returns:
+            QuerySet: Filtered supplier queryset
+        """
+        # Primary: Use tenant from middleware
         if hasattr(self.request, 'tenant') and self.request.tenant:
             return Supplier.objects.for_tenant(self.request.tenant)
+        
+        # Development fallback: Return all suppliers
+        if settings.DEBUG:
+            logger.debug('Development mode: returning all suppliers (no tenant filtering)')
+            return Supplier.objects.all()
+        
+        # Production: No tenant = no data (security)
+        logger.warning('No tenant context available for authenticated request')
         return Supplier.objects.none()
 
     def perform_create(self, serializer):
-        """Set the tenant when creating a new supplier."""
+        """
+        Set the tenant when creating a new supplier.
+        
+        Tenant Resolution Strategy:
+        1. Use request.tenant from TenantMiddleware
+        2. Use user's default tenant from TenantUser association
+        3. (Dev only) Auto-create "Development Tenant" if DEBUG=True
+        4. (Prod) Raise ValidationError if no tenant found
+        
+        Args:
+            serializer: Validated serializer instance
+            
+        Raises:
+            ValidationError: If no tenant context is available (production only)
+        """
         tenant = None
         
         # First, try to get tenant from middleware (request.tenant)
@@ -49,19 +148,44 @@ class SupplierViewSet(viewsets.ModelViewSet):
             if tenant_user:
                 tenant = tenant_user.tenant
         
-        # If still no tenant, raise error
+        # Development mode: Auto-create a default tenant for convenience
+        # ⚠️ WARNING: This is intentionally insecure and only runs when DEBUG=True
+        if not tenant and settings.DEBUG:
+            from apps.tenants.models import Tenant
+            # Get or create a development tenant (slug-based lookup for idempotency)
+            tenant, created = Tenant.objects.get_or_create(
+                slug='development',
+                defaults={
+                    'name': 'Development Tenant',
+                    'contact_email': 'dev@projectmeats.local',
+                    'is_active': True,
+                    'is_trial': True,
+                }
+            )
+            if created:
+                logger.info(f'✅ Auto-created development tenant: {tenant.name} ({tenant.slug})')
+            else:
+                logger.debug(f'♻️  Using existing development tenant: {tenant.name} ({tenant.slug})')
+        
+        # Production: Require tenant or fail
+        # This ensures proper multi-tenant isolation in production environments
         if not tenant:
+            error_message = 'Tenant context is required to create a supplier. Please ensure you are associated with a tenant.'
             logger.error(
                 'Supplier creation attempted without tenant context',
                 extra={
                     'user': self.request.user.username if self.request.user and self.request.user.is_authenticated else 'Anonymous',
                     'has_request_tenant': hasattr(self.request, 'tenant'),
-                    'timestamp': timezone.now().isoformat()
+                    'is_authenticated': self.request.user.is_authenticated if hasattr(self.request, 'user') else False,
+                    'timestamp': timezone.now().isoformat(),
+                    'DEBUG': settings.DEBUG,
                 }
             )
-            raise ValidationError('Tenant context is required to create a supplier.')
+            raise ValidationError(error_message)
         
+        # Save with tenant association
         serializer.save(tenant=tenant)
+        logger.info(f'Created supplier: {serializer.data.get("company_name")} for tenant: {tenant.name}')
 
     def create(self, request, *args, **kwargs):
         """Create a new supplier with enhanced error handling."""
