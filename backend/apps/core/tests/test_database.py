@@ -39,8 +39,7 @@ class DatabaseConnectivityTest(TestCase):
         """Test that database supports write operations."""
         # Create a test protein
         protein = Protein.objects.create(
-            name="Test Beef",
-            protein_type="beef"
+            name="Test Beef"
         )
         
         # Verify it was created
@@ -67,8 +66,7 @@ class DatabaseConnectivityTest(TestCase):
         try:
             with transaction.atomic():
                 Protein.objects.create(
-                    name="Rollback Test",
-                    protein_type="beef"
+                    name="Rollback Test Protein"
                 )
                 # Force rollback by raising exception
                 raise Exception("Test rollback")
@@ -82,7 +80,7 @@ class DatabaseConnectivityTest(TestCase):
         """Test that database handles concurrent write operations."""
         # Create multiple proteins in rapid succession
         proteins = [
-            Protein(name=f"Concurrent Test {i}", protein_type="beef")
+            Protein(name=f"Concurrent Test {i}")
             for i in range(5)
         ]
         

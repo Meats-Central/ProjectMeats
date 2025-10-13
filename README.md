@@ -6,9 +6,7 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 **📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
 
-**Prerequisites**: Python 3.9+, Node.js 16+
-
-**Note**: Development environment temporarily uses SQLite (not PostgreSQL) due to Postgres server setup issues. This is a temporary measure to unblock deployments and will be reverted to PostgreSQL for environment parity once resolved. See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for details.
+**Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+ (recommended) or SQLite (fallback)
 
 ```bash
 # Option 1: Automated Setup (Recommended)
@@ -22,7 +20,7 @@ The automated setup script configures everything needed including authentication
 
 ## 🏗️ Technology Stack
 
-- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (Staging/Prod), SQLite (Dev - temporary)
+- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (recommended) or SQLite (fallback)
 - **Frontend**: React 18.2.0 + TypeScript + Styled Components  
 - **AI Assistant**: OpenAI GPT-4 integration with modern Copilot-style interface
 - **Authentication**: Django User system with profile management
@@ -66,17 +64,38 @@ ProjectMeats3/
 
 ### Recommended Setup (Centralized Configuration)
 ```bash
+# 0. Set up PostgreSQL (recommended for environment parity)
+# Option A: Install PostgreSQL locally
+# macOS: brew install postgresql
+# Ubuntu: sudo apt-get install postgresql postgresql-contrib
+# Windows: Download from https://www.postgresql.org/download/windows/
+
+# Option B: Use Docker
+# docker run --name projectmeats-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
+
 # 1. Set up environment using centralized configuration
 python config/manage_env.py setup development
 
-# 2. Install dependencies  
+# 2. Configure database (edit config/environments/development.env)
+# For PostgreSQL:
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=projectmeats_dev
+# DB_USER=postgres
+# DB_PASSWORD=postgres
+# DB_HOST=localhost
+# DB_PORT=5432
+#
+# For SQLite (fallback):
+# DB_ENGINE=django.db.backends.sqlite3
+
+# 3. Install dependencies  
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 3. Run database migrations
+# 4. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 4. Start development servers
+# 5. Start development servers
 make dev
 ```
 
