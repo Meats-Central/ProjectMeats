@@ -308,9 +308,35 @@ Repository: ProjectMeats
 | `SSH_PASSWORD` | SSH password for staging server | `your-secure-password` |
 
 **Environment Secrets for `uat2-backend`:**
-| Secret Name | Description | Example Value |
-|-------------|-------------|---------------|
-| `STAGING_API_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` |
+| Secret Name | Description | Example Value | Required |
+|-------------|-------------|---------------|----------|
+| `STAGING_API_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` | ✅ Yes |
+| `STAGING_SUPERUSER_USERNAME` | Admin username for staging | `admin` | ✅ Yes |
+| `STAGING_SUPERUSER_EMAIL` | Admin email for staging | `admin@yourdomain.com` | ✅ Yes |
+| `STAGING_SUPERUSER_PASSWORD` | Admin password for staging | `SecurePassword123!` | ✅ Yes |
+| `STAGING_SECRET_KEY` | Django secret key | Generate with `get_random_secret_key()` | ✅ Yes |
+| `STAGING_DB_USER` | PostgreSQL database username | `projectmeats_staging` | ✅ Yes |
+| `STAGING_DB_PASSWORD` | PostgreSQL database password | `db_secure_password` | ✅ Yes |
+| `STAGING_DB_HOST` | PostgreSQL database host | `localhost` or `db.yourdomain.com` | ✅ Yes |
+| `STAGING_DB_PORT` | PostgreSQL database port | `5432` | ✅ Yes |
+| `STAGING_DB_NAME` | PostgreSQL database name | `projectmeats_staging` | ✅ Yes |
+| `STAGING_DOMAIN` | Main staging domain | `uat.yourdomain.com` | ✅ Yes |
+| `STAGING_API_DOMAIN` | API staging domain | `uat-api.yourdomain.com` | ✅ Yes |
+| `STAGING_FRONTEND_DOMAIN` | Frontend staging domain | `uat.yourdomain.com` | ✅ Yes |
+| `STAGING_OPENAI_API_KEY` | OpenAI API key | `sk-...` | ⚪ Optional |
+| `STAGING_ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` | ⚪ Optional |
+| `STAGING_EMAIL_HOST` | SMTP server hostname | `smtp.gmail.com` | ⚪ Optional |
+| `STAGING_EMAIL_USER` | SMTP username | `noreply@yourdomain.com` | ⚪ Optional |
+| `STAGING_EMAIL_PASSWORD` | SMTP password | `email_password` | ⚪ Optional |
+| `STAGING_REDIS_HOST` | Redis server host | `localhost` | ⚪ Optional |
+| `STAGING_REDIS_PORT` | Redis server port | `6379` | ⚪ Optional |
+| `STAGING_SENTRY_DSN` | Sentry error tracking DSN | `https://...@sentry.io/...` | ⚪ Optional |
+
+**⚠️ Important Notes for Staging Secrets:**
+1. **Currently Implemented**: The GitHub Actions workflow currently only passes `STAGING_SUPERUSER_*` credentials to the deployment script
+2. **Requires Workflow Update**: To use the database and other secrets listed above, the workflow file `.github/workflows/unified-deployment.yml` must be updated to export these environment variables during the deployment step (similar to how Development deployment handles `DEVELOPMENT_DB_*` variables)
+3. **Server Configuration**: In the meantime, these variables must be manually configured on the staging server's environment (e.g., in `/etc/environment`, systemd service files, or shell profile)
+4. **Alignment**: The `config/environments/staging.env` file uses placeholder syntax (e.g., `${STAGING_DB_USER}`) that matches these secret names for consistency
 
 **Environment Secrets for `uat2` (staging frontend):**
 | Secret Name | Description | Example Value |
@@ -385,6 +411,26 @@ Use this checklist when setting up a new environment:
 
 **Environment: uat2-backend**
 - [ ] `STAGING_API_URL`
+- [ ] `STAGING_SUPERUSER_USERNAME`
+- [ ] `STAGING_SUPERUSER_EMAIL`
+- [ ] `STAGING_SUPERUSER_PASSWORD`
+- [ ] `STAGING_SECRET_KEY`
+- [ ] `STAGING_DB_USER`
+- [ ] `STAGING_DB_PASSWORD`
+- [ ] `STAGING_DB_HOST`
+- [ ] `STAGING_DB_PORT`
+- [ ] `STAGING_DB_NAME`
+- [ ] `STAGING_DOMAIN`
+- [ ] `STAGING_API_DOMAIN`
+- [ ] `STAGING_FRONTEND_DOMAIN`
+- [ ] `STAGING_OPENAI_API_KEY` (optional)
+- [ ] `STAGING_ANTHROPIC_API_KEY` (optional)
+- [ ] `STAGING_EMAIL_HOST` (optional)
+- [ ] `STAGING_EMAIL_USER` (optional)
+- [ ] `STAGING_EMAIL_PASSWORD` (optional)
+- [ ] `STAGING_REDIS_HOST` (optional)
+- [ ] `STAGING_REDIS_PORT` (optional)
+- [ ] `STAGING_SENTRY_DSN` (optional)
 
 **Environment: uat2**
 - [ ] `STAGING_URL`
