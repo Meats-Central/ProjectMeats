@@ -219,6 +219,20 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.DEV_HOST }} >> ~/.ssh/known_hosts
 
+    - name: 🔍 Validate DB Configuration
+      run: |
+        # Set default DB_ENGINE if not provided or empty
+        DB_ENGINE_VALUE="${{ secrets.DEVELOPMENT_DB_ENGINE }}"
+        if [ -z "$DB_ENGINE_VALUE" ] || [ "$DB_ENGINE_VALUE" = "" ]; then
+          echo "⚠️ DEVELOPMENT_DB_ENGINE secret is empty, will use SQLite fallback"
+          echo "📝 To use PostgreSQL, set DEVELOPMENT_DB_ENGINE='django.db.backends.postgresql' in GitHub Secrets"
+          echo "   Navigate to: Settings → Environments → dev-backend → Add secret"
+          echo "DB_ENGINE_FALLBACK=django.db.backends.sqlite3" >> $GITHUB_ENV
+        else
+          echo "✅ DEVELOPMENT_DB_ENGINE is set to: $DB_ENGINE_VALUE"
+          echo "DB_ENGINE_FALLBACK=$DB_ENGINE_VALUE" >> $GITHUB_ENV
+        fi
+
     - name: 🚀 Deploy to Development server
       env:
         SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
@@ -226,7 +240,7 @@ jobs:
         DEVELOPMENT_SUPERUSER_USERNAME: ${{ secrets.DEVELOPMENT_SUPERUSER_USERNAME }}
         DEVELOPMENT_SUPERUSER_EMAIL: ${{ secrets.DEVELOPMENT_SUPERUSER_EMAIL }}
         DEVELOPMENT_SUPERUSER_PASSWORD: ${{ secrets.DEVELOPMENT_SUPERUSER_PASSWORD }}
-        DEVELOPMENT_DB_ENGINE: ${{ secrets.DEVELOPMENT_DB_ENGINE }}
+        DEVELOPMENT_DB_ENGINE: ${{ env.DB_ENGINE_FALLBACK }}
         DEVELOPMENT_DB_NAME: ${{ secrets.DEVELOPMENT_DB_NAME }}
         DEVELOPMENT_DB_USER: ${{ secrets.DEVELOPMENT_DB_USER }}
         DEVELOPMENT_DB_PASSWORD: ${{ secrets.DEVELOPMENT_DB_PASSWORD }}
