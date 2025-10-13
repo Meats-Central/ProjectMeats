@@ -5,9 +5,11 @@ Master product list and related business logic.
 """
 from django.db import models
 from apps.core.models import (
+    CartonTypeChoices,
     EdibleInedibleChoices,
     FreshOrFrozenChoices,
     NetOrCatchChoices,
+    OriginChoices,
     PackageTypeChoices,
     ProteinTypeChoices,
     TimestampModel,
@@ -78,6 +80,76 @@ class Product(TimestampModel):
     tested_product = models.BooleanField(
         default=False,
         help_text="Is this a tested product?",
+    )
+    
+    # Supplier and sourcing information
+    supplier = models.ForeignKey(
+        "suppliers.Supplier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="products",
+        help_text="Supplier for this product",
+    )
+    supplier_item_number = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Supplier's item number",
+    )
+    plants_available = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text="Plants where product is available (e.g., TX, WI, MI)",
+    )
+    origin = models.CharField(
+        max_length=100,
+        choices=OriginChoices.choices,
+        blank=True,
+        default='',
+        help_text="Product origin (Packer, Boxed Cold Storage)",
+    )
+    
+    # Packaging details from Excel
+    carton_type = models.CharField(
+        max_length=50,
+        choices=CartonTypeChoices.choices,
+        blank=True,
+        default='',
+        help_text="Type of carton (e.g., Poly-Multiple, Waxed Lined)",
+    )
+    pcs_per_carton = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Pieces per carton (e.g., 4/10)",
+    )
+    uom = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text="Unit of measure (LB, KG)",
+    )
+    
+    # Generated/pulled fields from Excel (USDA, NAMP, UB codes)
+    namp = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="NAMP code",
+    )
+    usda = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="USDA code (auto-generated/pulled)",
+    )
+    ub = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="UB code (auto-generated/pulled)",
     )
     
     # Additional details
