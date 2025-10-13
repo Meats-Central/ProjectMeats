@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("products", "0002_product_carton_type_product_namp_product_origin_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("suppliers", "0006_alter_supplier_package_type"),
+        ("suppliers", "0005_add_defaults_for_postgres_compatibility"),
         ("plants", "0004_alter_plant_address_alter_plant_city_and_more"),
         ("sales_orders", "0002_alter_salesorder_carrier_release_num_and_more"),
         ("tenants", "0002_alter_tenant_contact_phone_tenantinvitation_and_more"),

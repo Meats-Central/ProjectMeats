@@ -2897,6 +2897,79 @@ None - All requirements implemented successfully on first attempt
 - All issues resolved with this PR
 
 
+## Task: Fix InconsistentMigrationHistory Error in CI/CD Pipeline - [Date: 2025-10-13]
+
+### Actions Taken:
+
+1. **Analyzed the migration dependency issue:**
+   - Reviewed GitHub Actions failure: https://github.com/Meats-Central/ProjectMeats/actions/runs/18472606467/job/52629918920
+   - Identified that `purchase_orders.0004` has a dependency on `suppliers.0006_alter_supplier_package_type`
+   - Database already has `purchase_orders.0004` applied before `suppliers.0006`
+   - Root cause: Django migration dependency graph is inconsistent with applied migrations
+   
+2. **Fixed the migration dependency:**
+   - Changed dependency in `purchase_orders/migrations/0004_alter_purchaseorder_carrier_release_format_and_more.py`
+   - From: `("suppliers", "0006_alter_supplier_package_type")`
+   - To: `("suppliers", "0005_add_defaults_for_postgres_compatibility")`
+   - This matches the actual migration order in the database
+   - The change is safe because CarrierPurchaseOrder only references Supplier model (which exists from 0001), not specific fields from 0006
+
+3. **Verified the fix:**
+   - Ran `python manage.py makemigrations --dry-run --check` - No issues detected
+   - Ran `python manage.py showmigrations` - All migrations properly ordered
+   - Verified Python syntax with `python -m py_compile` - Successful compilation
+   - Confirmed migration file structure is correct
+
+4. **Updated copilot-log.md:**
+   - Added this task entry documenting the fix
+   - Recorded lessons learned about migration dependencies
+
+### Misses/Failures:
+
+None. The fix was straightforward and effective. The issue was purely a dependency ordering problem that didn't affect the actual database schema, only the migration history validation.
+
+### Lessons Learned:
+
+1. **Migration dependencies must match applied order**: Django's migration system requires strict dependency ordering. When migrations are applied out of order (even if the database schema is correct), it causes `InconsistentMigrationHistory` errors.
+
+2. **Not all dependencies are necessary**: The dependency on `suppliers.0006` was not actually required. The CarrierPurchaseOrder model only needs the Supplier model itself (from 0001), not the specific package_type field changes from 0006.
+
+3. **Migration dependency resolution is critical**: When adding new migrations, carefully consider which previous migrations are truly required vs. just the latest available.
+
+4. **Database schema vs. migration history**: The database schema can be correct even if migration history is inconsistent. The error prevents future migrations, not existing functionality.
+
+5. **Review dependency graphs before deployment**: Tools like `showmigrations` and `migrate --plan` help visualize the dependency graph.
+
+### Efficiency Suggestions:
+
+1. **Add migration dependency validation to CI**: Pre-deployment check that verifies migration dependencies match the database state
+2. **Migration graph visualization**: Tool to visualize cross-app dependencies and detect potential ordering issues
+3. **Automated dependency resolution**: Script to suggest minimal dependencies based on actual model usage
+4. **Pre-commit hook for migrations**: Validate new migrations have correct dependencies before commit
+5. **Documentation**: Add developer guide explaining how to choose correct migration dependencies
+
+### Impact:
+
+- ✅ Fixes CI/CD deployment pipeline blocking error
+- ✅ Allows deployments to dev and UAT environments to proceed
+- ✅ Minimal change (single line modified)
+- ✅ No schema changes or data migrations required
+- ✅ Backward compatible with existing database state
+- ✅ Surgical fix that doesn't affect other migrations
+
+### Files Modified:
+
+1. `backend/apps/purchase_orders/migrations/0004_alter_purchaseorder_carrier_release_format_and_more.py` - Changed suppliers dependency from 0006 to 0005
+2. `copilot-log.md` - Added this task entry
+
+### References:
+
+- GitHub Actions Failure: https://github.com/Meats-Central/ProjectMeats/actions/runs/18472606467/job/52629918920
+- Django Migrations Documentation: https://docs.djangoproject.com/en/4.2/topics/migrations/
+- Migration Dependencies: https://docs.djangoproject.com/en/4.2/topics/migrations/#dependencies
+
+---
+
 ## Task: Implement PO Version History Feature - [Date: 2025-10-13]
 
 ### Actions Taken:
