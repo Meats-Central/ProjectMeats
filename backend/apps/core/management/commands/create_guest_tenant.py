@@ -7,6 +7,8 @@ The guest user has staff permissions for testing/demo purposes
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from apps.tenants.models import Tenant, TenantUser
 
@@ -142,7 +144,10 @@ class Command(BaseCommand):
                         )
                     )
 
-                # 4. Summary
+                # 4. Grant Django admin permissions for tenant-scoped models
+                self._grant_permissions(guest_user)
+
+                # 5. Summary
                 self.stdout.write('')
                 self.stdout.write(self.style.SUCCESS('=' * 60))
                 self.stdout.write(self.style.SUCCESS('GUEST MODE SETUP COMPLETE'))
@@ -174,3 +179,67 @@ class Command(BaseCommand):
                 self.style.ERROR(f'✗ Error creating guest setup: {str(e)}')
             )
             raise
+
+    def _grant_permissions(self, user):
+        """
+        Grant Django admin permissions for tenant-scoped models.
+        
+        Grants view, add, change, delete permissions for:
+        - Customers
+        - Suppliers
+        - Contacts
+        - Products
+        - Purchase Orders
+        - Sales Orders
+        - Invoices
+        - Accounts Receivables
+        - Carriers
+        - Plants
+        
+        Does NOT grant permissions for:
+        - User management (auth.User, auth.Group)
+        - Tenant management (tenants.Tenant, tenants.TenantUser)
+        - System settings
+        """
+        from apps.customers.models import Customer
+        from apps.suppliers.models import Supplier
+        from apps.contacts.models import Contact
+        from apps.products.models import Product
+        from apps.purchase_orders.models import PurchaseOrder
+        from apps.sales_orders.models import SalesOrder
+        from apps.invoices.models import Invoice
+        from apps.accounts_receivables.models import AccountsReceivable
+        from apps.carriers.models import Carrier
+        from apps.plants.models import Plant
+        
+        # Models that guest user should have access to
+        tenant_models = [
+            Customer,
+            Supplier,
+            Contact,
+            Product,
+            PurchaseOrder,
+            SalesOrder,
+            Invoice,
+            AccountsReceivable,
+            Carrier,
+            Plant,
+        ]
+        
+        permissions_granted = 0
+        
+        for model in tenant_models:
+            content_type = ContentType.objects.get_for_model(model)
+            
+            # Get all permissions for this model (view, add, change, delete)
+            model_permissions = Permission.objects.filter(content_type=content_type)
+            
+            for perm in model_permissions:
+                user.user_permissions.add(perm)
+                permissions_granted += 1
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'✓ Granted {permissions_granted} permissions for tenant-scoped models'
+            )
+        )
