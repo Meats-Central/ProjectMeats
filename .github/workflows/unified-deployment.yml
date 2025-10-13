@@ -143,6 +143,15 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-testing-only
         DEBUG: True
+        DJANGO_ENV: test
+        DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+        # Test-specific superuser credentials (mocked in tests)
+        STAGING_SUPERUSER_USERNAME: testadmin
+        STAGING_SUPERUSER_EMAIL: testadmin@example.com
+        STAGING_SUPERUSER_PASSWORD: testpass123
+        PRODUCTION_SUPERUSER_USERNAME: testadmin
+        PRODUCTION_SUPERUSER_EMAIL: testadmin@example.com
+        PRODUCTION_SUPERUSER_PASSWORD: testpass123
       run: |
         python manage.py test apps/
 
