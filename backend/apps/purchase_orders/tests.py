@@ -201,6 +201,12 @@ class ColdStorageEntryModelTest(TestCase):
             status_of_load="Matched",
             item_description="Test product in storage",
         )
+        
+        self.assertEqual(entry.product, self.product)
+
+
+"""
+Tests for Purchase Orders API endpoints and version history.
 
         self.assertEqual(entry.product, self.product)
 

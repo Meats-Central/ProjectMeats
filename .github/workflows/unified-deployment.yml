@@ -137,6 +137,29 @@ jobs:
         python manage.py check
         python manage.py migrate
 
+    - name: 🔍 Check migration consistency
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-testing-only
+        DEBUG: True
+      run: |
+        echo "Checking for unapplied migrations..."
+        python manage.py makemigrations --check --dry-run || {
+          echo "❌ Error: Unapplied migrations detected!"
+          echo "Please run 'python manage.py makemigrations' locally and commit the migration files."
+          exit 1
+        }
+        echo "✅ No unapplied migrations detected"
+        
+        echo "Verifying migration dependencies..."
+        python manage.py migrate --plan || {
+          echo "❌ Error: Migration dependency issues detected!"
+          echo "Check migration files for circular dependencies or missing dependencies."
+          exit 1
+        }
+        echo "✅ Migration dependencies are consistent"
+
     - name: 🧪 Run tests
       working-directory: ./backend
       env:
