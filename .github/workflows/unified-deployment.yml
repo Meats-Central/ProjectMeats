@@ -426,6 +426,11 @@ jobs:
         STAGING_SUPERUSER_EMAIL: ${{ secrets.STAGING_SUPERUSER_EMAIL }}
         STAGING_SUPERUSER_PASSWORD: ${{ secrets.STAGING_SUPERUSER_PASSWORD }}
       run: |
+        echo "🔍 Debug: Verifying secrets are set (masked)"
+        echo "STAGING_SUPERUSER_USERNAME is set: $([ -n "$STAGING_SUPERUSER_USERNAME" ] && echo 'YES' || echo 'NO')"
+        echo "STAGING_SUPERUSER_EMAIL is set: $([ -n "$STAGING_SUPERUSER_EMAIL" ] && echo 'YES' || echo 'NO')"
+        echo "STAGING_SUPERUSER_PASSWORD is set: $([ -n "$STAGING_SUPERUSER_PASSWORD" ] && echo 'YES' || echo 'NO')"
+        
         cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
         set -e
@@ -471,7 +476,7 @@ jobs:
         STAGING_SUPERUSER_USERNAME="${STAGING_SUPERUSER_USERNAME}" \
         STAGING_SUPERUSER_EMAIL="${STAGING_SUPERUSER_EMAIL}" \
         STAGING_SUPERUSER_PASSWORD="${STAGING_SUPERUSER_PASSWORD}" \
-        python manage.py setup_superuser
+        python manage.py setup_superuser --verbosity 3
 
         echo "👤 Creating superuser and root tenant..."
         python manage.py create_super_tenant --verbosity 2
