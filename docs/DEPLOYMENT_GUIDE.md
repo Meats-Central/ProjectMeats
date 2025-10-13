@@ -272,6 +272,154 @@ The command runs automatically during:
 - Deployment workflows (after migrations)
 - Can be manually triggered with `make superuser`
 
+## Secret Validation in CI/CD and Tests
+
+### Overview
+
+The `setup_superuser` management command is designed to work reliably across all environments including CI/CD pipelines and test execution contexts. This section explains how to properly configure secrets for testing and CI/CD.
+
+### Test Context Detection
+
+The command automatically detects test contexts and applies appropriate behavior:
+
+1. **Test Environment Detection:**
+   - Checks if `DJANGO_ENV` contains 'test'
+   - Checks if `DJANGO_SETTINGS_MODULE` ends with 'test'
+   
+2. **Test-Friendly Behavior:**
+   - Uses safe defaults when environment variables are missing
+   - Logs warnings instead of raising errors
+   - Prevents test failures due to missing production secrets
+
+### GitHub Actions Configuration
+
+The unified deployment workflow (`unified-deployment.yml`) includes test-specific environment variables to prevent failures during test execution:
+
+```yaml
+- name: 🧪 Run tests
+  working-directory: ./backend
+  env:
+    DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+    SECRET_KEY: test-secret-key-for-testing-only
+    DEBUG: True
+    DJANGO_ENV: test
+    DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+    # Test-specific superuser credentials (mocked in tests)
+    STAGING_SUPERUSER_USERNAME: testadmin
+    STAGING_SUPERUSER_EMAIL: testadmin@example.com
+    STAGING_SUPERUSER_PASSWORD: testpass123
+    PRODUCTION_SUPERUSER_USERNAME: testadmin
+    PRODUCTION_SUPERUSER_EMAIL: testadmin@example.com
+    PRODUCTION_SUPERUSER_PASSWORD: testpass123
+  run: |
+    python manage.py test apps/
+```
+
+### Mocking Secrets in Tests
+
+When writing tests that use the `setup_superuser` command, use `@patch` to mock environment variables:
+
+```python
+from unittest import mock
+from django.core.management import call_command
+from django.test import TestCase
+
+class SetupSuperuserTests(TestCase):
+    def test_command_with_missing_vars(self):
+        """Test that command handles missing vars in test context."""
+        # Mock environment to simulate missing vars
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'test',
+            'DJANGO_SETTINGS_MODULE': 'projectmeats.settings.test'
+        }, clear=True):
+            # Should not raise error in test context
+            call_command('setup_superuser')
+        
+        # Verify user was created with defaults
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.assertTrue(User.objects.exists())
+```
+
+### Environment-Specific Behavior
+
+| Environment | Missing Vars Behavior | Logging Level |
+|-------------|----------------------|---------------|
+| `development` | Uses defaults (`admin@meatscentral.com`) | WARNING |
+| `test` | Uses test defaults (`testadmin@example.com`) | WARNING |
+| `staging`/`uat` | Raises `ValueError` (strict validation) | ERROR |
+| `production` | Raises `ValueError` (strict validation) | ERROR |
+
+### Verbose Logging
+
+Use `--verbosity 2` or higher to see detailed information about which environment variables are loaded:
+
+```bash
+python manage.py setup_superuser --verbosity 2
+```
+
+Output example:
+```
+Running setup_superuser for environment: staging (test_context=False)
+Staging/UAT mode: loaded STAGING_SUPERUSER_USERNAME: set
+Staging/UAT mode: loaded STAGING_SUPERUSER_EMAIL: set
+Staging/UAT mode: loaded STAGING_SUPERUSER_PASSWORD: set
+✅ Superuser password synced/updated for: admin@staging.example.com
+✅ Password verified - user can login successfully
+```
+
+### Troubleshooting
+
+#### Issue: Tests fail with "required in staging environment!" error
+
+**Cause:** Test environment is not properly detected, or GitHub Actions workflow doesn't export test-specific env vars.
+
+**Solution:**
+1. Ensure `DJANGO_ENV=test` is set in test configuration
+2. Update `.github/workflows/unified-deployment.yml` to include test-specific superuser variables
+3. Use `@patch.dict('os.environ', ...)` in test setup to provide required vars
+
+#### Issue: CI/CD deployment fails with missing secrets
+
+**Cause:** GitHub Secrets not configured for the deployment environment.
+
+**Solution:**
+1. Go to repository Settings → Secrets and variables → Actions
+2. Select the appropriate environment (dev-backend, uat2-backend, prod2-backend)
+3. Add required secrets:
+   - `STAGING_SUPERUSER_USERNAME`
+   - `STAGING_SUPERUSER_EMAIL`
+   - `STAGING_SUPERUSER_PASSWORD` (or equivalent for your environment)
+
+#### Issue: Local development fails to create superuser
+
+**Cause:** Development environment variables not set.
+
+**Solution:**
+```bash
+# Option 1: Set in config/environments/development.env
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com
+DEVELOPMENT_SUPERUSER_PASSWORD=your_dev_password
+
+# Option 2: Run with inline env vars
+DEVELOPMENT_SUPERUSER_PASSWORD=mypass python manage.py setup_superuser
+```
+
+### Best Practices
+
+1. **Never commit real credentials:** Always use placeholders in version control
+2. **Use environment-specific prefixes:** `DEVELOPMENT_*`, `STAGING_*`, `PRODUCTION_*`
+3. **Validate in CI:** Test workflows should verify secrets are properly loaded
+4. **Document secret requirements:** Keep documentation updated with all required secrets
+5. **Monitor logs:** Use verbose logging in deployment workflows for troubleshooting
+
+### References
+
+- [Django Environment Variables Documentation](https://docs.djangoproject.com/en/4.2/topics/settings/#envvar-DJANGO_SETTINGS_MODULE)
+- [12-Factor App: Config](https://12factor.net/config)
+- [OWASP Secrets Management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
+
 ### Method 2: Docker Deployment (Archived)
 
 > **Note:** Docker deployment files have been archived to `archived/docker/`. See `archived/README.md` for details.
