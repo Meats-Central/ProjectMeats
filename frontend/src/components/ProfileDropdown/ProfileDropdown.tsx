@@ -57,8 +57,6 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     const baseBackendUrl = apiBaseUrl.replace('/api/v1', '');
     const adminUrl = `${baseBackendUrl}/admin/`;
     
-    console.log('Opening Django admin:', adminUrl);
-    
     // Use window.location.href for more reliable navigation
     // Opens in same tab - more reliable than window.open which can be blocked
     window.location.href = adminUrl;
