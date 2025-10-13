@@ -750,6 +750,53 @@ cd backend && python manage.py collectstatic --verbosity=2
 python manage.py findstatic admin/css/base.css
 ```
 
+#### TypeScript Lint Errors in CI/CD
+
+Frontend builds in CI/CD environments treat ESLint warnings as errors (due to `CI=true` environment variable). This is a best practice to maintain code quality but can cause deployment failures if lint warnings are present.
+
+**Common Issue: `@typescript-eslint/no-explicit-any` Error**
+
+The ESLint rule `@typescript-eslint/no-explicit-any` prevents the use of the `any` type, which bypasses TypeScript's type checking.
+
+**Problem:**
+```typescript
+catch (error: any) {  // ❌ Causes lint error in CI
+  const message = error?.response?.data?.detail || 'Error occurred';
+}
+```
+
+**Solution - Use `unknown` with Type Assertion:**
+```typescript
+catch (error: unknown) {  // ✅ Type-safe approach
+  // Assert the expected error structure for safe property access
+  const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+  const message = err?.response?.data?.detail 
+    || err?.response?.data?.message 
+    || err?.message 
+    || 'Error occurred';
+}
+```
+
+**Best Practices:**
+- Always use `unknown` instead of `any` for error types in catch blocks
+- Add a comment explaining the type assertion for maintainability
+- Use optional chaining (`?.`) and nullish coalescing (`||`) for safe property access
+- Define a fallback error message for better user experience
+
+**Testing:**
+```bash
+# Run lint check locally
+cd frontend && npm run lint
+
+# Run build to verify no CI errors
+cd frontend && npm run build
+
+# Fix auto-fixable lint errors
+cd frontend && npm run lint:fix
+```
+
+**Note:** The `.eslintrc.json` configuration sets this rule to "warn" in development, but CI treats all warnings as errors to enforce code quality standards.
+
 ### Debug Commands
 ```bash
 # Django configuration check

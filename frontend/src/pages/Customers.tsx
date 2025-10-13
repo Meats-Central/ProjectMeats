@@ -85,11 +85,13 @@ const Customers: React.FC = () => {
         await apiService.deleteCustomer(id);
         alert('Customer deleted successfully!');
         await fetchCustomers(); // Re-fetch to update the list
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
         console.error('Error deleting customer:', error);
-        const errorMessage = error?.response?.data?.detail 
-          || error?.response?.data?.message 
-          || error?.message 
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
           || 'Failed to delete customer';
         alert(`Error: ${errorMessage}`);
       }

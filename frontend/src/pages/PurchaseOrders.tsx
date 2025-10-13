@@ -424,11 +424,13 @@ const PurchaseOrders: React.FC = () => {
         await apiService.deletePurchaseOrder(id);
         alert('Purchase order deleted successfully!');
         await loadPurchaseOrders(); // Re-fetch to update the list
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
         console.error('Error deleting purchase order:', error);
-        const errorMessage = error?.response?.data?.detail 
-          || error?.response?.data?.message 
-          || error?.message 
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
           || 'Failed to delete purchase order';
         alert(`Error: ${errorMessage}`);
       }
