@@ -202,6 +202,9 @@ class ColdStorageEntryModelTest(TestCase):
         )
         
         self.assertEqual(entry.product, self.product)
+
+
+"""
 Tests for Purchase Orders API endpoints and version history.
 
 Validates purchase order creation, updates, and version history tracking.
