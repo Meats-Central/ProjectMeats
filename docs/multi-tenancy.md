@@ -339,8 +339,120 @@ pytest apps/tenants/tests_management_commands.py --cov=apps.core.management.comm
   ```bash
   python manage.py create_super_tenant --verbosity 2
   ```
+
+#### 2. Superuser Login Fails After Password Sync (UAT/Production)
+
+**Symptoms:**
+- Deployment succeeds and command reports success
+- User exists in database but cannot login
+- Correct password doesn't work on login screen
+
+**Root Causes:**
+1. **Password not properly saved after sync**
+2. **Authentication backend misconfiguration**
+3. **Session/cache issues**
+4. **Password not properly hashed**
+
+**Troubleshooting Steps:**
+
+**Step 1: Verify Secrets Are Set in GitHub**
+```bash
+# In GitHub repository settings > Secrets and variables > Actions
+# Check that these secrets exist for the environment (e.g., uat2-backend):
+- STAGING_SUPERUSER_USERNAME
+- STAGING_SUPERUSER_EMAIL  
+- STAGING_SUPERUSER_PASSWORD
+```
+
+**Step 2: Check Deployment Logs for Authentication Verification**
+```bash
+# In GitHub Actions workflow logs, look for:
+✅ Authentication verified - user can login successfully
+
+# If you see:
+❌ Superuser authentication failed after password sync
+# This indicates the password wasn't properly saved or there's an auth backend issue
+```
+
+**Step 3: Manual Shell Verification on Server**
+```bash
+# SSH into UAT server
+ssh django@uat.meatscentral.com
+
+# Activate virtual environment
+cd /home/django/ProjectMeats/backend
+source venv/bin/activate
+
+# Test authentication in Django shell
+python manage.py shell
+
+# In shell:
+from django.contrib.auth import get_user_model, authenticate
+User = get_user_model()
+
+# Check user exists
+user = User.objects.get(username='your_username')
+print(f"User exists: {user.email}")
+print(f"Is superuser: {user.is_superuser}")
+print(f"Is active: {user.is_active}")
+
+# Check password hash format
+print(f"Password hash starts with pbkdf2: {user.password.startswith('pbkdf2_sha256$')}")
+
+# Test authentication
+auth_user = authenticate(username='your_username', password='your_password')
+print(f"Authentication successful: {auth_user is not None}")
+
+# If authentication fails, manually reset password:
+user.set_password('your_password')
+user.save()
+print("Password manually reset")
+```
+
+**Step 4: Redeploy with Increased Verbosity**
+```bash
+# The workflow already uses --verbosity 3 for setup_superuser
+# Check logs for detailed output including:
+# - Environment detection
+# - Credential loading
+# - User creation/update
+# - Authentication verification
+```
+
+**Step 5: Check Django Settings**
+```python
+# Verify AUTHENTICATION_BACKENDS in settings
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Required
+]
+
+# Verify AUTH_USER_MODEL if using custom user
+AUTH_USER_MODEL = 'auth.User'  # or your custom user model
+```
+
+**Step 6: Clear Sessions and Cache**
+```bash
+# On UAT server
+python manage.py clearsessions
+
+# If using Redis cache:
+python manage.py shell
+from django.core.cache import cache
+cache.clear()
+```
+
+**Prevention:**
+- The `setup_superuser` command now includes automatic authentication verification
+- If verification fails, deployment will fail with clear error message
+- Monitor deployment logs for "Authentication verified" success message
+- Set up alerts for authentication verification failures
+
+**Related Documentation:**
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [Django Authentication System](https://docs.djangoproject.com/en/4.2/topics/auth/)
+- [Django Password Management](https://docs.djangoproject.com/en/4.2/topics/auth/passwords/)
   
-#### 2. Tenant Model Import Error
+#### 3. Tenant Model Import Error
 
 **Symptoms:**
 - Error: "Tenant model missing—ensure Multi-Tenancy base is implemented"

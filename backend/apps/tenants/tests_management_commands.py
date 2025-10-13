@@ -648,3 +648,82 @@ class SetupSuperuserCommandTests(TestCase):
         user = User.objects.get(username='admin')
         self.assertEqual(user.email, 'admin@meatscentral.com')
 
+    def test_authentication_verification_after_password_sync(self):
+        """Test that command verifies authentication after syncing password."""
+        # Create existing superuser
+        User.objects.create_superuser(
+            username='uatadmin',
+            email='uat@example.com',
+            password='oldpass123'
+        )
+        
+        out = StringIO()
+        
+        # Update password and verify authentication works
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'uat',
+            'STAGING_SUPERUSER_USERNAME': 'uatadmin',
+            'STAGING_SUPERUSER_EMAIL': 'uat@example.com',
+            'STAGING_SUPERUSER_PASSWORD': 'newpass456'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # Password should be updated
+        user = User.objects.get(username='uatadmin')
+        self.assertTrue(user.check_password('newpass456'))
+        
+        # Check output includes password verification
+        output = out.getvalue()
+        self.assertIn('Password verified', output)
+
+    def test_authentication_verification_for_new_user(self):
+        """Test that command verifies password for newly created user."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'staging',
+            'STAGING_SUPERUSER_USERNAME': 'newtestuser',
+            'STAGING_SUPERUSER_EMAIL': 'newtest@example.com',
+            'STAGING_SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # User should be created and password should work
+        user = User.objects.get(username='newtestuser')
+        self.assertTrue(user.check_password('testpass123'))
+        
+        # Check output includes password verification
+        output = out.getvalue()
+        self.assertIn('Password verified', output)
+        self.assertIn('Superuser created', output)
+
+    def test_authentication_fails_with_mock_failure(self):
+        """Test that password verification catches password issues."""
+        out = StringIO()
+        
+        # Create a mock User model that always returns False for check_password
+        from unittest.mock import patch, MagicMock
+        
+        def mock_create_superuser(*args, **kwargs):
+            user = MagicMock()
+            user.check_password = MagicMock(return_value=False)
+            user.refresh_from_db = MagicMock()
+            user.username = kwargs.get('username')
+            user.email = kwargs.get('email')
+            return user
+        
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'staging',
+            'STAGING_SUPERUSER_USERNAME': 'failtest',
+            'STAGING_SUPERUSER_EMAIL': 'failtest@example.com',
+            'STAGING_SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            with patch.object(User.objects, 'create_superuser', side_effect=mock_create_superuser):
+                with self.assertRaises(ValueError) as context:
+                    call_command('setup_superuser', stdout=out)
+                
+                # Should raise ValueError about password verification failure
+                self.assertIn('password', str(context.exception).lower())
+                self.assertIn('verification', str(context.exception).lower())
+
+
