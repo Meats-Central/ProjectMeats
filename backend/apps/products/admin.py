@@ -30,7 +30,7 @@ class ProductAdmin(admin.ModelAdmin):
         "created_on",
     )
     search_fields = (
-        "product_code", 
+        "product_code",
         "description_of_product_item",
         "supplier_item_number",
         "namp",
@@ -39,19 +39,21 @@ class ProductAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("created_on", "modified_on")
     raw_id_fields = ("supplier",)
-    
+
     def description_preview(self, obj):
         """Return truncated description for list display."""
-        return obj.description_of_product_item[:50] + "..." if len(obj.description_of_product_item) > 50 else obj.description_of_product_item
-    
+        return (
+            obj.description_of_product_item[:50] + "..."
+            if len(obj.description_of_product_item) > 50
+            else obj.description_of_product_item
+        )
+
     description_preview.short_description = "Description"
 
     fieldsets = (
         (
             "Product Identification",
-            {
-                "fields": ("product_code", "description_of_product_item", "is_active")
-            },
+            {"fields": ("product_code", "description_of_product_item", "is_active")},
         ),
         (
             "Product Characteristics",
@@ -102,9 +104,7 @@ class ProductAdmin(admin.ModelAdmin):
         ),
         (
             "Details",
-            {
-                "fields": ("unit_weight",)
-            },
+            {"fields": ("unit_weight",)},
         ),
         (
             "Metadata",
@@ -114,4 +114,3 @@ class ProductAdmin(admin.ModelAdmin):
             },
         ),
     )
-

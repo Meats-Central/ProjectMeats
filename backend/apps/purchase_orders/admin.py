@@ -281,4 +281,3 @@ class ColdStorageEntryAdmin(admin.ModelAdmin):
             {"fields": ("tenant", "created_on", "modified_on"), "classes": ("collapse",)},
         ),
     )
-

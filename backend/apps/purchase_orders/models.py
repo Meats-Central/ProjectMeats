@@ -12,7 +12,6 @@ from apps.core.models import (
     CreditLimitChoices,
     EdibleInedibleChoices,
     FreshOrFrozenChoices,
-    ItemProductionDateChoices,
     NetOrCatchChoices,
     PackageTypeChoices,
     ProteinTypeChoices,
@@ -45,16 +44,14 @@ class PurchaseOrder(TimestampModel):
         blank=True,
     )
 
-    order_number = models.CharField(
-        max_length=50, unique=True, help_text="Unique order number"
-    )
+    order_number = models.CharField(max_length=50, unique=True, help_text="Unique order number")
     supplier = models.ForeignKey(
         "suppliers.Supplier",
         on_delete=models.CASCADE,
         help_text="Supplier for this purchase order",
     )
     total_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Total order amount"
+        max_digits=10, decimal_places=2, default=Decimal("0.00"), help_text="Total order amount"
     )
     status = models.CharField(
         max_length=20,
@@ -63,11 +60,9 @@ class PurchaseOrder(TimestampModel):
         help_text="Current status of the purchase order",
     )
     order_date = models.DateField(help_text="Date the order was placed")
-    delivery_date = models.DateField(
-        blank=True, null=True, help_text="Expected delivery date"
-    )
+    delivery_date = models.DateField(blank=True, null=True, help_text="Expected delivery date")
     notes = models.TextField(blank=True, null=True, help_text="Additional notes")
-    
+
     # Enhanced fields from Excel requirements
     date_time_stamp = models.DateTimeField(
         auto_now_add=True,
@@ -83,13 +78,13 @@ class PurchaseOrder(TimestampModel):
     our_purchase_order_num = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        default="",
         help_text="Our internal purchase order number",
     )
     supplier_confirmation_order_num = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        default="",
         help_text="Supplier's confirmation order number",
     )
     carrier = models.ForeignKey(
@@ -103,13 +98,13 @@ class PurchaseOrder(TimestampModel):
         max_length=100,
         choices=CarrierReleaseFormatChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Carrier release format",
     )
     carrier_release_num = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        default="",
         help_text="Carrier release number",
     )
     quantity = models.IntegerField(
@@ -134,7 +129,7 @@ class PurchaseOrder(TimestampModel):
         max_length=50,
         choices=AppointmentMethodChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="How carrier makes appointments",
     )
     plant = models.ForeignKey(
@@ -225,13 +220,13 @@ class CarrierPurchaseOrder(TimestampModel):
     our_carrier_po_num = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        default="",
         help_text="Our carrier purchase order number",
     )
     carrier_name = models.CharField(
         max_length=255,
         blank=True,
-        default='',
+        default="",
         help_text="Carrier company name",
     )
 
@@ -240,14 +235,14 @@ class CarrierPurchaseOrder(TimestampModel):
         max_length=50,
         choices=AccountingPaymentTermsChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Payment terms (e.g., Wire, ACH, Check)",
     )
     credit_limits = models.CharField(
         max_length=50,
         choices=CreditLimitChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Credit limits/terms",
     )
 
@@ -256,35 +251,35 @@ class CarrierPurchaseOrder(TimestampModel):
         max_length=50,
         choices=ProteinTypeChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Type of protein",
     )
     fresh_or_frozen = models.CharField(
         max_length=20,
         choices=FreshOrFrozenChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Product state (Fresh or Frozen)",
     )
     package_type = models.CharField(
         max_length=50,
         choices=PackageTypeChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Package type",
     )
     net_or_catch = models.CharField(
         max_length=20,
         choices=NetOrCatchChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Weight type (Net or Catch)",
     )
     edible_or_inedible = models.CharField(
         max_length=50,
         choices=EdibleInedibleChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="Edible or inedible product",
     )
 
@@ -313,13 +308,13 @@ class CarrierPurchaseOrder(TimestampModel):
         max_length=50,
         choices=AppointmentMethodChoices.choices,
         blank=True,
-        default='',
+        default="",
         help_text="How carrier makes appointments",
     )
     departments_of_carrier = models.CharField(
         max_length=255,
         blank=True,
-        default='',
+        default="",
         help_text="Departments (comma-separated: BOL, COA, POD, etc.)",
     )
 
@@ -382,9 +377,9 @@ class ColdStorageEntry(TimestampModel):
     # Status and dates
     status_of_load = models.CharField(
         max_length=50,
-        choices=[('Matched', 'Matched'), ('TBD - Not Matched', 'TBD - Not Matched')],
+        choices=[("Matched", "Matched"), ("TBD - Not Matched", "TBD - Not Matched")],
         blank=True,
-        default='',
+        default="",
         help_text="Load matching status",
     )
     item_production_date = models.DateField(
@@ -396,7 +391,7 @@ class ColdStorageEntry(TimestampModel):
     # Product details
     item_description = models.TextField(
         blank=True,
-        default='',
+        default="",
         help_text="Description of item (e.g., 50% Beef Trim fresh - Tested)",
     )
 
@@ -441,7 +436,7 @@ class ColdStorageEntry(TimestampModel):
 
     notes = models.TextField(
         blank=True,
-        default='',
+        default="",
         help_text="Additional notes",
     )
 
@@ -455,4 +450,3 @@ class ColdStorageEntry(TimestampModel):
 
     def __str__(self):
         return f"Cold Storage Entry-{self.id} ({self.status_of_load})"
-
