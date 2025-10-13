@@ -90,6 +90,37 @@ class CreateSuperTenantCommandTests(TestCase):
         output = out.getvalue()
         self.assertIn('already exists', output)
 
+    def test_command_line_arguments_override_env_vars(self):
+        """Test that command-line arguments override environment variables."""
+        # Set environment variables
+        with mock.patch.dict('os.environ', {
+            'SUPERUSER_EMAIL': 'env@example.com',
+            'SUPERUSER_PASSWORD': 'envpass',
+            'SUPERUSER_USERNAME': 'envuser'
+        }):
+            out = StringIO()
+            
+            # Call command with command-line arguments that should override env vars
+            call_command(
+                'create_super_tenant',
+                username='cmduser',
+                email='cmd@example.com',
+                password='cmdpass',
+                stdout=out
+            )
+        
+        # Check that command-line arguments were used
+        self.assertTrue(User.objects.filter(username='cmduser').exists())
+        self.assertTrue(User.objects.filter(email='cmd@example.com').exists())
+        
+        user = User.objects.get(username='cmduser')
+        self.assertTrue(user.check_password('cmdpass'))
+        self.assertTrue(user.is_superuser)
+        
+        # Check that env vars were NOT used
+        self.assertFalse(User.objects.filter(username='envuser').exists())
+        self.assertFalse(User.objects.filter(email='env@example.com').exists())
+
     def test_idempotent_when_tenant_already_exists(self):
         """Test that command is idempotent when tenant exists."""
         # Create existing user and tenant

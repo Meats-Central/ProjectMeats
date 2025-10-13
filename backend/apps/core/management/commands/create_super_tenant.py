@@ -21,16 +21,34 @@ except ImportError as e:
 class Command(BaseCommand):
     help = 'Create superuser and default root tenant if they do not exist'
 
+    def add_arguments(self, parser):
+        """Add command-line arguments."""
+        parser.add_argument(
+            '--username',
+            type=str,
+            help='Username for the superuser (overrides environment variable)',
+        )
+        parser.add_argument(
+            '--email',
+            type=str,
+            help='Email for the superuser (overrides environment variable)',
+        )
+        parser.add_argument(
+            '--password',
+            type=str,
+            help='Password for the superuser (overrides environment variable)',
+        )
+
     def handle(self, *args, **options):
         User = get_user_model()
         
         # Get verbosity level
         verbosity = options.get('verbosity', 1)
         
-        # Get credentials from environment variables with defaults
-        email = os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
-        password = os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
-        username = os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
+        # Get credentials from command-line arguments or environment variables
+        email = options.get('email') or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+        password = options.get('password') or os.getenv('SUPERUSER_PASSWORD', 'default_secure_pass')
+        username = options.get('username') or os.getenv('SUPERUSER_USERNAME', email.split('@')[0])
         
         if verbosity >= 2:
             self.stdout.write('🔧 Configuration:')
@@ -54,21 +72,69 @@ class Command(BaseCommand):
                     self.stdout.write(f'   - Checking for existing user with username: {username}')
                 
                 # First, try to find by username (most likely to cause constraint issues)
-                try:
-                    user = User.objects.get(username=username)
+                # Use filter() instead of get() to handle potential duplicates
+                users_by_username = User.objects.filter(username=username)
+                
+                if users_by_username.count() > 1:
+                    # Handle duplicate users - keep first, delete extras
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'⚠️  Multiple users found with username "{username}" ({users_by_username.count()} total). '
+                            f'Using first user and deleting duplicates.'
+                        )
+                    )
+                    # Delete all but the first user
+                    users_to_delete = list(users_by_username[1:])
+                    for duplicate_user in users_to_delete:
+                        if verbosity >= 2:
+                            self.stdout.write(f'   - Deleting duplicate user: {duplicate_user.id} ({duplicate_user.email})')
+                        duplicate_user.delete()
+                    
+                    user = users_by_username.first()
+                    user_created = False
+                    if verbosity >= 2:
+                        self.stdout.write(f'   - Using first user: {user.username} ({user.email})')
+                
+                elif users_by_username.count() == 1:
+                    user = users_by_username.first()
                     user_created = False
                     if verbosity >= 2:
                         self.stdout.write(f'   - Found existing user by username: {user.username}')
-                except User.DoesNotExist:
-                    # If not found by username, try by email
+                
+                else:
+                    # No user found by username, check by email
                     if verbosity >= 2:
                         self.stdout.write(f'   - Username not found, checking email: {email}')
-                    try:
-                        user = User.objects.get(email=email)
+                    
+                    users_by_email = User.objects.filter(email=email)
+                    
+                    if users_by_email.count() > 1:
+                        # Handle duplicate users by email - keep first, delete extras
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f'⚠️  Multiple users found with email "{email}" ({users_by_email.count()} total). '
+                                f'Using first user and deleting duplicates.'
+                            )
+                        )
+                        # Delete all but the first user
+                        users_to_delete = list(users_by_email[1:])
+                        for duplicate_user in users_to_delete:
+                            if verbosity >= 2:
+                                self.stdout.write(f'   - Deleting duplicate user: {duplicate_user.id} ({duplicate_user.username})')
+                            duplicate_user.delete()
+                        
+                        user = users_by_email.first()
+                        user_created = False
+                        if verbosity >= 2:
+                            self.stdout.write(f'   - Using first user: {user.email}')
+                    
+                    elif users_by_email.count() == 1:
+                        user = users_by_email.first()
                         user_created = False
                         if verbosity >= 2:
                             self.stdout.write(f'   - Found existing user by email: {user.email}')
-                    except User.DoesNotExist:
+                    
+                    else:
                         # User doesn't exist, create it using create_superuser
                         if verbosity >= 2:
                             self.stdout.write('   - No existing user found, creating new superuser...')

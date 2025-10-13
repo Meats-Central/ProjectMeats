@@ -500,6 +500,75 @@ psql projectmeats < backup.sql
 python manage.py migrate
 ```
 
+### Handling User Duplicates
+
+In rare cases, database corruption or migration issues can result in duplicate users with the same username or email. The `create_super_tenant` command handles this scenario gracefully:
+
+#### Automatic Duplicate Cleanup
+
+The command automatically detects and handles duplicate users:
+
+1. **Detection**: Uses `.filter()` instead of `.get()` to avoid `MultipleObjectsReturned` errors
+2. **Resolution**: Keeps the first user and deletes duplicates
+3. **Logging**: Warns about duplicates found and cleaned up
+
+```bash
+# Run with increased verbosity to see duplicate handling
+python manage.py create_super_tenant --verbosity 2
+```
+
+#### Manual Verification and Cleanup (Staging/Production)
+
+If you suspect duplicate users exist in your database:
+
+```bash
+# Connect to database shell
+python manage.py dbshell
+
+# Check for duplicate usernames
+SELECT username, COUNT(*) as count 
+FROM auth_user 
+GROUP BY username 
+HAVING COUNT(*) > 1;
+
+# Check for duplicate emails
+SELECT email, COUNT(*) as count 
+FROM auth_user 
+GROUP BY email 
+HAVING COUNT(*) > 1 AND email != '';
+
+# Exit dbshell
+\q
+```
+
+#### Prevention
+
+Django's User model has a UNIQUE constraint on the `username` field, which prevents duplicate usernames under normal circumstances. Duplicates can only occur through:
+
+- Direct SQL manipulation bypassing constraints
+- Database corruption
+- Improper data migration from external systems
+
+#### Recovery Steps
+
+If duplicates are detected during deployment:
+
+1. **Review**: Check deployment logs for duplicate warning messages
+2. **Verify**: Use the SQL queries above to identify affected users
+3. **Automatic Cleanup**: Re-run `create_super_tenant` command - it will handle cleanup automatically
+4. **Manual Cleanup** (if needed):
+   ```bash
+   # Backup first!
+   pg_dump projectmeats_staging > backup_before_cleanup.sql
+   
+   # Delete duplicate users (keep lowest ID)
+   DELETE FROM auth_user 
+   WHERE username = 'duplicate_username' 
+   AND id NOT IN (
+     SELECT MIN(id) FROM auth_user WHERE username = 'duplicate_username'
+   );
+   ```
+
 ### Performance Monitoring
 - **Backend**: Monitor API response times and database queries
 - **Frontend**: Monitor page load times and user interactions
