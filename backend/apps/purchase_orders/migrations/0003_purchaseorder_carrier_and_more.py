@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
         ("carriers", "0003_carrier_account_line_of_credit_and_more"),
         ("contacts", "0003_contact_cell_phone_contact_contact_title_and_more"),
         ("plants", "0003_plant_plant_est_num"),
+        ("products", "0001_initial"),
         ("purchase_orders", "0002_purchaseorder_tenant"),
     ]
 
