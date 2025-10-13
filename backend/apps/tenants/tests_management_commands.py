@@ -605,3 +605,46 @@ class SetupSuperuserCommandTests(TestCase):
         user = User.objects.get(username='prod_superadmin')
         self.assertEqual(user.email, 'superadmin@prod.com')
 
+    def test_email_mismatch_warning(self):
+        """Test that command warns when email changes for existing user."""
+        # Create user with one email
+        User.objects.create_superuser(
+            username='admin',
+            email='old@example.com',
+            password='oldpass'
+        )
+        
+        out = StringIO()
+        
+        # Update with different email
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'development',
+            'DEVELOPMENT_SUPERUSER_EMAIL': 'new@meatscentral.com',
+            'DEVELOPMENT_SUPERUSER_PASSWORD': 'newpass123'
+        }):
+            call_command('setup_superuser', stdout=out)
+        
+        # Check that warning was issued
+        output = out.getvalue()
+        self.assertIn('Email mismatch detected', output)
+        self.assertIn('old@example.com', output)
+        self.assertIn('new@meatscentral.com', output)
+        
+        # Verify email was updated
+        user = User.objects.get(username='admin')
+        self.assertEqual(user.email, 'new@meatscentral.com')
+
+    def test_email_sync_fallback_to_default(self):
+        """Test that email falls back to default in development."""
+        out = StringIO()
+        
+        with mock.patch.dict('os.environ', {
+            'DJANGO_ENV': 'development',
+            'DEVELOPMENT_SUPERUSER_PASSWORD': 'testpass123'
+        }, clear=True):
+            call_command('setup_superuser', stdout=out)
+        
+        # Should use default email
+        user = User.objects.get(username='admin')
+        self.assertEqual(user.email, 'admin@meatscentral.com')
+

@@ -190,11 +190,11 @@ SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```bash
 # Set as deployment secrets in GitHub or your platform
 STAGING_SUPERUSER_USERNAME=admin
-STAGING_SUPERUSER_EMAIL=admin@staging.projectmeats.com
+STAGING_SUPERUSER_EMAIL=admin@staging.meatscentral.com
 STAGING_SUPERUSER_PASSWORD=<secure-password>
 
 PRODUCTION_SUPERUSER_USERNAME=admin
-PRODUCTION_SUPERUSER_EMAIL=admin@projectmeats.com
+PRODUCTION_SUPERUSER_EMAIL=admin@meatscentral.com
 PRODUCTION_SUPERUSER_PASSWORD=<secure-password>
 ```
 

@@ -1,0 +1,87 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Setup Superuser",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/backend && DJANGO_ENV=development python manage.py setup_superuser",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Sync superuser credentials from environment variables"
+        },
+        {
+            "label": "Create Super Tenant",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/backend && python manage.py create_super_tenant",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Create superuser and root tenant with all associations"
+        },
+        {
+            "label": "Run Django Migrations",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/backend && python manage.py migrate",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Django Server",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/backend && python manage.py runserver",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "isBackground": true
+        },
+        {
+            "label": "Start React Server",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/frontend && npm start",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated"
+            },
+            "problemMatcher": [],
+            "isBackground": true
+        },
+        {
+            "label": "Run Backend Tests",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/backend && python manage.py test",
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
