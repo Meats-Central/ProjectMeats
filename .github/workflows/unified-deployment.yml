@@ -226,6 +226,12 @@ jobs:
         DEVELOPMENT_SUPERUSER_USERNAME: ${{ secrets.DEVELOPMENT_SUPERUSER_USERNAME }}
         DEVELOPMENT_SUPERUSER_EMAIL: ${{ secrets.DEVELOPMENT_SUPERUSER_EMAIL }}
         DEVELOPMENT_SUPERUSER_PASSWORD: ${{ secrets.DEVELOPMENT_SUPERUSER_PASSWORD }}
+        DEVELOPMENT_DB_ENGINE: ${{ secrets.DEVELOPMENT_DB_ENGINE }}
+        DEVELOPMENT_DB_NAME: ${{ secrets.DEVELOPMENT_DB_NAME }}
+        DEVELOPMENT_DB_USER: ${{ secrets.DEVELOPMENT_DB_USER }}
+        DEVELOPMENT_DB_PASSWORD: ${{ secrets.DEVELOPMENT_DB_PASSWORD }}
+        DEVELOPMENT_DB_HOST: ${{ secrets.DEVELOPMENT_DB_HOST }}
+        DEVELOPMENT_DB_PORT: ${{ secrets.DEVELOPMENT_DB_PORT }}
       run: |
         cat > deploy_script.sh << 'DEPLOY_SCRIPT'
         #!/bin/bash
@@ -264,7 +270,31 @@ jobs:
         mkdir -p logs
         chown -R django:www-data logs
 
+        # SQLite permission fix (if using SQLite - DEPRECATED)
+        if [ "${DEVELOPMENT_DB_ENGINE}" = "django.db.backends.sqlite3" ]; then
+          echo "⚠️ Fixing SQLite permissions (DEPRECATED - migrate to PostgreSQL)..."
+          if [ -f "db.sqlite3" ]; then
+            sudo chown $USER:$USER db.sqlite3 2>/dev/null || chown $USER:$USER db.sqlite3
+            chmod 664 db.sqlite3
+          fi
+        fi
+
+        echo "🔍 Checking database connection..."
+        DB_ENGINE="${DEVELOPMENT_DB_ENGINE}" \
+        DB_NAME="${DEVELOPMENT_DB_NAME}" \
+        DB_USER="${DEVELOPMENT_DB_USER}" \
+        DB_PASSWORD="${DEVELOPMENT_DB_PASSWORD}" \
+        DB_HOST="${DEVELOPMENT_DB_HOST}" \
+        DB_PORT="${DEVELOPMENT_DB_PORT}" \
+        python manage.py check --database default
+
         echo "🗃️ Running database migrations..."
+        DB_ENGINE="${DEVELOPMENT_DB_ENGINE}" \
+        DB_NAME="${DEVELOPMENT_DB_NAME}" \
+        DB_USER="${DEVELOPMENT_DB_USER}" \
+        DB_PASSWORD="${DEVELOPMENT_DB_PASSWORD}" \
+        DB_HOST="${DEVELOPMENT_DB_HOST}" \
+        DB_PORT="${DEVELOPMENT_DB_PORT}" \
         python manage.py migrate
 
         echo "👤 Setting up superuser with environment password..."
@@ -292,6 +322,12 @@ jobs:
            export DEVELOPMENT_SUPERUSER_USERNAME='${DEVELOPMENT_SUPERUSER_USERNAME}' && \
            export DEVELOPMENT_SUPERUSER_EMAIL='${DEVELOPMENT_SUPERUSER_EMAIL}' && \
            export DEVELOPMENT_SUPERUSER_PASSWORD='${DEVELOPMENT_SUPERUSER_PASSWORD}' && \
+           export DEVELOPMENT_DB_ENGINE='${DEVELOPMENT_DB_ENGINE}' && \
+           export DEVELOPMENT_DB_NAME='${DEVELOPMENT_DB_NAME}' && \
+           export DEVELOPMENT_DB_USER='${DEVELOPMENT_DB_USER}' && \
+           export DEVELOPMENT_DB_PASSWORD='${DEVELOPMENT_DB_PASSWORD}' && \
+           export DEVELOPMENT_DB_HOST='${DEVELOPMENT_DB_HOST}' && \
+           export DEVELOPMENT_DB_PORT='${DEVELOPMENT_DB_PORT}' && \
            cat > /tmp/deploy_script.sh" < deploy_script.sh
         
         sshpass -e ssh ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} \
@@ -300,6 +336,12 @@ jobs:
            export DEVELOPMENT_SUPERUSER_USERNAME='${DEVELOPMENT_SUPERUSER_USERNAME}' && \
            export DEVELOPMENT_SUPERUSER_EMAIL='${DEVELOPMENT_SUPERUSER_EMAIL}' && \
            export DEVELOPMENT_SUPERUSER_PASSWORD='${DEVELOPMENT_SUPERUSER_PASSWORD}' && \
+           export DEVELOPMENT_DB_ENGINE='${DEVELOPMENT_DB_ENGINE}' && \
+           export DEVELOPMENT_DB_NAME='${DEVELOPMENT_DB_NAME}' && \
+           export DEVELOPMENT_DB_USER='${DEVELOPMENT_DB_USER}' && \
+           export DEVELOPMENT_DB_PASSWORD='${DEVELOPMENT_DB_PASSWORD}' && \
+           export DEVELOPMENT_DB_HOST='${DEVELOPMENT_DB_HOST}' && \
+           export DEVELOPMENT_DB_PORT='${DEVELOPMENT_DB_PORT}' && \
            /tmp/deploy_script.sh"
 
     - name: 🔄 Restart backend services

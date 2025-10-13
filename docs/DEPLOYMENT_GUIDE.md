@@ -4,17 +4,9 @@
 
 ProjectMeats supports deployment across three environments using a centralized configuration system:
 
-- **Development** - Local development with SQLite (temporary - see note below)
+- **Development** - Local development with PostgreSQL (recommended) or SQLite (fallback)
 - **Staging** - Pre-production testing with PostgreSQL and monitoring
 - **Production** - Full production deployment with high availability and monitoring
-
-### Important Note: Development Database Configuration
-
-**TEMPORARY**: The development environment currently uses SQLite instead of PostgreSQL due to Postgres server not being set up. This is a temporary measure to unblock deployments and resolve OperationalError issues. 
-
-**Plan**: We will revert to PostgreSQL for development once the Postgres server is properly configured to ensure environment parity with staging/production.
-
-**Contributors**: Be aware that this deviates from UAT/prod environments for now. When working on database-specific features, test thoroughly on staging/UAT before deploying to production.
 
 ## Prerequisites
 
@@ -27,13 +19,17 @@ ProjectMeats supports deployment across three environments using a centralized c
 ### Environment-Specific Requirements
 
 #### Development
-- SQLite (built-in with Python, no additional setup required)
+- **PostgreSQL 12+** (recommended for environment parity)
+  - macOS: `brew install postgresql`
+  - Ubuntu: `sudo apt-get install postgresql postgresql-contrib`
+  - Windows: Download from [PostgreSQL.org](https://www.postgresql.org/download/windows/)
+  - Docker: `docker run --name projectmeats-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15`
+- **SQLite** (fallback option, built-in with Python)
 - Local development tools
-- **Note**: Temporarily using SQLite instead of PostgreSQL for simplicity
 
 #### Staging/Production
-- PostgreSQL database server
-- Redis server
+- PostgreSQL database server (managed instance recommended)
+- Redis server (optional, for caching)
 - HTTPS certificates
 - Monitoring infrastructure (recommended)
 
@@ -42,8 +38,37 @@ ProjectMeats supports deployment across three environments using a centralized c
 ### 1. Set Up Environment Variables
 
 #### Development
+
+**Option A: PostgreSQL (Recommended)**
 ```bash
+# 1. Set up PostgreSQL database
+# Create database and user
+createdb projectmeats_dev
+createuser -P projectmeats_dev  # Set password when prompted
+
+# Grant privileges
+psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
+
+# 2. Configure environment
 python config/manage_env.py setup development
+
+# 3. Edit config/environments/development.env
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=projectmeats_dev
+# DB_USER=projectmeats_dev
+# DB_PASSWORD=your_password
+# DB_HOST=localhost
+# DB_PORT=5432
+```
+
+**Option B: SQLite (Fallback)**
+```bash
+# 1. Configure environment
+python config/manage_env.py setup development
+
+# 2. Edit config/environments/development.env
+# DB_ENGINE=django.db.backends.sqlite3
+# (No other DB variables needed)
 ```
 
 #### Staging
@@ -88,18 +113,30 @@ python config/manage_env.py validate
 ### Method 1: Direct Deployment
 
 #### Development
+
+**Using PostgreSQL (Recommended):**
 ```bash
-# TEMPORARY: Development now uses SQLite (no PostgreSQL setup needed)
-# When PostgreSQL is set up in the future, follow these steps instead:
-# 1. Install PostgreSQL locally
-#    macOS: brew install postgresql && brew services start postgresql
-#    Ubuntu/Debian: sudo apt-get install postgresql postgresql-contrib && sudo systemctl start postgresql
-# 2. Create database: createdb projectmeats_dev
-# 3. Create user: createuser -P projectmeats_dev (password: devpassword)
-# 4. Grant privileges: psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
+# 1. Set up PostgreSQL database (if not already done)
+createdb projectmeats_dev
+createuser -P projectmeats_dev
+psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"
 
-# Current SQLite setup (no database server needed):
+# 2. Install Python dependencies
+pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
 
+# 3. Set up database migrations
+cd backend && python manage.py migrate && cd ..
+
+# 4. Create superuser and root tenant (uses environment variables)
+cd backend && python manage.py create_super_tenant && cd ..
+
+# 5. Start development servers
+make dev
+```
+
+**Using SQLite (Fallback):**
+```bash
 # 1. Install Python dependencies
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..

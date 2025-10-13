@@ -2,6 +2,172 @@
 
 This document provides a comprehensive reference for all environment variables used in the ProjectMeats application.
 
+## Database Configuration
+
+Database configuration uses environment-specific variables to support different database backends across deployment environments.
+
+### Database Engine Selection
+
+| Variable | Description | Values | Default |
+|----------|-------------|--------|---------|
+| `DB_ENGINE` | Database backend engine | `django.db.backends.postgresql`, `django.db.backends.sqlite3` | `django.db.backends.sqlite3` |
+
+### PostgreSQL Configuration
+
+Required when `DB_ENGINE=django.db.backends.postgresql`:
+
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `DB_NAME` | Database name | `projectmeats_dev` | Yes |
+| `DB_USER` | Database user | `postgres` | Yes |
+| `DB_PASSWORD` | Database password | `secure_password` | Yes |
+| `DB_HOST` | Database host | `localhost` or `db.example.com` | Yes |
+| `DB_PORT` | Database port | `5432` | No (defaults to 5432) |
+
+### SQLite Configuration (DEPRECATED)
+
+SQLite is maintained for backward compatibility but is deprecated. Use PostgreSQL for environment parity.
+
+No additional variables required when `DB_ENGINE=django.db.backends.sqlite3`.
+
+### Environment-Specific Database Configuration
+
+#### Development Environment
+
+**PostgreSQL (Recommended):**
+```bash
+# config/environments/development.env
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=projectmeats_dev
+DB_USER=postgres
+DB_PASSWORD=dev_password
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+**SQLite Fallback (DEPRECATED):**
+```bash
+# config/environments/development.env
+DB_ENGINE=django.db.backends.sqlite3
+```
+
+**GitHub Secrets (for deployment):**
+- Navigate to repository Settings → Environments → `dev-backend`
+- Add secrets:
+  - `DEVELOPMENT_DB_ENGINE` (e.g., `django.db.backends.postgresql`)
+  - `DEVELOPMENT_DB_NAME`
+  - `DEVELOPMENT_DB_USER`
+  - `DEVELOPMENT_DB_PASSWORD`
+  - `DEVELOPMENT_DB_HOST`
+  - `DEVELOPMENT_DB_PORT`
+
+#### Staging/UAT Environment
+
+**PostgreSQL (Required):**
+```bash
+# config/environments/staging.env
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=projectmeats_staging
+DB_USER=postgres
+DB_PASSWORD=change_me_in_secrets
+DB_HOST=staging-db.example.com
+DB_PORT=5432
+```
+
+**GitHub Secrets:**
+- Navigate to repository Settings → Environments → `uat2-backend`
+- Add secrets:
+  - `STAGING_DB_ENGINE`
+  - `STAGING_DB_NAME`
+  - `STAGING_DB_USER`
+  - `STAGING_DB_PASSWORD`
+  - `STAGING_DB_HOST`
+  - `STAGING_DB_PORT`
+
+#### Production Environment
+
+**PostgreSQL (Required):**
+```bash
+# config/environments/production.env
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=projectmeats_prod
+DB_USER=postgres
+DB_PASSWORD=change_me_in_secrets
+DB_HOST=prod-db.example.com
+DB_PORT=5432
+```
+
+**GitHub Secrets:**
+- Navigate to repository Settings → Environments → `prod2-backend`
+- Add secrets:
+  - `PRODUCTION_DB_ENGINE`
+  - `PRODUCTION_DB_NAME`
+  - `PRODUCTION_DB_USER`
+  - `PRODUCTION_DB_PASSWORD`
+  - `PRODUCTION_DB_HOST`
+  - `PRODUCTION_DB_PORT`
+
+### Database Security Best Practices
+
+1. **Strong Passwords**: Use cryptographically secure passwords (minimum 16 characters)
+2. **Connection Encryption**: Enable SSL/TLS for PostgreSQL connections in production
+3. **Least Privilege**: Grant only necessary database permissions to application user
+4. **Network Isolation**: Restrict database access to application servers only
+5. **Regular Backups**: Implement automated backup and restoration procedures
+6. **Password Rotation**: Rotate database credentials regularly (recommended: every 90 days)
+
+### Database Troubleshooting
+
+#### Error: "Database connection failed"
+
+**Cause:** Incorrect database credentials or unreachable database host.
+
+**Solution:**
+1. Verify `DB_HOST` is accessible from deployment server
+2. Check `DB_USER` and `DB_PASSWORD` are correct
+3. Ensure database server is running and accepting connections
+4. Verify firewall rules allow connection on `DB_PORT`
+
+#### Error: "Readonly database" or "attempt to write a readonly database"
+
+**Cause:** Database file permissions (SQLite) or database user lacks write permissions (PostgreSQL).
+
+**Solution for SQLite (DEPRECATED):**
+```bash
+# Fix file permissions
+sudo chown $USER:$USER db.sqlite3
+chmod 664 db.sqlite3
+```
+
+**Solution for PostgreSQL:**
+1. Verify `DB_USER` has `CREATE`, `INSERT`, `UPDATE`, `DELETE` permissions
+2. Check database user grants: `GRANT ALL PRIVILEGES ON DATABASE dbname TO username;`
+3. Ensure database is not in read-only mode
+
+#### Error: "Missing database environment variables"
+
+**Cause:** Required PostgreSQL variables not set.
+
+**Solution:**
+- Development: Set variables in `config/environments/development.env`
+- Staging/Production: Ensure all `*_DB_*` secrets are configured in GitHub Environments
+
+### Database Migration Commands
+
+```bash
+# Check database connectivity
+python manage.py check --database default
+
+# Create migrations
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Show migration status
+python manage.py showmigrations
+```
+
 ## Superuser Configuration
 
 Superuser credentials are configured using environment-specific variables to support dynamic username, email, and password management across different deployment environments.
