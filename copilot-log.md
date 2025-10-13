@@ -2282,3 +2282,117 @@ None - All requirements implemented successfully on first attempt
 - ✅ Comprehensive documentation added
 - ✅ Follows Django, 12-Factor App, OWASP best practices
 
+---
+
+## Task: Fix Superuser Creation/Testing Errors - Environment-Specific Credentials Support - [Date: 2025-10-13]
+
+### Actions Taken:
+
+1. **Enhanced create_super_tenant command with environment-specific credentials:**
+   - Added environment detection via `DJANGO_ENV` variable
+   - Added support for environment-specific credentials:
+     - `DEVELOPMENT_SUPERUSER_*` for development
+     - `STAGING_SUPERUSER_*` for staging/UAT
+     - `PRODUCTION_SUPERUSER_*` for production
+   - Maintained backward compatibility with generic `SUPERUSER_*` variables
+   - Falls back: environment-specific → generic → defaults
+   - Improved logging showing detected environment and loaded variables
+
+2. **Updated GitHub Actions workflow (.github/workflows/unified-deployment.yml):**
+   - Added `DJANGO_ENV` to all create_super_tenant invocations
+   - Development: `DJANGO_ENV=development` with DEVELOPMENT_SUPERUSER_* vars
+   - Staging: `DJANGO_ENV=staging` with STAGING_SUPERUSER_* vars
+   - Production: `DJANGO_ENV=production` with PRODUCTION_SUPERUSER_* vars
+   - Environment-specific credentials now properly passed to deployment scripts
+
+3. **Fixed test_create_superuser_method_used password hashing assertion:**
+   - Changed from checking only `pbkdf2_sha256$` prefix (production hasher)
+   - Now accepts any valid Django password hasher: md5$, pbkdf2_sha256$, argon2, bcrypt
+   - Accommodates test settings using MD5PasswordHasher for speed
+   - Verifies password is hashed (not plaintext) and verifiable with check_password()
+
+4. **Updated environment variables documentation (docs/environment-variables.md):**
+   - Enhanced create_super_tenant section with environment-specific variable support
+   - Added examples for development, staging, production
+   - Documented fallback behavior and backward compatibility
+   - Clarified that both setup_superuser and create_super_tenant support environment-specific vars
+
+5. **Created comprehensive fix documentation (SUPERUSER_ENVIRONMENT_VARIABLES_FIX.md):**
+   - Complete summary of issues addressed and solutions implemented
+   - Environment variables reference for all environments
+   - GitHub Secrets configuration guide
+   - Testing verification commands
+   - Migration guide for existing deployments
+
+6. **Verified all changes with comprehensive testing:**
+   - All create_super_tenant tests pass (12/12)
+   - All setup_superuser tests pass (9/9)
+   - Full backend test suite passes (91/91)
+   - Password hashing verified for both MD5 (test) and PBKDF2 (production)
+
+### Misses/Failures:
+- **Initial test assumption about password hasher**: Test expected only pbkdf2_sha256$ but test settings use MD5PasswordHasher
+  - **Lesson**: Test settings often use different configurations (faster hashers) than production
+  - **Solution**: Updated test to accept any valid Django password hasher prefix
+
+### Lessons Learned:
+1. **Environment-specific naming improves clarity**: Using DEVELOPMENT_*, STAGING_*, PRODUCTION_* prefixes makes environment context explicit
+2. **Backward compatibility matters**: Maintaining fallback to SUPERUSER_* vars ensures smooth migration
+3. **Test settings differ from production**: PASSWORD_HASHERS configuration in test.py uses MD5 for speed
+4. **Password hashing verification should be algorithm-agnostic**: Tests should verify password is hashed and verifiable, not check specific algorithm
+5. **Environment detection is powerful**: DJANGO_ENV variable allows same command to work correctly across all environments
+6. **Comprehensive documentation prevents future issues**: Documenting environment-specific variables, fallbacks, and migration paths
+7. **Both commands need parity**: setup_superuser already had environment-specific support; create_super_tenant needed the same
+
+### Efficiency Suggestions:
+1. **Add CI validation**: GitHub Action to verify all required secrets are set for each environment
+2. **Template environment files**: Generate env file templates from settings.py requirements
+3. **Automated secret rotation**: Script to rotate credentials safely across all environments
+4. **Pre-deployment validation**: Check that environment-specific vars are set before deployment
+5. **Monitoring**: Alert when commands fall back to generic SUPERUSER_* vars in production
+
+### Test Results:
+- ✅ All create_super_tenant tests passing (12/12)
+- ✅ All setup_superuser tests passing (9/9)
+- ✅ Full backend test suite passing (91/91)
+- ✅ Password hashing verified for MD5 (test) and PBKDF2 (production)
+- ✅ Environment detection working correctly
+- ✅ Fallback logic verified
+- ✅ No regressions in existing functionality
+
+### Files Modified:
+1. `backend/apps/core/management/commands/create_super_tenant.py` - Added environment-specific credential support
+2. `.github/workflows/unified-deployment.yml` - Added DJANGO_ENV to all environments
+3. `backend/apps/tenants/tests_management_commands.py` - Fixed password hashing test assertion
+4. `docs/environment-variables.md` - Enhanced documentation
+
+### Files Created:
+1. `SUPERUSER_ENVIRONMENT_VARIABLES_FIX.md` - Comprehensive fix documentation (10.5KB)
+
+### Impact:
+- ✅ UAT/Staging now uses STAGING_SUPERUSER_* credentials
+- ✅ Production uses PRODUCTION_SUPERUSER_* credentials
+- ✅ Development uses DEVELOPMENT_SUPERUSER_* credentials
+- ✅ Backward compatible with generic SUPERUSER_* variables
+- ✅ Test failures resolved (password hashing assertion fixed)
+- ✅ Environment-specific credential rotation now possible
+- ✅ Improved security through environment separation
+- ✅ Comprehensive documentation for migration and troubleshooting
+- ✅ No breaking changes to existing deployments
+
+### Security Improvements:
+- ✅ Environment separation: Dev, staging, and production can have unique credentials
+- ✅ Credential rotation: Can rotate passwords per environment independently
+- ✅ Principle of least privilege: Separate credentials per environment
+- ✅ Audit trail: Environment detection logged for security audits
+- ✅ Follows 12-Factor App: Configuration via environment variables
+- ✅ OWASP compliance: No password logging, proper password hashing
+
+### Related GitHub Actions Run:
+- Original failure: https://github.com/Meats-Central/ProjectMeats/actions/runs/18455361439
+- Issues addressed:
+  - ❌ Superuser password is required in production environment!
+  - ❌ Password verification failed for user: failtest
+  - ❌ Test case failed: test_create_superuser_method_used
+- All issues resolved with this PR
+

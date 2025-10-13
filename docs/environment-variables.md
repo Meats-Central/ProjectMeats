@@ -172,6 +172,8 @@ python manage.py showmigrations
 
 Superuser credentials are configured using environment-specific variables to support dynamic username, email, and password management across different deployment environments.
 
+**Both the `setup_superuser` and `create_super_tenant` commands support environment-specific variables**, ensuring consistent credential management across all deployment operations.
+
 ### Development Environment
 
 | Variable | Description | Default | Required |
@@ -334,13 +336,55 @@ The command runs automatically during deployment via GitHub Actions workflow in 
 
 ### create_super_tenant Command
 
-Creates superuser, root tenant, and links them together. Uses legacy environment variables for backward compatibility.
+Creates superuser, root tenant, and links them together. **Now supports environment-specific variables** (as of this update).
+
+#### Environment-Specific Variables (Recommended)
+
+The command automatically detects the environment using `DJANGO_ENV` and loads the appropriate credentials:
+
+| DJANGO_ENV Value | Variables Used |
+|------------------|----------------|
+| `development` (default) | `DEVELOPMENT_SUPERUSER_*` |
+| `staging` or `uat` | `STAGING_SUPERUSER_*` |
+| `production` | `PRODUCTION_SUPERUSER_*` |
+
+**Example Usage:**
+```bash
+# Development
+DJANGO_ENV=development \
+DEVELOPMENT_SUPERUSER_USERNAME=admin \
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com \
+DEVELOPMENT_SUPERUSER_PASSWORD=DevPass123! \
+python manage.py create_super_tenant
+
+# Staging
+DJANGO_ENV=staging \
+STAGING_SUPERUSER_USERNAME=stagingadmin \
+STAGING_SUPERUSER_EMAIL=admin@staging.example.com \
+STAGING_SUPERUSER_PASSWORD=StagePass456! \
+python manage.py create_super_tenant
+
+# Production
+DJANGO_ENV=production \
+PRODUCTION_SUPERUSER_USERNAME=prodadmin \
+PRODUCTION_SUPERUSER_EMAIL=admin@example.com \
+PRODUCTION_SUPERUSER_PASSWORD=ProdPass789! \
+python manage.py create_super_tenant
+```
+
+#### Legacy Variables (Backward Compatibility)
+
+For backward compatibility, the command still supports generic variables:
 
 | Variable | Description |
 |----------|-------------|
 | `SUPERUSER_EMAIL` | Email for tenant creation |
 | `SUPERUSER_PASSWORD` | Password for tenant creation |
 | `SUPERUSER_USERNAME` | Username for tenant creation |
+
+**Fallback Behavior:**
+- If environment-specific variables are not set, the command falls back to generic `SUPERUSER_*` variables
+- If neither are set, uses default values (development) or raises error (production/staging)
 
 **Note:** The `create_super_tenant` command runs AFTER `setup_superuser` during deployment to ensure credentials are synced before tenant setup.
 
