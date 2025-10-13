@@ -2,7 +2,7 @@
 Django admin configuration for Purchase Orders app.
 """
 from django.contrib import admin
-from .models import PurchaseOrder
+from .models import PurchaseOrder, PurchaseOrderHistory
 
 
 @admin.register(PurchaseOrder)
@@ -91,6 +91,63 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
         ("Additional Information", {"fields": ("notes",)}),
         (
             "Metadata",
-            {"fields": ("tenant", "created_on", "modified_on"), "classes": ("collapse",)},
+            {
+                "fields": ("tenant", "created_on", "modified_on"),
+                "classes": ("collapse",),
+            },
         ),
     )
+
+
+@admin.register(PurchaseOrderHistory)
+class PurchaseOrderHistoryAdmin(admin.ModelAdmin):
+    """Admin interface for PurchaseOrderHistory model."""
+
+    list_display = (
+        "purchase_order",
+        "change_type",
+        "changed_by",
+        "created_on",
+    )
+    list_filter = (
+        "change_type",
+        "created_on",
+    )
+    search_fields = (
+        "purchase_order__order_number",
+        "changed_by__username",
+    )
+    readonly_fields = (
+        "purchase_order",
+        "changed_data",
+        "changed_by",
+        "change_type",
+        "created_on",
+        "modified_on",
+    )
+
+    fieldsets = (
+        (
+            "History Information",
+            {
+                "fields": (
+                    "purchase_order",
+                    "change_type",
+                    "changed_by",
+                    "changed_data",
+                )
+            },
+        ),
+        (
+            "Metadata",
+            {"fields": ("created_on", "modified_on"), "classes": ("collapse",)},
+        ),
+    )
+
+    def has_add_permission(self, request):
+        """Prevent manual creation of history entries."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of history entries."""
+        return False
