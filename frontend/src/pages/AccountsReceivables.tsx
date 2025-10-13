@@ -402,11 +402,13 @@ const AccountsReceivables: React.FC = () => {
         await apiService.deleteAccountsReceivable(id);
         alert('Accounts receivable deleted successfully!');
         await loadReceivables(); // Re-fetch to update the list
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
         console.error('Error deleting accounts receivable:', error);
-        const errorMessage = error?.response?.data?.detail 
-          || error?.response?.data?.message 
-          || error?.message 
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
           || 'Failed to delete accounts receivable';
         alert(`Error: ${errorMessage}`);
       }

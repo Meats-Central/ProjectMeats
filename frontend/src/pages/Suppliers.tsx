@@ -85,11 +85,14 @@ const Suppliers: React.FC = () => {
         await apiService.deleteSupplier(id);
         alert('Supplier deleted successfully!');
         await fetchSuppliers(); // Re-fetch to update the list
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
+        // This ensures we handle errors safely while maintaining type checking
         console.error('Error deleting supplier:', error);
-        const errorMessage = error?.response?.data?.detail 
-          || error?.response?.data?.message 
-          || error?.message 
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
           || 'Failed to delete supplier';
         alert(`Error: ${errorMessage}`);
       }
