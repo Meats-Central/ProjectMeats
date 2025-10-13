@@ -442,6 +442,141 @@ git subtree push --prefix backend heroku main
 - **Monitoring**: Full monitoring and alerting
 - **Performance**: Optimized settings and caching
 
+## Database Configuration and Verification
+
+### Understanding DB_ENGINE
+
+The `DB_ENGINE` environment variable determines which database backend Django uses. This is critical for environment parity and deployment success.
+
+**Valid Values:**
+- `django.db.backends.postgresql` - PostgreSQL (recommended for all environments)
+- `django.db.backends.sqlite3` - SQLite (local development fallback only)
+
+**Reference:** [Django Database Settings Documentation](https://docs.djangoproject.com/en/stable/ref/settings/#databases)
+
+### Development Environment Database Configuration
+
+#### GitHub Secrets Configuration (Required for Deployment)
+
+To deploy to the dev-backend environment, configure these secrets:
+
+1. Navigate to: **Repository Settings → Environments → dev-backend**
+2. Add the following secrets:
+
+| Secret Name | Required? | Description | Example Value |
+|-------------|-----------|-------------|---------------|
+| `DEVELOPMENT_DB_ENGINE` | ⚠️ Recommended | Database backend | `django.db.backends.postgresql` |
+| `DEVELOPMENT_DB_NAME` | If using PostgreSQL | Database name | `projectmeats_dev` |
+| `DEVELOPMENT_DB_USER` | If using PostgreSQL | Database user | `projectmeats_dev` |
+| `DEVELOPMENT_DB_PASSWORD` | If using PostgreSQL | Database password | `your-secure-password` |
+| `DEVELOPMENT_DB_HOST` | If using PostgreSQL | Database host | `localhost` or managed DB hostname |
+| `DEVELOPMENT_DB_PORT` | Optional | Database port | `5432` (default for PostgreSQL) |
+
+**Note:** If `DEVELOPMENT_DB_ENGINE` is not set or empty, the system will automatically fall back to SQLite. However, for environment parity with UAT/production, PostgreSQL is strongly recommended.
+
+#### Verification Steps
+
+After configuring secrets, verify your database configuration:
+
+**Step 1: Check Django Configuration**
+```bash
+# SSH into dev server or run locally
+cd /home/django/ProjectMeats/backend
+source venv/bin/activate
+
+# Verify settings are loaded correctly
+python manage.py check --database default
+
+# Should output: System check identified no issues (0 silenced).
+```
+
+**Step 2: Test Database Connectivity**
+```bash
+# Verify database connection
+python manage.py shell
+
+# In the shell:
+from django.db import connection
+connection.ensure_connection()
+print(f"Connected to: {connection.settings_dict['ENGINE']}")
+# Should print: Connected to: django.db.backends.postgresql
+```
+
+**Step 3: Check Migration Status**
+```bash
+# Verify migrations can run
+python manage.py showmigrations
+
+# All migrations should show [X] indicating they're applied
+```
+
+**Step 4: Review Deployment Logs**
+
+In GitHub Actions workflow logs, look for:
+- ✅ `DEVELOPMENT_DB_ENGINE is set to: django.db.backends.postgresql`
+- ✅ `Development environment using database backend: django.db.backends.postgresql`
+- ❌ `DEVELOPMENT_DB_ENGINE secret is empty, will use SQLite fallback` (indicates missing secret)
+
+### Troubleshooting DB_ENGINE ValueError
+
+If deployment fails with `ValueError: Unsupported DB_ENGINE`, follow these steps:
+
+#### Symptom
+```
+ValueError: Unsupported DB_ENGINE: ''. 
+Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'.
+```
+
+#### Root Cause
+The `DB_ENGINE` environment variable is either:
+1. Not set in GitHub Secrets
+2. Set to an empty string
+3. Set to an invalid value
+
+#### Solution
+
+**Option A: Use PostgreSQL (Recommended)**
+1. Go to: Settings → Environments → dev-backend
+2. Add secret `DEVELOPMENT_DB_ENGINE` = `django.db.backends.postgresql`
+3. Add other required DB secrets (`DEVELOPMENT_DB_NAME`, `DEVELOPMENT_DB_USER`, etc.)
+4. Redeploy from development branch
+
+**Option B: Use SQLite Fallback**
+1. Ensure `DEVELOPMENT_DB_ENGINE` secret is either:
+   - Not created at all (system will use fallback)
+   - Set to `django.db.backends.sqlite3`
+2. Note: SQLite is not recommended for deployment environments due to:
+   - Different behavior from staging/production
+   - Limited concurrency
+   - No network access
+   - File permission issues
+
+#### Prevention
+- Always set `DB_ENGINE` to a valid value in all environments
+- Use PostgreSQL for development to match staging/production
+- Review deployment logs after configuration changes
+- Add DB secrets when creating new environments
+
+### UAT/Staging Database Configuration
+
+UAT deployment currently uses server-side environment variables. Database credentials should be configured on the UAT server:
+
+```bash
+# On UAT server (/home/django/ProjectMeats/.env or server environment)
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=projectmeats_uat
+DB_USER=projectmeats_uat
+DB_PASSWORD=<secure-password>
+DB_HOST=<managed-db-hostname>
+DB_PORT=5432
+```
+
+**Verification:** Follow the same verification steps as development (Step 1-3 above).
+
+### Production Database Configuration
+
+Production uses managed PostgreSQL with enhanced security and backup configuration. Refer to the production deployment guide for specific setup instructions.
+
 ## Security Checklist
 
 ### Development
