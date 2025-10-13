@@ -390,6 +390,10 @@ class Migration(migrations.Migration):
                         choices=[("Net", "Net"), ("Catch", "Catch")],
                         default="",
                         help_text="Weight type (Net or Catch)",
+                        max_length=50,
+                    ),
+                ),
+                (
                     "changed_data",
                     models.JSONField(
                         help_text="JSON representation of changed fields and their values"
@@ -517,6 +521,9 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="carrier_purchase_orders",
                         to="tenants.tenant",
+                    ),
+                ),
+                (
                     "changed_by",
                     models.ForeignKey(
                         blank=True,
