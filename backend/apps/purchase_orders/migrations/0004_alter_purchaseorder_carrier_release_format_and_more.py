@@ -386,6 +386,25 @@ class Migration(migrations.Migration):
                         choices=[("Net", "Net"), ("Catch", "Catch")],
                         default="",
                         help_text="Weight type (Net or Catch)",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "changed_data",
+                    models.JSONField(
+                        help_text="JSON representation of changed fields and their values"
+                    ),
+                ),
+                (
+                    "change_type",
+                    models.CharField(
+                        choices=[
+                            ("created", "Created"),
+                            ("updated", "Updated"),
+                            ("deleted", "Deleted"),
+                        ],
+                        default="updated",
+                        help_text="Type of change made",
                         max_length=20,
                     ),
                 ),

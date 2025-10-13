@@ -1,28 +1,29 @@
 """
 Tests for Purchase Orders app models.
+
+Includes tests for CarrierPurchaseOrder, ColdStorageEntry, and version history.
 """
+from datetime import date
 from decimal import Decimal
+
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
-from apps.purchase_orders.models import (
-    PurchaseOrder,
-    CarrierPurchaseOrder,
-    ColdStorageEntry,
-    PurchaseOrderStatus,
-)
-from apps.suppliers.models import Supplier
+from rest_framework import status
+from rest_framework.test import APITestCase
+
 from apps.carriers.models import Carrier
+from apps.core.models import (AccountingPaymentTermsChoices,
+                              EdibleInedibleChoices, FreshOrFrozenChoices,
+                              ProteinTypeChoices, WeightUnitChoices)
 from apps.customers.models import Customer
-from apps.products.models import Product
 from apps.plants.models import Plant
-from apps.sales_orders.models import SalesOrder
-from apps.core.models import (
-    AccountingPaymentTermsChoices,
-    EdibleInedibleChoices,
-    FreshOrFrozenChoices,
-    ProteinTypeChoices,
-    WeightUnitChoices,
-)
+from apps.products.models import Product
+from apps.purchase_orders.models import (CarrierPurchaseOrder,
+                                         ColdStorageEntry, PurchaseOrder,
+                                         PurchaseOrderHistory)
+from apps.suppliers.models import Supplier
+from apps.tenants.models import Tenant, TenantUser
 
 
 class CarrierPurchaseOrderModelTest(TestCase):
@@ -56,7 +57,7 @@ class CarrierPurchaseOrderModelTest(TestCase):
             carrier_name="Test Carrier",
             pick_up_date=timezone.now().date(),
         )
-        
+
         self.assertEqual(carrier_po.carrier, self.carrier)
         self.assertEqual(carrier_po.supplier, self.supplier)
         self.assertEqual(carrier_po.our_carrier_po_num, "CPO-001")
@@ -77,7 +78,7 @@ class CarrierPurchaseOrderModelTest(TestCase):
             weight_unit=WeightUnitChoices.LBS,
             quantity=100,
         )
-        
+
         self.assertEqual(carrier_po.type_of_protein, "Beef")
         self.assertEqual(carrier_po.fresh_or_frozen, "Fresh")
         self.assertEqual(carrier_po.total_weight, Decimal("1000.50"))
@@ -92,7 +93,7 @@ class CarrierPurchaseOrderModelTest(TestCase):
             payment_terms=AccountingPaymentTermsChoices.WIRE,
             our_carrier_po_num="CPO-003",
         )
-        
+
         self.assertEqual(carrier_po.payment_terms, "Wire")
 
     def test_carrier_purchase_order_str_representation(self):
@@ -102,7 +103,7 @@ class CarrierPurchaseOrderModelTest(TestCase):
             supplier=self.supplier,
             our_carrier_po_num="CPO-004",
         )
-        
+
         self.assertIn("CPO-004", str(carrier_po))
 
 
@@ -138,7 +139,7 @@ class ColdStorageEntryModelTest(TestCase):
             item_description="50% Beef Trim fresh - Tested",
             item_production_date=timezone.now().date(),
         )
-        
+
         self.assertEqual(entry.supplier_po, self.supplier_po)
         self.assertEqual(entry.status_of_load, "Matched")
         self.assertEqual(entry.item_description, "50% Beef Trim fresh - Tested")
@@ -153,7 +154,7 @@ class ColdStorageEntryModelTest(TestCase):
             shrink=Decimal("50.00"),
             boxing_cost=Decimal("100.00"),
         )
-        
+
         self.assertEqual(entry.finished_weight, Decimal("950.00"))
         self.assertEqual(entry.shrink, Decimal("50.00"))
         self.assertEqual(entry.boxing_cost, Decimal("100.00"))
@@ -167,7 +168,7 @@ class ColdStorageEntryModelTest(TestCase):
             cold_storage_cost=Decimal("50.00"),
             total_cost=Decimal("150.00"),
         )
-        
+
         self.assertEqual(entry.boxing_cost, Decimal("100.00"))
         self.assertEqual(entry.cold_storage_cost, Decimal("50.00"))
         self.assertEqual(entry.total_cost, Decimal("150.00"))
@@ -179,7 +180,7 @@ class ColdStorageEntryModelTest(TestCase):
             status_of_load="TBD - Not Matched",
             item_description="Unmatched product",
         )
-        
+
         self.assertEqual(entry.status_of_load, "TBD - Not Matched")
 
     def test_cold_storage_entry_str_representation(self):
@@ -188,7 +189,7 @@ class ColdStorageEntryModelTest(TestCase):
             supplier_po=self.supplier_po,
             status_of_load="Matched",
         )
-        
+
         self.assertIn("Cold Storage Entry", str(entry))
         self.assertIn("Matched", str(entry))
 
@@ -207,16 +208,7 @@ class ColdStorageEntryModelTest(TestCase):
 """
 Tests for Purchase Orders API endpoints and version history.
 
-Validates purchase order creation, updates, and version history tracking.
-"""
-from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
-from rest_framework import status
-from apps.purchase_orders.models import PurchaseOrder, PurchaseOrderHistory
-from apps.suppliers.models import Supplier
-from apps.tenants.models import Tenant, TenantUser
-from decimal import Decimal
-from datetime import date
+        self.assertEqual(entry.product, self.product)
 
 
 class PurchaseOrderHistoryTests(APITestCase):
@@ -331,9 +323,7 @@ class PurchaseOrderHistoryTests(APITestCase):
         history = PurchaseOrderHistory.objects.first()
         self.assertIsNotNone(history)
         # User tracking available but may be None if not passed
-        self.assertIn(
-            "changed_by", [f.name for f in PurchaseOrderHistory._meta.get_fields()]
-        )
+        self.assertIn("changed_by", [f.name for f in PurchaseOrderHistory._meta.get_fields()])
 
     def test_history_entries_ordered_by_date(self):
         """Test that history entries are returned in reverse chronological order."""
@@ -379,12 +369,8 @@ class PurchaseOrderHistoryTests(APITestCase):
         )
 
         # Check that each has its own history
-        po1_history_count = PurchaseOrderHistory.objects.filter(
-            purchase_order=po1
-        ).count()
-        po2_history_count = PurchaseOrderHistory.objects.filter(
-            purchase_order=po2
-        ).count()
+        po1_history_count = PurchaseOrderHistory.objects.filter(purchase_order=po1).count()
+        po2_history_count = PurchaseOrderHistory.objects.filter(purchase_order=po2).count()
 
         self.assertEqual(po1_history_count, 1)
         self.assertEqual(po2_history_count, 1)
