@@ -152,11 +152,50 @@ config/
 6. **Run**: `make dev`
 
 ### Staging Deployment
-1. **Environment Variables**: Set staging environment variables in your deployment system (including `STAGING_SUPERUSER_*` variables)
-2. **Setup**: `python config/manage_env.py setup staging`
-3. **Validate**: `python config/manage_env.py validate`
-4. **Deploy**: Follow your staging deployment process
-5. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
+1. **Configure GitHub Secrets**: Before deployment, ensure all required secrets are configured in GitHub repository settings (see "Required GitHub Secrets for Staging" section below)
+2. **Environment Variables**: Set staging environment variables on the staging server's environment configuration
+3. **Setup**: `python config/manage_env.py setup staging`
+4. **Validate**: `python config/manage_env.py validate`
+5. **Deploy**: Follow your staging deployment process (GitHub Actions workflow handles this automatically)
+6. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
+
+#### Required GitHub Secrets for Staging
+
+The following secrets must be configured in GitHub for staging deployment:
+
+**Repository-Level Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
+- `STAGING_HOST` - Staging server IP/hostname (e.g., `192.168.1.101` or `uat.yourdomain.com`)
+- `STAGING_USER` - SSH username for staging server (e.g., `django`)
+- `SSH_PASSWORD` - SSH password for staging server
+
+**Environment Secrets for `uat2-backend`** (Settings → Environments → uat2-backend → Environment secrets):
+
+*Required Secrets:*
+- `STAGING_SUPERUSER_USERNAME` - Admin username for staging
+- `STAGING_SUPERUSER_EMAIL` - Admin email for staging  
+- `STAGING_SUPERUSER_PASSWORD` - Admin password for staging
+- `STAGING_SECRET_KEY` - Django secret key (generate with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
+- `STAGING_DB_USER` - PostgreSQL database username
+- `STAGING_DB_PASSWORD` - PostgreSQL database password
+- `STAGING_DB_HOST` - PostgreSQL database host (e.g., `localhost` or DB server IP)
+- `STAGING_DB_PORT` - PostgreSQL database port (default: `5432`)
+- `STAGING_DB_NAME` - PostgreSQL database name (e.g., `projectmeats_staging`)
+- `STAGING_DOMAIN` - Main staging domain (e.g., `uat.meatscentral.com`)
+- `STAGING_API_DOMAIN` - API staging domain (e.g., `uat-api.meatscentral.com`)
+- `STAGING_FRONTEND_DOMAIN` - Frontend staging domain (e.g., `uat.meatscentral.com`)
+- `STAGING_API_URL` - Staging backend API URL (e.g., `https://uat-api.meatscentral.com`)
+
+*Optional Secrets (if features are enabled):*
+- `STAGING_OPENAI_API_KEY` - OpenAI API key for AI features
+- `STAGING_ANTHROPIC_API_KEY` - Anthropic API key for AI features
+- `STAGING_EMAIL_HOST` - SMTP server hostname
+- `STAGING_EMAIL_USER` - SMTP username
+- `STAGING_EMAIL_PASSWORD` - SMTP password
+- `STAGING_REDIS_HOST` - Redis server host (if using Redis cache)
+- `STAGING_REDIS_PORT` - Redis server port (default: `6379`)
+- `STAGING_SENTRY_DSN` - Sentry DSN for error tracking
+
+**Note**: These secrets are referenced in `config/environments/staging.env` using placeholder syntax like `${STAGING_DB_USER}`. The actual values must be set as environment variables on the staging server.
 
 ### Production Deployment
 1. **Environment Variables**: Set production environment variables securely (including `PRODUCTION_SUPERUSER_*` variables)

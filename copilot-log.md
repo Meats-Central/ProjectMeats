@@ -1748,3 +1748,119 @@ None. All requirements implemented successfully with comprehensive test coverage
 - ✅ Idempotent design (safe to run multiple times)
 - ✅ Fail-fast approach (raises error on verification failure rather than silent failure)
 
+
+## Task: Align staging.env placeholders with existing GitHub secrets for consistent deployment - [Date: 2025-10-13]
+
+### Actions Taken:
+
+1. **Analyzed staging.env and GitHub secrets mismatch:**
+   - Identified that `config/environments/staging.env` references many environment variables not documented as GitHub secrets
+   - Discovered workflow only passes `STAGING_SUPERUSER_*` credentials, unlike development deployment which passes all DB credentials
+   - Found superuser placeholders using `change_me_in_secrets` instead of environment variable syntax
+
+2. **Updated config/environments/staging.env:**
+   - Added documentation comments indicating which variables must be set in GitHub Secrets (uat2-backend environment)
+   - Categorized all secrets as **Required** or **Optional** with inline comments
+   - Changed superuser placeholders from `change_me_in_secrets` to `${STAGING_SUPERUSER_USERNAME}` for consistency
+   - Added notes explaining deployment workflow passes superuser credentials directly
+   - Marked optional secrets: AI services (OpenAI, Anthropic), email (SMTP), cache (Redis), monitoring (Sentry)
+   - Marked required secrets: Database credentials, Django core settings, domain configuration, superuser credentials
+
+3. **Updated docs/ENVIRONMENT_GUIDE.md:**
+   - Added comprehensive "Required GitHub Secrets for Staging" section (45+ lines)
+   - Listed all repository-level secrets (STAGING_HOST, STAGING_USER, SSH_PASSWORD)
+   - Listed all required environment secrets with descriptions and example values
+   - Listed all optional secrets with use case explanations
+   - Added SECRET_KEY generation command for reference
+   - Added note about server-side environment variable configuration
+
+4. **Updated docs/DEPLOYMENT_GUIDE.md:**
+   - Expanded staging deployment section from 13 lines to 60+ lines
+   - Added complete GitHub secrets documentation for staging
+   - Listed required vs. optional secrets with clear categorization
+   - Added important note about current workflow limitations (only superuser credentials passed)
+   - Provided guidance on server-side environment configuration
+   - Added reference to workflow update requirements
+
+5. **Updated docs/workflows/unified-workflow.md:**
+   - Expanded uat2-backend environment secrets table with 20+ additional secrets
+   - Added Required/Optional column to clarify which secrets are necessary
+   - Added important notes section explaining current workflow implementation gaps
+   - Updated Quick Reference checklist with complete staging secret list (from 1 item to 20+ items)
+   - Documented that workflow needs updates to pass DB and other credentials (similar to dev deployment)
+
+6. **Created GITHUB_ISSUE_STAGING_SECRETS.md:**
+   - Comprehensive GitHub issue template with problem statement
+   - Lists all current and missing secrets with checkboxes
+   - Provides exact workflow code changes needed
+   - Includes action items for repository administrators
+   - Documents benefits and references
+
+### Misses/Failures:
+- **None identified**: All changes validated successfully
+- Testing showed no breaking changes to existing functionality
+- Local validation with `python config/manage_env.py setup staging` and `validate` passed
+
+### Lessons Learned:
+
+1. **Documentation consistency is critical**: Having mismatched placeholder names in env files vs. actual GitHub secrets causes confusion during deployment setup
+2. **Workflow limitations must be documented clearly**: The staging workflow currently doesn't pass DB credentials like development does - this gap needs to be explicitly documented
+3. **Required vs. Optional distinction helps prioritization**: Clearly marking which secrets are required vs. optional helps administrators focus on essentials first
+4. **Environment parity matters**: Development deployment passes all DB credentials, but staging doesn't - this inconsistency should be fixed
+5. **Inline documentation in env files is valuable**: Adding comments directly in staging.env helps anyone reading the file understand what secrets are needed and where to configure them
+6. **Server-side vs. GitHub secrets**: Understanding that secrets need to be configured both in GitHub (for workflow) AND on the server environment is important to document
+7. **Template files should use consistent placeholder syntax**: Using `${VARIABLE_NAME}` syntax makes it clear these are placeholders that need to be replaced
+
+### Efficiency Suggestions:
+
+1. **Create workflow update PR**: Follow up with a PR that updates `.github/workflows/unified-deployment.yml` to pass all staging secrets (similar to dev deployment pattern)
+2. **Add validation script**: Create a script that checks if all required GitHub secrets are configured before deployment runs
+3. **Environment variable audit tool**: Build a tool that compares env file placeholders with documented GitHub secrets to catch mismatches automatically
+4. **Standardize deployment patterns**: All environments (dev/staging/prod) should follow the same pattern for passing credentials via workflow
+5. **Secret rotation guide**: Document how to rotate secrets safely without causing deployment failures
+6. **Pre-commit hook**: Add hook that validates env files still use placeholder syntax and haven't had real credentials committed
+7. **Automated secret sync**: Consider GitHub Actions workflow that validates all documented secrets actually exist in repository settings
+
+### Test Results:
+- ✅ `python config/manage_env.py setup staging` - Successfully sets up staging environment
+- ✅ `python config/manage_env.py validate` - Passes all validation checks  
+- ✅ `make deploy-simulate` - Deployment simulation completes successfully
+- ✅ No breaking changes to existing workflows
+- ✅ All documentation updates accurate and comprehensive
+
+### Files Modified:
+1. `config/environments/staging.env` - Updated placeholders and added documentation (96 lines total, ~40 lines modified)
+2. `docs/ENVIRONMENT_GUIDE.md` - Added comprehensive staging secrets section (~45 lines added)
+3. `docs/DEPLOYMENT_GUIDE.md` - Expanded staging documentation (~60 lines added/modified)
+4. `docs/workflows/unified-workflow.md` - Enhanced secret documentation (~30 lines added/modified)
+
+### Files Created:
+1. `GITHUB_ISSUE_STAGING_SECRETS.md` - Complete GitHub issue template (183 lines) documenting all changes and action items
+
+### Impact:
+- ✅ Clear documentation of all required and optional GitHub secrets for staging
+- ✅ Consistent placeholder naming between staging.env and documented GitHub secrets
+- ✅ Administrators have actionable checklist for configuring secrets
+- ✅ Workflow limitations clearly documented (only superuser credentials currently passed)
+- ✅ Foundation laid for future workflow update to pass all secrets
+- ✅ Reduced confusion during staging deployment setup
+- ✅ Better alignment with 12-Factor App principles (secrets from environment)
+- ✅ Comprehensive reference documentation for troubleshooting deployment issues
+
+### Missing Secrets Identified (Need to be Added):
+**Core Django & Database (Required):**
+- STAGING_SECRET_KEY, STAGING_DB_USER, STAGING_DB_PASSWORD, STAGING_DB_HOST, STAGING_DB_PORT, STAGING_DB_NAME
+- STAGING_DOMAIN, STAGING_API_DOMAIN, STAGING_FRONTEND_DOMAIN
+
+**Optional Features:**
+- STAGING_OPENAI_API_KEY, STAGING_ANTHROPIC_API_KEY (AI services)
+- STAGING_EMAIL_HOST, STAGING_EMAIL_USER, STAGING_EMAIL_PASSWORD (Email)
+- STAGING_REDIS_HOST, STAGING_REDIS_PORT (Cache)
+- STAGING_SENTRY_DSN (Monitoring)
+
+### Next Steps for Repository Administrators:
+1. Add missing GitHub secrets to uat2-backend environment (see GITHUB_ISSUE_STAGING_SECRETS.md)
+2. Update `.github/workflows/unified-deployment.yml` to pass DB and other credentials to staging deployment
+3. Configure environment variables on staging server
+4. Test deployment with new secrets
+5. Consider creating similar documentation for production environment

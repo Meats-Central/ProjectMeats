@@ -73,19 +73,61 @@ python config/manage_env.py setup development
 
 #### Staging
 ```bash
-# Set staging environment variables in your deployment system
+# Staging deployment uses GitHub Actions workflow which automatically pulls from 
+# the development branch and deploys to the UAT2 staging environment.
+#
+# IMPORTANT: All environment variables must be configured as GitHub Secrets before deployment.
+# See the "Required GitHub Secrets for Staging" section below for the complete list.
+#
+# On the staging server, environment variables should be set in the server's environment:
 export STAGING_SECRET_KEY="your-staging-secret-key"
 export STAGING_DB_HOST="staging-db.example.com"
 export STAGING_DB_NAME="projectmeats_staging"
 export STAGING_DB_USER="projectmeats_staging"
 export STAGING_DB_PASSWORD="staging-password"
-export STAGING_DOMAIN="staging.projectmeats.com"
-export STAGING_FRONTEND_DOMAIN="staging.projectmeats.com"
-export STAGING_API_DOMAIN="api-staging.projectmeats.com"
+export STAGING_DOMAIN="uat.meatscentral.com"
+export STAGING_FRONTEND_DOMAIN="uat.meatscentral.com"
+export STAGING_API_DOMAIN="uat-api.meatscentral.com"
+export STAGING_SUPERUSER_USERNAME="admin"
+export STAGING_SUPERUSER_EMAIL="admin@meatscentral.com"
+export STAGING_SUPERUSER_PASSWORD="secure-staging-password"
 
 # Apply staging configuration
 python config/manage_env.py setup staging
 ```
+
+**Required GitHub Secrets for Staging:**
+
+To enable automated deployment to staging, configure these secrets in your GitHub repository:
+
+**Repository-Level Secrets** (Settings → Secrets → Actions → Repository secrets):
+- `STAGING_HOST` - Staging server IP or hostname
+- `STAGING_USER` - SSH username for staging server
+- `SSH_PASSWORD` - SSH password for staging server
+- `GIT_TOKEN` - GitHub Personal Access Token for repository access
+
+**Environment Secrets for `uat2-backend`** (Settings → Environments → uat2-backend):
+- `STAGING_SUPERUSER_USERNAME` - Admin username
+- `STAGING_SUPERUSER_EMAIL` - Admin email
+- `STAGING_SUPERUSER_PASSWORD` - Admin password (use strong password)
+- `STAGING_SECRET_KEY` - Django secret key (generate with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
+- `STAGING_DB_USER` - Database username
+- `STAGING_DB_PASSWORD` - Database password
+- `STAGING_DB_HOST` - Database host
+- `STAGING_DB_PORT` - Database port (default: `5432`)
+- `STAGING_DB_NAME` - Database name
+- `STAGING_DOMAIN` - Main domain (e.g., `uat.meatscentral.com`)
+- `STAGING_API_DOMAIN` - API domain (e.g., `uat-api.meatscentral.com`)
+- `STAGING_FRONTEND_DOMAIN` - Frontend domain (same as STAGING_DOMAIN)
+- `STAGING_API_URL` - Backend API URL (e.g., `https://uat-api.meatscentral.com`)
+
+**Optional Secrets** (if features are enabled):
+- `STAGING_OPENAI_API_KEY`, `STAGING_ANTHROPIC_API_KEY` - AI service keys
+- `STAGING_EMAIL_HOST`, `STAGING_EMAIL_USER`, `STAGING_EMAIL_PASSWORD` - Email configuration
+- `STAGING_REDIS_HOST`, `STAGING_REDIS_PORT` - Redis cache configuration
+- `STAGING_SENTRY_DSN` - Sentry error tracking
+
+**Note**: The GitHub Actions workflow (`.github/workflows/unified-deployment.yml`) currently only passes superuser credentials to the deployment script. To pass database and other credentials, the workflow needs to be updated to export these environment variables during deployment.
 
 #### Production
 ```bash
