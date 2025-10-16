@@ -3649,3 +3649,30 @@ carriers.0004, suppliers.0005, suppliers.0006, products.0002, sales_orders.0002,
 - Create a custom management command to verify model-serializer field alignment
 - Update the migration generation process to remind developers to update serializers
 - Add integration tests that specifically test creation with all available fields, not just minimal data
+
+## Task: Fix Field Name Bug in Supplier Creation Logging - [Date: 2025-10-16]
+
+### Actions Taken:
+- Investigated issue where "uat works now but dev does not, regarding creating new supplier or customer"
+- Reviewed supplier and customer views, models, and serializers
+- Identified bug: Line 188 in `backend/apps/suppliers/views.py` referenced non-existent field `company_name`
+- Fixed by changing `serializer.data.get("company_name")` to `serializer.data.get("name")` to match the actual model field
+- Verified customer views already correctly used `"name"` field
+- Confirmed no other references to `company_name` exist in the codebase
+
+### Root Cause:
+The supplier model uses `name` as the field name for the company name, but the logging statement in `perform_create` method incorrectly tried to access `company_name`. While `.get()` wouldn't throw an error, it would return `None`, resulting in incomplete log messages and potentially causing issues in certain error handling scenarios.
+
+### Misses/Failures:
+- None - straightforward fix once the issue was identified
+
+### Lessons Learned:
+- **Always verify field names match model definitions:** When logging or accessing serializer data, ensure field names match the actual model fields
+- **Cross-check similar code paths:** The customer views had the correct field name (`"name"`), which helped identify the supplier views bug
+- **Environment parity matters:** While this bug might not prevent creation in all scenarios, it could cause different behavior between environments depending on error handling and logging configurations
+
+### Efficiency Suggestions:
+- Add linting rules or static analysis to catch references to non-existent model fields
+- Use IDE features to validate field names against model definitions
+- Create consistent patterns across similar views (suppliers and customers should use identical patterns)
+- Add integration tests that verify logging output contains expected data
