@@ -1,4 +1,10 @@
-# ProjectMeats Environment Variables - Best Practices Guide
+# ProjectMeats Environment Configuration - Quick Reference
+
+> **📖 For comprehensive documentation, see [docs/ENVIRONMENT_GUIDE.md](../docs/ENVIRONMENT_GUIDE.md)**
+
+This is a quick reference guide for environment configuration. For detailed information, troubleshooting, and advanced configurations, please refer to the complete Environment Guide.
+
+---
 
 ## 🔒 Security Guidelines
 

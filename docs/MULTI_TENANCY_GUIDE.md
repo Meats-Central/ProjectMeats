@@ -55,6 +55,117 @@ All business entity models include a `tenant` ForeignKey field:
 - **Carriers** (`apps.carriers.models.Carrier`)
 - **Accounts Receivable** (`apps.accounts_receivables.models.AccountsReceivable`)
 
+## Automated Setup
+
+### Management Command: `create_super_tenant`
+
+The `create_super_tenant` management command automates the creation of:
+1. A superuser account
+2. A default "root" tenant
+3. The association between the superuser and root tenant
+
+#### Usage
+
+```bash
+# Run manually
+python manage.py create_super_tenant
+
+# Run during deployment (automatically called in CI/CD)
+```
+
+#### Configuration
+
+The command uses environment variables for credentials:
+
+- `SUPERUSER_EMAIL`: Email address for the superuser (default: `admin@meatscentral.com`)
+- `SUPERUSER_PASSWORD`: Password for the superuser (default: `default_secure_pass`)
+
+⚠️ **Security Note**: Always override default credentials in production environments!
+
+#### Environment Variables
+
+##### Development (`config/environments/development.env`)
+```bash
+SUPERUSER_EMAIL=admin@meatscentral.com
+SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+##### Staging (`config/environments/staging.env`)
+```bash
+SUPERUSER_EMAIL=${STAGING_SUPERUSER_EMAIL}
+SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
+```
+
+##### Production (`config/environments/production.env`)
+```bash
+SUPERUSER_EMAIL=${PRODUCTION_SUPERUSER_EMAIL}
+SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
+```
+
+**Important**: Use secure secret management for staging and production:
+- Use GitHub Secrets for CI/CD pipelines
+- Use environment-specific secret managers (AWS Secrets Manager, Azure Key Vault, etc.)
+- Never commit actual passwords to version control
+
+### Idempotency
+
+The `create_super_tenant` command is idempotent:
+- ✅ Safe to run multiple times
+- ✅ Won't create duplicates
+- ✅ Won't overwrite existing data
+- ✅ Will link existing users to tenants if needed
+
+### Deployment Integration
+
+The command is automatically executed during deployment in the unified workflow:
+
+```yaml
+- Run database migrations
+- Create superuser and root tenant  # ← Automated
+- Collect static files
+- Run Django checks
+```
+
+This happens in all environments:
+- Development
+- Staging (UAT)
+- Production
+
+### Security Best Practices
+
+#### Password Requirements
+
+1. **Development**: Use strong passwords even in dev
+2. **Staging**: Use randomly generated passwords stored in GitHub Secrets
+3. **Production**: Use cryptographically secure passwords with:
+   - Minimum 16 characters
+   - Mix of uppercase, lowercase, numbers, and symbols
+   - Stored in secure secret management system
+
+#### Secret Generation
+
+```bash
+# Generate secure password (example)
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Or use Django's secret key generator
+python manage.py shell -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+#### Environment Setup
+
+For staging and production, set these as GitHub Secrets or in your environment:
+
+```bash
+# Staging
+STAGING_SUPERUSER_EMAIL=admin@staging.meatscentral.com
+STAGING_SUPERUSER_PASSWORD=<secure-random-password>
+
+# Production
+PRODUCTION_SUPERUSER_EMAIL=admin@meatscentral.com
+PRODUCTION_SUPERUSER_PASSWORD=<secure-random-password>
+```
+
 ## Middleware
 
 ### TenantMiddleware
@@ -325,6 +436,44 @@ class Command(BaseCommand):
 ```
 
 ## Troubleshooting
+
+### Management Command Issues
+
+#### Command Not Found
+
+If `create_super_tenant` command is not found:
+
+```bash
+# Verify the command exists
+python manage.py help | grep create_super_tenant
+
+# Check directory structure
+ls -la apps/core/management/commands/
+```
+
+#### Superuser Already Exists
+
+The command will display a warning but continue:
+```
+⚠️  Superuser already exists: admin@meatscentral.com
+```
+
+This is expected behavior and not an error.
+
+#### Permission Denied
+
+Ensure the user running the command has:
+- Database write permissions
+- Proper Django settings configured
+- Virtual environment activated
+
+#### Database Not Migrated
+
+Run migrations before the command:
+```bash
+python manage.py migrate
+python manage.py create_super_tenant
+```
 
 ### No Tenant in Request
 

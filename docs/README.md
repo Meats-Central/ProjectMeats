@@ -21,6 +21,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[Frontend Architecture](FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
 - **[Testing Strategy](TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
+- **[Multi-Tenancy Guide](MULTI_TENANCY_GUIDE.md)** - Multi-tenancy implementation and usage
 - **[UI/UX Enhancements](UI_UX_ENHANCEMENTS.md)** - UI/UX implementation guide
 - **[TODO Log](TODO_LOG.md)** - Development progress and task tracking
 
@@ -52,7 +53,13 @@ docs/
 ├── troubleshooting/                   # Troubleshooting guides
 ├── implementation-summaries/          # Feature implementation summaries
 │   ├── dashboard-enhancement.md      # Dashboard enhancements
-│   └── allowed-hosts-fix.md          # ALLOWED_HOSTS configuration fix
+│   ├── dashboard-enhancement-issue.md # Dashboard enhancement issue details
+│   ├── allowed-hosts-fix.md          # ALLOWED_HOSTS configuration fix
+│   ├── multi-tenancy-implementation.md  # Multi-tenancy feature implementation
+│   ├── data-model-enhancement.md     # Data model enhancements
+│   ├── platform-core-refactoring.md  # Platform core components refactoring
+│   ├── deployment-optimization.md    # Deployment optimizations
+│   └── repository-refactoring-phase-1.md  # Repository refactoring phase 1
 └── templates/                         # Documentation templates
 
 archived/docs/                          # Archived documentation (in root/archived/)
@@ -61,7 +68,8 @@ archived/docs/                          # Archived documentation (in root/archiv
 ├── QUICK_SETUP.md                    # Legacy quick setup
 ├── production_checklist.md           # Legacy production checklist
 ├── copilot-instructions.md           # Outdated Copilot instructions
-└── copilot-log.md                    # Outdated Copilot log
+├── copilot-log.md                    # Outdated Copilot log
+└── DATA_MODEL_ENHANCEMENTS.md        # Superseded by implementation summary
 ```
 
 ## 🎯 Finding What You Need
