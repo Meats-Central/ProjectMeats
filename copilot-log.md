@@ -3623,3 +3623,29 @@ carriers.0004, suppliers.0005, suppliers.0006, products.0002, sales_orders.0002,
 **Status:** ✅ Complete and Ready for Merge  
 **Confidence Level:** Very High (extensive testing, clear analysis, safe approach)  
 **Recommendation:** Merge immediately to prevent future deployment issues
+
+## Task: Fix 500 Error When Creating Suppliers/Customers - [Date: 2025-10-16]
+
+### Actions Taken:
+- Analyzed the 500 error reported when adding new supplier or customer in dev as admin
+- Identified root cause: Serializers missing fields that were added to models in migrations 0004 and 0005
+- Compared model fields vs serializer fields using Python introspection
+- Updated SupplierSerializer to include 7 missing fields: account_line_of_credit, accounting_payment_terms, credit_limits, departments, fresh_or_frozen, net_or_catch, package_type
+- Updated CustomerSerializer to include 8 missing fields: account_line_of_credit, accounting_payment_terms, credit_limits, buyer_contact_name, buyer_contact_phone, buyer_contact_email, product_exportable, type_of_certificate
+- Ran all existing tests (10 tests) - all passed successfully
+- Verified serializers validate correctly with the new fields
+
+### Misses/Failures:
+- None - The fix was straightforward once the root cause was identified
+
+### Lessons Learned:
+- **Always update serializers when adding model fields via migrations:** When new fields are added to models through migrations, the corresponding serializers MUST be updated to include those fields
+- **Use component update checklist:** The custom instructions include a checklist for updating Models, Admin, Serializers, Views, Forms, Templates, Tests, and Documentation - following this would have prevented the issue
+- **Field comparison is essential:** Comparing model fields vs serializer fields programmatically helps identify mismatches quickly
+- **Test with actual data:** While unit tests passed, the 500 error only manifested when actually creating records through the API with the new fields
+
+### Efficiency Suggestions:
+- Add a CI check that compares model fields vs serializer fields to catch mismatches automatically
+- Create a custom management command to verify model-serializer field alignment
+- Update the migration generation process to remind developers to update serializers
+- Add integration tests that specifically test creation with all available fields, not just minimal data
