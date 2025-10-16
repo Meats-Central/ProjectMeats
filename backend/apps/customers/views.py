@@ -194,7 +194,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
             logger.error(
                 f'Validation error creating customer: {str(e.detail)}',
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
@@ -205,7 +205,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
             logger.error(
                 f'Validation error creating customer: {str(e)}',
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
@@ -219,7 +219,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 f'Error creating customer: {str(e)}',
                 exc_info=True,
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }

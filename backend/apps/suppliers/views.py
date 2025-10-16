@@ -195,7 +195,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
             logger.error(
                 f'Validation error creating supplier: {str(e.detail)}',
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
@@ -206,7 +206,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
             logger.error(
                 f'Validation error creating supplier: {str(e)}',
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
@@ -220,7 +220,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
                 f'Error creating supplier: {str(e)}',
                 exc_info=True,
                 extra={
-                    'request_data': request.data,
+                    'request_data': getattr(request, 'data', {}),
                     'user': request.user.username if request.user else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
