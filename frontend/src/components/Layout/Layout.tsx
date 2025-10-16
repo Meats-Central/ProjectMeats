@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -10,10 +10,28 @@ import { useNavigation } from '../../contexts/NavigationContext';
 const Layout: React.FC = () => {
   const { sidebarOpen, setSidebarOpen } = useNavigation();
   const [showOmnibox, setShowOmnibox] = useState(false);
+  const location = useLocation();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Auto-close sidebar on route change (mobile/small screen behavior)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // Close sidebar on route change if on mobile
+    if (window.innerWidth < 768 && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [location.pathname, sidebarOpen, setSidebarOpen]);
 
   // Global keyboard shortcut for Omnibox (Cmd/Ctrl + K)
   useEffect(() => {

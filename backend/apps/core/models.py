@@ -7,6 +7,44 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
+class UserPreferences(models.Model):
+    """
+    User preferences for UI customization.
+    
+    Stores user-specific settings like theme, sidebar state, and dashboard layout.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='preferences',
+        help_text="User associated with these preferences"
+    )
+    theme = models.CharField(
+        max_length=10,
+        choices=[('light', 'Light'), ('dark', 'Dark')],
+        default='light',
+        help_text="UI theme preference"
+    )
+    sidebar_open = models.BooleanField(
+        default=True,
+        help_text="Whether sidebar is open by default"
+    )
+    dashboard_layout = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Dashboard widget layout configuration"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Preference"
+        verbose_name_plural = "User Preferences"
+
+    def __str__(self):
+        return f"Preferences for {self.user.username}"
+
+
 class TenantManager(models.Manager):
     """
     Custom manager that filters querysets by tenant.

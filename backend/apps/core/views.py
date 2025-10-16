@@ -1,12 +1,14 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework import status, viewsets
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ValidationError
 from apps.tenants.models import Tenant, TenantUser
+from .models import UserPreferences
+from .serializers import UserPreferencesSerializer
 
 
 @api_view(["POST"])
@@ -162,4 +164,78 @@ def logout(request):
         return Response({"message": "Successfully logged out"})
     except Token.DoesNotExist:
         return Response({"message": "Already logged out"})
+
+
+class UserPreferencesViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing user preferences.
+    
+    Provides endpoints for getting and updating user preferences including
+    theme, sidebar state, and dashboard layout.
+    """
+    serializer_class = UserPreferencesSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter to current user's preferences only."""
+        return UserPreferences.objects.filter(user=self.request.user)
+
+    def get_object(self):
+        """Get or create preferences for the current user."""
+        preferences, created = UserPreferences.objects.get_or_create(
+            user=self.request.user
+        )
+        return preferences
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Get current user's preferences."""
+        preferences = self.get_object()
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def update_theme(self, request):
+        """Update only the theme preference."""
+        preferences = self.get_object()
+        theme = request.data.get('theme')
+        if theme not in ['light', 'dark']:
+            return Response(
+                {'error': 'Invalid theme. Must be "light" or "dark"'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        preferences.theme = theme
+        preferences.save()
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def update_sidebar(self, request):
+        """Update only the sidebar state."""
+        preferences = self.get_object()
+        sidebar_open = request.data.get('sidebar_open')
+        if not isinstance(sidebar_open, bool):
+            return Response(
+                {'error': 'sidebar_open must be a boolean'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        preferences.sidebar_open = sidebar_open
+        preferences.save()
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def update_dashboard_layout(self, request):
+        """Update dashboard layout configuration."""
+        preferences = self.get_object()
+        dashboard_layout = request.data.get('dashboard_layout')
+        if not isinstance(dashboard_layout, dict):
+            return Response(
+                {'error': 'dashboard_layout must be a JSON object'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        preferences.dashboard_layout = dashboard_layout
+        preferences.save()
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
 
