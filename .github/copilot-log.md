@@ -49,6 +49,37 @@ This file tracks lessons learned, misses, and efficiency improvements for each t
   - When dealing with UNIQUE constraints, always look up by the constrained field first
   - For management commands, test with actual database to catch edge cases
   - Consider adding a database constraint diagram to documentation for quick reference
+
+## Task: Set up Copilot instructions - 2025-10-16
+
+- **Actions Taken**: 
+  - Reviewed existing `.github/copilot-instructions.md` and enhanced it based on GitHub's best practices
+  - Reorganized structure to include: repository overview, technology stack, build/test commands
+  - Added comprehensive sections for Django-specific patterns, React/TypeScript patterns
+  - Enhanced multi-tenancy guidelines with concrete examples
+  - Added security best practices and performance considerations
+  - Included error prevention strategies and common pitfalls
+  - Added deployment and environment configuration guidance
+  - Included related documentation references and getting help section
+  - Cleaned up duplicate sections and improved overall organization
+
+- **Misses/Failures**: 
+  - Initial draft had some duplicate sections that needed cleanup
+  - Had to reorganize to ensure logical flow of information
+
+- **Lessons Learned**: 
+  - GitHub Copilot instructions work best when they include specific code examples
+  - Repository structure overview at the top provides essential context
+  - Build/test commands should be clearly documented for both backend and frontend
+  - Security and performance guidelines are important for maintaining code quality
+  - Link to related documentation helps Copilot find more context when needed
+
+- **Efficiency Suggestions**: 
+  - Keep copilot-instructions.md updated as project structure evolves
+  - Add path-specific instructions in `.github/instructions/` for specialized areas if needed
+  - Consider creating AGENTS.md files for specialized agent tasks
+  - Regularly review and update based on common issues found in copilot-log.md
+
 ## Task: Review and Remove deployment-failure-monitor.yml - 2025-01-28
 
 - **Actions Taken**: 
