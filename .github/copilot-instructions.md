@@ -496,6 +496,8 @@ For more detailed information, refer to:
 - **[docs/TESTING_STRATEGY.md](../docs/TESTING_STRATEGY.md)** - Testing guidelines and examples
 - **[docs/DEPLOYMENT_GUIDE.md](../docs/DEPLOYMENT_GUIDE.md)** - Deployment procedures
 - **[docs/ENVIRONMENT_GUIDE.md](../docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
+- **[docs/MULTI_TENANCY_GUIDE.md](../docs/MULTI_TENANCY_GUIDE.md)** - Multi-tenancy implementation guide
+- **[docs/README.md](../docs/README.md)** - Documentation hub with complete navigation
 - **[.github/copilot-log.md](copilot-log.md)** - Learning log with past lessons and common issues
 
 ## Getting Help
