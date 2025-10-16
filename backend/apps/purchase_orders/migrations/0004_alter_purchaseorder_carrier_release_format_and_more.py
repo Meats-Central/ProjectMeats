@@ -8,13 +8,13 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("products", "0002_product_carton_type_product_namp_product_origin_and_more"),
+        ("products", "0001_initial"),  # Only need Product model, not field defaults from 0002
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("suppliers", "0005_add_defaults_for_postgres_compatibility"),
-        ("plants", "0004_alter_plant_address_alter_plant_city_and_more"),
-        ("sales_orders", "0002_alter_salesorder_carrier_release_num_and_more"),
-        ("tenants", "0002_alter_tenant_contact_phone_tenantinvitation_and_more"),
-        ("carriers", "0004_alter_carrier_account_line_of_credit_and_more"),
+        ("suppliers", "0001_initial"),  # Only need Supplier model, not defaults from 0005
+        ("plants", "0001_initial"),  # Only need Plant model, not defaults from 0004
+        ("sales_orders", "0001_initial"),  # Only need SalesOrder model, not defaults from 0002
+        ("tenants", "0001_initial"),  # Only need Tenant model, not TenantInvitation from 0002
+        ("carriers", "0001_initial"),  # Only need Carrier model, not defaults from 0004
         ("purchase_orders", "0003_purchaseorder_carrier_and_more"),
     ]
 

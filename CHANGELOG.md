@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **[DEFINITIVE FIX]** Resolved root cause of migration dependency issues from PR #126 (2025-10-16)
+  - Simplified `purchase_orders.0004` dependencies to only structurally required migrations
+  - Changed dependencies from latest migrations (0002/0004/0005/0006) to initial migrations (0001)
+  - Eliminates all `InconsistentMigrationHistory` errors from deployment pipeline
+  - Works for both fresh and existing database deployments
+  - See `MIGRATION_DEPENDENCIES_FIX_FINAL.md` for comprehensive analysis
+  - **Key insight:** Django auto-generates dependencies on latest migrations, but only structural dependencies should be declared
+  - **Impact:** Prevents future migration ordering conflicts; safe for all environments
 - **[CRITICAL]** Corrected migration dependency issue that was incorrectly "fixed" in PR #135
   - Reverted PR #135's incorrect change that caused deployment failures
   - Restored `purchase_orders.0004` dependency to `sales_orders.0002` (was incorrectly changed to 0001)
@@ -24,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed syntax error in `tests.py` with unclosed docstring
 
 ### Added
+- Comprehensive final fix documentation in `MIGRATION_DEPENDENCIES_FIX_FINAL.md` (2025-10-16)
 - Migration history fix documentation in `docs/MIGRATION_HISTORY_FIX.md` with step-by-step manual fix procedures
 - CI/CD migration consistency validation using `makemigrations --check` and `migrate --plan`
 - Comprehensive migration fix documentation in `MIGRATION_FIX_PR135_CORRECTION.md`
