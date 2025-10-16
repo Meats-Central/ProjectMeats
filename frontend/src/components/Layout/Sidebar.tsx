@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -8,6 +8,9 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/suppliers', label: 'Suppliers', icon: '🏭' },
@@ -24,22 +27,56 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { path: '/ai-assistant', label: 'AI Assistant', icon: '🤖' },
   ];
 
+  const handleMouseEnter = () => {
+    if (!isOpen) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setIsHovered(true);
+      }, 300); // 300ms delay before opening on hover
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    if (isHovered && !isOpen) {
+      setIsHovered(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const effectivelyOpen = isOpen || isHovered;
+
   return (
-    <SidebarContainer $isOpen={isOpen}>
+    <SidebarContainer
+      $isOpen={effectivelyOpen}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <SidebarHeader>
         <Logo>
           <LogoIcon>🥩</LogoIcon>
-          {isOpen && <LogoText>ProjectMeats</LogoText>}
+          {effectivelyOpen && <LogoText>ProjectMeats</LogoText>}
         </Logo>
-        <ToggleButton onClick={onToggle}>{isOpen ? '◀' : '▶'}</ToggleButton>
+        <ToggleButton onClick={onToggle} title="Toggle sidebar">
+          {isOpen ? '◀' : '▶'}
+        </ToggleButton>
       </SidebarHeader>
 
       <Navigation>
         {menuItems.map((item) => (
           <NavItem key={item.path}>
-            <StyledNavLink to={item.path}>
+            <StyledNavLink to={item.path} title={item.label}>
               <NavIcon>{item.icon}</NavIcon>
-              {isOpen && <NavLabel>{item.label}</NavLabel>}
+              {effectivelyOpen && <NavLabel>{item.label}</NavLabel>}
             </StyledNavLink>
           </NavItem>
         ))}
