@@ -185,7 +185,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
         
         # Save with tenant association
         serializer.save(tenant=tenant)
-        logger.info(f'Created supplier: {serializer.data.get("company_name")} for tenant: {tenant.name}')
+        logger.info(f'Created supplier: {serializer.data.get("name")} for tenant: {tenant.name}')
 
     def create(self, request, *args, **kwargs):
         """Create a new supplier with enhanced error handling."""
