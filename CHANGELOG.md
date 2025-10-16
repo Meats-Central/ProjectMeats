@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Fixed migration dependency issue causing `InconsistentMigrationHistory` error in deployment pipeline
+  - Changed `purchase_orders.0004` dependency from `sales_orders.0002` to `sales_orders.0001`
+  - Resolved error: "Migration purchase_orders.0004 is applied before its dependency sales_orders.0002"
+  - GitHub Actions run: https://github.com/Meats-Central/ProjectMeats/actions/runs/18547306185/job/52867765684
 - Fixed inconsistent migration history blocking Dev and UAT deployments (migration `purchase_orders.0004` applied before dependency `suppliers.0006`)
 - Added migration consistency checks to CI/CD pipeline to prevent future migration ordering issues
 - Fixed SyntaxError in PurchaseOrder model due to duplicate keyword arguments in `total_amount` field definition (refs commit 4ed9474c280c95370953800838533462aed67a4b)
