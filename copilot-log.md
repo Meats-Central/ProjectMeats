@@ -2,6 +2,90 @@
 
 This file tracks all tasks completed by GitHub Copilot, including actions taken, misses/failures, lessons learned, and efficiency suggestions.
 
+## Task: Fix Migration Dependency Issue - purchase_orders.0004 and sales_orders.0002 - [Date: 2025-10-16]
+
+### Actions Taken:
+
+1. **Investigated the migration dependency error:**
+   - Error: `django.db.migrations.exceptions.InconsistentMigrationHistory: Migration purchase_orders.0004_alter_purchaseorder_carrier_release_format_and_more is applied before its dependency sales_orders.0002_alter_salesorder_carrier_release_num_and_more on database 'default'.`
+   - Reviewed GitHub Actions run: https://github.com/Meats-Central/ProjectMeats/actions/runs/18547306185/job/52867765684
+   - Analyzed PRs 133 and 134 to understand trending migration issues
+
+2. **Analyzed migration files:**
+   - `purchase_orders.0004` was generated at 2025-10-13 06:30
+   - `sales_orders.0002` was generated at 2025-10-13 05:23 (earlier)
+   - `purchase_orders.0004` had dependency on `sales_orders.0002` but it was applied before 0002 in the database
+   - Reviewed operations in both migrations to understand actual dependencies
+
+3. **Identified the root cause:**
+   - `purchase_orders.0004` creates ColdStorageEntry model with ForeignKey to `sales_orders.SalesOrder`
+   - This only requires the SalesOrder model to exist, which is created in `sales_orders.0001_initial`
+   - `sales_orders.0002` only adds defaults to existing fields (carrier_release_num, delivery_po_num, notes)
+   - The dependency on `sales_orders.0002` was unnecessary - only `sales_orders.0001` was needed
+
+4. **Applied minimal fix:**
+   - Changed dependency in `purchase_orders/migrations/0004_alter_purchaseorder_carrier_release_format_and_more.py`
+   - From: `("sales_orders", "0002_alter_salesorder_carrier_release_num_and_more")`
+   - To: `("sales_orders", "0001_initial")`
+   - This is the only change needed to fix the issue
+
+5. **Tested thoroughly:**
+   - Installed Python dependencies
+   - Created test .env file
+   - Ran `python manage.py migrate --plan` to verify migration order
+   - Ran migrations on fresh database - all succeeded
+   - Tested again from scratch to confirm no InconsistentMigrationHistory errors
+   - Verified correct migration order: sales_orders.0001 → purchase_orders.0004 → sales_orders.0002
+
+### Misses/Failures:
+
+None. Fix was identified correctly on first analysis and tested successfully.
+
+### Lessons Learned:
+
+1. **Migration dependencies should be minimal:** Only depend on migrations that create models/fields you actually reference, not on later migrations that just modify field attributes.
+
+2. **InconsistentMigrationHistory errors often indicate wrong dependencies:** When migration A depends on B but A was applied before B, it usually means the dependency is incorrect or unnecessary.
+
+3. **Always verify migration order with `--plan`:** Running `python manage.py migrate --plan` shows the exact order migrations will be applied, making it easy to spot ordering issues.
+
+4. **Test migrations from fresh database:** The best way to verify migration fixes is to delete the database and run migrations from scratch to ensure they work in the correct order.
+
+5. **Understand what each migration actually does:** Looking at the operations (CreateModel, AlterField, etc.) helps identify whether dependencies are truly necessary.
+
+6. **ForeignKey only needs the model to exist:** If migration A creates a model with ForeignKey to model B, it only needs the migration that creates model B, not later migrations that modify B's fields.
+
+### Efficiency Suggestions:
+
+1. **Review migration dependencies automatically:** Create a tool to analyze migration dependencies and flag cases where a migration depends on a later version when an earlier version would suffice.
+
+2. **Add migration dependency linting:** Include pre-commit hook or CI check that validates migration dependencies are minimal and necessary.
+
+3. **Document migration dependency best practices:** Add to CONTRIBUTING.md guidelines about when to add migration dependencies and how to keep them minimal.
+
+4. **Test migrations in CI from scratch:** Add a CI job that runs migrations on a fresh database to catch dependency issues before deployment.
+
+### Test Results:
+
+- ✅ Migration plan validated successfully
+- ✅ Migrations run successfully from fresh database (twice)
+- ✅ No InconsistentMigrationHistory errors
+- ✅ Correct migration order: sales_orders.0001 → purchase_orders.0004 → sales_orders.0002
+- ✅ All migrations marked as applied
+
+### Files Modified:
+
+1. `backend/apps/purchase_orders/migrations/0004_alter_purchaseorder_carrier_release_format_and_more.py` - Changed dependency from sales_orders.0002 to sales_orders.0001
+
+### Impact:
+
+- ✅ Fixes deployment pipeline blocking error
+- ✅ Allows migrations to run in correct order
+- ✅ Prevents InconsistentMigrationHistory exception
+- ✅ Minimal change (single line) reduces risk
+- ✅ No database schema changes - only dependency ordering
+- ✅ Solution works for both fresh databases and existing deployments
+
 ## Task: Fix Inconsistent Migration History Blocking Dev and UAT Deployments - [Date: 2025-10-13]
 
 ### Actions Taken:
