@@ -53,6 +53,7 @@ docs/
 ├── troubleshooting/                   # Troubleshooting guides
 ├── implementation-summaries/          # Feature implementation summaries
 │   ├── dashboard-enhancement.md      # Dashboard enhancements
+│   ├── dashboard-enhancement-issue.md # Dashboard enhancement issue details
 │   ├── allowed-hosts-fix.md          # ALLOWED_HOSTS configuration fix
 │   ├── multi-tenancy-implementation.md  # Multi-tenancy feature implementation
 │   ├── data-model-enhancement.md     # Data model enhancements

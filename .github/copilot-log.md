@@ -107,6 +107,33 @@ This file tracks lessons learned, misses, and efficiency improvements for each t
   - Use consistent naming conventions for implementation summaries (past tense, descriptive)
   - Archive rather than delete old docs to preserve history
 
+## Task: Clean up root and directory-level documentation - 2025-10-16
+
+- **Actions Taken**: 
+  - Reviewed all root-level and directory-level documentation for consolidation opportunities
+  - Moved `.github/dashboard-issue.md` → `docs/implementation-summaries/dashboard-enhancement-issue.md`
+  - Updated `config/BEST_PRACTICES.md` with cross-reference to comprehensive `docs/ENVIRONMENT_GUIDE.md`
+  - Verified all directory-level READMEs (mobile, frontend, backend, shared, config) are appropriate and current
+  - Updated `docs/README.md` to reflect new dashboard-enhancement-issue.md location
+  - Confirmed .github directory is clean with only essential files
+
+- **Misses/Failures**: 
+  - None - all documentation at appropriate locations
+
+- **Lessons Learned**: 
+  - Root-level docs (README.md, CONTRIBUTING.md) are comprehensive and appropriate as-is
+  - Directory-level READMEs serve important contextual purposes and should be maintained
+  - Quick reference guides in directories (like config/BEST_PRACTICES.md) are useful when they cross-reference comprehensive docs
+  - .github directory should only contain GitHub-specific configurations and Copilot instructions
+  - Implementation summaries and issue details belong in docs/implementation-summaries/
+
+- **Efficiency Suggestions**: 
+  - Maintain clear guidelines for what belongs in .github vs docs vs root
+  - Directory READMEs should provide context specific to that directory
+  - Quick reference guides should always reference comprehensive documentation
+  - Implementation issues/summaries should be consolidated in docs/implementation-summaries/
+  - Regular audits of .github directory to ensure only essential files remain
+
 ## Task: Review and Remove deployment-failure-monitor.yml - 2025-01-28
 
 - **Actions Taken**: 
