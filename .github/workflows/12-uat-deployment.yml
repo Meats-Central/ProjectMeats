@@ -1,4 +1,5 @@
-name: Deploy - UAT
+
+name: 12-Deploy - UAT
 
 on:
   push:
@@ -16,11 +17,51 @@ on:
 
 jobs:
   # =========================
+  # DETECT CHANGES
+  # =========================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action != 'rollback'
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute changed areas
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            changed_files=$(git diff --name-only HEAD^ HEAD)
+            echo "Changed files:"
+            echo "$changed_files"
+            if echo "$changed_files" | grep -q "^backend/"; then
+              echo "backend=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "backend=false" >> "$GITHUB_OUTPUT"
+            fi
+            if echo "$changed_files" | grep -q "^frontend/"; then
+              echo "frontend=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "frontend=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  # =========================
   # BACKEND: TEST
   # =========================
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
     services:
       postgres:
         image: postgres:15
@@ -115,6 +156,8 @@ jobs:
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -145,8 +188,12 @@ jobs:
     name: Deploy Backend to UAT Staging
     runs-on: ubuntu-latest
     needs:
+      - detect-changes
       - test-backend
-    if: ${{ needs.test-backend.result == 'success' }}
+    if: |
+      always() &&
+      needs.detect-changes.outputs.backend == 'true' &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
     environment: uat2-backend
     steps:
       - name: Checkout
@@ -251,8 +298,12 @@ jobs:
     name: Deploy Frontend to UAT Staging
     runs-on: ubuntu-latest
     needs:
+      - detect-changes
       - test-frontend
-    if: ${{ needs.test-frontend.result == 'success' }}
+    if: |
+      always() &&
+      needs.detect-changes.outputs.frontend == 'true' &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     environment: uat2
     steps:
       - name: Checkout
