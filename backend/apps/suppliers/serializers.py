@@ -37,6 +37,13 @@ class SupplierSerializer(serializers.ModelSerializer):
             "how_to_book_pickup",
             "offer_contracts",
             "offers_export_documents",
+            "accounting_payment_terms",
+            "credit_limits",
+            "account_line_of_credit",
+            "fresh_or_frozen",
+            "package_type",
+            "net_or_catch",
+            "departments",
             "accounting_terms",
             "accounting_line_of_credit",
             "credit_app_sent",
@@ -45,3 +52,15 @@ class SupplierSerializer(serializers.ModelSerializer):
             "modified_on",
         ]
         read_only_fields = ["id", "created_on", "modified_on"]
+
+    def validate_name(self, value):
+        """Validate supplier name is provided and is a valid string."""
+        if not value or not isinstance(value, str) or not value.strip():
+            raise serializers.ValidationError("Supplier name is required and must be a non-empty string.")
+        return value.strip()
+
+    def validate_email(self, value):
+        """Validate email format if provided."""
+        if value and '@' not in value:
+            raise serializers.ValidationError("Invalid email format.")
+        return value

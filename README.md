@@ -6,7 +6,7 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 **📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
 
-**Prerequisites**: Python 3.9+, Node.js 16+
+**Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+ (recommended) or SQLite (fallback)
 
 ```bash
 # Option 1: Automated Setup (Recommended)
@@ -20,7 +20,7 @@ The automated setup script configures everything needed including authentication
 
 ## 🏗️ Technology Stack
 
-- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL
+- **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (recommended) or SQLite (fallback)
 - **Frontend**: React 18.2.0 + TypeScript + Styled Components  
 - **AI Assistant**: OpenAI GPT-4 integration with modern Copilot-style interface
 - **Authentication**: Django User system with profile management
@@ -64,17 +64,38 @@ ProjectMeats3/
 
 ### Recommended Setup (Centralized Configuration)
 ```bash
+# 0. Set up PostgreSQL (recommended for environment parity)
+# Option A: Install PostgreSQL locally
+# macOS: brew install postgresql
+# Ubuntu: sudo apt-get install postgresql postgresql-contrib
+# Windows: Download from https://www.postgresql.org/download/windows/
+
+# Option B: Use Docker
+# docker run --name projectmeats-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
+
 # 1. Set up environment using centralized configuration
 python config/manage_env.py setup development
 
-# 2. Install dependencies  
+# 2. Configure database (edit config/environments/development.env)
+# For PostgreSQL:
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=projectmeats_dev
+# DB_USER=postgres
+# DB_PASSWORD=postgres
+# DB_HOST=localhost
+# DB_PORT=5432
+#
+# For SQLite (fallback):
+# DB_ENGINE=django.db.backends.sqlite3
+
+# 3. Install dependencies  
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 3. Run database migrations
+# 4. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 4. Start development servers
+# 5. Start development servers
 make dev
 ```
 
@@ -135,7 +156,75 @@ make dev
 **Access your application:**
 - **Frontend**: http://localhost:3000
 - **API Docs**: http://localhost:8000/api/docs/
-- **Admin Panel**: http://localhost:8000/admin/ (admin/WATERMELON1219)
+- **Admin Panel**: http://localhost:8000/admin/
+
+> **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `DEVELOPMENT_SUPERUSER_USERNAME`, `DEVELOPMENT_SUPERUSER_EMAIL`, and `DEVELOPMENT_SUPERUSER_PASSWORD` settings.
+
+## 👤 Superuser Management
+
+The application provides two management commands for superuser handling with environment-specific configuration.
+
+### `setup_superuser` - Password & Credential Synchronization
+
+Syncs superuser credentials (username, email, password) from environment-specific variables during deployment. **Always updates credentials** when user exists.
+
+```bash
+# Sync superuser credentials from environment
+make sync-superuser
+
+# Or directly (for development)
+cd backend && DJANGO_ENV=development python manage.py setup_superuser
+```
+
+**Environment-Specific Variables:**
+
+| Environment | Username Variable | Email Variable | Password Variable |
+|-------------|-------------------|----------------|-------------------|
+| Development | `DEVELOPMENT_SUPERUSER_USERNAME` | `DEVELOPMENT_SUPERUSER_EMAIL` | `DEVELOPMENT_SUPERUSER_PASSWORD` |
+| Staging/UAT | `STAGING_SUPERUSER_USERNAME` | `STAGING_SUPERUSER_EMAIL` | `STAGING_SUPERUSER_PASSWORD` |
+| Production | `PRODUCTION_SUPERUSER_USERNAME` | `PRODUCTION_SUPERUSER_EMAIL` | `PRODUCTION_SUPERUSER_PASSWORD` |
+
+**Use Cases:**
+- ✅ Deployment automation (runs on every deploy)
+- ✅ Password rotation
+- ✅ Dynamic username/email configuration per environment
+- ✅ Environment-specific credential management
+
+### `create_super_tenant` - Full Tenant Setup
+
+Creates superuser, root tenant, and links them together. Idempotent and safe to run multiple times.
+
+```bash
+# Create or update superuser and tenant
+make superuser
+
+# Or directly
+cd backend && python manage.py create_super_tenant
+```
+
+**Environment Configuration:**
+
+**Development Environment:**
+```bash
+# Set in config/environments/development.env
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com
+DEVELOPMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+**Staging/Production Environments:**
+Set these as GitHub Secrets in respective environments (`uat2-backend`, `prod2-backend`):
+- `STAGING_SUPERUSER_USERNAME` / `PRODUCTION_SUPERUSER_USERNAME`
+- `STAGING_SUPERUSER_EMAIL` / `PRODUCTION_SUPERUSER_EMAIL`
+- `STAGING_SUPERUSER_PASSWORD` / `PRODUCTION_SUPERUSER_PASSWORD`
+
+**Deployment Integration:**
+
+Both commands run automatically during deployment:
+1. `setup_superuser` - Syncs credentials from environment
+2. `create_super_tenant` - Ensures tenant infrastructure exists
+
+**For detailed configuration:** See [Environment Variables Reference](docs/environment-variables.md)
 
 ## 🔧 Development Guide
 

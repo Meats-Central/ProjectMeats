@@ -81,6 +81,7 @@ We have implemented GitHub Actions workflows for automated deployment:
    - Activates virtual environment at `backend/venv/`
    - Installs/updates Python dependencies
    - Runs database migrations
+   - Creates/updates superuser and root tenant (using environment variables)
    - Collects static files
    - Validates Django configuration
 
@@ -163,6 +164,9 @@ REACT_APP_ENABLE_DEVTOOLS=false
 - `GIT_TOKEN`: GitHub personal access token
 - `STAGING_API_URL`: Backend API URL
 - `STAGING_URL`: Frontend URL
+- `STAGING_SUPERUSER_USERNAME`: Superuser username for staging
+- `STAGING_SUPERUSER_EMAIL`: Superuser email for staging
+- `STAGING_SUPERUSER_PASSWORD`: Secure superuser password for staging
 - Frontend-specific environment variables
 
 #### Production Environment (prod2-backend, prod2-frontend)  
@@ -172,6 +176,9 @@ REACT_APP_ENABLE_DEVTOOLS=false
 - `GIT_TOKEN`: GitHub personal access token
 - `PRODUCTION_API_URL`: Backend API URL
 - `PRODUCTION_URL`: Frontend URL
+- `PRODUCTION_SUPERUSER_USERNAME`: Superuser username for production
+- `PRODUCTION_SUPERUSER_EMAIL`: Superuser email for production
+- `PRODUCTION_SUPERUSER_PASSWORD`: Secure superuser password for production
 - Frontend-specific environment variables
 
 ## Service Management

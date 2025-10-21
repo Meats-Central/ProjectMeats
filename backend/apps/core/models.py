@@ -92,6 +92,7 @@ class ProteinTypeChoices(models.TextChoices):
     LAMB = "Lamb", "Lamb"
     TURKEY = "Turkey", "Turkey"
     FISH = "Fish", "Fish"
+    HORSE = "Horse", "Horse"
     OTHER = "Other", "Other"
 
 
@@ -106,10 +107,13 @@ class PackageTypeChoices(models.TextChoices):
     """Common choices for package types."""
 
     BOXED_WAX_LINED = "Boxed wax lined", "Boxed wax lined"
+    BOXED_CO2 = "Boxed CO2", "Boxed CO2"
     COMBO_BINS = "Combo bins", "Combo bins"
     TOTES = "Totes", "Totes"
     BAGS = "Bags", "Bags"
     BULK = "Bulk", "Bulk"
+    POLY_MULTIPLE = "Poly-Multiple", "Poly-Multiple"
+    NUDE = "Nude", "Nude"
 
 
 class NetOrCatchChoices(models.TextChoices):
@@ -189,6 +193,7 @@ class AppointmentMethodChoices(models.TextChoices):
     PHONE = "Phone", "Phone"
     WEBSITE = "Website", "Website"
     FAX = "Fax", "Fax"
+    FCFS = "FCFS", "FCFS"
 
 
 class ContactTypeChoices(models.TextChoices):
@@ -201,6 +206,42 @@ class ContactTypeChoices(models.TextChoices):
     OPERATIONS = "Operations", "Operations"
     QUALITY = "Quality", "Quality"
     EXECUTIVE = "Executive", "Executive"
+    DOCS_BOL = "Doc's BOL", "Doc's BOL"
+    COA = "COA", "COA"
+    POD = "POD", "POD"
+
+
+class CartonTypeChoices(models.TextChoices):
+    """Common choices for carton types."""
+
+    POLY_MULTIPLE = "Poly-Multiple", "Poly-Multiple"
+    WAXED_LINED = "Waxed Lined", "Waxed Lined"
+    CARDBOARD = "Cardboard", "Cardboard"
+    PLASTIC = "Plastic", "Plastic"
+
+
+class ItemProductionDateChoices(models.TextChoices):
+    """Common choices for item production date."""
+
+    FIVE_DAY_NEWER = "5 day newer", "5 day newer"
+    TEN_DAY_NEWER = "10 day newer", "10 day newer"
+    FIFTEEN_DAY_NEWER = "15 day newer", "15 day newer"
+    THIRTY_DAY_NEWER = "30 day newer", "30 day newer"
+
+
+class CarrierReleaseFormatChoices(models.TextChoices):
+    """Common choices for carrier release format."""
+
+    SUPPLIER_CONFIRMATION_ORDER_NUMBER = "Supplier Confirmation Order Number", "Supplier Confirmation Order Number"
+    CARRIER_RELEASE_NUMBER = "Carrier Release Number", "Carrier Release Number"
+    BOTH = "Both", "Both"
+
+
+class LoadStatusChoices(models.TextChoices):
+    """Common choices for load status in cold storage."""
+
+    MATCHED = "Matched", "Matched"
+    TBD_NOT_MATCHED = "TBD - Not Matched", "TBD - Not Matched"
 
 
 class StatusChoices(models.TextChoices):

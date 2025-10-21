@@ -7,6 +7,7 @@ import axios from 'axios';
 
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 const businessApiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -24,6 +25,8 @@ businessApiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // In development, if no token is present, the backend will allow unauthenticated access
+    // This is configured in the backend's SupplierViewSet.get_authenticators() method
     return config;
   },
   (error) => {
@@ -37,8 +40,13 @@ businessApiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle authentication errors
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // In development, log the error but don't redirect to allow testing without login
+      if (IS_DEVELOPMENT) {
+        console.warn('Authentication required but not provided. This is allowed in development mode.');
+      } else {
+        localStorage.removeItem('authToken');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

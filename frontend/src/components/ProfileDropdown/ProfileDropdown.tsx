@@ -56,7 +56,10 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
     // Remove '/api/v1' from the end to get the base backend URL, then add '/admin/'
     const baseBackendUrl = apiBaseUrl.replace('/api/v1', '');
     const adminUrl = `${baseBackendUrl}/admin/`;
-    window.open(adminUrl, '_blank');
+    
+    // Use window.location.href for more reliable navigation
+    // Opens in same tab - more reliable than window.open which can be blocked
+    window.location.href = adminUrl;
     setIsOpen(false);
   };
 

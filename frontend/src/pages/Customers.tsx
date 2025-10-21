@@ -47,8 +47,19 @@ const Customers: React.FC = () => {
       setEditingCustomer(null);
       resetForm();
       fetchCustomers();
-    } catch (error) {
-      console.error('Error saving customer:', error);
+    } catch (error: unknown) {
+      // Log detailed error information
+      const err = error as Error & { response?: { status: number; data: unknown }; stack?: string };
+      console.error('Error saving customer:', {
+        message: err.message || 'Unknown error',
+        stack: err.stack || 'No stack trace available',
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data
+        } : 'No response data'
+      });
+      // Display user-friendly error to the UI
+      alert(`Failed to save customer: ${err.message || 'Please try again later'}`);
     }
   };
 
@@ -72,9 +83,17 @@ const Customers: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
         await apiService.deleteCustomer(id);
-        fetchCustomers();
-      } catch (error) {
+        alert('Customer deleted successfully!');
+        await fetchCustomers(); // Re-fetch to update the list
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
         console.error('Error deleting customer:', error);
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
+          || 'Failed to delete customer';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

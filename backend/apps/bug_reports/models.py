@@ -45,18 +45,18 @@ class BugReport(models.Model):
     reporter = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="bug_reports"
     )
-    reporter_email = models.EmailField(blank=True)
+    reporter_email = models.EmailField(blank=True, default='')
 
     # Technical details
-    browser = models.CharField(max_length=100, blank=True)
-    os = models.CharField(max_length=100, blank=True)
-    screen_resolution = models.CharField(max_length=50, blank=True)
-    url = models.URLField(blank=True)
+    browser = models.CharField(max_length=100, blank=True, default='')
+    os = models.CharField(max_length=100, blank=True, default='')
+    screen_resolution = models.CharField(max_length=50, blank=True, default='')
+    url = models.URLField(blank=True, default='')
 
     # Reproduction
-    steps_to_reproduce = models.TextField(blank=True)
-    expected_behavior = models.TextField(blank=True)
-    actual_behavior = models.TextField(blank=True)
+    steps_to_reproduce = models.TextField(blank=True, default='')
+    expected_behavior = models.TextField(blank=True, default='')
+    actual_behavior = models.TextField(blank=True, default='')
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)

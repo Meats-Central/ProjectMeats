@@ -17,11 +17,15 @@ help:
 	@echo "  make migrate    - Apply database migrations"
 	@echo "  make migrations - Create new migrations"
 	@echo "  make shell      - Open Django shell"
+	@echo "  make validate-db-config - Validate database environment variables"
 	@echo ""
 	@echo "Database Commands:"
 	@echo "  make migrate    - Apply database migrations"
 	@echo "  make migrations - Create new migrations"
 	@echo "  make shell      - Open Django shell"
+	@echo "  make superuser  - Create/update superuser and root tenant"
+	@echo "  make sync-superuser - Sync superuser password from environment"
+	@echo "  make setup-superuser - Alias for sync-superuser"
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test       - Run all tests (backend + frontend)"
@@ -64,12 +68,39 @@ setup-frontend:
 	@echo "✅ Frontend setup complete!"
 
 # Development commands
-dev:
+dev: validate-db-config
 	@echo "🚀 Starting development servers..."
 	@echo "Backend: http://localhost:8000"
 	@echo "Frontend: http://localhost:3000"
 	@echo ""
 	@make -j2 backend frontend
+
+validate-db-config:
+	@echo "🔍 Validating database configuration..."
+	@if [ -z "$$DB_ENGINE" ]; then \
+		echo "⚠️  DB_ENGINE not set, will use SQLite fallback"; \
+		echo "💡 For environment parity, set DB_ENGINE=django.db.backends.postgresql"; \
+		echo "   and configure DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT"; \
+	elif [ "$$DB_ENGINE" = "django.db.backends.postgresql" ]; then \
+		echo "✅ Using PostgreSQL"; \
+		if [ -z "$$DB_NAME" ] || [ -z "$$DB_USER" ] || [ -z "$$DB_PASSWORD" ] || [ -z "$$DB_HOST" ]; then \
+			echo "❌ PostgreSQL selected but required variables are missing:"; \
+			[ -z "$$DB_NAME" ] && echo "   - DB_NAME is not set"; \
+			[ -z "$$DB_USER" ] && echo "   - DB_USER is not set"; \
+			[ -z "$$DB_PASSWORD" ] && echo "   - DB_PASSWORD is not set"; \
+			[ -z "$$DB_HOST" ] && echo "   - DB_HOST is not set"; \
+			echo "💡 Set these in config/environments/development.env or as environment variables"; \
+			exit 1; \
+		else \
+			echo "✅ All PostgreSQL variables are set"; \
+		fi \
+	elif [ "$$DB_ENGINE" = "django.db.backends.sqlite3" ]; then \
+		echo "✅ Using SQLite (development fallback)"; \
+	else \
+		echo "❌ Invalid DB_ENGINE: $$DB_ENGINE"; \
+		echo "   Valid values: django.db.backends.postgresql or django.db.backends.sqlite3"; \
+		exit 1; \
+	fi
 
 backend:
 	@echo "🐍 Starting Django development server..."
@@ -88,6 +119,17 @@ migrations:
 
 shell:
 	cd backend && python manage.py shell
+
+superuser:
+	@echo "👤 Creating superuser and root tenant..."
+	cd backend && python manage.py create_super_tenant
+
+sync-superuser:
+	@echo "🔄 Syncing superuser password from environment..."
+	cd backend && DJANGO_ENV=development python manage.py setup_superuser
+
+# Alias for setup-superuser (for consistency with setup_superuser.py command)
+setup-superuser: sync-superuser
 
 # Testing commands
 test: test-backend test-frontend

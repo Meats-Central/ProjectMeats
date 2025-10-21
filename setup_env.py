@@ -4,7 +4,7 @@ ProjectMeats Cross-Platform Setup Script
 ======================================
 
 This script provides a unified setup experience across Windows, macOS, and Linux.
-It handles environment setup, dependency installation, initial configuration, and test data creation.
+It handles environment setup, dependency installation, initial configuration, and superuser creation.
 
 Usage:
     python setup_env.py              # Full setup (backend + frontend)
@@ -18,7 +18,7 @@ Features:
 - Error handling and validation
 - Progress reporting
 - Dependency checking
-- Admin user creation (admin/WATERMELON1219)
+- Superuser creation (credentials from environment variables)
 - Comprehensive test data creation
 """
 
@@ -252,6 +252,13 @@ class ProjectMeatsSetup:
         if not self.run_command(migrate_cmd, cwd=self.backend_dir):
             self.log("Failed to run migrations", "ERROR")
             return False
+        
+        # Create superuser and root tenant
+        self.log("👤 Setting up superuser and root tenant...", "INFO")
+        superuser_cmd = f"{python_cmd} manage.py create_super_tenant"
+        if not self.run_command(superuser_cmd, cwd=self.backend_dir):
+            self.log("Failed to create superuser (this is non-fatal)", "WARNING")
+            # Continue anyway - superuser creation failure shouldn't block setup
         
         self.log("✅ Backend setup complete!", "SUCCESS")
         return True

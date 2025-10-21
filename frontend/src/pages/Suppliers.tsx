@@ -47,8 +47,19 @@ const Suppliers: React.FC = () => {
       setEditingSupplier(null);
       resetForm();
       fetchSuppliers();
-    } catch (error) {
-      console.error('Error saving supplier:', error);
+    } catch (error: unknown) {
+      // Log detailed error information
+      const err = error as Error & { response?: { status: number; data: unknown }; stack?: string };
+      console.error('Error saving supplier:', {
+        message: err.message || 'Unknown error',
+        stack: err.stack || 'No stack trace available',
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data
+        } : 'No response data'
+      });
+      // Display user-friendly error to the UI
+      alert(`Failed to save supplier: ${err.message || 'Please try again later'}`);
     }
   };
 
@@ -72,9 +83,18 @@ const Suppliers: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this supplier?')) {
       try {
         await apiService.deleteSupplier(id);
-        fetchSuppliers();
-      } catch (error) {
+        alert('Supplier deleted successfully!');
+        await fetchSuppliers(); // Re-fetch to update the list
+      } catch (error: unknown) {
+        // Type-safe error handling: Use 'unknown' instead of 'any' and assert expected structure
+        // This ensures we handle errors safely while maintaining type checking
         console.error('Error deleting supplier:', error);
+        const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+        const errorMessage = err?.response?.data?.detail 
+          || err?.response?.data?.message 
+          || err?.message 
+          || 'Failed to delete supplier';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };

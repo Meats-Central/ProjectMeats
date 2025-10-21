@@ -58,7 +58,7 @@ config/
 ### Deployment Environments
 
 #### Development
-- Local development with SQLite
+- Local development with PostgreSQL (for environment parity)
 - Debug mode enabled
 - CORS allows localhost
 - File uploads to local media directory

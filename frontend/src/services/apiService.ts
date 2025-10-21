@@ -40,6 +40,17 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error && 'response' in error) {
+    const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+    return axiosError.response?.data?.message || axiosError.message || 'Unknown error';
+  }
+  return 'Unknown error';
+}
+
 // Types
 export interface Supplier {
   id: number;
@@ -147,13 +158,21 @@ export class ApiService {
   }
 
   async createSupplier(supplier: Partial<Supplier>): Promise<Supplier> {
-    const response = await apiClient.post('/suppliers/', supplier);
-    return response.data;
+    try {
+      const response = await apiClient.post('/suppliers/', supplier);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create supplier: ${getErrorMessage(error)}`);
+    }
   }
 
   async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<Supplier> {
-    const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update supplier: ${getErrorMessage(error)}`);
+    }
   }
 
   async deleteSupplier(id: number): Promise<void> {
@@ -172,13 +191,21 @@ export class ApiService {
   }
 
   async createCustomer(customer: Partial<Customer>): Promise<Customer> {
-    const response = await apiClient.post('/customers/', customer);
-    return response.data;
+    try {
+      const response = await apiClient.post('/customers/', customer);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create customer: ${getErrorMessage(error)}`);
+    }
   }
 
   async updateCustomer(id: number, customer: Partial<Customer>): Promise<Customer> {
-    const response = await apiClient.patch(`/customers/${id}/`, customer);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/customers/${id}/`, customer);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update customer: ${getErrorMessage(error)}`);
+    }
   }
 
   async deleteCustomer(id: number): Promise<void> {
@@ -204,13 +231,21 @@ export class ApiService {
   }
 
   async createPurchaseOrder(order: Partial<PurchaseOrder>): Promise<PurchaseOrder> {
-    const response = await apiClient.post('/purchase-orders/', order);
-    return response.data;
+    try {
+      const response = await apiClient.post('/purchase-orders/', order);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create purchase order: ${getErrorMessage(error)}`);
+    }
   }
 
   async updatePurchaseOrder(id: number, order: Partial<PurchaseOrder>): Promise<PurchaseOrder> {
-    const response = await apiClient.patch(`/purchase-orders/${id}/`, order);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/purchase-orders/${id}/`, order);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update purchase order: ${getErrorMessage(error)}`);
+    }
   }
 
   async deletePurchaseOrder(id: number): Promise<void> {
@@ -229,13 +264,21 @@ export class ApiService {
   }
 
   async createContact(contact: Partial<Contact>): Promise<Contact> {
-    const response = await apiClient.post('/contacts/', contact);
-    return response.data;
+    try {
+      const response = await apiClient.post('/contacts/', contact);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create contact: ${getErrorMessage(error)}`);
+    }
   }
 
   async updateContact(id: number, contact: Partial<Contact>): Promise<Contact> {
-    const response = await apiClient.patch(`/contacts/${id}/`, contact);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/contacts/${id}/`, contact);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update contact: ${getErrorMessage(error)}`);
+    }
   }
 
   async deleteContact(id: number): Promise<void> {
@@ -254,13 +297,21 @@ export class ApiService {
   }
 
   async createPlant(plant: Partial<Plant>): Promise<Plant> {
-    const response = await apiClient.post('/plants/', plant);
-    return response.data;
+    try {
+      const response = await apiClient.post('/plants/', plant);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create plant: ${getErrorMessage(error)}`);
+    }
   }
 
   async updatePlant(id: number, plant: Partial<Plant>): Promise<Plant> {
-    const response = await apiClient.patch(`/plants/${id}/`, plant);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/plants/${id}/`, plant);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update plant: ${getErrorMessage(error)}`);
+    }
   }
 
   async deletePlant(id: number): Promise<void> {
@@ -279,13 +330,21 @@ export class ApiService {
   }
 
   async createCarrier(carrier: Partial<Carrier>): Promise<Carrier> {
-    const response = await apiClient.post('/carriers/', carrier);
-    return response.data;
+    try {
+      const response = await apiClient.post('/carriers/', carrier);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create carrier: ${getErrorMessage(error)}`);
+    }
   }
 
   async updateCarrier(id: number, carrier: Partial<Carrier>): Promise<Carrier> {
-    const response = await apiClient.patch(`/carriers/${id}/`, carrier);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/carriers/${id}/`, carrier);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update carrier: ${getErrorMessage(error)}`);
+    }
   }
 
   async deleteCarrier(id: number): Promise<void> {
@@ -304,16 +363,24 @@ export class ApiService {
   }
 
   async createAccountsReceivable(ar: Partial<AccountsReceivable>): Promise<AccountsReceivable> {
-    const response = await apiClient.post('/accounts-receivables/', ar);
-    return response.data;
+    try {
+      const response = await apiClient.post('/accounts-receivables/', ar);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to create accounts receivable: ${getErrorMessage(error)}`);
+    }
   }
 
   async updateAccountsReceivable(
     id: number,
     ar: Partial<AccountsReceivable>
   ): Promise<AccountsReceivable> {
-    const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
-    return response.data;
+    try {
+      const response = await apiClient.patch(`/accounts-receivables/${id}/`, ar);
+      return response.data;
+    } catch (error: unknown) {
+      throw new Error(`Failed to update accounts receivable: ${getErrorMessage(error)}`);
+    }
   }
 
   async deleteAccountsReceivable(id: number): Promise<void> {

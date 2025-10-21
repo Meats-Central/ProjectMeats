@@ -1,5 +1,8 @@
 # Multi-Tenancy Guide
 
+> **📍 Consolidated Documentation**: This guide consolidates all superuser management and multi-tenancy documentation. 
+> The legacy `SUPERUSER_PASSWORD_SYNC_SUMMARY.md` file has been deprecated in favor of this comprehensive guide.
+
 ## Overview
 
 ProjectMeats implements a multi-tenancy architecture that allows multiple organizations (tenants) to use the same application instance while maintaining data isolation. This guide covers the multi-tenancy setup, configuration, and usage.
@@ -58,9 +61,17 @@ Superusers have special privileges:
 ### Management Command: `create_super_tenant`
 
 The `create_super_tenant` management command automates the creation of:
-1. A superuser account
+1. A superuser account (or syncs password if user exists)
 2. A default "root" tenant
 3. The association between the superuser and root tenant
+
+**Password Sync Behavior:**
+- If the superuser doesn't exist, it will be created with the password from environment variables
+- If the superuser already exists, the password will be **updated/synced** from environment variables
+- Ensures all superuser flags (is_superuser, is_staff, is_active) are always set correctly
+- Secure password hashing via Django's `set_password()` method
+
+This ensures that password changes in GitHub Secrets or environment variables are automatically applied during deployment.
 
 #### Usage
 
@@ -80,49 +91,126 @@ The command uses environment variables for credentials:
 
 ⚠️ **Security Note**: Always override default credentials in production environments!
 
+### Management Command: `setup_superuser`
+
+The `setup_superuser` management command provides comprehensive credential synchronization:
+1. Creates a superuser if it doesn't exist
+2. **Always syncs username, email, and password** from environment-specific variables
+3. Designed for deployment automation and credential rotation
+4. Environment-aware with strict validation for production/staging
+
+#### Usage
+
+```bash
+# Run manually in development
+DJANGO_ENV=development python manage.py setup_superuser
+
+# Run during deployment (automatically called in CI/CD)
+python manage.py setup_superuser
+
+# Makefile command (automatically sets DJANGO_ENV=development)
+make sync-superuser
+```
+
+#### Key Differences from `create_super_tenant`
+
+| Feature | `create_super_tenant` | `setup_superuser` |
+|---------|----------------------|-------------------|
+| Creates superuser | ✅ Yes | ✅ Yes |
+| Creates tenant | ✅ Yes | ❌ No |
+| Links to tenant | ✅ Yes | ❌ No |
+| Updates password on existing user | ✅ Yes (syncs from env) | ✅ Yes (always syncs) |
+| Updates email on existing user | ❌ No | ✅ Yes (always syncs) |
+| Dynamic username support | ❌ No | ✅ Yes |
+| Environment-specific variables | ✅ Yes | ✅ Yes |
+| Purpose | Tenant setup + password sync | Credential rotation/sync |
+
+#### Configuration
+
+The command uses **environment-specific** variables based on `DJANGO_ENV`:
+
+**Development Environment (`DJANGO_ENV=development`):**
+- `DEVELOPMENT_SUPERUSER_USERNAME`: Username (default: `admin`)
+- `DEVELOPMENT_SUPERUSER_EMAIL`: Email (default: `admin@meatscentral.com`)
+- `DEVELOPMENT_SUPERUSER_PASSWORD`: Password (**required**)
+
+**Staging Environment (`DJANGO_ENV=staging` or `uat`):**
+- `STAGING_SUPERUSER_USERNAME`: Username (**required**, no default)
+- `STAGING_SUPERUSER_EMAIL`: Email (**required**, no default)
+- `STAGING_SUPERUSER_PASSWORD`: Password (**required**, no default)
+
+**Production Environment (`DJANGO_ENV=production`):**
+- `PRODUCTION_SUPERUSER_USERNAME`: Username (**required**, no default)
+- `PRODUCTION_SUPERUSER_EMAIL`: Email (**required**, no default)
+- `PRODUCTION_SUPERUSER_PASSWORD`: Password (**required**, no default)
+
+⚠️ **Production/Staging Requirement**: All fields must be set or the command will raise a `ValueError` with a clear error message.
+
 #### Environment Variables
 
 ##### Development (`config/environments/development.env`)
 ```bash
-SUPERUSER_EMAIL=admin@meatscentral.com
-SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+DEVELOPMENT_SUPERUSER_USERNAME=admin
+DEVELOPMENT_SUPERUSER_EMAIL=admin@meatscentral.com
+DEVELOPMENT_SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 ```
 
 ##### Staging (`config/environments/staging.env`)
 ```bash
-SUPERUSER_EMAIL=${STAGING_SUPERUSER_EMAIL}
-SUPERUSER_PASSWORD=${STAGING_SUPERUSER_PASSWORD}
+# Set these in GitHub Secrets for uat2-backend environment
+STAGING_SUPERUSER_USERNAME=change_me_in_secrets
+STAGING_SUPERUSER_EMAIL=change_me_in_secrets
+STAGING_SUPERUSER_PASSWORD=change_me_in_secrets
 ```
 
 ##### Production (`config/environments/production.env`)
 ```bash
-SUPERUSER_EMAIL=${PRODUCTION_SUPERUSER_EMAIL}
-SUPERUSER_PASSWORD=${PRODUCTION_SUPERUSER_PASSWORD}
+# Set these in GitHub Secrets for prod2-backend environment
+PRODUCTION_SUPERUSER_USERNAME=change_me_in_secrets
+PRODUCTION_SUPERUSER_EMAIL=change_me_in_secrets
+PRODUCTION_SUPERUSER_PASSWORD=change_me_in_secrets
 ```
 
 **Important**: Use secure secret management for staging and production:
-- Use GitHub Secrets for CI/CD pipelines
+- Use GitHub Secrets for CI/CD pipelines (configured per environment: `dev-backend`, `uat2-backend`, `prod2-backend`)
 - Use environment-specific secret managers (AWS Secrets Manager, Azure Key Vault, etc.)
 - Never commit actual passwords to version control
+- Rotate credentials regularly (recommended: every 90 days)
 
 ### Idempotency
 
-The `create_super_tenant` command is idempotent:
+Both commands are idempotent and safe to run multiple times:
+
+**`create_super_tenant` command behavior:**
 - ✅ Safe to run multiple times
 - ✅ Won't create duplicates
-- ✅ Won't overwrite existing data
+- ✅ **WILL update password** when user exists (syncs from environment)
 - ✅ Will link existing users to tenants if needed
+- ✅ Ensures superuser flags (is_superuser, is_staff, is_active) are always set
+
+**`setup_superuser` command behavior:**
+- ✅ Safe to run multiple times
+- ✅ Won't create duplicate users
+- ✅ **WILL update password** on every run (by design)
+- ✅ **WILL update email** on every run (by design)
+- ✅ Ideal for password rotation scenarios
 
 ## Deployment Integration
 
-The command is automatically executed during deployment in the unified workflow:
+Both commands are automatically executed during deployment in the unified workflow:
 
 ```yaml
 - Run database migrations
-- Create superuser and root tenant  # ← Automated
+- Sync superuser password        # ← setup_superuser (NEW)
+- Create superuser and root tenant  # ← create_super_tenant
 - Collect static files
 - Run Django checks
 ```
+
+**Deployment Order**: `setup_superuser` runs BEFORE `create_super_tenant` to ensure:
+1. Password is synced from environment first
+2. Tenant setup happens with correct credentials
+3. Both commands work together harmoniously
 
 This happens in all environments:
 - Development
@@ -225,6 +313,297 @@ pytest apps/tenants/tests_management_commands.py --cov=apps.core.management.comm
 
 ## Troubleshooting
 
+### Common Issues and Solutions
+
+#### 1. Superuser Not Created
+
+**Symptoms:**
+- Command completes but no superuser exists
+- Can't log into Django admin
+
+**Possible Causes and Fixes:**
+
+**a) Argument Mismatch in User Creation**
+- **Issue**: Code uses `User.objects.create()` instead of `create_superuser()`
+- **Solution**: Update to use `User.objects.create_superuser(username=..., email=..., password=...)`
+- **Verification**: Check if password is hashed in database (should start with `pbkdf2_sha256$`)
+
+**b) Missing Environment Variables**
+- **Issue**: `SUPERUSER_EMAIL`, `SUPERUSER_PASSWORD`, or `SUPERUSER_USERNAME` not set
+- **Solution**: 
+  ```bash
+  # Development
+  export SUPERUSER_USERNAME=admin
+  export SUPERUSER_EMAIL=admin@meatscentral.com
+  export SUPERUSER_PASSWORD=YourSecurePassword
+  
+  # Or update config/environments/development.env
+  ```
+- **Verification**: Run with verbosity to see configuration:
+  ```bash
+  python manage.py create_super_tenant --verbosity 2
+  ```
+
+**c) Silent Failures**
+- **Issue**: Exceptions caught but not displayed
+- **Solution**: Run command with `--verbosity 2` for detailed output
+- **Example**:
+  ```bash
+  python manage.py create_super_tenant --verbosity 2
+  ```
+
+#### 2. Superuser Login Fails After Password Sync (UAT/Production)
+
+**Symptoms:**
+- Deployment succeeds and command reports success
+- User exists in database but cannot login
+- Correct password doesn't work on login screen
+
+**Root Causes:**
+1. **Password not properly saved after sync**
+2. **Authentication backend misconfiguration**
+3. **Session/cache issues**
+4. **Password not properly hashed**
+
+**Troubleshooting Steps:**
+
+**Step 1: Verify Secrets Are Set in GitHub**
+```bash
+# In GitHub repository settings > Secrets and variables > Actions
+# Check that these secrets exist for the environment (e.g., uat2-backend):
+- STAGING_SUPERUSER_USERNAME
+- STAGING_SUPERUSER_EMAIL  
+- STAGING_SUPERUSER_PASSWORD
+```
+
+**Step 2: Check Deployment Logs for Authentication Verification**
+```bash
+# In GitHub Actions workflow logs, look for:
+✅ Authentication verified - user can login successfully
+
+# If you see:
+❌ Superuser authentication failed after password sync
+# This indicates the password wasn't properly saved or there's an auth backend issue
+```
+
+**Step 3: Manual Shell Verification on Server**
+```bash
+# SSH into UAT server
+ssh django@uat.meatscentral.com
+
+# Activate virtual environment
+cd /home/django/ProjectMeats/backend
+source venv/bin/activate
+
+# Test authentication in Django shell
+python manage.py shell
+
+# In shell:
+from django.contrib.auth import get_user_model, authenticate
+User = get_user_model()
+
+# Check user exists
+user = User.objects.get(username='your_username')
+print(f"User exists: {user.email}")
+print(f"Is superuser: {user.is_superuser}")
+print(f"Is active: {user.is_active}")
+
+# Check password hash format
+print(f"Password hash starts with pbkdf2: {user.password.startswith('pbkdf2_sha256$')}")
+
+# Test authentication
+auth_user = authenticate(username='your_username', password='your_password')
+print(f"Authentication successful: {auth_user is not None}")
+
+# If authentication fails, manually reset password:
+user.set_password('your_password')
+user.save()
+print("Password manually reset")
+```
+
+**Step 4: Redeploy with Increased Verbosity**
+```bash
+# The workflow already uses --verbosity 3 for setup_superuser
+# Check logs for detailed output including:
+# - Environment detection
+# - Credential loading
+# - User creation/update
+# - Authentication verification
+```
+
+**Step 5: Check Django Settings**
+```python
+# Verify AUTHENTICATION_BACKENDS in settings
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Required
+]
+
+# Verify AUTH_USER_MODEL if using custom user
+AUTH_USER_MODEL = 'auth.User'  # or your custom user model
+```
+
+**Step 6: Clear Sessions and Cache**
+```bash
+# On UAT server
+python manage.py clearsessions
+
+# If using Redis cache:
+python manage.py shell
+from django.core.cache import cache
+cache.clear()
+```
+
+**Prevention:**
+- The `setup_superuser` command now includes automatic authentication verification
+- If verification fails, deployment will fail with clear error message
+- Monitor deployment logs for "Authentication verified" success message
+- Set up alerts for authentication verification failures
+
+**Related Documentation:**
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [Django Authentication System](https://docs.djangoproject.com/en/4.2/topics/auth/)
+- [Django Password Management](https://docs.djangoproject.com/en/4.2/topics/auth/passwords/)
+  
+#### 3. Tenant Model Import Error
+
+**Symptoms:**
+- Error: "Tenant model missing—ensure Multi-Tenancy base is implemented"
+
+**Solution:**
+- Ensure `apps.tenants` is in `INSTALLED_APPS` in Django settings
+- Run migrations: `python manage.py migrate tenants`
+- Verify models exist: `python manage.py showmigrations tenants`
+
+#### 3. Django Admin Not Accessible
+
+**Symptoms:**
+- `/admin/` returns 404 or shows frontend page
+- Admin interface not loading
+
+**Possible Causes and Fixes:**
+
+**a) URL Routing Conflict**
+- **Issue**: Catch-all route intercepts `/admin/` before Django can handle it
+- **Solution**: Ensure `path('admin/', admin.site.urls)` comes BEFORE any catch-all patterns in `urls.py`
+  ```python
+  urlpatterns = [
+      path("admin/", admin.site.urls),  # Must be first!
+      # ... other specific paths ...
+      re_path(r'^.*', catch_all_view),  # Catch-all last
+  ]
+  ```
+- **Verification**: Check `backend/projectmeats/urls.py` pattern order
+
+**b) Superuser Not Properly Created**
+- **Issue**: User exists but is_superuser or is_staff is False
+- **Solution**: Use `create_superuser()` method which sets these automatically
+- **Verification**:
+  ```bash
+  python manage.py shell
+  >>> from django.contrib.auth import get_user_model
+  >>> User = get_user_model()
+  >>> user = User.objects.get(email='admin@meatscentral.com')
+  >>> user.is_superuser, user.is_staff
+  (True, True)  # Should both be True
+  ```
+
+#### 4. Database Integrity Errors
+
+**Symptoms:**
+- Error: "UNIQUE constraint failed: auth_user.username"
+- Command fails with IntegrityError
+
+**Solution:**
+- Command is idempotent but checks username and email separately
+- If a user exists with same username but different email, existing user is used
+- To force new username, set `SUPERUSER_USERNAME` explicitly:
+  ```bash
+  export SUPERUSER_USERNAME=superadmin
+  python manage.py create_super_tenant
+  ```
+
+#### 5. GitHub Actions Deployment Failures
+
+**Symptoms:**
+- Workflow step "Create Super Tenant" fails
+- No detailed error message in logs
+
+**Solutions:**
+
+**a) Check Environment Secrets**
+- Ensure GitHub Secrets are set:
+  - `STAGING_SUPERUSER_USERNAME`
+  - `STAGING_SUPERUSER_EMAIL`
+  - `STAGING_SUPERUSER_PASSWORD`
+  - `PRODUCTION_SUPERUSER_USERNAME`
+  - `PRODUCTION_SUPERUSER_EMAIL`
+  - `PRODUCTION_SUPERUSER_PASSWORD`
+
+**b) Enable Verbose Logging**
+- Workflow now includes `--verbosity 2` flag
+- Check GitHub Actions logs for detailed output
+- Look for emoji indicators:
+  - 🔧 Configuration
+  - 🔍 Attempting superuser creation
+  - 🏢 Attempting root tenant creation
+  - 🔗 Linking user to tenant
+  - ✅ Success messages
+  - ❌ Error messages
+
+**c) Verify Migrations**
+- Ensure migrations run before `create_super_tenant`
+- Check workflow order:
+  1. Pull code
+  2. Install dependencies
+  3. **Run migrations** ← Must happen first
+  4. Create super tenant
+  5. Collect static files
+
+### Debugging Commands
+
+```bash
+# 1. Test with maximum verbosity
+python manage.py create_super_tenant --verbosity 2
+
+# 2. Check if user exists
+python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); print(User.objects.filter(email='admin@meatscentral.com').exists())"
+
+# 3. Check if tenant exists
+python manage.py shell -c "from apps.tenants.models import Tenant; print(Tenant.objects.filter(slug='root').exists())"
+
+# 4. Verify user is superuser
+python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); u = User.objects.get(email='admin@meatscentral.com'); print(f'Superuser: {u.is_superuser}, Staff: {u.is_staff}')"
+
+# 5. Check tenant-user link
+python manage.py shell -c "from apps.tenants.models import TenantUser; print(TenantUser.objects.all().values('tenant__slug', 'user__email', 'role'))"
+
+# 6. Manually verify admin access
+curl http://localhost:8000/admin/
+# Should return Django admin login page HTML
+```
+
+### Best Practices for Troubleshooting
+
+1. **Always run with verbosity first**: `--verbosity 2` provides detailed insights
+2. **Check logs in order**:
+   - Configuration values (redacted passwords)
+   - User creation attempts
+   - Tenant creation attempts
+   - Linking attempts
+   - Final success/error messages
+3. **Verify environment variables** are loaded before running command
+4. **Test locally first** before deploying to UAT/production
+5. **Use atomic transactions**: Command wraps operations in `transaction.atomic()` for rollback on failure
+
+### Getting Help
+
+If issues persist:
+1. Run command with `--verbosity 2` and capture full output
+2. Check Django logs for additional error details
+3. Verify database state manually using Django shell
+4. Review GitHub Actions logs for deployment-specific issues
+5. Check that all migrations are applied: `python manage.py showmigrations`
+
 ### Command Not Found
 
 If `create_super_tenant` command is not found:
@@ -260,6 +639,261 @@ Run migrations before the command:
 python manage.py migrate
 python manage.py create_super_tenant
 ```
+
+## Troubleshooting Database Issues
+
+This section covers common database-related issues and their solutions, with a focus on readonly database errors.
+
+### Readonly Database Error
+
+**Symptoms:**
+- Error message: "attempt to write a readonly database"
+- Session creation/deletion failures
+- Unable to save models or run migrations
+
+**Common Causes:**
+
+1. **SQLite File Permissions (DEPRECATED - SQLite usage)**
+   - Database file lacks write permissions
+   - Directory containing database lacks write permissions
+   - File owned by different user
+
+2. **PostgreSQL User Permissions**
+   - Database user lacks `INSERT`, `UPDATE`, `DELETE` permissions
+   - Database is in read-only mode
+   - Connection user is different from database owner
+
+**Solutions:**
+
+#### For SQLite (DEPRECATED):
+
+```bash
+# Check current permissions
+ls -la db.sqlite3
+
+# Fix file permissions
+sudo chown $USER:$USER db.sqlite3
+chmod 664 db.sqlite3
+
+# Fix directory permissions
+sudo chown $USER:$USER .
+chmod 755 .
+```
+
+**Note:** SQLite is deprecated for development. Migrate to PostgreSQL for environment parity.
+
+#### For PostgreSQL:
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Grant all privileges on database
+GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO your_user;
+
+# Grant privileges on schema
+GRANT ALL PRIVILEGES ON SCHEMA public TO your_user;
+
+# Grant privileges on all tables
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_user;
+
+# Grant privileges on sequences (for auto-increment IDs)
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO your_user;
+
+# Exit psql
+\q
+```
+
+#### Verify Database Permissions:
+
+```bash
+# Test database connectivity
+python manage.py check --database default
+
+# Test write operations
+python manage.py shell
+>>> from django.contrib.auth.models import User
+>>> User.objects.count()
+>>> # Should return without error
+```
+
+### Session-Related Errors
+
+**Symptoms:**
+- "DatabaseError: database is locked" (SQLite)
+- "OperationalError: readonly database" during login/logout
+- Session middleware failures
+
+**Solutions:**
+
+1. **Check Session Backend Configuration:**
+```python
+# In settings.py, verify:
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Database sessions
+# Or
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'  # Cache sessions
+```
+
+2. **Clear Expired Sessions:**
+```bash
+python manage.py clearsessions
+```
+
+3. **Verify Database Permissions:**
+```bash
+# Check django_session table permissions
+python manage.py dbshell
+# For PostgreSQL:
+SELECT grantee, privilege_type FROM information_schema.role_table_grants 
+WHERE table_name='django_session';
+```
+
+### Connection Timeout Errors
+
+**Symptoms:**
+- "OperationalError: could not connect to server"
+- "timeout expired"
+- Intermittent database connection failures
+
+**Solutions:**
+
+1. **Increase Connection Timeout:**
+```python
+# In settings/development.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        # ... other settings ...
+        'OPTIONS': {
+            'connect_timeout': 10,  # Increase if needed
+        },
+    }
+}
+```
+
+2. **Verify Database Server:**
+```bash
+# Test PostgreSQL connection
+psql -U your_user -h your_host -d your_database
+
+# Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# Check PostgreSQL logs
+sudo tail -f /var/log/postgresql/postgresql-*.log
+```
+
+3. **Check Firewall Rules:**
+```bash
+# Allow PostgreSQL port (default 5432)
+sudo ufw allow 5432/tcp
+
+# Or for specific IP
+sudo ufw allow from <app-server-ip> to any port 5432
+```
+
+### Migration Failures
+
+**Symptoms:**
+- "django.db.utils.OperationalError" during migrations
+- "relation already exists"
+- "column does not exist"
+
+**Solutions:**
+
+1. **Check Migration Status:**
+```bash
+python manage.py showmigrations
+```
+
+2. **Rollback and Reapply:**
+```bash
+# Rollback last migration
+python manage.py migrate app_name previous_migration_name
+
+# Reapply
+python manage.py migrate
+```
+
+3. **Fake Migrations (if tables already exist):**
+```bash
+python manage.py migrate --fake-initial
+```
+
+### Performance Issues
+
+**Symptoms:**
+- Slow database queries
+- High database CPU usage
+- Connection pool exhaustion
+
+**Solutions:**
+
+1. **Enable Connection Pooling:**
+```python
+# Install psycopg2
+pip install psycopg2-binary
+
+# In settings/production.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        # ... other settings ...
+        'CONN_MAX_AGE': 600,  # Keep connections alive for 10 minutes
+    }
+}
+```
+
+2. **Optimize Queries:**
+```bash
+# Enable query logging
+# In settings.py, add to LOGGING configuration
+'loggers': {
+    'django.db.backends': {
+        'level': 'DEBUG',
+        'handlers': ['console'],
+    },
+}
+```
+
+3. **Add Database Indexes:**
+```python
+# In models.py
+class Meta:
+    indexes = [
+        models.Index(fields=['field_name']),
+    ]
+```
+
+### Security Best Practices
+
+Following OWASP and Django best practices for database security:
+
+1. **Use Environment Variables:**
+   - Never hard-code database credentials
+   - Store secrets in GitHub Secrets or secret management system
+   - Use different credentials per environment
+
+2. **Least Privilege Principle:**
+   - Grant only necessary database permissions
+   - Use separate database users for different services
+   - Restrict network access to database server
+
+3. **Connection Security:**
+   - Enable SSL/TLS for PostgreSQL connections in production
+   - Use certificate-based authentication when possible
+   - Restrict database connections to application servers only
+
+4. **Regular Maintenance:**
+   - Implement automated database backups
+   - Test backup restoration regularly
+   - Monitor database logs for suspicious activity
+   - Rotate database credentials periodically
+
+**References:**
+- [OWASP Database Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html)
+- [Django Database Best Practices](https://docs.djangoproject.com/en/stable/ref/databases/)
+- [PostgreSQL Security Documentation](https://www.postgresql.org/docs/current/security.html)
 
 ## Future Enhancements
 

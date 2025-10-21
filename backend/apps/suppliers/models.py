@@ -56,6 +56,7 @@ class Supplier(TimestampModel):
     street_address = models.CharField(
         max_length=255,
         blank=True,
+        default='',
         help_text="Street address (alternative to address field)",
     )
     city = models.CharField(max_length=100, blank=True, null=True, help_text="City")
@@ -84,18 +85,21 @@ class Supplier(TimestampModel):
         max_length=50,
         choices=EdibleInedibleChoices.choices,
         blank=True,
+        default='',
         help_text="Type of products supplied",
     )
     type_of_plant = models.CharField(
         max_length=100,
         choices=PlantTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Type of plant (e.g., Vertical, Processor)",
     )
     type_of_certificate = models.CharField(
         max_length=100,
         choices=CertificateTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Certificate type (e.g., 3rd Party, BRC)",
     )
     tested_product = models.BooleanField(
@@ -105,12 +109,14 @@ class Supplier(TimestampModel):
         max_length=100,
         choices=OriginChoices.choices,
         blank=True,
+        default='',
         help_text="Product origin (e.g., Domestic, Imported)",
     )
     country_origin = models.CharField(
         max_length=100,
         choices=CountryOriginChoices.choices,
         blank=True,
+        default='',
         help_text="Country of origin (e.g., USA, CAN)",
     )
     contacts = models.ManyToManyField(
@@ -123,10 +129,11 @@ class Supplier(TimestampModel):
         max_length=100,
         choices=ShippingOfferedChoices.choices,
         blank=True,
+        default='',
         help_text="Shipping services offered (e.g., Yes - Domestic)",
     )
     how_to_book_pickup = models.CharField(
-        max_length=100, blank=True, help_text="How to book pickup (e.g., Website, Call)"
+        max_length=100, blank=True, default='', help_text="How to book pickup (e.g., Website, Call)"
     )
     offer_contracts = models.BooleanField(
         default=False, help_text="Does supplier offer contracts?"
@@ -140,50 +147,57 @@ class Supplier(TimestampModel):
         max_length=50,
         choices=AccountingPaymentTermsChoices.choices,
         blank=True,
+        default='',
         help_text="Payment terms (e.g., Wire, ACH, Check)",
     )
     credit_limits = models.CharField(
         max_length=50,
         choices=CreditLimitChoices.choices,
         blank=True,
+        default='',
         help_text="Credit limits/terms (e.g., Net 30, Wire 1 day prior)",
     )
     account_line_of_credit = models.CharField(
         max_length=50,
         choices=AccountLineOfCreditChoices.choices,
         blank=True,
+        default='',
         help_text="Line of credit amount range",
     )
     fresh_or_frozen = models.CharField(
         max_length=20,
         choices=FreshOrFrozenChoices.choices,
         blank=True,
+        default='',
         help_text="Product state (Fresh or Frozen)",
     )
     package_type = models.CharField(
         max_length=50,
         choices=PackageTypeChoices.choices,
         blank=True,
+        default='',
         help_text="Package type (e.g., Boxed wax lined, Combo bins)",
     )
     net_or_catch = models.CharField(
         max_length=20,
         choices=NetOrCatchChoices.choices,
         blank=True,
+        default='',
         help_text="Weight type (Net or Catch)",
     )
     departments = models.CharField(
         max_length=255,
         blank=True,
+        default='',
         help_text="Departments (comma-separated: Sales, BOL, COA, etc.)",
     )
     
     # Deprecated fields - keeping for backward compatibility
     accounting_terms = models.CharField(
-        max_length=100, blank=True, help_text="Accounting terms (deprecated, use accounting_payment_terms)"
+        max_length=100, blank=True, default='', help_text="Accounting terms (deprecated, use accounting_payment_terms)"
     )
     accounting_line_of_credit = models.CharField(
-        max_length=100, blank=True, help_text="Line of credit amount (deprecated, use account_line_of_credit)"
+        max_length=100, blank=True, default='', help_text="Line of credit amount (deprecated, use account_line_of_credit)"
     )
     credit_app_sent = models.BooleanField(
         default=False, help_text="Has credit application been sent?"

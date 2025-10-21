@@ -61,11 +61,13 @@ config/
 ### Environment Files
 
 #### Development (config/environments/development.env)
-- **Database**: SQLite for local development
+- **Database**: SQLite for local development (temporary - see note below)
 - **Debug**: Enabled for development
 - **CORS**: Allows localhost origins
 - **Security**: Disabled for development ease
 - **AI Services**: Optional API keys
+
+**Note**: Development temporarily uses SQLite instead of PostgreSQL due to Postgres server setup issues. This will be reverted to PostgreSQL for environment parity once resolved.
 
 #### Staging (config/environments/staging.env)  
 - **Database**: PostgreSQL with environment variables
@@ -98,7 +100,7 @@ config/
 #### Database
 | Variable | Description | Development | Staging | Production |
 |----------|-------------|-------------|---------|-----------|
-| `DATABASE_URL` | Database connection | `sqlite:///db.sqlite3` | PostgreSQL URL | PostgreSQL URL with pooling |
+| `DATABASE_URL` | Database connection | `sqlite:///db.sqlite3` (temporary) | PostgreSQL URL | PostgreSQL URL with pooling |
 
 #### Security & CORS
 | Variable | Description | Development | Staging | Production |
@@ -112,6 +114,13 @@ config/
 |----------|-------------|----------|
 | `OPENAI_API_KEY` | OpenAI API key | Optional |
 | `ANTHROPIC_API_KEY` | Anthropic API key | Optional |
+
+#### Superuser Configuration
+| Variable | Description | Development | Staging | Production |
+|----------|-------------|-------------|---------|-----------|
+| `SUPERUSER_USERNAME` | Admin username | `admin` | `${STAGING_SUPERUSER_USERNAME}` | `${PRODUCTION_SUPERUSER_USERNAME}` |
+| `SUPERUSER_EMAIL` | Admin email | `admin@meatscentral.com` | `${STAGING_SUPERUSER_EMAIL}` | `${PRODUCTION_SUPERUSER_EMAIL}` |
+| `SUPERUSER_PASSWORD` | Admin password | Dev password | `${STAGING_SUPERUSER_PASSWORD}` | `${PRODUCTION_SUPERUSER_PASSWORD}` |
 
 ### Frontend Variables
 
@@ -131,25 +140,127 @@ config/
 ## Deployment Guide
 
 ### Development Deployment
-1. **Setup**: `python config/manage_env.py setup development`
-2. **Install**: `pip install -r backend/requirements.txt && cd frontend && npm install`
-3. **Migrate**: `cd backend && python manage.py migrate`
-4. **Run**: `make dev`
+1. **PostgreSQL Setup**: 
+   - Install PostgreSQL locally (see docs/DEPLOYMENT_GUIDE.md for OS-specific instructions)
+   - Create database: `createdb projectmeats_dev`
+   - Create user: `createuser -P projectmeats_dev` (password: devpassword)
+   - Grant privileges: `psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE projectmeats_dev TO projectmeats_dev;"`
+2. **Setup**: `python config/manage_env.py setup development`
+3. **Install**: `pip install -r backend/requirements.txt && cd frontend && npm install`
+4. **Migrate**: `cd backend && python manage.py migrate`
+5. **Superuser**: `make superuser` (creates admin user from environment variables)
+6. **Run**: `make dev`
 
 ### Staging Deployment
-1. **Environment Variables**: Set staging environment variables in your deployment system
-2. **Setup**: `python config/manage_env.py setup staging`
-3. **Validate**: `python config/manage_env.py validate`
-4. **Deploy**: Follow your staging deployment process
+1. **Configure GitHub Secrets**: Before deployment, ensure all required secrets are configured in GitHub repository settings (see "Required GitHub Secrets for Staging" section below)
+2. **Environment Variables**: Set staging environment variables on the staging server's environment configuration
+3. **Setup**: `python config/manage_env.py setup staging`
+4. **Validate**: `python config/manage_env.py validate`
+5. **Deploy**: Follow your staging deployment process (GitHub Actions workflow handles this automatically)
+6. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
+
+#### Required GitHub Secrets for Staging
+
+The following secrets must be configured in GitHub for staging deployment:
+
+**Repository-Level Secrets** (Settings → Secrets and variables → Actions → Repository secrets):
+- `STAGING_HOST` - Staging server IP/hostname (e.g., `192.168.1.101` or `uat.yourdomain.com`)
+- `STAGING_USER` - SSH username for staging server (e.g., `django`)
+- `SSH_PASSWORD` - SSH password for staging server
+
+**Environment Secrets for `uat2-backend`** (Settings → Environments → uat2-backend → Environment secrets):
+
+*Required Secrets:*
+- `STAGING_SUPERUSER_USERNAME` - Admin username for staging
+- `STAGING_SUPERUSER_EMAIL` - Admin email for staging  
+- `STAGING_SUPERUSER_PASSWORD` - Admin password for staging
+- `STAGING_SECRET_KEY` - Django secret key (generate with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
+- `STAGING_DB_USER` - PostgreSQL database username
+- `STAGING_DB_PASSWORD` - PostgreSQL database password
+- `STAGING_DB_HOST` - PostgreSQL database host (e.g., `localhost` or DB server IP)
+- `STAGING_DB_PORT` - PostgreSQL database port (default: `5432`)
+- `STAGING_DB_NAME` - PostgreSQL database name (e.g., `projectmeats_staging`)
+- `STAGING_DOMAIN` - Main staging domain (e.g., `uat.meatscentral.com`)
+- `STAGING_API_DOMAIN` - API staging domain (e.g., `uat-api.meatscentral.com`)
+- `STAGING_FRONTEND_DOMAIN` - Frontend staging domain (e.g., `uat.meatscentral.com`)
+- `STAGING_API_URL` - Staging backend API URL (e.g., `https://uat-api.meatscentral.com`)
+
+*Optional Secrets (if features are enabled):*
+- `STAGING_OPENAI_API_KEY` - OpenAI API key for AI features
+- `STAGING_ANTHROPIC_API_KEY` - Anthropic API key for AI features
+- `STAGING_EMAIL_HOST` - SMTP server hostname
+- `STAGING_EMAIL_USER` - SMTP username
+- `STAGING_EMAIL_PASSWORD` - SMTP password
+- `STAGING_REDIS_HOST` - Redis server host (if using Redis cache)
+- `STAGING_REDIS_PORT` - Redis server port (default: `6379`)
+- `STAGING_SENTRY_DSN` - Sentry DSN for error tracking
+
+**Note**: These secrets are referenced in `config/environments/staging.env` using placeholder syntax like `${STAGING_DB_USER}`. The actual values must be set as environment variables on the staging server.
 
 ### Production Deployment
-1. **Environment Variables**: Set production environment variables securely
+1. **Environment Variables**: Set production environment variables securely (including `PRODUCTION_SUPERUSER_*` variables)
 2. **Setup**: `python config/manage_env.py setup production`
 3. **Validate**: `python config/manage_env.py validate`
 4. **Security Check**: Verify all security settings are enabled
 5. **Deploy**: Follow your production deployment process
+6. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
 
 ## Security Best Practices
+
+### Superuser Management
+
+**Overview:**
+ProjectMeats uses environment variables for all superuser credentials to ensure security and prevent hardcoded credentials in the codebase. The `create_super_tenant` management command automatically handles superuser creation and updates.
+
+**Environment Variables:**
+- `SUPERUSER_USERNAME` - Admin username (default: admin)
+- `SUPERUSER_EMAIL` - Admin email address
+- `SUPERUSER_PASSWORD` - Admin password (must be secure for production)
+
+**Development Environment:**
+```bash
+# Set in config/environments/development.env
+SUPERUSER_USERNAME=admin
+SUPERUSER_EMAIL=admin@meatscentral.com
+SUPERUSER_PASSWORD=DevAdmin123!SecurePass
+```
+
+**Staging/Production Environments:**
+```bash
+# Set as deployment secrets in GitHub or your platform
+STAGING_SUPERUSER_USERNAME=admin
+STAGING_SUPERUSER_EMAIL=admin@staging.meatscentral.com
+STAGING_SUPERUSER_PASSWORD=<secure-password>
+
+PRODUCTION_SUPERUSER_USERNAME=admin
+PRODUCTION_SUPERUSER_EMAIL=admin@meatscentral.com
+PRODUCTION_SUPERUSER_PASSWORD=<secure-password>
+```
+
+**Creating/Updating Superuser:**
+```bash
+# Via Make command (recommended)
+make superuser
+
+# Direct command
+python manage.py create_super_tenant
+
+# With verbose output
+python manage.py create_super_tenant --verbosity 2
+```
+
+**Automatic Execution:**
+The superuser creation command runs automatically:
+- During initial setup (`python setup_env.py`)
+- After migrations in development setup
+- In deployment workflows (after migrations)
+
+**Command Features:**
+- **Idempotent**: Safe to run multiple times
+- **Updates existing users**: Updates password if user already exists
+- **Multi-tenancy support**: Creates root tenant and links superuser
+- **Secure**: Uses Django's password hashing
+- **Configurable**: All settings from environment variables
 
 ### Secret Management
 - **Generate unique secrets** for each environment
