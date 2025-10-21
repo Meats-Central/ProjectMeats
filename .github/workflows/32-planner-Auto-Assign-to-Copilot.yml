@@ -1,4 +1,4 @@
-name: Auto-Assign to Copilot
+name: 32-Auto-Assign to Copilot
 on:
   issues:
     types: [opened, labeled]  # Triggers on new issues or adding "ready-for-copilot" label
