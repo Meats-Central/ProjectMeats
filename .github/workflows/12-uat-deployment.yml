@@ -1,9 +1,9 @@
-name: Deploy - Production
+
+name: 12-Deploy - UAT
 
 on:
   push:
-    branches:
-      - main
+    branches: [ uat ]
   workflow_dispatch:
     inputs:
       action:
@@ -182,10 +182,10 @@ jobs:
         run: npm run type-check
 
   # =========================
-  # BACKEND: DEPLOY (PROD)
+  # BACKEND: DEPLOY (UAT)
   # =========================
-  deploy-backend-production:
-    name: Deploy Backend to Production
+  deploy-backend-staging:
+    name: Deploy Backend to UAT Staging
     runs-on: ubuntu-latest
     needs:
       - detect-changes
@@ -194,7 +194,7 @@ jobs:
       always() &&
       needs.detect-changes.outputs.backend == 'true' &&
       (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
-    environment: prod2-backend
+    environment: uat2-backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -204,15 +204,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Production server
+      - name: Deploy to UAT server
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-          PRODUCTION_SUPERUSER_USERNAME: ${{ secrets.PRODUCTION_SUPERUSER_USERNAME }}
-          PRODUCTION_SUPERUSER_EMAIL: ${{ secrets.PRODUCTION_SUPERUSER_EMAIL }}
-          PRODUCTION_SUPERUSER_PASSWORD: ${{ secrets.PRODUCTION_SUPERUSER_PASSWORD }}
+          STAGING_SUPERUSER_USERNAME: ${{ secrets.STAGING_SUPERUSER_USERNAME }}
+          STAGING_SUPERUSER_EMAIL: ${{ secrets.STAGING_SUPERUSER_EMAIL }}
+          STAGING_SUPERUSER_PASSWORD: ${{ secrets.STAGING_SUPERUSER_PASSWORD }}
         run: |
           cat > deploy_script.sh << 'DEPLOY_SCRIPT'
           #!/bin/bash
@@ -220,82 +220,82 @@ jobs:
           cd /home/django/ProjectMeats
           [ -d backend_backup ] && rm -rf backend_backup
           cp -r backend backend_backup
-          git remote set-url origin https://oauth2:${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
-          git stash push -m "Production deployment backup $(date)" || true
+          git remote set-url origin https://${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
+          git stash push -m "Deployment backup $(date)" || true
           git clean -fd
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
+          git fetch origin uat
+          git checkout uat
+          git reset --hard origin/uat
           cd backend
           source venv/bin/activate
           pip install -r requirements.txt
           mkdir -p logs && chown -R django:www-data logs
           python manage.py migrate
-          DJANGO_ENV=production \
-          PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
-          PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
-          PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
-          python manage.py setup_superuser
-          DJANGO_ENV=production \
-          PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
-          PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
-          PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
+          DJANGO_ENV=staging \
+          STAGING_SUPERUSER_USERNAME="${STAGING_SUPERUSER_USERNAME}" \
+          STAGING_SUPERUSER_EMAIL="${STAGING_SUPERUSER_EMAIL}" \
+          STAGING_SUPERUSER_PASSWORD="${STAGING_SUPERUSER_PASSWORD}" \
+          python manage.py setup_superuser --verbosity 3
+          DJANGO_ENV=staging \
+          STAGING_SUPERUSER_USERNAME="${STAGING_SUPERUSER_USERNAME}" \
+          STAGING_SUPERUSER_EMAIL="${STAGING_SUPERUSER_EMAIL}" \
+          STAGING_SUPERUSER_PASSWORD="${STAGING_SUPERUSER_PASSWORD}" \
           python manage.py create_super_tenant --verbosity 2
           python manage.py collectstatic --noinput
-          python manage.py check --deploy
+          python manage.py check
           DEPLOY_SCRIPT
 
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "export GIT_TOKEN='${GIT_TOKEN}' \
-                    PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' \
-                    PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' \
-                    PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' \
+                    STAGING_SUPERUSER_USERNAME='${STAGING_SUPERUSER_USERNAME}' \
+                    STAGING_SUPERUSER_EMAIL='${STAGING_SUPERUSER_EMAIL}' \
+                    STAGING_SUPERUSER_PASSWORD='${STAGING_SUPERUSER_PASSWORD}' \
              && cat > /tmp/deploy_script.sh" < deploy_script.sh
 
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             "chmod +x /tmp/deploy_script.sh \
              && export GIT_TOKEN='${GIT_TOKEN}' \
-                      PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' \
-                      PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' \
-                      PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' \
+                      STAGING_SUPERUSER_USERNAME='${STAGING_SUPERUSER_USERNAME}' \
+                      STAGING_SUPERUSER_EMAIL='${STAGING_SUPERUSER_EMAIL}' \
+                      STAGING_SUPERUSER_PASSWORD='${STAGING_SUPERUSER_PASSWORD}' \
              && /tmp/deploy_script.sh"
 
       - name: Restart services
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
           sudo systemctl restart gunicorn.service
-          sleep 10
+          sleep 5
           sudo systemctl status gunicorn.service
           sudo systemctl reload nginx
           EOF
 
       - name: Health check (API)
         run: |
-          sleep 20
-          for i in {1..10}; do
-            if curl -f -s "${{ secrets.PRODUCTION_API_URL }}/api/v1/health/" > /dev/null; then
-              echo "Prod API healthy"
+          sleep 15
+          for i in {1..5}; do
+            if curl -f -s "${{ secrets.STAGING_API_URL }}/api/v1/health/" > /dev/null; then
+              echo "UAT API healthy"
               exit 0
             fi
-            if [ $i -eq 10 ]; then
-              echo "Prod API health check failed"
+            if [ $i -eq 5 ]; then
+              echo "UAT API health check failed"
               exit 1
             fi
-            sleep 15
+            sleep 10
           done
 
       - name: Notify
         if: always()
         run: |
-          echo "Status: ${{ job.status }} | API: ${{ secrets.PRODUCTION_API_URL }} | Commit: ${{ github.sha }} | Actor: ${{ github.actor }}"
+          echo "Status: ${{ job.status }} | API: ${{ secrets.STAGING_API_URL }} | Commit: ${{ github.sha }} | Actor: ${{ github.actor }}"
 
   # =========================
-  # FRONTEND: DEPLOY (PROD)
+  # FRONTEND: DEPLOY (UAT)
   # =========================
-  deploy-frontend-production:
-    name: Deploy Frontend to Production
+  deploy-frontend-staging:
+    name: Deploy Frontend to UAT Staging
     runs-on: ubuntu-latest
     needs:
       - detect-changes
@@ -304,7 +304,7 @@ jobs:
       always() &&
       needs.detect-changes.outputs.frontend == 'true' &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
-    environment: prod2-frontend
+    environment: uat2
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -320,27 +320,25 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Create .env.production (Prod)
+      - name: Create .env.production (UAT)
         working-directory: ./frontend
         run: |
-          cat > .env.production << 'EOF'
+          cat > .env.production << EOF
           REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
           NODE_ENV=production
-          REACT_APP_ENVIRONMENT=production
+          REACT_APP_ENVIRONMENT=staging
           REACT_APP_AI_ASSISTANT_ENABLED=${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}
           REACT_APP_ENABLE_DOCUMENT_UPLOAD=${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}
           REACT_APP_ENABLE_CHAT_EXPORT=${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}
           REACT_APP_MAX_FILE_SIZE=${{ secrets.REACT_APP_MAX_FILE_SIZE }}
           REACT_APP_SUPPORTED_FILE_TYPES=${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}
-          REACT_APP_ENABLE_DEBUG=false
-          REACT_APP_ENABLE_DEVTOOLS=false
+          REACT_APP_ENABLE_DEBUG=${{ secrets.REACT_APP_ENABLE_DEBUG }}
+          REACT_APP_ENABLE_DEVTOOLS=${{ secrets.REACT_APP_ENABLE_DEVTOOLS }}
           EOF
 
       - name: Build
         working-directory: ./frontend
-        run: |
-          echo "Building React application for PRODUCTION..."
-          npm run build
+        run: npm run build
 
       - name: Archive build
         run: |
@@ -352,14 +350,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy static
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sshpass -e scp frontend-build.tar.gz ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
           set -e
           if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
             sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
@@ -378,40 +376,30 @@ jobs:
 
       - name: Health check (Web)
         run: |
-          sleep 15
-          for i in {1..8}; do
-            if curl -f -s "${{ secrets.PRODUCTION_URL }}" > /dev/null; then
-              echo "Prod web healthy"
-              exit 0
-            fi
-            if [ $i -eq 8 ]; then
-              echo "Prod web health check failed"
-              exit 1
-            fi
-            sleep 10
-          done
+          sleep 10
+          curl -f -s "${{ secrets.STAGING_URL }}" > /dev/null
 
   # =========================
   # ROLLBACKS (manual via dispatch)
   # =========================
-  rollback-backend-production:
-    name: Rollback Backend Production
+  rollback-backend-staging:
+    name: Rollback Backend Staging
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
-    environment: prod2-backend
+    environment: uat2-backend
     steps:
       - name: Setup SSH
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rollback
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
           set -e
           cd /home/django/ProjectMeats
           if [ ! -d "backend_backup" ]; then echo "No backup!"; exit 1; fi
@@ -419,28 +407,28 @@ jobs:
           rm -rf backend
           mv backend_backup backend
           sudo systemctl start gunicorn.service
-          sleep 15
+          sleep 10
           sudo systemctl reload nginx
           EOF
 
-  rollback-frontend-production:
-    name: Rollback Frontend Production
+  rollback-frontend-staging:
+    name: Rollback Frontend Staging
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
-    environment: prod2-frontend
+    environment: uat2
     steps:
       - name: Setup SSH
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rollback
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sshpass -e ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
           set -e
           BACKUP_DIR=$(find /var/www/ProjectMeats/frontend -maxdepth 1 -type d -name "build.backup.*" 2>/dev/null | sort -r | head -n1)
           [ -z "$BACKUP_DIR" ] && echo "No backup!" && exit 1

@@ -1,4 +1,4 @@
-name: Generate Sprint
+name: 34-Generate Sprint
 on:
   schedule:
     - cron: '0 0 * * MON'  # Every Monday at 00:00 UTC

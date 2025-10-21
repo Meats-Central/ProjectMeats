@@ -1,4 +1,4 @@
-name: Auto-Add Issue to ProjectMeats
+name: 31-Auto-Add Issue to ProjectMeats
 on:
   issues:
     types: [opened, labeled]  # Trigger on new issues or adding labels

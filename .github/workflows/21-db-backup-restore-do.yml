@@ -4,7 +4,7 @@
 # This workflow uses DigitalOcean's managed backup features
 # =============================================================================
 
-name: Weekly DB Backup - Using DigitalOcean Backups
+name: 21-Weekly DB Backup - Using DigitalOcean Backups
 
 on:
   schedule:
