@@ -862,7 +862,7 @@ jobs:
             black --check . --exclude=migrations || true
           fi
 
-  # =========================
+  # ========================
   # FRONTEND: TEST
   # =========================
   test-frontend:
