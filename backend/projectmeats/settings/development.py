@@ -35,7 +35,9 @@ ALLOWED_HOSTS = [
 # Development now uses PostgreSQL for environment parity with staging/production
 # Falls back to SQLite if PostgreSQL environment variables are not configured
 # Get DB_ENGINE with fallback for empty values
-DB_ENGINE = os.environ.get("DB_ENGINE", "").strip() or "django.db.backends.sqlite3"
+# Using config() to read from .env file for local development
+# The .strip() or pattern handles empty strings from GitHub Secrets
+DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
 
 if DB_ENGINE == "django.db.backends.postgresql":
     # PostgreSQL configuration - requires all environment variables

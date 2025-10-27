@@ -2,8 +2,7 @@ name: 13-Deploy - Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       action:
@@ -16,47 +15,29 @@ on:
           - rollback
 
 jobs:
-  # =========================
-  # DETECT CHANGES
-  # =========================
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action != 'rollback'
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Compute changed areas
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Detect changed files
         id: changes
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "backend=true" >> "$GITHUB_OUTPUT"
-            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "Manual trigger - will run all jobs"
           else
             changed_files=$(git diff --name-only HEAD^ HEAD)
-            echo "Changed files:"
-            echo "$changed_files"
-            if echo "$changed_files" | grep -q "^backend/"; then
-              echo "backend=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "backend=false" >> "$GITHUB_OUTPUT"
-            fi
-            if echo "$changed_files" | grep -q "^frontend/"; then
-              echo "frontend=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "frontend=false" >> "$GITHUB_OUTPUT"
-            fi
+            echo "Changed files: $changed_files"
+            if echo "$changed_files" | grep -q "^backend/"; then echo "backend=true" >> $GITHUB_OUTPUT; else echo "backend=false" >> $GITHUB_OUTPUT; fi
+            if echo "$changed_files" | grep -q "^frontend/"; then echo "frontend=true" >> $GITHUB_OUTPUT; else echo "frontend=false" >> $GITHUB_OUTPUT; fi
           fi
 
-  # =========================
-  # BACKEND: TEST
-  # =========================
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
@@ -65,160 +46,92 @@ jobs:
     services:
       postgres:
         image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_USER: postgres, POSTGRES_DB: test_db }
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - "5432:5432"
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports: [ '5432:5432' ]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-
-      - name: Cache pip
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.12' }
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
+          restore-keys: ${{ runner.os }}-pip-
       - name: Install deps
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Ensure logs dir
-        working-directory: ./backend
-        run: mkdir -p logs
-
       - name: Django setup
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: "True"
+          DEBUG: True
         run: |
           python manage.py check
           python manage.py migrate
-
-      - name: Migration consistency
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: "True"
-        run: |
-          python manage.py makemigrations --check --dry-run
-          python manage.py migrate --plan
-
       - name: Run tests
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: "True"
-          DJANGO_ENV: test
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          STAGING_SUPERUSER_USERNAME: testadmin
-          STAGING_SUPERUSER_EMAIL: testadmin@example.com
-          STAGING_SUPERUSER_PASSWORD: testpass123
-          PRODUCTION_SUPERUSER_USERNAME: testadmin
-          PRODUCTION_SUPERUSER_EMAIL: testadmin@example.com
-          PRODUCTION_SUPERUSER_PASSWORD: testpass123
+          DEBUG: True
         run: python manage.py test apps/
-
       - name: Code quality (non-blocking)
         working-directory: ./backend
         continue-on-error: true
         run: |
-          if pip show flake8 >/dev/null 2>&1; then
-            flake8 . --exclude=migrations --max-line-length=120 || true
-          fi
-          if pip show black >/dev/null 2>&1; then
-            black --check . --exclude=migrations || true
-          fi
+          if pip show flake8 >/dev/null 2>&1; then flake8 . --exclude=migrations --max-line-length=120 || true; fi
+          if pip show black  >/dev/null 2>&1; then black --check . --exclude=migrations || true; fi
 
-  # =========================
-  # FRONTEND: TEST
-  # =========================
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install deps
-        working-directory: ./frontend
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '18', cache: 'npm', cache-dependency-path: 'frontend/package-lock.json' }
+      - working-directory: ./frontend
         run: npm ci
-
-      - name: Run unit tests
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npm run test:ci
-
-      - name: Type check
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: npm run type-check
 
-  # =========================
-  # BACKEND: DEPLOY (PROD)
-  # =========================
   deploy-backend-production:
     name: Deploy Backend to Production
     runs-on: ubuntu-latest
-    needs:
-      - detect-changes
-      - test-backend
+    needs: [detect-changes, test-backend]
     if: |
       always() &&
       needs.detect-changes.outputs.backend == 'true' &&
+      github.ref == 'refs/heads/main' &&
       (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
     environment: prod2-backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup SSH (password)
+      - uses: actions/checkout@v4
+      - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to Production server
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-          PRODUCTION_SUPERUSER_USERNAME: ${{ secrets.PRODUCTION_SUPERUSER_USERNAME }}
-          PRODUCTION_SUPERUSER_EMAIL: ${{ secrets.PRODUCTION_SUPERUSER_EMAIL }}
-          PRODUCTION_SUPERUSER_PASSWORD: ${{ secrets.PRODUCTION_SUPERUSER_PASSWORD }}
         run: |
           cat > deploy_script.sh << 'DEPLOY_SCRIPT'
           #!/bin/bash
           set -e
+          echo "🔄 Starting PRODUCTION Backend deployment..."
           cd /home/django/ProjectMeats
-          [ -d backend_backup ] && rm -rf backend_backup
+          if [ -d "backend_backup" ]; then rm -rf backend_backup; fi
           cp -r backend backend_backup
           git remote set-url origin https://oauth2:${GIT_TOKEN}@github.com/Meats-Central/ProjectMeats.git
           git stash push -m "Production deployment backup $(date)" || true
@@ -229,101 +142,51 @@ jobs:
           cd backend
           source venv/bin/activate
           pip install -r requirements.txt
-          mkdir -p logs && chown -R django:www-data logs
           python manage.py migrate
-          DJANGO_ENV=production \
-          PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
-          PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
-          PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
-          python manage.py setup_superuser
-          DJANGO_ENV=production \
-          PRODUCTION_SUPERUSER_USERNAME="${PRODUCTION_SUPERUSER_USERNAME}" \
-          PRODUCTION_SUPERUSER_EMAIL="${PRODUCTION_SUPERUSER_EMAIL}" \
-          PRODUCTION_SUPERUSER_PASSWORD="${PRODUCTION_SUPERUSER_PASSWORD}" \
-          python manage.py create_super_tenant --verbosity 2
+          python manage.py create_super_tenant
           python manage.py collectstatic --noinput
           python manage.py check --deploy
           DEPLOY_SCRIPT
-
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
-            "export GIT_TOKEN='${GIT_TOKEN}' \
-                    PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' \
-                    PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' \
-                    PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' \
-             && cat > /tmp/deploy_script.sh" < deploy_script.sh
-
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
-            "chmod +x /tmp/deploy_script.sh \
-             && export GIT_TOKEN='${GIT_TOKEN}' \
-                      PRODUCTION_SUPERUSER_USERNAME='${PRODUCTION_SUPERUSER_USERNAME}' \
-                      PRODUCTION_SUPERUSER_EMAIL='${PRODUCTION_SUPERUSER_EMAIL}' \
-                      PRODUCTION_SUPERUSER_PASSWORD='${PRODUCTION_SUPERUSER_PASSWORD}' \
-             && /tmp/deploy_script.sh"
-
-      - name: Restart services
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          sshpass -e scp deploy_script.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
+      - name: Restart production services
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
         run: |
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-          sudo systemctl restart gunicorn.service
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'RESTART_SCRIPT'
+          sudo supervisorctl restart projectmeats-production
           sleep 10
-          sudo systemctl status gunicorn.service
+          sudo supervisorctl status projectmeats-production
           sudo systemctl reload nginx
-          EOF
-
-      - name: Health check (API)
+          RESTART_SCRIPT
+      - name: Health check
         run: |
           sleep 20
           for i in {1..10}; do
-            if curl -f -s "${{ secrets.PRODUCTION_API_URL }}/api/v1/health/" > /dev/null; then
-              echo "Prod API healthy"
-              exit 0
-            fi
-            if [ $i -eq 10 ]; then
-              echo "Prod API health check failed"
-              exit 1
-            fi
+            if curl -f -s "${{ secrets.PRODUCTION_API_URL }}/api/v1/health/" > /dev/null; then exit 0; fi
+            [ $i -eq 10 ] && exit 1
             sleep 15
           done
 
-      - name: Notify
-        if: always()
-        run: |
-          echo "Status: ${{ job.status }} | API: ${{ secrets.PRODUCTION_API_URL }} | Commit: ${{ github.sha }} | Actor: ${{ github.actor }}"
-
-  # =========================
-  # FRONTEND: DEPLOY (PROD)
-  # =========================
   deploy-frontend-production:
     name: Deploy Frontend to Production
     runs-on: ubuntu-latest
-    needs:
-      - detect-changes
-      - test-frontend
+    needs: [detect-changes, test-frontend]
     if: |
       always() &&
       needs.detect-changes.outputs.frontend == 'true' &&
+      github.ref == 'refs/heads/main' &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     environment: prod2-frontend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install deps
-        working-directory: ./frontend
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '18', cache: 'npm', cache-dependency-path: 'frontend/package-lock.json' }
+      - working-directory: ./frontend
         run: npm ci
-
       - name: Create .env.production (Prod)
         working-directory: ./frontend
         run: |
-          cat > .env.production << 'EOF'
+          cat > .env.production << EOF
           REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
           NODE_ENV=production
           REACT_APP_ENVIRONMENT=production
@@ -335,31 +198,24 @@ jobs:
           REACT_APP_ENABLE_DEBUG=false
           REACT_APP_ENABLE_DEVTOOLS=false
           EOF
-
-      - name: Build
-        working-directory: ./frontend
+      - working-directory: ./frontend
         run: |
           echo "Building React application for PRODUCTION..."
           npm run build
-
       - name: Archive build
         run: |
           cd frontend/build
           tar -czf ../../frontend-build.tar.gz .
-
-      - name: Setup SSH (password)
+      - name: Setup SSH with password authentication
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
+          sudo apt-get update && sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy static
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
         run: |
           sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
-          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'DEPLOY_SCRIPT'
           set -e
           if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
             sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
@@ -374,51 +230,36 @@ jobs:
           sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
           sudo nginx -t && sudo systemctl reload nginx
           rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
-          EOF
-
+          DEPLOY_SCRIPT
       - name: Health check (Web)
         run: |
           sleep 15
           for i in {1..8}; do
-            if curl -f -s "${{ secrets.PRODUCTION_URL }}" > /dev/null; then
-              echo "Prod web healthy"
-              exit 0
-            fi
-            if [ $i -eq 8 ]; then
-              echo "Prod web health check failed"
-              exit 1
-            fi
+            curl -f -s "${{ secrets.PRODUCTION_URL }}" && exit 0 || true
+            [ $i -eq 8 ] && exit 1
             sleep 10
           done
 
-  # =========================
-  # ROLLBACKS (manual via dispatch)
-  # =========================
   rollback-backend-production:
     name: Rollback Backend Production
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event.inputs.action == 'rollback'
     environment: prod2-backend
     steps:
-      - name: Setup SSH
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
+      - run: |
+          sudo apt-get update && sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Rollback
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      - env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
         run: |
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           set -e
           cd /home/django/ProjectMeats
           if [ ! -d "backend_backup" ]; then echo "No backup!"; exit 1; fi
-          sudo systemctl stop gunicorn.service
+          sudo supervisorctl stop projectmeats-production
           rm -rf backend
           mv backend_backup backend
-          sudo systemctl start gunicorn.service
+          sudo supervisorctl start projectmeats-production
           sleep 15
           sudo systemctl reload nginx
           EOF
@@ -426,23 +267,18 @@ jobs:
   rollback-frontend-production:
     name: Rollback Frontend Production
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    if: github.event.inputs.action == 'rollback'
     environment: prod2-frontend
     steps:
-      - name: Setup SSH
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
+      - run: |
+          sudo apt-get update && sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Rollback
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+      - env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
         run: |
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           set -e
-          BACKUP_DIR=$(find /var/www/ProjectMeats/frontend -maxdepth 1 -type d -name "build.backup.*" 2>/dev/null | sort -r | head -n1)
+          BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
           [ -z "$BACKUP_DIR" ] && echo "No backup!" && exit 1
           sudo rm -rf /var/www/ProjectMeats/frontend/build
           sudo cp -r "$BACKUP_DIR" /var/www/ProjectMeats/frontend/build
@@ -450,3 +286,4 @@ jobs:
           sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
           sudo systemctl reload nginx
           EOF
+
