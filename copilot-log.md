@@ -3676,3 +3676,81 @@ The supplier model uses `name` as the field name for the company name, but the l
 - Use IDE features to validate field names against model definitions
 - Create consistent patterns across similar views (suppliers and customers should use identical patterns)
 - Add integration tests that verify logging output contains expected data
+
+---
+
+## Task: Fix Dev Environment Database Configuration - Use config() Instead of os.environ.get() - [Date: 2025-10-23]
+
+### Actions Taken:
+1. **Analyzed database configuration in development.py:**
+   - Identified that `DB_ENGINE` was using `os.environ.get("DB_ENGINE")` instead of `config("DB_ENGINE")`
+   - Found that all other database variables (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT) correctly used `config()`
+   - Discovered that `os.environ.get()` only reads from actual OS environment variables, not from `.env` files
+   - Confirmed `config()` from python-decouple is designed to read from `.env` files
+
+2. **Identified the root cause:**
+   - Previous documentation (GITHUB_ISSUE_DEV_DB_ENGINE_FIX.md) showed `os.environ.get()` was used to handle empty strings from GitHub Secrets
+   - However, this broke local development where `config/environments/development.env` is copied to `backend/.env`
+   - The `.env` file had `DB_ENGINE=django.db.backends.postgresql` correctly set
+   - But `os.environ.get()` bypassed reading this file, always defaulting to SQLite
+
+3. **Implemented the fix:**
+   - Changed line 38 in `backend/projectmeats/settings/development.py`
+   - From: `DB_ENGINE = os.environ.get("DB_ENGINE", "").strip() or "django.db.backends.sqlite3"`
+   - To: `DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"`
+   - Added comments explaining the change
+
+4. **Tested the fix comprehensively:**
+   - ✅ Verified `config("DB_ENGINE")` reads PostgreSQL from `.env` file
+   - ✅ Verified empty environment variable falls back to SQLite
+   - ✅ Verified whitespace-only environment variable falls back to SQLite
+   - ✅ Verified explicit PostgreSQL env var is respected
+   - ✅ Confirmed fix handles both local development (.env file) and GitHub Actions (environment variables)
+
+### Root Cause Summary:
+The inconsistency was introduced when trying to handle empty GitHub Secrets. The change from `config()` to `os.environ.get()` solved the GitHub Actions issue but broke local development where configuration is loaded from `.env` files. The proper fix uses `config()` with an empty default, which handles both scenarios:
+- **Local development**: Reads from `.env` file → Uses PostgreSQL ✅
+- **GitHub Actions with empty secret**: Gets empty string → Falls back to SQLite ✅
+
+### Misses/Failures:
+None - The fix was identified correctly on first analysis and tested successfully.
+
+### Lessons Learned:
+1. **python-decouple config() vs os.environ.get()**: These serve different purposes:
+   - `config()`: Reads from `.env` files AND environment variables (12-Factor App pattern)
+   - `os.environ.get()`: Only reads from actual OS environment variables
+   
+2. **Empty string handling**: Using `config("VAR", default="").strip() or "fallback"` handles all cases:
+   - Missing variable → uses default → empty string → uses fallback
+   - Empty variable → empty string → uses fallback
+   - Valid variable → uses value
+
+3. **Consistency matters**: All database variables except DB_ENGINE used `config()` - this inconsistency was the red flag that led to the bug
+
+4. **Environment variable sources vary**: GitHub Actions sets environment variables directly, while local development uses `.env` files - solution must handle both
+
+5. **Testing with actual environment is critical**: The fix was validated by testing both scenarios (with .env file and with direct environment variables)
+
+### Efficiency Suggestions:
+1. **Standardize on python-decouple**: Always use `config()` for environment variables to maintain consistency
+2. **Document config loading pattern**: Add to CONTRIBUTING.md that all env vars should use `config()`, not `os.environ.get()`
+3. **Add pre-commit hook**: Check for `os.environ.get()` usage in settings files and suggest using `config()` instead
+4. **CI environment parity check**: Add a CI job that validates settings work with both .env files and direct environment variables
+
+### Files Modified:
+1. `backend/projectmeats/settings/development.py` - Changed DB_ENGINE to use config() (1 line changed, 2 comment lines added)
+
+### Impact:
+- ✅ Development environment now correctly reads DB_ENGINE from .env file
+- ✅ PostgreSQL configuration from config/environments/development.env is respected
+- ✅ Maintains backward compatibility with GitHub Actions (empty secrets still fall back to SQLite)
+- ✅ Consistent with all other database variables in the same file
+- ✅ Minimal change (3 lines modified)
+- ✅ No breaking changes to existing deployments
+
+### Test Results:
+- ✅ config() reads DB_ENGINE=django.db.backends.postgresql from .env file
+- ✅ Empty environment variable falls back to SQLite
+- ✅ Whitespace-only environment variable falls back to SQLite
+- ✅ Explicit PostgreSQL environment variable is respected
+- ✅ All scenarios tested and working correctly
