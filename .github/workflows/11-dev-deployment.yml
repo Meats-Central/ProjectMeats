@@ -330,7 +330,6 @@
 #           sudo systemctl reload nginx
 #           ROLLBACK_SCRIPT
 
-
 name: Deploy Dev (Frontend + Backend via DOCR)
 
 on:
@@ -339,7 +338,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ vars.DOCR_REGISTRY }}            # e.g. registry.digitalocean.com/your-reg
+  REGISTRY: ${{ vars.DOCR_REGISTRY }}            # e.g. registry.digitalocean.com/meatscentral
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} # e.g. projectmeats-frontend
   BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND  }} # e.g. projectmeats-backend
 
@@ -376,52 +375,52 @@ jobs:
           docker push $REGISTRY/$BACKEND_IMAGE:dev-latest
 
   deploy-frontend:
-  runs-on: ubuntu-latest
-  needs: [build-and-push]
-  environment: dev-frontend
-  steps:
-    - name: Setup SSH with password authentication
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y sshpass
-        mkdir -p ~/.ssh
-        ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment: dev-frontend
+    steps:
+      - name: Setup SSH with password authentication
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
 
-    - name: Deploy frontend container
-      env:
-        SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-      run: |
-        sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
-        set -e
+      - name: Deploy frontend container
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
+          set -e
 
-        # 1) Ensure env dir exists and write runtime env for frontend
-        sudo mkdir -p /opt/pm/frontend/env
-        sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
-        window.ENV = {
-          API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-          ENVIRONMENT: "development"
-        };
-        JS'
+          # 1) Runtime env for frontend
+          sudo mkdir -p /opt/pm/frontend/env
+          sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
+          window.ENV = {
+            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
+            ENVIRONMENT: "development"
+          };
+          JS'
 
-        # 2) Login to DO registry and pull latest frontend image
-        sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-        sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          # 2) Pull image
+          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-        # 3) Recreate container
-        sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
-        sudo docker run -d --name pm-frontend --restart unless-stopped \
-          -p 80:80 \
-          -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-          ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          # 3) Recreate container
+          sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
+          sudo docker run -d --name pm-frontend --restart unless-stopped \
+            -p 80:80 \
+            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-        # 4) Optional: show running containers
-        sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-        DEPLOY_SCRIPT
+          # 4) Show status
+          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          DEPLOY_SCRIPT
 
-    - name: Health check (Frontend)
-      run: |
-        sleep 5
-        curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+      - name: Health check (Frontend)
+        run: |
+          sleep 5
+          curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
 
   deploy-backend:
     runs-on: ubuntu-latest
@@ -433,6 +432,7 @@ jobs:
 
       - name: Setup SSH
         run: |
+          mkdir -p ~/.ssh
           install -m 600 -D /dev/stdin ~/.ssh/id_rsa <<< "${{ secrets.DEV_BACKEND_SSH_KEY }}"
           ssh-keyscan -H "${{ secrets.DEV_BACKEND_HOST }}" >> ~/.ssh/known_hosts
 
@@ -441,13 +441,11 @@ jobs:
           ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_BACKEND_USER }}@${{ secrets.DEV_BACKEND_HOST }} <<'EOF'
           set -e
           sudo mkdir -p /opt/pm/backend /opt/pm/media
-          # Expect your existing .env already here; we do not rewrite it:
-          # /opt/pm/backend/.env
+          # Expect /opt/pm/backend/.env to already exist on the droplet
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
           sudo docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
 
-          # Recreate container
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
