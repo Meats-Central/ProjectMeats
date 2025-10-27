@@ -1,8 +1,9 @@
-name: 13-Deploy - Production
+name: 13 - Deploy Production
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       action:
@@ -23,7 +24,8 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       - name: Detect changed files
         id: changes
         run: |
@@ -46,19 +48,25 @@ jobs:
     services:
       postgres:
         image: postgres:15
-        env: { POSTGRES_PASSWORD: postgres, POSTGRES_USER: postgres, POSTGRES_DB: test_db }
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-        ports: [ '5432:5432' ]
+        ports:
+          - '5432:5432'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
-        with: { python-version: '3.12' }
+        with:
+          python-version: '3.12'
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install deps
         working-directory: ./backend
         run: |
@@ -69,7 +77,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
+          DEBUG: "True"
         run: |
           python manage.py check
           python manage.py migrate
@@ -78,7 +86,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
+          DEBUG: "True"
         run: python manage.py test apps/
       - name: Code quality (non-blocking)
         working-directory: ./backend
@@ -95,12 +103,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '18', cache: 'npm', cache-dependency-path: 'frontend/package-lock.json' }
-      - working-directory: ./frontend
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - name: Install
+        working-directory: ./frontend
         run: npm ci
-      - working-directory: ./frontend
+      - name: Tests
+        working-directory: ./frontend
         run: npm run test:ci
-      - working-directory: ./frontend
+      - name: Type check
+        working-directory: ./frontend
         run: npm run type-check
 
   deploy-backend-production:
@@ -150,7 +164,8 @@ jobs:
           sshpass -e scp deploy_script.sh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} "chmod +x /tmp/deploy_script.sh && /tmp/deploy_script.sh"
       - name: Restart production services
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'RESTART_SCRIPT'
           sudo supervisorctl restart projectmeats-production
@@ -180,8 +195,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '18', cache: 'npm', cache-dependency-path: 'frontend/package-lock.json' }
-      - working-directory: ./frontend
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - name: Install
+        working-directory: ./frontend
         run: npm ci
       - name: Create .env.production (Prod)
         working-directory: ./frontend
@@ -198,7 +217,8 @@ jobs:
           REACT_APP_ENABLE_DEBUG=false
           REACT_APP_ENABLE_DEVTOOLS=false
           EOF
-      - working-directory: ./frontend
+      - name: Build
+        working-directory: ./frontend
         run: |
           echo "Building React application for PRODUCTION..."
           npm run build
@@ -212,7 +232,8 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
       - name: Deploy static
-        env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'DEPLOY_SCRIPT'
@@ -246,11 +267,14 @@ jobs:
     if: github.event.inputs.action == 'rollback'
     environment: prod2-backend
     steps:
-      - run: |
+      - name: Setup SSH
+        run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-      - env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+      - name: Rollback
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           set -e
@@ -270,11 +294,14 @@ jobs:
     if: github.event.inputs.action == 'rollback'
     environment: prod2-frontend
     steps:
-      - run: |
+      - name: Setup SSH
+        run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-      - env: { SSHPASS: ${{ secrets.SSH_PASSWORD }} }
+      - name: Rollback
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
           set -e
@@ -286,4 +313,3 @@ jobs:
           sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
           sudo systemctl reload nginx
           EOF
-
