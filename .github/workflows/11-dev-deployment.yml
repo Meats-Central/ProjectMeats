@@ -488,8 +488,8 @@ jobs:
           SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}
           CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}
           OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}
-          STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
-          MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
+          #STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
+          #MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
           EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}
