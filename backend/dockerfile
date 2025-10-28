@@ -7,17 +7,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Only curl is needed for the HEALTHCHECK. libpq not required with psycopg-binary.
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Install deps first for better layer caching
+# Install Python dependencies
 COPY backend/requirements.txt .
 RUN pip install -r requirements.txt \
  && pip install gunicorn whitenoise
 
-# Copy app
+# Copy the application code
 COPY backend/ ./
 
 # Create a non-root user
@@ -26,18 +26,17 @@ USER appuser
 
 EXPOSE 8000
 
-# Healthcheck. Prefer a lightweight health endpoint if you have one.
+# Healthcheck to ensure the container is running
 HEALTHCHECK --interval=30s --timeout=5s \
   CMD curl -fsS http://127.0.0.1:8000/api/v1/health/ || exit 1
 
-# Simple retry for migrations so startup is not brittle if DB is momentarily unavailable.
-# Note: env vars are injected by Docker via --env-file on the host, not by mounting /app/.env.
+# Simple retry for migrations so startup is not brittle if DB is momentarily unavailable
 CMD /bin/sh -c '\
   for i in 1 2 3 4 5; do \
     python manage.py migrate --noinput && break || { echo "migrate retry $i"; sleep 3; }; \
   done && \
   python manage.py collectstatic --noinput || true && \
-  exec gunicorn config.wsgi:application \
+  exec gunicorn projectmeats.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers ${GUNICORN_WORKERS:-3} \
     --timeout ${GUNICORN_TIMEOUT:-120} \
