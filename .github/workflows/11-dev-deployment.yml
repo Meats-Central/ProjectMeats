@@ -386,7 +386,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy frontend container
+      - name: Deploy frontend container (8080 behind Nginx)
         env:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
@@ -406,14 +406,32 @@ jobs:
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 3) Recreate container
+          # 3) Recreate container on 8080
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
-            -p 80:80 \
+            -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 4) Show status
+          # 4) If host Nginx exists, proxy port 80 -> 127.0.0.1:8080
+          if command -v nginx >/dev/null 2>&1; then
+            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            server {
+              listen 80;
+              server_name _;
+              location / {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+            }
+            NGINX'
+            sudo nginx -t && sudo systemctl reload nginx || true
+          fi
+
+          # 5) Show status
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           DEPLOY_SCRIPT
 
@@ -439,23 +457,64 @@ jobs:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
-          set -e
-          sudo mkdir -p /opt/pm/backend /opt/pm/media
-          # Expect /opt/pm/backend/.env already present on the droplet
+          set -euo pipefail
 
-          # Pull image from DOCR
-          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
+          REG="${{ env.REGISTRY }}"
+          IMG="${{ env.BACKEND_IMAGE }}"
+          TAG="dev-latest"
+          APP_DIR="/opt/pm/backend"
+          MEDIA_DIR="/opt/pm/media"
+          ENV_FILE="${APP_DIR}/.env"
 
-          # Recreate container
+          # 0) Ensure dirs
+          sudo mkdir -p "${APP_DIR}" "${MEDIA_DIR}"
+
+          # 1) Ensure .env exists. If you already manage it manually, this block is harmless.
+          if [ ! -s "${ENV_FILE}" ]; then
+            echo "Creating ${ENV_FILE} from environment secrets"
+            sudo bash -c 'cat > '"${ENV_FILE}"' <<ENV
+            DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+            SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}
+            DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+            ALLOWED_HOSTS=${{ secrets.DEV_ALLOWED_HOSTS }}
+            DEBUG=${{ secrets.DEV_DEBUG }}
+            # add any other runtime vars you used to export on the VM
+            ENV'
+            sudo chown root:root "${ENV_FILE}"
+            sudo chmod 600 "${ENV_FILE}"
+          fi
+
+          # 2) Pull image
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "${REG}" -u doctl --password-stdin
+          sudo docker pull "${REG}/${IMG}:${TAG}"
+
+          # 3) Run DB migrations in a one-shot container
+          sudo docker run --rm \
+            --env-file "${ENV_FILE}" \
+            -v "${MEDIA_DIR}:/app/media" \
+            "${REG}/${IMG}:${TAG}" \
+            python manage.py migrate --noinput
+
+          # 3b) Optional: create super tenant if this is required on every deploy
+          # sudo docker run --rm --env-file "${ENV_FILE}" -v "${MEDIA_DIR}:/app/media" \
+          #   "${REG}/${IMG}:${TAG}" python manage.py create_super_tenant || true
+
+          # 3c) Optional: collectstatic if your image or CMD does not do it
+          sudo docker run --rm \
+            --env-file "${ENV_FILE}" \
+            -v "${MEDIA_DIR}:/app/media" \
+            "${REG}/${IMG}:${TAG}" \
+            python manage.py collectstatic --noinput || true
+
+          # 4) Recreate runtime container
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
-            --env-file /opt/pm/backend/.env \
-            -v /opt/pm/media:/app/media \
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
+            --env-file "${ENV_FILE}" \
+            -v "${MEDIA_DIR}:/app/media" \
+            "${REG}/${IMG}:${TAG}"
 
-          # Optional status
+          # 5) Status
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           DEPLOY_SCRIPT
 
