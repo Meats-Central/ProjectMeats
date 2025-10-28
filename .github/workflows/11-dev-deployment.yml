@@ -257,8 +257,7 @@ jobs:
   # Job to test the frontend code
   test-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: needs.build-and-push.matrix.app == 'frontend'
+    needs: build-and-push
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -276,8 +275,7 @@ jobs:
   # Job to test the backend code
   test-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push]
-    if: needs.build-and-push.matrix.app == 'backend'
+    needs: build-and-push
     services:
       postgres:
         image: postgres:15
@@ -338,7 +336,7 @@ jobs:
   # Job to deploy the frontend
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push]
+    needs: [build-and-push, test-frontend]
     environment: dev-frontend
     steps:
       - name: Setup SSH with password authentication
@@ -405,7 +403,7 @@ jobs:
   # Job to deploy the backend
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push]
+    needs: [build-and-push, test-backend]
     environment: dev-backend
     steps:
       - name: Setup SSH with password authentication
