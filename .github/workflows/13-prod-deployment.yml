@@ -495,4 +495,29 @@ jobs:
           EMAIL_BACKEND=${{ secrets.PROD_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.PROD_EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.PROD_EMAIL_US
+          EMAIL_USE_TLS=${{ secrets.PROD_EMAIL_USE_TLS }}
+          EMAIL_HOST_USER=${{ secrets.PROD_EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD=${{ secrets.PROD_EMAIL_HOST_PASSWORD }}
+          ENV
+          sudo chown root:root "$ENV_FILE"
+          sudo chmod 600 "$ENV_FILE"
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
+          sudo docker pull "$REG/$IMG:$TAG"
+          sudo docker run --rm \
+            --env-file "$ENV_FILE" \
+            -v "$MEDIA_DIR:/app/media" \
+            "$REG/$IMG:$TAG" \
+            python manage.py migrate --noinput
+          sudo docker run --rm \
+            --env-file "$ENV_FILE" \
+            -v "$MEDIA_DIR:/app/media" \
+            "$REG/$IMG:$TAG" \
+            python manage.py collectstatic --noinput || true
+          sudo docker rm -f pm-backend >/dev/null 2>&1 || true
+          sudo docker run -d --name pm-backend --restart unless-stopped \
+            -p 8000:8000 \
+            --env-file "$ENV_FILE" \
+            -v "$MEDIA_DIR:/app/media" \
+            "$REG/$IMG:$TAG"
+          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          SSH"
