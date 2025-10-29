@@ -284,37 +284,37 @@ env:
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND_PROD }} # e.g. projectmeats-frontend
   BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND_PROD  }} # e.g. projectmeats-backend
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: [frontend, backend]
-    steps:
-      - uses: actions/checkout@v4
+  jobs:
+    build-and-push:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          app: [frontend, backend]
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Login to DOCR
-        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
+        - name: Login to DOCR
+          run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
 
-      - name: Build & Push Frontend
-        if: matrix.app == 'frontend'
-        run: |
-          docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
-            .
-          docker push $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7}
-          docker push $REGISTRY/$FRONTEND_IMAGE:prod-latest
+        - name: Build & Push Frontend
+          if: matrix.app == 'frontend'
+          run: |
+            docker build -f frontend/Dockerfile \
+              -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
+              -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
+              .
+            docker push $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7}
+            docker push $REGISTRY/$FRONTEND_IMAGE:prod-latest
 
-      - name: Build & Push Backend (Django)
-        if: matrix.app == 'backend'
-        run: |
-          docker build -f backend/Dockerfile \
-            -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
-            -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
-            .
-          docker push $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7}
-          docker push $REGISTRY/$BACKEND_IMAGE:prod-latest
+        - name: Build & Push Backend (Django)
+          if: matrix.app == 'backend'
+          run: |
+            docker build -f backend/Dockerfile \
+              -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
+              -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
+              .
+            docker push $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7}
+            docker push $REGISTRY/$BACKEND_IMAGE:prod-latest
 
   test-frontend:
     runs-on: ubuntu-latest
