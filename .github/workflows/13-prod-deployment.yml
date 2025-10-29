@@ -280,30 +280,6 @@ on:
           - deploy
           - rollback
 
-jobs:
-  detect-changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.changes.outputs.backend }}
-      frontend: ${{ steps.changes.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Detect changed files
-        id: changes
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "backend=true" >> $GITHUB_OUTPUT
-            echo "frontend=true" >> $GITHUB_OUTPUT
-            echo "Manual trigger - will run all jobs"
-          else
-            changed_files=$(git diff --name-only HEAD^ HEAD)
-            echo "Changed files: $changed_files"
-            if echo "$changed_files" | grep -q "^backend/"; then echo "backend=true" >> $GITHUB_OUTPUT; else echo "backend=false" >> $GITHUB_OUTPUT; fi
-            if echo "$changed_files" | grep -q "^frontend/"; then echo "frontend=true" >> $GITHUB_OUTPUT; else echo "frontend=false" >> $GITHUB_OUTPUT; fi
-          fi
 
   test-backend:
     name: Test Backend
