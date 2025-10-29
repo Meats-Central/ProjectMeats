@@ -452,4 +452,90 @@ jobs:
         run: |
           cd frontend/build
           tar -czf ../../frontend-build.tar.gz .
-      - name: Setup SSH with password au
+      - name: Setup SSH with password authentication
+        run: |
+          sudo apt-get update && sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+      - name: Deploy static
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e scp frontend-build.tar.gz ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'DEPLOY_SCRIPT'
+          set -e
+          if [ -d "/var/www/ProjectMeats/frontend/build" ]; then
+            sudo cp -r /var/www/ProjectMeats/frontend/build /var/www/ProjectMeats/frontend/build.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+          cd /tmp
+          mkdir -p frontend-build-new
+          tar -xzf frontend-build.tar.gz -C frontend-build-new/
+          sudo rm -rf /var/www/ProjectMeats/frontend/build
+          sudo mkdir -p /var/www/ProjectMeats/frontend/build
+          sudo cp -r frontend-build-new/* /var/www/ProjectMeats/frontend/build/
+          sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+          sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+          sudo nginx -t && sudo systemctl reload nginx
+          rm -rf /tmp/frontend-build.tar.gz /tmp/frontend-build-new
+          DEPLOY_SCRIPT
+      - name: Health check (Web)
+        run: |
+          sleep 15
+          for i in {1..8}; do
+            curl -f -s "${{ secrets.PRODUCTION_URL }}" && exit 0 || true
+            [ $i -eq 8 ] && exit 1
+            sleep 10
+          done
+
+  rollback-backend-production:
+    name: Rollback Backend Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'rollback'
+    environment: prod2-backend
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update && sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+      - name: Rollback
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          set -e
+          cd /home/django/ProjectMeats
+          if [ ! -d "backend_backup" ]; then echo "No backup!"; exit 1; fi
+          sudo supervisorctl stop projectmeats-production
+          rm -rf backend
+          mv backend_backup backend
+          sudo supervisorctl start projectmeats-production
+          sleep 15
+          sudo systemctl reload nginx
+          EOF
+
+  rollback-frontend-production:
+    name: Rollback Frontend Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'rollback'
+    environment: prod2-frontend
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update && sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+      - name: Rollback
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          set -e
+          BACKUP_DIR=$(ls -1t /var/www/ProjectMeats/frontend/build.backup.* 2>/dev/null | head -n1)
+          [ -z "$BACKUP_DIR" ] && echo "No backup!" && exit 1
+          sudo rm -rf /var/www/ProjectMeats/frontend/build
+          sudo cp -r "$BACKUP_DIR" /var/www/ProjectMeats/frontend/build
+          sudo chown -R www-data:www-data /var/www/ProjectMeats/frontend/build
+          sudo chmod -R 755 /var/www/ProjectMeats/frontend/build
+          sudo systemctl reload nginx
+          EOF
