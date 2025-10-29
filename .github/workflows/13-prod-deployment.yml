@@ -127,8 +127,6 @@ jobs:
     steps:
       - name: Setup SSH with password authentication
         run: |
-          # sudo apt-get update
-          # sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
 
