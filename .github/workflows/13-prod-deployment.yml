@@ -1,9 +1,283 @@
+# name: Deploy Production (Frontend + Backend via DOCR)
+
+# on:
+#   push:
+#     branches: [main]  # Use 'main' for production deployments
+#   workflow_dispatch:
+
+# env:
+#   REGISTRY: ${{ vars.DOCR_REGISTRY }}            # e.g. registry.digitalocean.com/meatscentral
+#   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND_PROD }} # e.g. projectmeats-frontend
+#   BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND_PROD  }} # e.g. projectmeats-backend
+
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         app: [frontend, backend]
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Login to DOCR
+#         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
+
+#       - name: Build & Push Frontend
+#         if: matrix.app == 'frontend'
+#         run: |
+#           docker build -f frontend/Dockerfile \
+#             -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
+#             -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
+#             .
+#           docker push $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7}
+#           docker push $REGISTRY/$FRONTEND_IMAGE:prod-latest
+
+#       - name: Build & Push Backend (Django)
+#         if: matrix.app == 'backend'
+#         run: |
+#           docker build -f backend/Dockerfile \
+#             -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
+#             -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
+#             .
+#           docker push $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7}
+#           docker push $REGISTRY/$BACKEND_IMAGE:prod-latest
+
+#   test-frontend:
+#     runs-on: ubuntu-latest
+#     needs: build-and-push
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: '18'
+#           cache: 'npm'
+#           cache-dependency-path: 'frontend/package-lock.json'
+#       - working-directory: ./frontend
+#         run: npm ci
+#       - working-directory: ./frontend
+#         run: npm run test:ci
+#       - working-directory: ./frontend
+#         run: npm run type-check
+
+#   test-backend:
+#     runs-on: ubuntu-latest
+#     needs: build-and-push
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_USER: postgres
+#           POSTGRES_DB: test_db
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 5432:5432
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.12'
+#       - uses: actions/cache@v3
+#         with:
+#           path: ~/.cache/pip
+#           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+#           restore-keys: |
+#             ${{ runner.os }}-pip-
+#       - name: Install dependencies
+#         working-directory: ./backend
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+#       - name: Setup test environment
+#         working-directory: ./backend
+#         env:
+#           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+#           SECRET_KEY: test-secret-key-for-testing-only
+#           DEBUG: True
+#         run: |
+#           python manage.py check
+#           python manage.py migrate
+#       - name: Run tests
+#         working-directory: ./backend
+#         env:
+#           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+#           SECRET_KEY: test-secret-key-for-testing-only
+#           DEBUG: True
+#         run: python manage.py test apps/
+#       - name: Code quality (non-blocking)
+#         working-directory: ./backend
+#         continue-on-error: true
+#         run: |
+#           if pip show flake8 >/dev/null 2>&1; then
+#             flake8 . --exclude=migrations --max-line-length=120 || true
+#           fi
+#           if pip show black >/dev/null 2>&1; then
+#             black --check . --exclude=migrations || true
+#           fi
+
+#   deploy-frontend:
+#     runs-on: ubuntu-latest
+#     needs: [build-and-push, test-frontend]
+#     if: github.ref == 'refs/heads/main'
+#     environment: production
+#     steps:
+#       - name: Setup SSH with password authentication
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y sshpass
+#           mkdir -p ~/.ssh
+#           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+
+#       - name: Deploy frontend container (8080 behind Nginx)
+#         env:
+#           SSHPASS: ${{ secrets.SSH_PASSWORD }}
+#         run: |
+#           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'DEPLOY_SCRIPT'
+#           set -e
+
+#           sudo mkdir -p /opt/pm/frontend/env
+#           sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
+#           window.ENV = {
+#             API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
+#             ENVIRONMENT: "production"
+#           };
+#           JS'
+
+#           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
+#           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+
+#           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
+#           sudo docker run -d --name pm-frontend --restart unless-stopped \
+#             -p 8080:80 \
+#             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+#             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+
+#           if command -v nginx >/dev/null 2>&1; then
+#             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+#             server {
+#               listen 80;
+#               server_name _;
+#               location / {
+#                 proxy_pass http://127.0.0.1:8080;
+#                 proxy_set_header Host \$host;
+#                 proxy_set_header X-Real-IP \$remote_addr;
+#                 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+#                 proxy_set_header X-Forwarded-Proto \$scheme;
+#               }
+#             }
+#             NGINX'
+#             sudo nginx -t && sudo systemctl reload nginx || true
+#           fi
+
+#           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+#           DEPLOY_SCRIPT
+
+#       - name: Health check (Web)
+#         run: |
+#           sleep 8
+#           curl -fsS "${{ secrets.PRODUCTION_URL }}" > /dev/null
+
+#   deploy-backend:
+#     runs-on: ubuntu-latest
+#     needs: [build-and-push, test-backend]
+#     if: github.ref == 'refs/heads/main'
+#     environment: production-backend
+#     steps:
+#       - name: Setup SSH with password authentication
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y sshpass
+#           mkdir -p ~/.ssh
+#           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+
+#       - name: Deploy backend container (env at /home/django/ProjectMeats/backend/.env)
+#         env:
+#           SSHPASS: ${{ secrets.SSH_PASSWORD }}
+#         run: |
+#           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'SSH'
+#           set -euo pipefail
+
+#           REG="${{ env.REGISTRY }}"
+#           IMG="${{ env.BACKEND_IMAGE }}"
+#           TAG="prod-latest"
+
+#           APP_DIR="/home/django/ProjectMeats/backend"
+#           MEDIA_DIR="/home/django/ProjectMeats/media"
+#           ENV_FILE="${APP_DIR}/.env"
+
+#           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR"
+
+#           # Same env block as prod. Update values in production secrets.
+#           sudo tee "$ENV_FILE" > /dev/null <<ENV
+
+#           DJANGO_SETTINGS_MODULE=${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+#           SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
+#           CORS_ALLOWED_ORIGINS=${{ secrets.PROD_CORS_ALLOWED_ORIGINS }}
+#           DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+#           ALLOWED_HOSTS=${{ secrets.PROD_ALLOWED_HOSTS }}
+#           DEBUG=${{ secrets.DEBUG }}
+#           LOG_LEVEL=${{ secrets.PROD_LOG_LEVEL }}
+#           CORS_ALLOW_ALL_ORIGINS=${{ secrets.PROD_CORS_ALLOW_ALL_ORIGINS }}
+#           SESSION_COOKIE_SECURE=${{ secrets.PROD_SESSION_COOKIE_SECURE }}
+#           CSRF_COOKIE_SECURE=${{ secrets.PROD_CSRF_COOKIE_SECURE }}
+#           OPENAI_API_KEY=${{ secrets.PROD_OPENAI_API_KEY }}
+#           STATIC_ROOT=${{ secrets.PROD_STATIC_ROOT }}
+#           MEDIA_ROOT=${{ secrets.PROD_MEDIA_ROOT }}
+#           EMAIL_BACKEND=${{ secrets.PROD_EMAIL_BACKEND }}
+#           EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
+#           EMAIL_PORT=${{ secrets.PROD_EMAIL_PORT }}
+#           EMAIL_USE_TLS=${{ secrets.PROD_EMAIL_USE_TLS }}
+#           EMAIL_HOST_USER=${{ secrets.PROD_EMAIL_HOST_USER }}
+#           EMAIL_HOST_PASSWORD=${{ secrets.PROD_EMAIL_HOST_PASSWORD }}
+#           ENV
+#           sudo chown root:root "$ENV_FILE"
+#           sudo chmod 600 "$ENV_FILE"
+
+#           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
+#           sudo docker pull "$REG/$IMG:$TAG"
+
+#           sudo docker run --rm \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             "$REG/$IMG:$TAG" \
+#             python manage.py migrate --noinput
+
+#           sudo docker run --rm \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             "$REG/$IMG:$TAG" \
+#             python manage.py collectstatic --noinput || true
+
+#           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
+#           sudo docker run -d --name pm-backend --restart unless-stopped \
+#             -p 8000:8000 \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             "$REG/$IMG:$TAG"
+
+#           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+#           SSH
+
+
 name: Deploy Production (Frontend + Backend via DOCR)
 
 on:
   push:
     branches: [main]  # Use 'main' for production deployments
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - rollback
 
 env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}            # e.g. registry.digitalocean.com/meatscentral
@@ -45,6 +319,7 @@ jobs:
   test-frontend:
     runs-on: ubuntu-latest
     needs: build-and-push
+    environment: prod2-frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,6 +337,7 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
     needs: build-and-push
+    environment: prod2-backend
     services:
       postgres:
         image: postgres:15
@@ -119,73 +395,68 @@ jobs:
             black --check . --exclude=migrations || true
           fi
 
-  # deploy-frontend:
-  #   runs-on: ubuntu-latest
-  #   needs: [build-and-push, test-frontend]
-  #   if: github.ref == 'refs/heads/main'
-  #   environment: production
-  #   steps:
-  #     - name: Setup SSH with password authentication
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y sshpass
-  #         mkdir -p ~/.ssh
-  #         ssh-keyscan -H "${{ secrets.NEW_PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: prod2-frontend
+    steps:
+      - name: Setup SSH with password authentication
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
 
-  #     - name: Deploy frontend container (8080 behind Nginx)
-  #       env:
-  #         SSHPASS: ${{ secrets.SSH_PASSWORD }}
-  #       run: |
-  #         sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.NEW_PRODUCTION_HOST }} <<'DEPLOY_SCRIPT'
-  #         set -e
+      - name: Deploy frontend container (8080 behind Nginx)
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'DEPLOY_SCRIPT'
+          set -e
+          sudo mkdir -p /opt/pm/frontend/env
+          sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
+          window.ENV = {
+            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
+            ENVIRONMENT: "production"
+          };
+          JS'
+          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+          sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
+          sudo docker run -d --name pm-frontend --restart unless-stopped \
+            -p 8080:80 \
+            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+          if command -v nginx >/dev/null 2>&1; then
+            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            server {
+              listen 80;
+              server_name _;
+              location / {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+            }
+            NGINX'
+            sudo nginx -t && sudo systemctl reload nginx || true
+          fi
+          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          DEPLOY_SCRIPT
 
-  #         sudo mkdir -p /opt/pm/frontend/env
-  #         sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
-  #         window.ENV = {
-  #           API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-  #           ENVIRONMENT: "production"
-  #         };
-  #         JS'
-
-  #         sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-  #         sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
-
-  #         sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
-  #         sudo docker run -d --name pm-frontend --restart unless-stopped \
-  #           -p 8080:80 \
-  #           -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-  #           ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
-
-  #         if command -v nginx >/dev/null 2>&1; then
-  #           sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
-  #           server {
-  #             listen 80;
-  #             server_name _;
-  #             location / {
-  #               proxy_pass http://127.0.0.1:8080;
-  #               proxy_set_header Host \$host;
-  #               proxy_set_header X-Real-IP \$remote_addr;
-  #               proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  #               proxy_set_header X-Forwarded-Proto \$scheme;
-  #             }
-  #           }
-  #           NGINX'
-  #           sudo nginx -t && sudo systemctl reload nginx || true
-  #         fi
-
-  #         sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-  #         DEPLOY_SCRIPT
-
-  #     - name: Health check (Web)
-  #       run: |
-  #         sleep 8
-  #         curl -fsS "${{ secrets.PRODUCTION_URL }}" > /dev/null
+      - name: Health check (Web)
+        run: |
+          sleep 8
+          curl -fsS "${{ secrets.PRODUCTION_URL }}" > /dev/null
 
   deploy-backend:
     runs-on: ubuntu-latest
     needs: [build-and-push, test-backend]
     if: github.ref == 'refs/heads/main'
-    environment: production-backend
+    environment: prod2-backend
     steps:
       - name: Setup SSH with password authentication
         run: |
@@ -200,20 +471,14 @@ jobs:
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'SSH'
           set -euo pipefail
-
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
           TAG="prod-latest"
-
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
           ENV_FILE="${APP_DIR}/.env"
-
           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR"
-
-          # Same env block as prod. Update values in production secrets.
           sudo tee "$ENV_FILE" > /dev/null <<ENV
-
           DJANGO_SETTINGS_MODULE=${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
           SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
           CORS_ALLOWED_ORIGINS=${{ secrets.PROD_CORS_ALLOWED_ORIGINS }}
@@ -230,34 +495,4 @@ jobs:
           EMAIL_BACKEND=${{ secrets.PROD_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.PROD_EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.PROD_EMAIL_USE_TLS }}
-          EMAIL_HOST_USER=${{ secrets.PROD_EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD=${{ secrets.PROD_EMAIL_HOST_PASSWORD }}
-          ENV
-          sudo chown root:root "$ENV_FILE"
-          sudo chmod 600 "$ENV_FILE"
-
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
-          sudo docker pull "$REG/$IMG:$TAG"
-
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput || true
-
-          sudo docker rm -f pm-backend >/dev/null 2>&1 || true
-          sudo docker run -d --name pm-backend --restart unless-stopped \
-            -p 8000:8000 \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            "$REG/$IMG:$TAG"
-
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          SSH
+          EMAIL_USE_TLS=${{ secrets.PROD_EMAIL_US
