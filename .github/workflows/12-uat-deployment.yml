@@ -219,13 +219,14 @@ jobs:
           CORS_ALLOWED_ORIGINS=${{ secrets.UAT_CORS_ALLOWED_ORIGINS }}
           DATABASE_URL=${{ secrets.UAT_DATABASE_URL }}
           ALLOWED_HOSTS=${{ secrets.UAT_ALLOWED_HOSTS }}
+          DEBUG=${{ secrets.DEBUG }}
           LOG_LEVEL=${{ secrets.LOG_LEVEL }}
           CORS_ALLOW_ALL_ORIGINS=${{ secrets.UAT_CORS_ALLOW_ALL_ORIGINS }}
           SESSION_COOKIE_SECURE=${{ secrets.UAT_SESSION_COOKIE_SECURE }}
           CSRF_COOKIE_SECURE=${{ secrets.UAT_CSRF_COOKIE_SECURE }}
           OPENAI_API_KEY=${{ secrets.UAT_OPENAI_API_KEY }}
-          #STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
-          #MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
+          STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
+          MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
           EMAIL_BACKEND=${{ secrets.UAT_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.UAT_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.UAT_EMAIL_PORT }}
