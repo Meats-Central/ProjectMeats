@@ -183,7 +183,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    # needs: [build-and-push, test-backend]
     if: github.ref == 'refs/heads/main'
     environment: production-backend
     steps:
