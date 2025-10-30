@@ -26,9 +26,12 @@ jobs:
         if: matrix.app == 'frontend'
         run: |
           docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
-            .
+          --build-arg REACT_APP_API_BASE_URL=https://prod-backend.meatscentral.com \
+          --build-arg REACT_APP_ENVIRONMENT=production \
+          -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
+          -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
+          .
+
           docker push $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7}
           docker push $REGISTRY/$FRONTEND_IMAGE:prod-latest
 
