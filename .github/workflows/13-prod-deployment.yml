@@ -266,13 +266,13 @@ name: Deploy Production (Frontend + Backend via DOCR)
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # Use 'main' for production deployments
   workflow_dispatch:
 
 env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND_PROD }}
-  BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND_PROD }}
+  BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND_PROD }}
 
 jobs:
   build-and-push:
@@ -290,16 +290,6 @@ jobs:
         if: matrix.app == 'frontend'
         run: |
           docker build -f frontend/Dockerfile \
-            --build-arg NODE_ENV=production \
-            --build-arg REACT_APP_API_BASE_URL='${{ secrets.REACT_APP_API_BASE_URL }}' \
-            --build-arg REACT_APP_ENVIRONMENT=production \
-            --build-arg REACT_APP_AI_ASSISTANT_ENABLED='${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}' \
-            --build-arg REACT_APP_ENABLE_DOCUMENT_UPLOAD='${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}' \
-            --build-arg REACT_APP_ENABLE_CHAT_EXPORT='${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}' \
-            --build-arg REACT_APP_MAX_FILE_SIZE='${{ secrets.REACT_APP_MAX_FILE_SIZE }}' \
-            --build-arg REACT_APP_SUPPORTED_FILE_TYPES='${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}' \
-            --build-arg REACT_APP_ENABLE_DEBUG=false \
-            --build-arg REACT_APP_ENABLE_DEVTOOLS=false \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
             .
@@ -323,7 +313,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'             # match Dockerfile build
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
       - working-directory: ./frontend
@@ -406,7 +396,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy frontend container (no runtime env mount)
+      - name: Deploy frontend container (with .env file)
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -417,12 +407,34 @@ jobs:
           IMG="${{ env.FRONTEND_IMAGE }}"
           TAG="prod-latest"
 
+          APP_DIR="/opt/pm/frontend"
+          ENV_FILE="${APP_DIR}/.env"
+
+          sudo mkdir -p "$APP_DIR"
+
+          sudo tee "$ENV_FILE" > /dev/null <<ENV
+          REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
+          NODE_ENV=production
+          REACT_APP_ENVIRONMENT=production
+          REACT_APP_AI_ASSISTANT_ENABLED=${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD=${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}
+          REACT_APP_ENABLE_CHAT_EXPORT=${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}
+          REACT_APP_MAX_FILE_SIZE=${{ secrets.REACT_APP_MAX_FILE_SIZE }}
+          REACT_APP_SUPPORTED_FILE_TYPES=${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}
+          REACT_APP_ENABLE_DEBUG=false
+          REACT_APP_ENABLE_DEVTOOLS=false
+          ENV
+
+          sudo chown root:root "$ENV_FILE"
+          sudo chmod 600 "$ENV_FILE"
+
           sudo docker login "$REG" -u doctl -p "${{ secrets.DO_ACCESS_TOKEN }}"
           sudo docker pull "$REG/$IMG:$TAG"
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
+            --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG"
 
           if command -v nginx >/dev/null 2>&1; then
