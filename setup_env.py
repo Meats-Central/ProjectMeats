@@ -295,7 +295,7 @@ class ProjectMeatsSetup:
             try:
                 with open(env_dest, 'w', encoding='utf-8') as f:
                     f.write("# React Environment Variables\n")
-                    f.write("REACT_APP_API_BASE_URL=http://localhost:8000/api/v1\n")
+                    f.write("REACT_APP_API_BASE_URL=https://meatscentral/api/v1\n")
                     f.write("REACT_APP_ENVIRONMENT=development\n")
                 self.log(f"✓ Created basic {env_dest.name}", "SUCCESS")
             except Exception as e:
