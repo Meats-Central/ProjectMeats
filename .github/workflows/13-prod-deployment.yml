@@ -286,19 +286,20 @@ jobs:
       - name: Login to DOCR
         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
 
-      - name: Build & Push Frontend (with build-time envs)
+      - name: Build & Push Frontend
         if: matrix.app == 'frontend'
         run: |
           docker build -f frontend/Dockerfile \
-            --build-arg REACT_APP_API_BASE_URL="${{ secrets.REACT_APP_API_BASE_URL }}" \
-            --build-arg REACT_APP_ENVIRONMENT="production" \
-            --build-arg REACT_APP_AI_ASSISTANT_ENABLED="${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}" \
-            --build-arg REACT_APP_ENABLE_DOCUMENT_UPLOAD="${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}" \
-            --build-arg REACT_APP_ENABLE_CHAT_EXPORT="${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}" \
-            --build-arg REACT_APP_MAX_FILE_SIZE="${{ secrets.REACT_APP_MAX_FILE_SIZE }}" \
-            --build-arg REACT_APP_SUPPORTED_FILE_TYPES="${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}" \
-            --build-arg REACT_APP_ENABLE_DEBUG="false" \
-            --build-arg REACT_APP_ENABLE_DEVTOOLS="false" \
+            --build-arg NODE_ENV=production \
+            --build-arg REACT_APP_API_BASE_URL='${{ secrets.REACT_APP_API_BASE_URL }}' \
+            --build-arg REACT_APP_ENVIRONMENT=production \
+            --build-arg REACT_APP_AI_ASSISTANT_ENABLED='${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}' \
+            --build-arg REACT_APP_ENABLE_DOCUMENT_UPLOAD='${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}' \
+            --build-arg REACT_APP_ENABLE_CHAT_EXPORT='${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}' \
+            --build-arg REACT_APP_MAX_FILE_SIZE='${{ secrets.REACT_APP_MAX_FILE_SIZE }}' \
+            --build-arg REACT_APP_SUPPORTED_FILE_TYPES='${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}' \
+            --build-arg REACT_APP_ENABLE_DEBUG=false \
+            --build-arg REACT_APP_ENABLE_DEVTOOLS=false \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
             .
@@ -405,7 +406,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy frontend container
+      - name: Deploy frontend container (no runtime env mount)
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -416,7 +417,7 @@ jobs:
           IMG="${{ env.FRONTEND_IMAGE }}"
           TAG="prod-latest"
 
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
+          sudo docker login "$REG" -u doctl -p "${{ secrets.DO_ACCESS_TOKEN }}"
           sudo docker pull "$REG/$IMG:$TAG"
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
@@ -424,7 +425,6 @@ jobs:
             -p 8080:80 \
             "$REG/$IMG:$TAG"
 
-          # Optional local Nginx reverse proxy (kept as-is)
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
             server {
