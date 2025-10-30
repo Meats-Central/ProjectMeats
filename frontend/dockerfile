@@ -12,6 +12,11 @@ COPY shared  ./shared
 
 # 3) Build from inside frontend
 WORKDIR /app/frontend
+
+# Inject build-time env for CRA
+ARG REACT_APP_API_BASE_URL
+ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+
 # Optional: ensure CRA treats this as CI (non-interactive)
 ENV CI=true
 RUN npm run build
