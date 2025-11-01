@@ -5,9 +5,10 @@
  * Includes fixed endpoints from PR #63.
  */
 import axios from 'axios';
+import { config } from '../config/runtime';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -243,7 +244,7 @@ export const aiUtils = {
    * Check if AI assistant is enabled
    */
   isEnabled: (): boolean => {
-    return process.env.REACT_APP_AI_ASSISTANT_ENABLED === 'true';
+    return config.AI_ASSISTANT_ENABLED;
   },
 
   /**

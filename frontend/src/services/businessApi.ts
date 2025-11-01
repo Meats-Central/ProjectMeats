@@ -4,9 +4,10 @@
  * Handles communication with business entities (suppliers, customers, etc.)
  */
 import axios from 'axios';
+import { config } from '../config/runtime';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 const businessApiClient = axios.create({
