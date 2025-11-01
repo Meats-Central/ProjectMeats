@@ -92,12 +92,11 @@ export const config = {
 // Export helper functions for dynamic config access
 export { getRuntimeConfig, getRuntimeConfigBoolean, getRuntimeConfigNumber };
 
-// Log configuration in development (but not during CI build)
+// Log configuration source in development (but not during CI build)
+// Only log the source to avoid exposing sensitive endpoint URLs
 if (process.env.NODE_ENV === 'development' && !process.env.CI) {
   // eslint-disable-next-line no-console
-  console.log('[Runtime Config] Initialized with:', {
-    API_BASE_URL: config.API_BASE_URL,
-    ENVIRONMENT: config.ENVIRONMENT,
-    source: window.ENV ? 'window.ENV (runtime)' : 'process.env (build-time)',
-  });
+  console.log('[Runtime Config] Loaded from:', 
+    window.ENV ? 'window.ENV (runtime)' : 'process.env (build-time)'
+  );
 }

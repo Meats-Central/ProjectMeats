@@ -2,6 +2,9 @@
  * Tests for runtime configuration utility
  */
 
+// This file is a module (required for TypeScript isolatedModules)
+export {};
+
 describe('Runtime Configuration', () => {
   describe('getRuntimeConfig', () => {
     beforeEach(() => {
