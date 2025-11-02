@@ -101,6 +101,13 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# Email Configuration
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@meatscentral.com")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Frontend URL for email links
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://app.meatscentral.com")
+
 # URL Configuration
 APPEND_SLASH = True  # Ensure trailing slash handling for API endpoints
 
