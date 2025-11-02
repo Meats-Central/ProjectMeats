@@ -4,9 +4,10 @@
  * Handles communication with all Django REST API endpoints.
  */
 import axios from 'axios';
+import { config } from '../config/runtime';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

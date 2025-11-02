@@ -100,6 +100,12 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Strict"
 CSRF_USE_SESSIONS = True  # required by tests
 
+# CSRF Trusted Origins - Allow cross-origin requests from frontend domains
+# Configure via CSRF_TRUSTED_ORIGINS environment variable (comma-separated)
+CSRF_TRUSTED_ORIGINS = _split_list(
+    os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+)
+
 # Ensure SessionMiddleware appears BEFORE CsrfViewMiddleware (tests verify order)
 _SESSION = "django.contrib.sessions.middleware.SessionMiddleware"
 _CSRF = "django.middleware.csrf.CsrfViewMiddleware"
