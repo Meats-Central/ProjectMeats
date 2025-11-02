@@ -1,6 +1,8 @@
 from apps.tenants.models import Tenant, TenantUser
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
+from django.utils.text import slugify
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
@@ -186,38 +188,38 @@ def signup(request):
         )
 
     try:
-        # Create user
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-        )
+        # Use atomic transaction to ensure all-or-nothing creation
+        with transaction.atomic():
+            # Create user
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
 
-        # Create a personal tenant for the user
-        from django.utils.text import slugify
+            # Create a personal tenant for the user
+            tenant_slug = slugify(f"{username}-{user.id}")
+            tenant = Tenant.objects.create(
+                name=f"{first_name or username}'s Workspace",
+                slug=tenant_slug,
+                contact_email=email,
+                created_by=user,
+                is_active=True,
+                is_trial=True,
+            )
 
-        tenant_slug = slugify(f"{username}-{user.id}")
-        tenant = Tenant.objects.create(
-            name=f"{first_name or username}'s Workspace",
-            slug=tenant_slug,
-            contact_email=email,
-            created_by=user,
-            is_active=True,
-            is_trial=True,
-        )
+            # Associate user with tenant as owner
+            TenantUser.objects.create(
+                tenant=tenant,
+                user=user,
+                role="owner",
+                is_active=True,
+            )
 
-        # Associate user with tenant as owner
-        TenantUser.objects.create(
-            tenant=tenant,
-            user=user,
-            role="owner",
-            is_active=True,
-        )
-
-        # Create auth token
-        token, _ = Token.objects.get_or_create(user=user)
+            # Create auth token
+            token, _ = Token.objects.get_or_create(user=user)
 
         return Response(
             {
@@ -236,13 +238,14 @@ def signup(request):
             status=status.HTTP_201_CREATED,
         )
 
+    except IntegrityError as e:
+        # Database constraint violation (e.g., duplicate slug)
+        return Response(
+            {"error": f"Failed to create account: {str(e)}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     except Exception as e:
-        # If anything goes wrong, clean up
-        if "user" in locals():
-            user.delete()
-        if "tenant" in locals():
-            tenant.delete()
-
+        # Unexpected errors
         return Response(
             {"error": f"Failed to create account: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
