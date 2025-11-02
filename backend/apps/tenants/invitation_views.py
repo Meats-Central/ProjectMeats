@@ -170,8 +170,12 @@ class TenantInvitationViewSet(viewsets.ModelViewSet):
         try:
             invitation.revoke()
             return Response({"status": "Invitation revoked"})
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            # Don't expose internal error details
+            return Response(
+                {"error": "Cannot revoke this invitation"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 @api_view(["POST"])
