@@ -1,3 +1,5 @@
+import logging
+
 from apps.tenants.models import Tenant, TenantUser
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -8,6 +10,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
@@ -240,14 +244,20 @@ def signup(request):
 
     except IntegrityError as e:
         # Database constraint violation (e.g., duplicate slug)
+        # Log the error internally but don't expose details to user
+        logger.error(f"IntegrityError during signup: {str(e)}", exc_info=True)
         return Response(
-            {"error": f"Failed to create account: {str(e)}"},
+            {"error": "Failed to create account. Please try again."},
             status=status.HTTP_400_BAD_REQUEST,
         )
     except Exception as e:
-        # Unexpected errors
+        # Unexpected errors - log internally but don't expose details
+        logger.error(
+            f"Unexpected error during signup for user {username}: {str(e)}",
+            exc_info=True,
+        )
         return Response(
-            {"error": f"Failed to create account: {str(e)}"},
+            {"error": "An unexpected error occurred. Please try again later."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
