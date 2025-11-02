@@ -5,7 +5,7 @@ import axios from 'axios';
 import { UserProfile } from '../types';
 import { config } from '../config/runtime';
 
-const API_BASE_URL = config.API_BASE_URL;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
 
 export interface LoginCredentials {
   username: string;

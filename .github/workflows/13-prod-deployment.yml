@@ -2,7 +2,7 @@ name: Deploy Production (Frontend + Backend via DOCR)
 
 on:
   push:
-    branches: [main]  # Use 'main' for production deployments
+    branches: [main]  
   workflow_dispatch:
 
 env:
