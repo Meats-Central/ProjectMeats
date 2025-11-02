@@ -8,8 +8,8 @@ on:
 
 jobs:
   create-uat-pr:
-    if: github.ref == 'refs/heads/development'
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/development'
     steps:
       - name: Create PR from development to uat
         uses: repo-sync/pull-request@v2
@@ -20,8 +20,8 @@ jobs:
           pr_body: 'This PR was created automatically after a merge into development.'
 
   create-prod-pr:
-    if: github.ref == 'refs/heads/uat'
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/uat'
     steps:
       - name: Create PR from uat to main
         uses: repo-sync/pull-request@v2
