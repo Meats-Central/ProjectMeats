@@ -12,7 +12,8 @@ class TenantInvitationCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TenantInvitation
-        fields = ['email', 'role', 'message', 'expires_at']
+        fields = ['id', 'email', 'role', 'message', 'expires_at', 'token', 'status', 'created_at']
+        read_only_fields = ['id', 'token', 'status', 'created_at']
         extra_kwargs = {
             'expires_at': {'required': False},
             'message': {'required': False},
@@ -197,4 +198,3 @@ class TenantInvitationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantInvitation
         fields = '__all__'
-        read_only_fields = fields

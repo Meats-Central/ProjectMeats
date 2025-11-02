@@ -19,6 +19,7 @@ from apps.tenants.invitation_serializers import (
     TenantInvitationDetailSerializer,
     InvitationSignupSerializer
 )
+from apps.tenants.email_utils import send_invitation_email
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +113,20 @@ class TenantInvitationViewSet(viewsets.ModelViewSet):
         
         return super().create(request, *args, **kwargs)
     
+    def perform_create(self, serializer):
+        """Save the invitation and send email notification."""
+        invitation = serializer.save()
+        
+        # Send email notification
+        try:
+            send_invitation_email(invitation)
+        except Exception as e:
+            logger.error(f"Failed to send invitation email: {str(e)}", exc_info=True)
+            # Don't fail the request if email fails
+    
     @action(detail=True, methods=['post'])
     def resend(self, request, pk=None):
-        """Resend an invitation email (updates expiration)."""
+        """Resend an invitation email (updates expiration and sends email)."""
         invitation = self.get_object()
         
         if invitation.status != 'pending':
@@ -128,8 +140,17 @@ class TenantInvitationViewSet(viewsets.ModelViewSet):
         invitation.expires_at = timezone.now() + timezone.timedelta(days=7)
         invitation.save()
         
-        # TODO: Send email notification
-        logger.info(f"Resent invitation {invitation.id} to {invitation.email}")
+        # Send email notification
+        try:
+            send_invitation_email(invitation)
+            logger.info(f"Resent invitation {invitation.id} to {invitation.email}")
+        except Exception as e:
+            logger.error(f"Failed to send invitation email on resend: {str(e)}", exc_info=True)
+            # Don't fail the request if email fails, but inform the user
+            serializer = self.get_serializer(invitation)
+            response_data = serializer.data
+            response_data['warning'] = 'Invitation expiration updated, but email notification failed to send'
+            return Response(response_data)
         
         serializer = self.get_serializer(invitation)
         return Response(serializer.data)
