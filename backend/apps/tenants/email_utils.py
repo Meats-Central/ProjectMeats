@@ -25,10 +25,9 @@ def send_invitation_email(invitation):
         # Get inviter name if available
         inviter_name = None
         if invitation.invited_by:
-            if invitation.invited_by.get_full_name():
-                inviter_name = invitation.invited_by.get_full_name()
-            else:
-                inviter_name = invitation.invited_by.username
+            inviter_name = (
+                invitation.invited_by.get_full_name() or invitation.invited_by.username
+            )
 
         # Build signup URL with token
         # Use FRONTEND_URL from settings if available, otherwise use a default

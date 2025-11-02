@@ -3,13 +3,18 @@ Tests for tenant invitation email functionality.
 """
 from datetime import timedelta
 
+from django import forms
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.tenants.admin import TenantInvitationAdmin
 from apps.tenants.email_utils import send_invitation_email
 from apps.tenants.models import Tenant, TenantInvitation, TenantUser
 
@@ -156,7 +161,6 @@ class InvitationEmailAPITests(APITestCase):
 
     def test_create_invitation_sends_email(self):
         """Test that creating invitation via API sends email."""
-        from django.urls import reverse
 
         url = reverse("tenants:tenant-invitation-list")
         data = {"email": "newuser@test.com", "role": "manager", "message": "Join us!"}
@@ -176,8 +180,6 @@ class InvitationEmailAPITests(APITestCase):
 
     def test_resend_invitation_sends_email(self):
         """Test that resending invitation via API sends email."""
-        from django.urls import reverse
-
         # Create invitation first
         invitation = TenantInvitation.objects.create(
             tenant=self.tenant,
@@ -206,8 +208,6 @@ class InvitationEmailAPITests(APITestCase):
 
     def test_create_multiple_invitations_sends_multiple_emails(self):
         """Test that creating multiple invitations sends multiple emails."""
-        from django.urls import reverse
-
         url = reverse("tenants:tenant-invitation-list")
 
         # Clear mail outbox
@@ -235,10 +235,6 @@ class InvitationAdminEmailTests(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        from django.contrib.admin.sites import AdminSite
-
-        from apps.tenants.admin import TenantInvitationAdmin
-
         self.admin_user = User.objects.create_superuser(
             username="superadmin", email="superadmin@test.com", password="testpass123"
         )
@@ -255,9 +251,6 @@ class InvitationAdminEmailTests(TestCase):
 
     def test_admin_save_model_sends_email(self):
         """Test that admin save_model sends email for new invitations."""
-        from django.contrib.messages.storage.fallback import FallbackStorage
-        from django.test import RequestFactory
-
         # Clear mail outbox
         mail.outbox = []
 
@@ -279,8 +272,6 @@ class InvitationAdminEmailTests(TestCase):
         )
 
         # Mock form (not used but required by signature)
-        from django import forms
-
         form = forms.Form()
 
         # Save via admin
@@ -296,9 +287,6 @@ class InvitationAdminEmailTests(TestCase):
 
     def test_admin_resend_action_sends_emails(self):
         """Test that resend admin action sends emails."""
-        from django.contrib.messages.storage.fallback import FallbackStorage
-        from django.test import RequestFactory
-
         # Create invitations
         invitation1 = TenantInvitation.objects.create(
             tenant=self.tenant,
