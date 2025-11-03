@@ -20,7 +20,9 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "django_tenants",  # Schema-based multi-tenancy - must be before django apps
+    # Note: django_tenants is available in requirements but not actively used
+    # ProjectMeats uses custom shared-schema multi-tenancy instead of schema-based isolation
+    # "django_tenants",  # Commented out - not using schema-based multi-tenancy
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
@@ -268,10 +270,11 @@ CACHES = {
 # Middleware routing (choosing TenantMiddleware vs TenantMainMiddleware) will be
 # handled in future PRs based on deployment needs.
 
-# Tenant model for schema-based multi-tenancy
-TENANT_MODEL = "tenants.Client"
-
-# Domain model for routing requests to tenants
+# Tenant and domain models for custom shared-schema multi-tenancy
+# NOTE: ProjectMeats uses custom shared-schema multi-tenancy with the Tenant model
+# rather than django-tenants' schema-based isolation.
+# These settings are kept for reference but not used by django-tenants
+TENANT_MODEL = "tenants.Tenant"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 
 # Common Django apps used in both shared and tenant schemas
@@ -316,6 +319,5 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
 ]
 
 # Database router for multi-tenancy
-DATABASE_ROUTERS = [
-    "django_tenants.routers.TenantSyncRouter",
-]
+# NOTE: Using custom shared-schema multi-tenancy, not django-tenants schema-based routing
+# DATABASE_ROUTERS = []  # No special routing needed for shared-schema approach
