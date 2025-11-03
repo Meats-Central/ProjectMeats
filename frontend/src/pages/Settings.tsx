@@ -26,8 +26,7 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  // tenantBranding from context - not directly used but ensures context is initialized
-  const { tenantBranding: _tenantBranding } = useTheme();
+  useTheme(); // Initialize theme context
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
