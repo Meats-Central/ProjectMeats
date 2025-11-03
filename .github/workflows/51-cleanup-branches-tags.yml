@@ -29,17 +29,12 @@ jobs:
         run: |
           echo "🔍 Finding merged branches to clean up..."
           
-          # Protected branches that should never be deleted
-          PROTECTED_BRANCHES="main|uat|development|master|develop"
+          # Protected branches pattern (used across all cleanup steps)
+          PROTECTED_PATTERN='\->|origin/(main|uat|development|master|develop)'
           
           # Get list of merged branches (excluding protected branches and HEAD)
           MERGED_BRANCHES=$(git branch -r --merged origin/main | \
-            grep -v "\->" | \
-            grep -v "origin/main" | \
-            grep -v "origin/uat" | \
-            grep -v "origin/development" | \
-            grep -v "origin/master" | \
-            grep -v "origin/develop" | \
+            grep -vE "$PROTECTED_PATTERN" | \
             sed 's/origin\///' | \
             xargs)
           
@@ -64,17 +59,15 @@ jobs:
         run: |
           echo "🔍 Finding stale feature branches (older than 90 days)..."
           
-          # Get current timestamp (90 days ago)
+          # Protected branches pattern
+          PROTECTED_PATTERN='\->|origin/(main|uat|development|master|develop)'
+          
+          # Calculate stale date (90 days ago)
           STALE_DATE=$(date -d '90 days ago' +%s 2>/dev/null || date -v-90d +%s)
           
           # List all remote branches with their last commit date
           git for-each-ref --sort=-committerdate refs/remotes/origin/ --format='%(refname:short)|%(committerdate:unix)' | \
-            grep -v "\->" | \
-            grep -v "origin/main" | \
-            grep -v "origin/uat" | \
-            grep -v "origin/development" | \
-            grep -v "origin/master" | \
-            grep -v "origin/develop" | \
+            grep -vE "$PROTECTED_PATTERN" | \
             while IFS='|' read -r branch timestamp; do
               branch_name=$(echo "$branch" | sed 's/origin\///')
               
@@ -100,7 +93,7 @@ jobs:
         run: |
           echo "🔍 Finding stale Copilot branches (older than 30 days or with closed/merged PRs)..."
           
-          # Get current timestamp (30 days ago)
+          # Calculate stale date (30 days ago)
           STALE_DATE=$(date -d '30 days ago' +%s 2>/dev/null || date -v-30d +%s)
           
           # Find all copilot/* branches
