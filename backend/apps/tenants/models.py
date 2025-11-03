@@ -3,6 +3,50 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
 import secrets
+from django_tenants.models import TenantMixin, DomainMixin
+
+
+class Client(TenantMixin):
+    """
+    Client model for schema-based multi-tenancy using django-tenants.
+    Each client gets its own PostgreSQL schema for complete data isolation.
+    
+    Inherits from TenantMixin which provides:
+    - schema_name: PostgreSQL schema name for this tenant
+    - auto_create_schema: Automatically creates schema on save
+    - auto_drop_schema: Automatically drops schema on delete
+    """
+    name = models.CharField(max_length=255, help_text="Client organization name")
+    description = models.TextField(blank=True, help_text="Optional description of the client")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Automatically create schema when client is created
+    auto_create_schema = True
+    auto_drop_schema = False  # Safety: don't auto-drop schemas on delete
+    
+    class Meta:
+        db_table = "tenants_client"
+    
+    def __str__(self):
+        return self.name
+
+
+class Domain(DomainMixin):
+    """
+    Domain model for routing requests to the correct tenant schema.
+    
+    Inherits from DomainMixin which provides:
+    - domain: The domain name (e.g., 'client1.example.com' or 'example.com')
+    - tenant: ForeignKey to the Client model
+    - is_primary: Whether this is the primary domain for the tenant
+    """
+    
+    class Meta:
+        db_table = "tenants_domain"
+    
+    def __str__(self):
+        return f"{self.domain} ({'primary' if self.is_primary else 'secondary'})"
 
 
 class Tenant(models.Model):

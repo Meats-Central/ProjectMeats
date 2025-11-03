@@ -20,6 +20,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    "django_tenants",  # Schema-based multi-tenancy - must be before django apps
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
@@ -250,3 +251,57 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+
+# Django-Tenants Configuration
+# Schema-based multi-tenancy settings
+# Reference: https://django-tenants.readthedocs.io/
+
+# Tenant model for schema-based multi-tenancy
+TENANT_MODEL = "tenants.Client"
+
+# Domain model for routing requests to tenants
+TENANT_DOMAIN_MODEL = "tenants.Domain"
+
+# Apps available in all schemas (shared across all tenants)
+SHARED_APPS = [
+    "django_tenants",  # Must be first
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "drf_spectacular",
+    "django_filters",
+    "apps.core",
+    "apps.tenants",  # Tenant management is shared
+]
+
+# Apps that will be created in each tenant schema
+TENANT_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "apps.accounts_receivables",
+    "apps.suppliers",
+    "apps.customers",
+    "apps.contacts",
+    "apps.purchase_orders",
+    "apps.plants",
+    "apps.carriers",
+    "apps.bug_reports",
+    "apps.ai_assistant",
+    "apps.products",
+    "apps.sales_orders",
+    "apps.invoices",
+]
+
+# Database router for multi-tenancy
+DATABASE_ROUTERS = [
+    "django_tenants.routers.TenantSyncRouter",
+]

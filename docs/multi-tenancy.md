@@ -5,11 +5,49 @@
 
 ## Overview
 
-ProjectMeats implements a multi-tenancy architecture that allows multiple organizations (tenants) to use the same application instance while maintaining data isolation. This guide covers the multi-tenancy setup, configuration, and usage.
+ProjectMeats implements a dual multi-tenancy architecture that supports both schema-based and shared-schema approaches:
+
+1. **Schema-based Multi-tenancy** (django-tenants): Each tenant gets its own PostgreSQL schema for complete data isolation
+2. **Shared-schema Multi-tenancy**: All tenants share the same database tables with tenant-based filtering
+
+This flexible approach allows organizations to choose the level of isolation that best fits their needs.
 
 ## Architecture
 
-The multi-tenancy implementation uses a **shared database, shared schema** approach with tenant-based data isolation:
+### Schema-based Multi-tenancy (django-tenants)
+
+The schema-based approach uses PostgreSQL schemas to provide complete database-level isolation:
+
+- **Client Model**: Inherits from `TenantMixin`, represents a tenant with its own schema
+- **Domain Model**: Inherits from `DomainMixin`, routes requests to the correct tenant schema
+- **Schema Isolation**: Each tenant's data is stored in a separate PostgreSQL schema
+- **Automatic Schema Creation**: Schemas are automatically created when a client is added
+- **Domain-based Routing**: Requests are routed to the correct schema based on the domain name
+
+**Key Models:**
+
+#### Client
+- **Purpose**: Represents a tenant with schema-based isolation
+- **Inherits from**: `django_tenants.models.TenantMixin`
+- **Key Fields**:
+  - `schema_name`: PostgreSQL schema name (auto-generated, unique)
+  - `name`: Client organization name
+  - `description`: Optional client description
+  - `auto_create_schema`: Automatically creates schema on save (default: True)
+- **Database Table**: `tenants_client` (stored in public schema)
+
+#### Domain
+- **Purpose**: Maps domain names to tenant schemas for routing
+- **Inherits from**: `django_tenants.models.DomainMixin`
+- **Key Fields**:
+  - `domain`: Domain name (e.g., 'client1.example.com')
+  - `tenant`: ForeignKey to Client
+  - `is_primary`: Whether this is the primary domain
+- **Database Table**: `tenants_domain` (stored in public schema)
+
+### Shared-schema Multi-tenancy (Legacy)
+
+The shared-schema implementation uses a **shared database, shared schema** approach with tenant-based data isolation:
 
 - **Tenant Model**: Stores organization information and configuration
 - **TenantUser Model**: Manages user-to-tenant associations with role-based access
