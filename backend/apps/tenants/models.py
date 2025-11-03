@@ -95,9 +95,9 @@ class Tenant(models.Model):
         """Override save to ensure slug is always lowercase and schema_name is set."""
         if self.slug:
             self.slug = self.slug.lower()
-        # Auto-generate schema_name from slug if not provided
-        if not self.schema_name:
-            self.schema_name = self.slug.replace('-', '_')
+            # Auto-generate schema_name from slug if not provided
+            if not self.schema_name:
+                self.schema_name = self.slug.replace('-', '_')
         super().save(*args, **kwargs)
     
     def get_theme_settings(self):

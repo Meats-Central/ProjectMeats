@@ -271,6 +271,8 @@ class DomainModelTests(TestCase):
 
     def test_domain_unique_constraint(self):
         """Test that domain must be unique."""
+        from django.db import IntegrityError
+        
         Domain.objects.create(
             domain="test-company.example.com",
             tenant=self.tenant,
@@ -278,7 +280,7 @@ class DomainModelTests(TestCase):
         )
 
         # Attempting to create another domain with same name should fail
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             Domain.objects.create(
                 domain="test-company.example.com",
                 tenant=self.tenant,
@@ -320,6 +322,8 @@ class TenantSchemaNameTests(TestCase):
 
     def test_schema_name_unique(self):
         """Test that schema_name must be unique."""
+        from django.db import IntegrityError
+        
         Tenant.objects.create(
             name="Test Company 1",
             slug="test-company-1",
@@ -329,7 +333,7 @@ class TenantSchemaNameTests(TestCase):
         )
 
         # Attempting to create another tenant with same schema_name should fail
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             Tenant.objects.create(
                 name="Test Company 2",
                 slug="test-company-2",
