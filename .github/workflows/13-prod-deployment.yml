@@ -132,7 +132,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy frontend container (with runtime env-config.js)
+      - name: Deploy frontend container (with .env file)
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -144,26 +144,25 @@ jobs:
           TAG="prod-latest"
 
           APP_DIR="/opt/pm/frontend"
+          ENV_FILE="${APP_DIR}/.env"
 
-          sudo mkdir -p "$APP_DIR/env"
+          sudo mkdir -p "$APP_DIR"
 
-          # Create runtime env-config.js with production values
-          sudo bash -c 'cat > "$APP_DIR/env/env-config.js" <<JS
-          window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "production",
-            AI_ASSISTANT_ENABLED: "${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}",
-            ENABLE_DOCUMENT_UPLOAD: "${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}",
-            ENABLE_CHAT_EXPORT: "${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}",
-            MAX_FILE_SIZE: "${{ secrets.REACT_APP_MAX_FILE_SIZE }}",
-            SUPPORTED_FILE_TYPES: "${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}",
-            ENABLE_DEBUG: "false",
-            ENABLE_DEVTOOLS: "false"
-          };
-          JS'
+          sudo tee "$ENV_FILE" > /dev/null <<ENV
+          REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}
+          NODE_ENV=production
+          REACT_APP_ENVIRONMENT=production
+          REACT_APP_AI_ASSISTANT_ENABLED=${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}
+          REACT_APP_ENABLE_DOCUMENT_UPLOAD=${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}
+          REACT_APP_ENABLE_CHAT_EXPORT=${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}
+          REACT_APP_MAX_FILE_SIZE=${{ secrets.REACT_APP_MAX_FILE_SIZE }}
+          REACT_APP_SUPPORTED_FILE_TYPES=${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}
+          REACT_APP_ENABLE_DEBUG=false
+          REACT_APP_ENABLE_DEVTOOLS=false
+          ENV
 
-          sudo chown root:root "$APP_DIR/env/env-config.js"
-          sudo chmod 644 "$APP_DIR/env/env-config.js"
+          sudo chown root:root "$ENV_FILE"
+          sudo chmod 600 "$ENV_FILE"
 
           sudo docker login "$REG" -u doctl -p "${{ secrets.DO_ACCESS_TOKEN }}"
           sudo docker pull "$REG/$IMG:$TAG"
@@ -171,7 +170,7 @@ jobs:
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
-            -v "$APP_DIR/env/env-config.js:/usr/share/nginx/html/env-config.js:ro" \
+            --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG"
 
           if command -v nginx >/dev/null 2>&1; then

@@ -5,7 +5,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { config } from '../../config/runtime';
 
 interface ProfileDropdownProps {
   // No props needed currently
@@ -53,8 +52,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
 
   const handleAdminClick = () => {
     // Open Django admin in new tab using the API base URL
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1';
     // Remove '/api/v1' from the end to get the base backend URL, then add '/admin/'
-    const baseBackendUrl = config.API_BASE_URL.replace('/api/v1', '');
+    const baseBackendUrl = apiBaseUrl.replace('/api/v1', '');
     const adminUrl = `${baseBackendUrl}/admin/`;
     
     // Use window.location.href for more reliable navigation
