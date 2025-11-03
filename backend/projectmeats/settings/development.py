@@ -42,12 +42,14 @@ ALLOWED_HOSTS = [
 database_url = config("DATABASE_URL", default="").strip()
 
 if database_url:
-    # Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
+    # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use django-tenants backend for PostgreSQL to enable schema-based multi-tenancy
-    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+    # Use standard PostgreSQL backend (not django-tenants)
+    # ProjectMeats uses custom shared-schema multi-tenancy
+    # If migrating to schema-based isolation in the future, uncomment:
+    # if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+    #     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
     # Set connection settings for development
     _db_config.setdefault(
@@ -65,10 +67,10 @@ else:
 
     if DB_ENGINE == "django.db.backends.postgresql":
         # PostgreSQL configuration - requires all environment variables
-        # Using django-tenants backend for schema-based multi-tenancy
+        # Using standard PostgreSQL backend (not django-tenants)
         DATABASES = {
             "default": {
-                "ENGINE": "django_tenants.postgresql_backend",  # Use django-tenants backend
+                "ENGINE": "django.db.backends.postgresql",  # Standard PostgreSQL backend
                 "NAME": config("DB_NAME"),
                 "USER": config("DB_USER"),
                 "PASSWORD": config("DB_PASSWORD"),

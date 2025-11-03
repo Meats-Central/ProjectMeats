@@ -62,9 +62,10 @@ _db_config = dj_database_url.config(
     conn_health_checks=True,
 )
 
-# Use django-tenants backend for PostgreSQL to enable schema-based multi-tenancy
-if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-    _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+# Use standard PostgreSQL backend (not django-tenants)
+# ProjectMeats uses custom shared-schema multi-tenancy
+# if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+#     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
 DATABASES = {
     "default": _db_config
