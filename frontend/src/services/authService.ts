@@ -2,10 +2,10 @@
  * Authentication service for managing user authentication state.
  */
 import axios from 'axios';
-import { UserProfile } from '../types';
 import { config } from '../config/runtime';
+import { UserProfile } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 
 export interface LoginCredentials {
   username: string;
