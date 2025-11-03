@@ -9,18 +9,39 @@ on:
 jobs:
   create-main-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Create Pull Request to Main
-        uses: peter-evans/create-pull-request@v5
         with:
-          source-branch: uat
-          destination-branch: main
-          title: Promote UAT to Main (Production Release)
-          body: |
-            Auto-created PR to promote reviewed changes from UAT to main.
-            CI must pass and approval is required before merging to production.
-          labels: prod-release, automation
-          reviewers: Vacilator
+          fetch-depth: 0
+          ref: uat
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_COUNT=$(gh pr list --base main --head uat --state open --json number --jq 'length')
+          echo "pr_count=${PR_COUNT}" >> "$GITHUB_OUTPUT"
+          
+      - name: Create Pull Request to Main
+        if: steps.check-pr.outputs.pr_count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base main \
+            --head uat \
+            --title "Promote UAT to Main (Production Release)" \
+            --body "Auto-created PR to promote reviewed changes from UAT to main. CI must pass and approval is required before merging to production." \
+            --label "prod-release,automation" \
+            --reviewer Vacilator
+
+      - name: PR Already Exists
+        if: steps.check-pr.outputs.pr_count != '0'
+        run: |
+          echo "::notice::An open PR from uat to main already exists. Skipping PR creation."
