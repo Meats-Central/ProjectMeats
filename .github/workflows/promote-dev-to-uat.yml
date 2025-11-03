@@ -30,7 +30,7 @@ jobs:
           
           if [ -n "$PR_NUMBER" ]; then
             echo "Found existing PR #${PR_NUMBER}. Closing it to create a new one with latest commits..."
-            gh pr close ${PR_NUMBER} --comment "Closing this PR to create a new one with the latest commits from development branch." --delete-branch=false
+            gh pr close "${PR_NUMBER}" --comment "Closing this PR to create a new one with the latest commits from development branch." --delete-branch=false
             echo "::notice::Closed existing PR #${PR_NUMBER}"
           else
             echo "No existing PR found."
