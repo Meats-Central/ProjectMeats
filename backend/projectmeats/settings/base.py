@@ -50,6 +50,7 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "django_tenants.middleware.TenantMainMiddleware",  # Must be first for schema-based multi-tenancy
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files middleware
@@ -57,9 +58,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # Multi-tenancy middleware - currently using shared-schema approach
-    # For schema-based routing, replace with: django_tenants.middleware.TenantMainMiddleware
-    # This will be configured in future PRs based on deployment needs
+    # Custom tenant middleware for shared-schema approach (backward compatibility)
+    # Provides additional tenant resolution via headers and user associations
     "apps.tenants.middleware.TenantMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",

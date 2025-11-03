@@ -104,6 +104,16 @@ jobs:
         run: |
           python manage.py check
           python manage.py migrate
+      - name: Validate migrations
+        working-directory: .
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          CI: true
+        run: |
+          chmod +x .github/scripts/validate-migrations.sh
+          .github/scripts/validate-migrations.sh
       - name: Run tests
         working-directory: ./backend
         env:
@@ -121,6 +131,7 @@ jobs:
           if pip show black >/dev/null 2>&1; then
             black --check . --exclude=migrations || true
           fi
+
 
   # Job to deploy the frontend
   deploy-frontend:

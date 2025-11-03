@@ -353,13 +353,13 @@ class TenantInvitation(models.Model):
         return False
 
 
-class Domain(models.Model):
+class TenantDomain(models.Model):
     """
-    Domain model for multi-tenancy support.
+    Domain model for shared-schema multi-tenancy support.
     
-    Maps domain names to tenants, following django-tenants DomainMixin pattern.
-    While ProjectMeats uses a custom shared-schema approach, this model provides
-    alignment with django-tenants conventions for future compatibility.
+    Maps domain names to tenants in the shared-schema approach.
+    This is separate from the django-tenants Domain model (DomainMixin)
+    which is used for schema-based multi-tenancy.
     
     Example usage:
     - tenant.example.com -> routes to specific tenant
@@ -376,7 +376,7 @@ class Domain(models.Model):
     tenant = models.ForeignKey(
         Tenant,
         on_delete=models.CASCADE,
-        related_name='domains',
+        related_name='tenant_domains',
         help_text="Tenant associated with this domain"
     )
     is_primary = models.BooleanField(
@@ -389,7 +389,7 @@ class Domain(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = "tenants_domain"
+        db_table = "tenants_tenantdomain"
         ordering = ['domain']
         indexes = [
             models.Index(fields=['domain']),

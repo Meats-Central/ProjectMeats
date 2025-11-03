@@ -35,6 +35,15 @@ else:
             "NAME": BASE_DIR / "test_db.sqlite3",  # noqa
         }
     }
+    
+    # Remove django-tenants from installed apps for SQLite
+    INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "django_tenants"]  # noqa
+    
+    # Remove django-tenants middleware for SQLite
+    MIDDLEWARE = [m for m in MIDDLEWARE if "django_tenants" not in m]  # noqa
+    
+    # Disable django-tenants router for SQLite
+    DATABASE_ROUTERS = []
 
 # Faster password hashing for tests
 PASSWORD_HASHERS = [

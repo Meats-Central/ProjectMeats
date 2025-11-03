@@ -8,7 +8,7 @@ from django.core.management import call_command, CommandError
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
-from apps.tenants.models import Tenant, TenantUser, Domain
+from apps.tenants.models import Tenant, TenantUser, TenantDomain
 
 
 User = get_user_model()
@@ -832,7 +832,7 @@ class CreateTenantCommandTests(TestCase):
         """Set up test environment."""
         # Clean up any existing data
         Tenant.objects.all().delete()
-        Domain.objects.all().delete()
+        TenantDomain.objects.all().delete()
 
     def test_creates_tenant_with_required_params(self):
         """Test that command creates tenant with only required parameters."""
@@ -876,8 +876,8 @@ class CreateTenantCommandTests(TestCase):
         self.assertEqual(tenant.name, 'ACME Corporation')
         
         # Check domain was created
-        self.assertTrue(Domain.objects.filter(domain='acme.example.com').exists())
-        domain = Domain.objects.get(domain='acme.example.com')
+        self.assertTrue(TenantDomain.objects.filter(domain='acme.example.com').exists())
+        domain = TenantDomain.objects.get(domain='acme.example.com')
         self.assertEqual(domain.tenant, tenant)
         self.assertTrue(domain.is_primary)
         
@@ -1159,7 +1159,7 @@ class CreateTenantCommandTests(TestCase):
             stdout=out
         )
         
-        domain = Domain.objects.get(tenant__schema_name='case_test')
+        domain = TenantDomain.objects.get(tenant__schema_name='case_test')
         self.assertEqual(domain.domain, 'uppercase.example.com')
 
     def test_next_steps_output(self):
