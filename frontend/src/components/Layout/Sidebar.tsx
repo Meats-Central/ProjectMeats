@@ -13,6 +13,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const { theme } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+  const [keepOpen, setKeepOpen] = useState(() => {
+    // Load keep open preference from localStorage
+    return localStorage.getItem('sidebarKeepOpen') === 'true';
+  });
   
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -30,38 +34,53 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { path: '/ai-assistant', label: 'AI Assistant', icon: '🤖' },
   ];
 
-  // Auto-close on route change (for mobile/tablet)
+  // Sync keepOpen with parent isOpen state when keepOpen changes
   useEffect(() => {
-    // Only auto-close on small screens when menu is open
-    if (isOpen && window.innerWidth < 768) {
+    if (keepOpen && !isOpen) {
+      onToggle();
+    } else if (!keepOpen && isOpen) {
+      onToggle();
+    }
+  }, [keepOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-close on route change unless keepOpen is enabled
+  useEffect(() => {
+    if (!keepOpen && isOpen) {
       onToggle();
     }
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isExpanded = isOpen || isHovered;
+  const handleKeepOpenToggle = () => {
+    const newKeepOpen = !keepOpen;
+    setKeepOpen(newKeepOpen);
+    localStorage.setItem('sidebarKeepOpen', String(newKeepOpen));
+  };
+
+  // Sidebar is expanded if: keepOpen is true, OR it's being hovered (when not kept open)
+  const isExpanded = keepOpen || isHovered;
 
   return (
     <SidebarContainer
       $isOpen={isExpanded}
       $theme={theme}
-      onMouseEnter={() => !isOpen && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => !keepOpen && setIsHovered(true)}
+      onMouseLeave={() => !keepOpen && setIsHovered(false)}
     >
       <SidebarHeader $theme={theme}>
         <Logo>
           <LogoIcon>🥩</LogoIcon>
           {isExpanded && <LogoText>ProjectMeats</LogoText>}
         </Logo>
-        <ToggleButton onClick={onToggle} $theme={theme}>
-          {isOpen ? '◀' : '▶'}
-        </ToggleButton>
+        <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
+          📌
+        </KeepOpenToggle>
       </SidebarHeader>
 
       <Navigation>
         {menuItems.map((item) => (
           <NavItem key={item.path}>
             <StyledNavLink to={item.path} $theme={theme}>
-              <NavIcon>{item.icon}</NavIcon>
+              <NavIcon $theme={theme}>{item.icon}</NavIcon>
               {isExpanded && <NavLabel>{item.label}</NavLabel>}
             </StyledNavLink>
           </NavItem>
@@ -111,19 +130,22 @@ const LogoText = styled.h2`
   white-space: nowrap;
 `;
 
-const ToggleButton = styled.button<{ $theme: Theme }>`
-  background: none;
+const KeepOpenToggle = styled.button<{ $theme: Theme; $active: boolean }>`
+  background: ${(props) => props.$active ? props.$theme.colors.primary : 'none'};
   border: none;
-  color: ${(props) => props.$theme.colors.sidebarText};
+  color: ${(props) => props.$active ? 'white' : props.$theme.colors.sidebarText};
   cursor: pointer;
   font-size: 16px;
-  padding: 5px;
+  padding: 5px 8px;
   border-radius: 4px;
   transition: all 0.2s;
+  opacity: ${(props) => props.$active ? 1 : 0.6};
 
   &:hover {
-    background-color: ${(props) => props.$theme.colors.surfaceHover};
-    color: ${(props) => props.$theme.colors.sidebarTextHover};
+    opacity: 1;
+    background-color: ${(props) => props.$active ? props.$theme.colors.primaryHover : props.$theme.colors.surfaceHover};
+    color: ${(props) => props.$active ? 'white' : props.$theme.colors.sidebarTextHover};
+    transform: scale(1.1);
   }
 `;
 
@@ -158,11 +180,13 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme }>`
   }
 `;
 
-const NavIcon = styled.span`
+const NavIcon = styled.span<{ $theme: Theme }>`
   font-size: 20px;
   min-width: 20px;
   display: flex;
   justify-content: center;
+  filter: ${(props) => props.$theme.name === 'dark' ? 'grayscale(100%) brightness(1.5)' : 'grayscale(100%) brightness(0.7)'};
+  opacity: 0.9;
 `;
 
 const NavLabel = styled.span`
