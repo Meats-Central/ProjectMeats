@@ -15,6 +15,7 @@ repos:
       - id: check-json
       - id: check-toml
       - id: mixed-line-ending
+      - id: check-ast  # Validate Python syntax
 
   # Python formatting with Black
   - repo: https://github.com/psf/black
@@ -39,3 +40,20 @@ repos:
       - id: flake8
         files: ^backend/.*\.py$
         args: ['--max-line-length=100', '--extend-ignore=E203,W503']
+  
+  # Python syntax validation for migrations
+  - repo: local
+    hooks:
+      - id: validate-migration-syntax
+        name: Validate Migration File Syntax
+        entry: python -m py_compile
+        language: system
+        files: ^backend/apps/.*/migrations/.*\.py$
+        exclude: ^backend/apps/.*/migrations/__pycache__/
+      
+      - id: check-migration-dependencies
+        name: Check Migration Dependencies
+        entry: bash -c 'cd backend && python manage.py makemigrations --check --dry-run'
+        language: system
+        pass_filenames: false
+        files: ^backend/apps/.*/migrations/.*\.py$
