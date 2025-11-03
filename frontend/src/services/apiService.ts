@@ -242,6 +242,7 @@ export class ApiService {
   async createSupplier(supplier: Partial<Supplier>): Promise<Supplier> {
     try {
       // Log request details for debugging (excluding sensitive data)
+      // eslint-disable-next-line no-console
       console.debug('[API] Creating supplier:', {
         endpoint: '/suppliers/',
         hasAuth: !!localStorage.getItem('authToken'),
@@ -250,11 +251,13 @@ export class ApiService {
       });
       
       const response = await apiClient.post('/suppliers/', supplier);
+      // eslint-disable-next-line no-console
       console.debug('[API] Supplier created successfully:', response.data);
       return response.data;
     } catch (error: unknown) {
       // Log detailed error information for debugging
       const axiosError = error as AxiosError;
+      // eslint-disable-next-line no-console
       console.error('[API] Failed to create supplier:', {
         message: getErrorMessage(error),
         status: axiosError.response?.status,
@@ -273,6 +276,7 @@ export class ApiService {
 
   async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<Supplier> {
     try {
+      // eslint-disable-next-line no-console
       console.debug('[API] Updating supplier:', {
         id,
         endpoint: `/suppliers/${id}/`,
@@ -280,10 +284,12 @@ export class ApiService {
       });
       
       const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
+      // eslint-disable-next-line no-console
       console.debug('[API] Supplier updated successfully:', response.data);
       return response.data;
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
+      // eslint-disable-next-line no-console
       console.error('[API] Failed to update supplier:', {
         message: getErrorMessage(error),
         status: axiosError.response?.status,

@@ -56,6 +56,7 @@ const Suppliers: React.FC = () => {
       const errorMessage = err.message || 'An unexpected error occurred. Please try again.';
       
       // Log detailed error information for debugging
+      // eslint-disable-next-line no-console
       console.error('[Suppliers] Error saving supplier:', {
         message: errorMessage,
         error: err,
