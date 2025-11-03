@@ -96,7 +96,6 @@ jobs:
             ❌ v1.0.0-Alpha.1 (use lowercase)
 
             See: .github/copilot-instructions.md for more details
-EOF
             exit 1
           fi
 
