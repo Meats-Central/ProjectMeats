@@ -1,0 +1,202 @@
+name: Cleanup Stale Branches and Tags
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup-branches:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Delete merged branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔍 Finding merged branches to clean up..."
+          
+          # Protected branches that should never be deleted
+          PROTECTED_BRANCHES="main|uat|development|master|develop"
+          
+          # Get list of merged branches (excluding protected branches and HEAD)
+          MERGED_BRANCHES=$(git branch -r --merged origin/main | \
+            grep -v "\->" | \
+            grep -v "origin/main" | \
+            grep -v "origin/uat" | \
+            grep -v "origin/development" | \
+            grep -v "origin/master" | \
+            grep -v "origin/develop" | \
+            sed 's/origin\///' | \
+            xargs)
+          
+          if [ -z "$MERGED_BRANCHES" ]; then
+            echo "✅ No merged branches to delete"
+            exit 0
+          fi
+          
+          echo "Found merged branches: $MERGED_BRANCHES"
+          
+          # Delete each merged branch
+          for branch in $MERGED_BRANCHES; do
+            echo "🗑️  Deleting merged branch: $branch"
+            git push origin --delete "$branch" || echo "⚠️  Failed to delete $branch (may already be deleted)"
+          done
+          
+          echo "✅ Merged branches cleanup completed"
+
+      - name: Delete stale feature branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔍 Finding stale feature branches (older than 90 days)..."
+          
+          # Get current timestamp (90 days ago)
+          STALE_DATE=$(date -d '90 days ago' +%s 2>/dev/null || date -v-90d +%s)
+          
+          # List all remote branches with their last commit date
+          git for-each-ref --sort=-committerdate refs/remotes/origin/ --format='%(refname:short)|%(committerdate:unix)' | \
+            grep -v "\->" | \
+            grep -v "origin/main" | \
+            grep -v "origin/uat" | \
+            grep -v "origin/development" | \
+            grep -v "origin/master" | \
+            grep -v "origin/develop" | \
+            while IFS='|' read -r branch timestamp; do
+              branch_name=$(echo "$branch" | sed 's/origin\///')
+              
+              if [ "$timestamp" -lt "$STALE_DATE" ]; then
+                echo "🗑️  Deleting stale branch: $branch_name (last commit: $(git log -1 --format=%cd --date=short origin/$branch_name))"
+                
+                # Check if branch has open PR before deleting
+                PR_COUNT=$(gh pr list --head "$branch_name" --state open --json number --jq 'length')
+                
+                if [ "$PR_COUNT" -eq "0" ]; then
+                  git push origin --delete "$branch_name" || echo "⚠️  Failed to delete $branch_name"
+                else
+                  echo "⏭️  Skipping $branch_name (has open PR)"
+                fi
+              fi
+            done
+          
+          echo "✅ Stale branches cleanup completed"
+
+      - name: Delete stale Copilot branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔍 Finding stale Copilot branches (older than 30 days or with closed/merged PRs)..."
+          
+          # Get current timestamp (30 days ago)
+          STALE_DATE=$(date -d '30 days ago' +%s 2>/dev/null || date -v-30d +%s)
+          
+          # Find all copilot/* branches
+          git for-each-ref --sort=-committerdate refs/remotes/origin/copilot/ --format='%(refname:short)|%(committerdate:unix)' | \
+            while IFS='|' read -r branch timestamp; do
+              branch_name=$(echo "$branch" | sed 's/origin\///')
+              
+              # Check if branch has open PR
+              PR_COUNT=$(gh pr list --head "$branch_name" --state open --json number --jq 'length')
+              
+              # Delete if no open PR and older than 30 days
+              if [ "$PR_COUNT" -eq "0" ] && [ "$timestamp" -lt "$STALE_DATE" ]; then
+                echo "🗑️  Deleting stale Copilot branch: $branch_name"
+                git push origin --delete "$branch_name" || echo "⚠️  Failed to delete $branch_name"
+              fi
+            done
+          
+          echo "✅ Copilot branches cleanup completed"
+
+      - name: Cleanup summary
+        run: |
+          echo "📊 Cleanup Summary"
+          echo "=================="
+          echo "Remaining remote branches:"
+          git branch -r | grep -v "\->" | wc -l
+          echo ""
+          echo "Protected branches (never deleted):"
+          echo "  - main"
+          echo "  - uat"
+          echo "  - development"
+          echo ""
+          echo "Cleanup rules applied:"
+          echo "  ✓ Merged branches deleted"
+          echo "  ✓ Feature branches older than 90 days deleted"
+          echo "  ✓ Copilot branches older than 30 days (without open PRs) deleted"
+          echo "  ✓ Branches with open PRs preserved"
+
+  cleanup-tags:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Delete old pre-release tags
+        run: |
+          echo "🔍 Finding old pre-release tags to clean up..."
+          
+          # Keep last 10 pre-release tags per type (alpha, beta, rc)
+          for tag_type in alpha beta rc dev uat; do
+            echo "Processing $tag_type tags..."
+            
+            # Get all tags of this type, sorted by creation date (newest first)
+            TAGS=$(git tag -l "*-${tag_type}*" --sort=-creatordate)
+            
+            if [ -z "$TAGS" ]; then
+              echo "  No $tag_type tags found"
+              continue
+            fi
+            
+            # Count tags
+            TAG_COUNT=$(echo "$TAGS" | wc -l)
+            echo "  Found $TAG_COUNT $tag_type tags"
+            
+            # Delete all but the 10 most recent
+            if [ "$TAG_COUNT" -gt 10 ]; then
+              TAGS_TO_DELETE=$(echo "$TAGS" | tail -n +11)
+              
+              for tag in $TAGS_TO_DELETE; do
+                echo "  🗑️  Deleting old tag: $tag"
+                git push origin --delete "refs/tags/$tag" || echo "    ⚠️  Failed to delete $tag"
+              done
+            else
+              echo "  ✅ Only $TAG_COUNT $tag_type tags, keeping all"
+            fi
+          done
+          
+          echo "✅ Pre-release tags cleanup completed"
+
+      - name: Tags cleanup summary
+        run: |
+          echo "📊 Tags Cleanup Summary"
+          echo "======================="
+          echo "Remaining tags:"
+          git tag | wc -l
+          echo ""
+          echo "Cleanup rules applied:"
+          echo "  ✓ Keep last 10 pre-release tags per type (alpha, beta, rc, dev, uat)"
+          echo "  ✓ Production tags are never deleted"
+          echo "  ✓ Version tags (v*.*.*) are never deleted"
