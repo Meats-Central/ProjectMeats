@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tenant, TenantUser
+from .models import Tenant, TenantUser, Domain
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -8,6 +8,7 @@ class TenantSerializer(serializers.ModelSerializer):
 
     user_count = serializers.SerializerMethodField()
     is_trial_expired = serializers.ReadOnlyField()
+    domains = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenant
@@ -15,6 +16,7 @@ class TenantSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "slug",
+            "schema_name",
             "domain",
             "contact_email",
             "contact_phone",
@@ -27,12 +29,23 @@ class TenantSerializer(serializers.ModelSerializer):
             "updated_at",
             "settings",
             "logo",
+            "domains",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_user_count(self, obj):
         """Get the number of active users for this tenant."""
         return obj.users.filter(is_active=True).count()
+    
+    def get_domains(self, obj):
+        """Get list of domains for this tenant."""
+        return [
+            {
+                "domain": domain.domain,
+                "is_primary": domain.is_primary
+            }
+            for domain in obj.domains.all()
+        ]
 
     def validate_slug(self, value):
         """Ensure slug is lowercase and unique."""
@@ -149,3 +162,38 @@ class UserTenantSerializer(serializers.ModelSerializer):
             "is_trial",
             "created_at",
         ]
+
+
+class DomainSerializer(serializers.ModelSerializer):
+    """Serializer for Domain model."""
+    
+    tenant_name = serializers.CharField(source="tenant.name", read_only=True)
+    tenant_slug = serializers.CharField(source="tenant.slug", read_only=True)
+    
+    class Meta:
+        model = Domain
+        fields = [
+            "id",
+            "domain",
+            "tenant",
+            "tenant_name",
+            "tenant_slug",
+            "is_primary",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+    
+    def validate_domain(self, value):
+        """Ensure domain is lowercase and unique."""
+        if value:
+            value = value.lower()
+            if (
+                Domain.objects.filter(domain=value)
+                .exclude(pk=self.instance.pk if self.instance else None)
+                .exists()
+            ):
+                raise serializers.ValidationError(
+                    "A domain with this name already exists."
+                )
+        return value

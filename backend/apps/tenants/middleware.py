@@ -3,8 +3,9 @@ Middleware for multi-tenancy support in ProjectMeats.
 
 This middleware sets the current tenant in the request context based on:
 1. X-Tenant-ID header (for API requests) - HIGHEST PRIORITY
-2. Subdomain (if configured)
-3. Authenticated user's default tenant association - FALLBACK
+2. Full domain name match (via Domain model) - NEW
+3. Subdomain (if configured)
+4. Authenticated user's default tenant association - FALLBACK
 
 Tenant Resolution Order:
 -----------------------
@@ -13,12 +14,16 @@ Tenant Resolution Order:
    - Validates user has access to requested tenant
    - Returns 403 Forbidden if user lacks permission
    
-2. **Subdomain**: For multi-tenant web applications
+2. **Domain Match**: For multi-tenant domain routing (django-tenants pattern)
+   - Matches full domain against Domain model entries
+   - Example: tenant.example.com → Domain.objects.get(domain="tenant.example.com")
+   
+3. **Subdomain**: For multi-tenant web applications
    - Extracts subdomain from request host
    - Matches against tenant.slug field
    - Example: acme.meatscentral.com → tenant with slug="acme"
    
-3. **User's Default Tenant**: Automatic fallback for authenticated users
+4. **User's Default Tenant**: Automatic fallback for authenticated users
    - Queries TenantUser association
    - Prioritizes owner/admin roles
    - Returns first active tenant for user
@@ -28,7 +33,7 @@ ViewSets should handle None tenant by returning empty querysets or raising valid
 """
 
 from django.http import HttpRequest, HttpResponseForbidden
-from .models import Tenant, TenantUser
+from .models import Tenant, TenantUser, Domain
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,7 +93,23 @@ class TenantMiddleware:
                     f"path={request.path}"
                 )
 
-        # 2. Try to get tenant from subdomain
+        # 2. Try to get tenant from full domain match (via Domain model)
+        if not tenant:
+            host = request.get_host().split(":")[0]  # Remove port if present
+            try:
+                domain_obj = Domain.objects.select_related('tenant').get(
+                    domain=host
+                )
+                if domain_obj.tenant.is_active:
+                    tenant = domain_obj.tenant
+                    resolution_method = f"domain ({host})"
+            except Domain.DoesNotExist:
+                logger.debug(
+                    f"No Domain entry found for: {host}, "
+                    f"path={request.path}"
+                )
+
+        # 3. Try to get tenant from subdomain
         if not tenant:
             host = request.get_host().split(":")[0]  # Remove port if present
             subdomain = host.split(".")[0] if "." in host else None
@@ -103,7 +124,7 @@ class TenantMiddleware:
                         f"path={request.path}"
                     )
 
-        # 3. Get user's default tenant if authenticated
+        # 4. Get user's default tenant if authenticated
         if not tenant and request.user.is_authenticated:
             tenant_user = (
                 TenantUser.objects.filter(user=request.user, is_active=True)
