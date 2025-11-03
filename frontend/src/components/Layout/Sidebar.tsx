@@ -42,11 +42,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
     } else if (!keepOpen && isOpen) {
       onToggle();
     }
-    // Reset hover state when keepOpen changes to true (pinned)
-    if (keepOpen && isHovered) {
+  }, [keepOpen, isOpen, onToggle]);
+
+  // Reset hover state when sidebar is pinned (separate effect to avoid dependency issues)
+  useEffect(() => {
+    if (keepOpen) {
       setIsHovered(false);
     }
-  }, [keepOpen, isOpen, onToggle, isHovered]);
+  }, [keepOpen]);
 
   // Auto-close on route change unless keepOpen is enabled
   useEffect(() => {
