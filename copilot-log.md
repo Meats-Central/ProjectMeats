@@ -3888,3 +3888,152 @@ None - the implementation was correct on the first try. All tests passed, build 
 2. Monitor for any issues with runtime config loading
 3. Consider adding config validation/error handling
 4. Update other projects to use this pattern
+
+## Task: Implement Tenant-Based Access Control and Role Permissions - [Date: 2025-11-03]
+
+### Actions Taken:
+
+1. **Analyzed the problem:**
+   - Users were seeing all data regardless of tenant in DEBUG mode
+   - No automatic admin access for owner/admin roles
+   - No Django group permissions based on roles
+   - DEBUG-based bypasses in Customer and Supplier ViewSets
+
+2. **Created signal handlers (`apps/tenants/signals.py`):**
+   - `assign_role_permissions`: Post-save signal that auto-assigns `is_staff=True` for owner/admin/manager roles
+   - Auto-creates Django Groups for each tenant-role combination (e.g., `acme_owner`)
+   - Assigns model permissions based on role (full CRUD for owners/admins, no delete for managers, etc.)
+   - `remove_role_permissions`: Pre-delete signal that removes group membership and `is_staff` when appropriate
+   - `_check_and_remove_staff_status`: Helper function that removes `is_staff` when user has no admin-level roles
+   - Fixed to properly exclude deleted TenantUser instances when checking roles
+
+3. **Updated Customer and Supplier ViewSets:**
+   - Removed `get_authenticators()` and `get_permissions()` methods that bypassed auth in DEBUG mode
+   - Removed DEBUG-based tenant fallback and auto-creation in `perform_create()`
+   - Now require authentication and tenant context in ALL environments
+   - Simplified docstrings to reflect strict security model
+
+4. **Created TenantFilteredAdmin base class (`apps/core/admin.py`):**
+   - `get_queryset()`: Filters by user's tenant(s), superusers see all
+   - `has_add_permission()`: Requires active tenant association
+   - `has_change_permission()`: Verifies object belongs to user's tenant
+   - `has_delete_permission()`: Only owners/admins can delete
+   - `save_model()`: Auto-assigns tenant on object creation with explicit role priority
+
+5. **Updated Admin Classes:**
+   - CustomerAdmin now extends TenantFilteredAdmin
+   - SupplierAdmin now extends TenantFilteredAdmin
+
+6. **Created comprehensive tests (`apps/tenants/tests_role_permissions.py`):**
+   - 11 new tests covering all role permission scenarios
+   - Tests for staff status assignment based on role
+   - Tests for staff status removal when role changes or TenantUser deleted/deactivated
+   - Tests for group membership
+   - Tests for multi-tenant scenarios
+   - All 147 tests passing
+
+7. **Created documentation (`TENANT_ACCESS_CONTROL.md`):**
+   - Complete overview of security model
+   - Role permission matrix
+   - Tenant resolution order
+   - Implementation details
+   - Testing guide
+   - Migration guide
+   - Troubleshooting section
+
+8. **Addressed code review feedback:**
+   - Fixed exception handler that would never be triggered (changed from try/except to if/else)
+   - Fixed role priority ordering to use explicit priority dict instead of alphabetic string sorting
+   - Removed unreachable code
+
+9. **Ran security scan:**
+   - CodeQL: 0 vulnerabilities found
+   - All tests passing (147 tests)
+
+### Misses/Failures:
+
+1. **Initial test failure**: Test expected fallback to user's default tenant, but we intentionally removed that to enforce strict security. Fixed by updating test expectations.
+
+2. **Signal not triggering on role change**: Initial implementation only set `is_staff` but didn't remove it when role changed. Fixed by adding check in post_save signal.
+
+3. **Staff status not removed on delete**: Pre-delete signal was still seeing the TenantUser being deleted. Fixed by adding `exclude_id` parameter to `_check_and_remove_staff_status()`.
+
+### Lessons Learned:
+
+1. **Signals are powerful for automatic permission management**: Django signals provide a clean way to automatically assign and remove permissions based on model changes.
+
+2. **Always exclude the instance being deleted**: When checking if a user should lose permissions on TenantUser deletion, must exclude the instance being deleted from the query.
+
+3. **Explicit role priority over string sorting**: String sorting of role names ('admin', 'manager', 'owner') doesn't give the desired priority order. Always use explicit priority mappings.
+
+4. **Test-driven development catches issues early**: Writing comprehensive tests (11 new tests) caught all the edge cases with role changes and deletion.
+
+5. **Remove DEBUG-based bypasses for consistency**: Having different security behavior in DEBUG vs production creates confusion and security risks. Better to have consistent strict security everywhere.
+
+6. **Base admin classes enable code reuse**: TenantFilteredAdmin can be reused across all admin classes, ensuring consistent tenant filtering.
+
+7. **Documentation is critical for security features**: Comprehensive documentation helps other developers understand and maintain the security model.
+
+### Efficiency Suggestions:
+
+1. **Consider making role permissions configurable**: Currently hardcoded in signals.py. Could move to Django settings or database for easier customization.
+
+2. **Add management command to sync permissions**: Create command to manually trigger signal handlers for all existing TenantUsers (useful for migrations).
+
+3. **Add admin action to bulk-assign roles**: Allow admins to select multiple users and bulk-assign roles.
+
+4. **Consider role inheritance**: Could allow roles to inherit permissions from lower roles (e.g., admin inherits from manager).
+
+5. **Add audit logging**: Log all permission changes for security auditing.
+
+6. **Create dashboard for permission overview**: Admin view showing all users, their tenants, roles, and effective permissions.
+
+### Test Results:
+
+- ✅ All 147 tests passing (100% pass rate)
+- ✅ 11 new role permission tests
+- ✅ CodeQL security scan: 0 vulnerabilities
+- ✅ Django system checks: No issues
+- ✅ All existing functionality preserved
+
+### Files Modified:
+
+1. `backend/apps/customers/views.py` - Removed DEBUG bypasses, strict security
+2. `backend/apps/suppliers/views.py` - Removed DEBUG bypasses, strict security
+3. `backend/apps/suppliers/tests.py` - Updated test expectations
+4. `backend/apps/tenants/apps.py` - Added signal import in ready()
+5. `backend/apps/core/admin.py` - Added TenantFilteredAdmin base class
+6. `backend/apps/customers/admin.py` - Extended TenantFilteredAdmin
+7. `backend/apps/suppliers/admin.py` - Extended TenantFilteredAdmin
+8. `backend/apps/tenants/signals.py` - Created with role permission signals (NEW, 243 lines)
+9. `backend/apps/tenants/tests_role_permissions.py` - Created with 11 comprehensive tests (NEW, 313 lines)
+10. `TENANT_ACCESS_CONTROL.md` - Created comprehensive documentation (NEW, 263 lines)
+
+### Impact:
+
+- ✅ Users now only see data for their tenant in ALL environments
+- ✅ Owner/admin/manager roles automatically get Django admin access
+- ✅ Role-based permissions automatically assigned via Django groups
+- ✅ Staff status automatically removed when user loses admin-level roles
+- ✅ Admin interface automatically filters by tenant
+- ✅ No more security bypasses in DEBUG mode
+- ✅ Comprehensive test coverage ensures security model works correctly
+- ✅ Full documentation for maintenance and troubleshooting
+
+### Security Improvements:
+
+- ✅ **Removed DEBUG-based security bypasses**: All environments now have consistent strict security
+- ✅ **Automatic role-based admin access**: No manual intervention needed to grant admin access
+- ✅ **Tenant isolation in admin**: Staff users can't see other tenants' data
+- ✅ **Permission-based actions**: Delete permission only for owners/admins
+- ✅ **Automatic permission cleanup**: Staff status removed when roles change
+- ✅ **Zero vulnerabilities**: CodeQL scan found no security issues
+
+### Next Steps:
+
+1. **Monitor in UAT**: Verify role assignments work correctly with real users
+2. **Update remaining ViewSets**: Apply same pattern to Plants, Carriers, etc.
+3. **Consider role customization**: Allow tenants to define custom roles with specific permissions
+4. **Add permission audit trail**: Log all permission changes for compliance
+
+---
