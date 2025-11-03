@@ -51,18 +51,19 @@ const Suppliers: React.FC = () => {
       resetForm();
       fetchSuppliers();
     } catch (error: unknown) {
-      // Log detailed error information
-      const err = error as Error & { response?: { status: number; data: unknown }; stack?: string };
-      console.error('Error saving supplier:', {
-        message: err.message || 'Unknown error',
-        stack: err.stack || 'No stack trace available',
-        response: err.response ? {
-          status: err.response.status,
-          data: err.response.data
-        } : 'No response data'
+      // Extract error message
+      const err = error as Error;
+      const errorMessage = err.message || 'An unexpected error occurred. Please try again.';
+      
+      // Log detailed error information for debugging
+      console.error('[Suppliers] Error saving supplier:', {
+        message: errorMessage,
+        error: err,
+        action: editingSupplier ? 'update' : 'create',
       });
+      
       // Display user-friendly error to the UI
-      alert(`Failed to save supplier: ${err.message || 'Please try again later'}`);
+      alert(errorMessage);
     }
   };
 

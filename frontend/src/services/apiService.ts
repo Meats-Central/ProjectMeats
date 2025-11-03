@@ -48,15 +48,89 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Helper function for error handling
+// Helper function for enhanced error handling with Axios error details
+interface AxiosError {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+      detail?: string;
+      details?: string;
+      [key: string]: unknown;
+    };
+    status?: number;
+    statusText?: string;
+  };
+  request?: unknown;
+  message?: string;
+  code?: string;
+  config?: {
+    url?: string;
+    method?: string;
+    baseURL?: string;
+  };
+}
+
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
-  if (typeof error === 'object' && error && 'response' in error) {
-    const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
-    return axiosError.response?.data?.message || axiosError.message || 'Unknown error';
+  
+  if (error && typeof error === 'object') {
+    const axiosError = error as AxiosError;
+    
+    // If we have a response from the server, extract the error message
+    if (axiosError.response?.data) {
+      const data = axiosError.response.data;
+      const errorMsg = data.message || data.error || data.detail || data.details;
+      if (errorMsg && typeof errorMsg === 'string') {
+        return errorMsg;
+      }
+      // If data is an object with multiple errors, stringify it
+      if (typeof data === 'object' && Object.keys(data).length > 0) {
+        return JSON.stringify(data);
+      }
+    }
+    
+    // Network errors (no response from server)
+    if (axiosError.request && !axiosError.response) {
+      const url = axiosError.config?.url || 'unknown endpoint';
+      const baseURL = axiosError.config?.baseURL || '';
+      const fullURL = baseURL + url;
+      
+      // Provide more specific error messages based on error code
+      if (axiosError.code === 'ERR_NETWORK') {
+        return `Unable to connect to the server at ${fullURL}. Please check your internet connection or contact support.`;
+      }
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
+        return `Request to ${fullURL} timed out. The server may be experiencing high load. Please try again.`;
+      }
+      if (axiosError.code === 'ERR_BAD_REQUEST') {
+        return `Invalid request to ${fullURL}. Please contact support.`;
+      }
+      
+      // Generic network error with URL
+      return `Network error while connecting to ${fullURL}. ${axiosError.message || 'Please check your connection and try again.'}`;
+    }
+    
+    // HTTP error responses with status codes
+    if (axiosError.response?.status) {
+      const status = axiosError.response.status;
+      const statusText = axiosError.response.statusText || '';
+      
+      if (status === 401) return 'Authentication required. Please log in again.';
+      if (status === 403) return 'You do not have permission to perform this action.';
+      if (status === 404) return 'The requested resource was not found.';
+      if (status === 500) return 'Server error. Please try again later or contact support.';
+      if (status >= 400 && status < 500) return `Request error: ${statusText}`;
+      if (status >= 500) return `Server error: ${statusText}`;
+    }
+    
+    // Fallback to error message if available
+    if (axiosError.message) return axiosError.message;
   }
-  return 'Unknown error';
+  
+  if (error instanceof Error) return error.message;
+  
+  return 'An unknown error occurred. Please try again.';
 }
 
 // Types
@@ -167,19 +241,56 @@ export class ApiService {
 
   async createSupplier(supplier: Partial<Supplier>): Promise<Supplier> {
     try {
+      // Log request details for debugging (excluding sensitive data)
+      console.debug('[API] Creating supplier:', {
+        endpoint: '/suppliers/',
+        hasAuth: !!localStorage.getItem('authToken'),
+        hasTenant: !!localStorage.getItem('tenantId'),
+        baseURL: API_BASE_URL,
+      });
+      
       const response = await apiClient.post('/suppliers/', supplier);
+      console.debug('[API] Supplier created successfully:', response.data);
       return response.data;
     } catch (error: unknown) {
-      throw new Error(`Failed to create supplier: ${getErrorMessage(error)}`);
+      // Log detailed error information for debugging
+      const axiosError = error as AxiosError;
+      console.error('[API] Failed to create supplier:', {
+        message: getErrorMessage(error),
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        errorCode: axiosError.code,
+        url: axiosError.config?.url,
+        baseURL: axiosError.config?.baseURL,
+        hasResponse: !!axiosError.response,
+        hasRequest: !!axiosError.request,
+      });
+      
+      // Re-throw with enhanced error message
+      throw new Error(getErrorMessage(error));
     }
   }
 
   async updateSupplier(id: number, supplier: Partial<Supplier>): Promise<Supplier> {
     try {
+      console.debug('[API] Updating supplier:', {
+        id,
+        endpoint: `/suppliers/${id}/`,
+        baseURL: API_BASE_URL,
+      });
+      
       const response = await apiClient.patch(`/suppliers/${id}/`, supplier);
+      console.debug('[API] Supplier updated successfully:', response.data);
       return response.data;
     } catch (error: unknown) {
-      throw new Error(`Failed to update supplier: ${getErrorMessage(error)}`);
+      const axiosError = error as AxiosError;
+      console.error('[API] Failed to update supplier:', {
+        message: getErrorMessage(error),
+        status: axiosError.response?.status,
+        errorCode: axiosError.code,
+      });
+      
+      throw new Error(getErrorMessage(error));
     }
   }
 
