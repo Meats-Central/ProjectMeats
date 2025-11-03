@@ -2,7 +2,9 @@
 Test settings for ProjectMeats - uses SQLite for fast testing, or PostgreSQL if DATABASE_URL is provided.
 """
 import os
+
 import dj_database_url
+
 from .base import *  # noqa
 
 # Secret key for tests

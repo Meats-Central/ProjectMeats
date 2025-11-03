@@ -2,8 +2,9 @@
 Development settings for ProjectMeats.
 """
 import logging
-from decouple import config
+
 import dj_database_url
+from decouple import config
 
 from .base import *
 
@@ -56,7 +57,6 @@ if database_url:
     _db_config["OPTIONS"].setdefault("connect_timeout", 10)
 
     DATABASES = {"default": _db_config}
-    DB_ENGINE = _db_config["ENGINE"]
 else:
     # Get DB_ENGINE with fallback for empty values
     # Using config() to read from .env file for local development
@@ -105,7 +105,9 @@ else:
         )
 
 # Log which database backend is being used
-logger.info(f"Development environment using database backend: {DB_ENGINE}")
+logger.info(
+    f"Development environment using database backend: {DATABASES['default']['ENGINE']}"
+)
 
 # CORS Settings for React development server
 CORS_ALLOWED_ORIGINS = [
