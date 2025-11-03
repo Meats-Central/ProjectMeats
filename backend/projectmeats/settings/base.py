@@ -318,6 +318,5 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
     "apps.invoices",
 ]
 
-# Database router for multi-tenancy
-# NOTE: Using custom shared-schema multi-tenancy, not django-tenants schema-based routing
-# DATABASE_ROUTERS = []  # No special routing needed for shared-schema approach
+# NOTE: ProjectMeats uses custom shared-schema multi-tenancy approach.
+# No database routers are needed since all data is in a shared schema with tenant filtering at the application level.
