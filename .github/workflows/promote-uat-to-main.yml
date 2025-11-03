@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
           # Check for existing open PR
-          PR_NUMBER=$(gh pr list --base main --head uat --state open --json number --jq '.[0].number // empty')
+          PR_NUMBER=$(gh pr list --base main --head uat --state open --json number --jq 'if length > 0 then .[0].number else empty end')
           
           if [ -n "$PR_NUMBER" ]; then
             echo "Found existing PR #${PR_NUMBER}. Closing it to create a new one with latest commits..."
