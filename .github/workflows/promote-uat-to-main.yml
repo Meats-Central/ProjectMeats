@@ -38,7 +38,6 @@ jobs:
             --head uat \
             --title "Promote UAT to Main (Production Release)" \
             --body "Auto-created PR to promote reviewed changes from UAT to main. CI must pass and approval is required before merging to production." \
-            --label "prod-release,automation" \
             --reviewer Vacilator
 
       - name: PR Already Exists
