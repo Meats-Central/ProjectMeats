@@ -262,14 +262,20 @@ TENANT_MODEL = "tenants.Client"
 # Domain model for routing requests to tenants
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 
-# Apps available in all schemas (shared across all tenants)
-SHARED_APPS = [
-    "django_tenants",  # Must be first
+# Common Django apps used in both shared and tenant schemas
+# These are required for basic Django functionality
+_DJANGO_CORE_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+]
+
+# Apps available in all schemas (shared across all tenants)
+SHARED_APPS = [
+    "django_tenants",  # Must be first
+] + _DJANGO_CORE_APPS + [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
@@ -281,12 +287,8 @@ SHARED_APPS = [
 ]
 
 # Apps that will be created in each tenant schema
-TENANT_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
+# Include Django core apps for tenant-specific data (users, permissions, etc.)
+TENANT_APPS = _DJANGO_CORE_APPS + [
     "apps.accounts_receivables",
     "apps.suppliers",
     "apps.customers",

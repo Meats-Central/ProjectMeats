@@ -1,4 +1,6 @@
-# Generated manually for django-tenants integration
+# Migration for django-tenants integration
+# Created to add Client and Domain models for schema-based multi-tenancy
+# Based on django-tenants 3.5.0 TenantMixin and DomainMixin structure
 
 from django.db import migrations, models
 import django.db.models.deletion

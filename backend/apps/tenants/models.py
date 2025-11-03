@@ -13,8 +13,8 @@ class Client(TenantMixin):
     
     Inherits from TenantMixin which provides:
     - schema_name: PostgreSQL schema name for this tenant
-    - auto_create_schema: Automatically creates schema on save
-    - auto_drop_schema: Automatically drops schema on delete
+    - auto_create_schema: Automatically creates schema on save (configurable)
+    - auto_drop_schema: Can automatically drop schema on delete (disabled for safety)
     """
     name = models.CharField(max_length=255, help_text="Client organization name")
     description = models.TextField(blank=True, help_text="Optional description of the client")
@@ -23,7 +23,8 @@ class Client(TenantMixin):
     
     # Automatically create schema when client is created
     auto_create_schema = True
-    auto_drop_schema = False  # Safety: don't auto-drop schemas on delete
+    # Safety: don't auto-drop schemas on delete to prevent accidental data loss
+    auto_drop_schema = False
     
     class Meta:
         db_table = "tenants_client"
