@@ -1,0 +1,26 @@
+name: Promote Development to UAT
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+jobs:
+  create-uat-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request to UAT
+        uses: peter-evans/create-pull-request@v5
+        with:
+          source-branch: development
+          destination-branch: UAT
+          title: Promote development to UAT
+          body: |
+            Auto-created PR to promote tested changes from development to UAT environment.
+            - Only merges after CI/test checks and review.
+          labels: uat-promotion, automation
+          reviewers: Vacilator
