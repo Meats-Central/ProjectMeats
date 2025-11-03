@@ -51,10 +51,12 @@ const tenant = getCurrentTenant(); // 'acme' or null
 - Enhanced logging to show multi-tenancy information in development
 
 **Configuration Priority** (highest to lowest):
-1. **Tenant Context** - Extracted from domain (NEW)
-2. **window.ENV** - Runtime configuration
+1. **window.ENV** - Runtime configuration (explicit override)
+2. **Tenant Context** - Extracted from domain (automatic detection, NEW)
 3. **process.env.REACT_APP_*** - Build-time environment variables
 4. **Default values** - Fallback
+
+This allows deployment teams to explicitly override tenant detection when needed while still providing automatic detection by default.
 
 **Example**:
 

@@ -70,10 +70,12 @@ const tenant = getCurrentTenant(); // 'acme' or null
 
 The API base URL is determined in this order:
 
-1. **Tenant Context** - Extracted from domain (highest priority)
-2. **window.ENV.API_BASE_URL** - Runtime configuration
+1. **window.ENV.API_BASE_URL** - Runtime configuration (explicit override, highest priority)
+2. **Tenant Context** - Extracted from domain (automatic detection)
 3. **process.env.REACT_APP_API_BASE_URL** - Build-time environment variable
 4. **Default value** - Fallback (lowest priority)
+
+This allows deployment teams to explicitly override tenant detection when needed while still providing automatic detection by default.
 
 ### For Developers
 
@@ -209,7 +211,7 @@ window.ENV = {
 };
 ```
 
-**Priority**: Tenant context → `window.ENV` → `process.env.REACT_APP_*` → defaults
+**Priority**: `window.ENV` → Tenant context → `process.env.REACT_APP_*` → defaults
 
 See [RUNTIME_CONFIG.md](./RUNTIME_CONFIG.md) for detailed configuration guide.
 
