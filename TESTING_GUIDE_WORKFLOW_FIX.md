@@ -50,9 +50,9 @@ gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
    ```bash
    git checkout development
    git pull origin development
-   echo "Test change" >> test-file.txt
-   git add test-file.txt
-   git commit -m "Test auto-promotion workflow"
+   echo "<!-- Test auto-promotion: $(date) -->" >> README.md
+   git add README.md
+   git commit -m "Test auto-promotion workflow trigger"
    git push origin development
    ```
 3. Monitor the deployment workflow:
@@ -122,8 +122,11 @@ gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
 
 3. **Verify deployment workflow names match:**
    ```bash
-   head -1 .github/workflows/11-dev-deployment.yml
+   grep '^name:' .github/workflows/11-dev-deployment.yml
    # Should output: name: Deploy Dev (Frontend + Backend via DOCR)
+   
+   grep '^name:' .github/workflows/12-uat-deployment.yml
+   # Should output: name: Deploy UAT (Frontend + Backend via DOCR)
    ```
 
 4. **Check GitHub Actions logs:**

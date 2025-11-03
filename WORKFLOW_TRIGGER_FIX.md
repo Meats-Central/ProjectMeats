@@ -72,7 +72,7 @@ gh workflow run 42-auto-promote-uat-to-main.yml
 
 ## References
 - [GitHub Actions workflow_run documentation](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run)
-- PR #171: Original PR that added these workflows to the development branch
+- PR #171: Original PR that added these workflows to the development branch, along with CODEOWNERS, workflow improvements, invitation email features, UI enhancements, and model improvements
 - Related workflows:
   - `11-dev-deployment.yml` - Deploy Dev (Frontend + Backend via DOCR)
   - `12-uat-deployment.yml` - Deploy UAT (Frontend + Backend via DOCR)
