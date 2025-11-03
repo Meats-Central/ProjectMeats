@@ -1,6 +1,6 @@
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Tenant, TenantUser, TenantInvitation
+from .models import Tenant, TenantUser, TenantInvitation, Domain
 
 
 @admin.register(Tenant)
@@ -27,7 +27,7 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at", "updated_at"]
 
     fieldsets = [
-        ("Basic Information", {"fields": ("name", "slug", "domain")}),
+        ("Basic Information", {"fields": ("name", "slug", "schema_name", "domain")}),
         ("Contact Information", {"fields": ("contact_email", "contact_phone")}),
         ("Branding", {"fields": ("logo",)}),
         ("Status & Trial", {"fields": ("is_active", "is_trial", "trial_ends_at")}),
@@ -121,3 +121,27 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
         # Get base queryset from TenantFilteredAdmin (which filters by tenant)
         qs = super().get_queryset(request)
         return qs.select_related("tenant", "invited_by", "accepted_by")
+
+
+@admin.register(Domain)
+class DomainAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Domain model.
+    
+    Manages domain-to-tenant mappings following django-tenants patterns.
+    """
+
+    list_display = ["domain", "tenant", "is_primary", "created_at"]
+    list_filter = ["is_primary", "created_at"]
+    search_fields = ["domain", "tenant__name", "tenant__slug"]
+    readonly_fields = ["created_at", "updated_at"]
+    
+    fieldsets = [
+        ("Domain Information", {"fields": ("domain", "tenant", "is_primary")}),
+        ("Metadata", {"fields": ("created_at", "updated_at"), "classes": ["collapse"]}),
+    ]
+    
+    def get_queryset(self, request):
+        """Optimize queries by selecting related tenant."""
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant")

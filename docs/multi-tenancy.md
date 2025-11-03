@@ -12,9 +12,12 @@ ProjectMeats implements a multi-tenancy architecture that allows multiple organi
 The multi-tenancy implementation uses a **shared database, shared schema** approach with tenant-based data isolation:
 
 - **Tenant Model**: Stores organization information and configuration
+- **Domain Model**: Maps domain names to tenants (django-tenants compatible)
 - **TenantUser Model**: Manages user-to-tenant associations with role-based access
 - **Tenant Filtering**: Middleware and querysets automatically filter data by tenant
 - **Superuser Access**: Superusers have cross-tenant capabilities
+
+> **Note**: While ProjectMeats uses a custom shared-schema approach, it includes django-tenants-compatible models (Domain, schema_name field) for future flexibility. See [Django-Tenants Alignment Documentation](../DJANGO_TENANTS_ALIGNMENT.md) for details.
 
 ## Components
 
@@ -26,10 +29,20 @@ The multi-tenancy implementation uses a **shared database, shared schema** appro
   - `id`: UUID primary key
   - `name`: Organization name
   - `slug`: URL-friendly identifier (unique)
+  - `schema_name`: Database schema name (for django-tenants compatibility, auto-generated from slug)
   - `contact_email`: Primary contact email
   - `is_active`: Active status
   - `is_trial`: Trial status
   - `settings`: JSON field for tenant-specific configuration
+  - `logo`: Tenant logo for branding
+
+#### Domain
+- **Purpose**: Maps domain names to tenants
+- **Key Fields**:
+  - `domain`: Full domain name (e.g., "tenant.example.com")
+  - `tenant`: Foreign key to Tenant
+  - `is_primary`: Whether this is the primary domain for the tenant
+- **Usage**: Enables domain-based tenant routing via middleware
 
 #### TenantUser
 - **Purpose**: Links users to tenants with specific roles

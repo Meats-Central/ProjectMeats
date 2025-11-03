@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Tenant, TenantUser
+from .models import Tenant, TenantUser, Domain
 import uuid
 
 
@@ -220,3 +220,124 @@ class TenantAPITests(APITestCase):
         self.assertEqual(theme['primary_color_dark'], '#33FF57')
         self.assertEqual(theme['name'], 'Test Company')
         self.assertIsNone(theme['logo_url'])  # No logo uploaded yet
+
+
+class DomainModelTests(TestCase):
+    """Test cases for Domain model."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass123"
+        )
+        self.tenant = Tenant.objects.create(
+            name="Test Company",
+            slug="test-company",
+            contact_email="admin@testcompany.com",
+            created_by=self.user,
+        )
+
+    def test_domain_creation(self):
+        """Test basic domain creation."""
+        domain = Domain.objects.create(
+            domain="test-company.example.com",
+            tenant=self.tenant,
+            is_primary=True
+        )
+
+        self.assertEqual(domain.domain, "test-company.example.com")
+        self.assertEqual(domain.tenant, self.tenant)
+        self.assertTrue(domain.is_primary)
+
+    def test_domain_lowercase_conversion(self):
+        """Test that domain is automatically converted to lowercase."""
+        domain = Domain.objects.create(
+            domain="TEST-COMPANY.EXAMPLE.COM",
+            tenant=self.tenant,
+            is_primary=True
+        )
+
+        self.assertEqual(domain.domain, "test-company.example.com")
+
+    def test_domain_str_method(self):
+        """Test string representation of domain."""
+        domain = Domain.objects.create(
+            domain="test-company.example.com",
+            tenant=self.tenant,
+            is_primary=True
+        )
+
+        expected_str = f"test-company.example.com -> test-company (primary)"
+        self.assertEqual(str(domain), expected_str)
+
+    def test_domain_unique_constraint(self):
+        """Test that domain must be unique."""
+        from django.db import IntegrityError
+        
+        Domain.objects.create(
+            domain="test-company.example.com",
+            tenant=self.tenant,
+            is_primary=True
+        )
+
+        # Attempting to create another domain with same name should fail
+        with self.assertRaises(IntegrityError):
+            Domain.objects.create(
+                domain="test-company.example.com",
+                tenant=self.tenant,
+                is_primary=False
+            )
+
+
+class TenantSchemaNameTests(TestCase):
+    """Test cases for Tenant schema_name field."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass123"
+        )
+
+    def test_schema_name_auto_generation(self):
+        """Test that schema_name is auto-generated from slug."""
+        tenant = Tenant.objects.create(
+            name="Test Company",
+            slug="test-company",
+            contact_email="admin@testcompany.com",
+            created_by=self.user,
+        )
+
+        # Schema name should be generated from slug (dashes replaced with underscores)
+        self.assertEqual(tenant.schema_name, "test_company")
+
+    def test_schema_name_explicit(self):
+        """Test that explicit schema_name is preserved."""
+        tenant = Tenant.objects.create(
+            name="Test Company",
+            slug="test-company",
+            schema_name="custom_schema",
+            contact_email="admin@testcompany.com",
+            created_by=self.user,
+        )
+
+        self.assertEqual(tenant.schema_name, "custom_schema")
+
+    def test_schema_name_unique(self):
+        """Test that schema_name must be unique."""
+        from django.db import IntegrityError
+        
+        Tenant.objects.create(
+            name="Test Company 1",
+            slug="test-company-1",
+            schema_name="test_schema",
+            contact_email="admin1@testcompany.com",
+            created_by=self.user,
+        )
+
+        # Attempting to create another tenant with same schema_name should fail
+        with self.assertRaises(IntegrityError):
+            Tenant.objects.create(
+                name="Test Company 2",
+                slug="test-company-2",
+                schema_name="test_schema",
+                contact_email="admin2@testcompany.com",
+                created_by=self.user,
+            )

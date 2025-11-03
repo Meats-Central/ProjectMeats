@@ -9,6 +9,11 @@ class Tenant(models.Model):
     """
     Tenant model for multi-tenancy support.
     Uses shared database, shared schema approach with tenant_id for isolation.
+    
+    Note: While this model includes schema_name for alignment with django-tenants
+    patterns, ProjectMeats uses a custom shared-schema implementation rather than
+    PostgreSQL schema-based isolation. The schema_name field is provided for
+    future compatibility and follows django-tenants conventions.
     """
 
     # Basic tenant information
@@ -16,6 +21,14 @@ class Tenant(models.Model):
     name = models.CharField(max_length=255, help_text="Tenant organization name")
     slug = models.SlugField(
         max_length=100, unique=True, help_text="URL-friendly identifier"
+    )
+    schema_name = models.CharField(
+        max_length=63,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Database schema name (for future django-tenants compatibility)",
+        db_index=True,
     )
 
     # Contact information
@@ -79,9 +92,12 @@ class Tenant(models.Model):
         return timezone.now() > self.trial_ends_at
 
     def save(self, *args, **kwargs):
-        """Override save to ensure slug is always lowercase."""
+        """Override save to ensure slug is always lowercase and schema_name is set."""
         if self.slug:
             self.slug = self.slug.lower()
+            # Auto-generate schema_name from slug if not provided
+            if not self.schema_name:
+                self.schema_name = self.slug.replace('-', '_')
         super().save(*args, **kwargs)
     
     def get_theme_settings(self):
@@ -335,3 +351,57 @@ class TenantInvitation(models.Model):
             self.save()
             return True
         return False
+
+
+class Domain(models.Model):
+    """
+    Domain model for multi-tenancy support.
+    
+    Maps domain names to tenants, following django-tenants DomainMixin pattern.
+    While ProjectMeats uses a custom shared-schema approach, this model provides
+    alignment with django-tenants conventions for future compatibility.
+    
+    Example usage:
+    - tenant.example.com -> routes to specific tenant
+    - www.example.com -> routes to public/default tenant
+    """
+    
+    # Domain information
+    domain = models.CharField(
+        max_length=253,
+        unique=True,
+        db_index=True,
+        help_text="Domain name (e.g., 'tenant.example.com' or 'tenant.localhost')"
+    )
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='domains',
+        help_text="Tenant associated with this domain"
+    )
+    is_primary = models.BooleanField(
+        default=True,
+        help_text="Whether this is the primary domain for the tenant"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = "tenants_domain"
+        ordering = ['domain']
+        indexes = [
+            models.Index(fields=['domain']),
+            models.Index(fields=['tenant', 'is_primary']),
+        ]
+    
+    def __str__(self):
+        primary = " (primary)" if self.is_primary else ""
+        return f"{self.domain} -> {self.tenant.slug}{primary}"
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure domain is lowercase."""
+        if self.domain:
+            self.domain = self.domain.lower()
+        super().save(*args, **kwargs)
