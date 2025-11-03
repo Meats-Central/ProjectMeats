@@ -5,7 +5,13 @@ from .models import Tenant, TenantUser, TenantInvitation
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    """Admin interface for Tenant model."""
+    """
+    Admin interface for Tenant model.
+    
+    Note: This uses base ModelAdmin, not TenantFilteredAdmin, because:
+    - The Tenant model itself doesn't have a 'tenant' field (it IS the tenant)
+    - Instead, we filter by user association in get_queryset
+    """
 
     list_display = [
         "name",
@@ -36,7 +42,26 @@ class TenantAdmin(admin.ModelAdmin):
     ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("created_by")
+        """
+        Filter tenants by user association.
+        
+        - Superusers see all tenants
+        - Staff users only see tenants they are associated with
+        """
+        qs = super().get_queryset(request).select_related("created_by")
+        
+        # Superusers see all tenants
+        if request.user.is_superuser:
+            return qs
+        
+        # Get tenant IDs the user is associated with
+        tenant_ids = TenantUser.objects.filter(
+            user=request.user,
+            is_active=True
+        ).values_list('tenant_id', flat=True)
+        
+        # Filter to only show associated tenants
+        return qs.filter(id__in=tenant_ids)
 
 
 @admin.register(TenantUser)

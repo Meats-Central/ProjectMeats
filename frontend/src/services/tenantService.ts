@@ -17,13 +17,20 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor for authentication
+// Request interceptor for authentication and tenant context
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
+    
+    // Add tenant ID header if available
+    const tenantId = localStorage.getItem('tenantId');
+    if (tenantId) {
+      config.headers['X-Tenant-ID'] = tenantId;
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
