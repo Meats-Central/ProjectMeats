@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { tenantService, Tenant } from '../services/tenantService';
 import styled from 'styled-components';
 
@@ -26,8 +25,6 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  // tenantBranding from context - not directly used but ensures context is initialized
-  const { tenantBranding: _tenantBranding } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
