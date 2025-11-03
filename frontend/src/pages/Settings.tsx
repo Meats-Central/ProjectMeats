@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { tenantService, Tenant } from '../services/tenantService';
 import styled from 'styled-components';
 
 // Renamed to avoid collision with component name (ESLint no-redeclare warning)
@@ -24,6 +26,12 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  // tenantBranding from context - not directly used but ensures context is initialized
+  const { tenantBranding: _tenantBranding } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [settings, setSettings] = useState<UserSettings>({
     notifications: {
       email: true,
@@ -58,6 +66,24 @@ const Settings: React.FC = () => {
         console.error('Failed to parse saved settings:', error);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    // Load current tenant information
+    const loadTenant = async () => {
+      try {
+        const tenants = await tenantService.getMyTenants();
+        if (tenants && tenants.length > 0) {
+          setCurrentTenant(tenants[0]);
+          if (tenants[0].logo) {
+            setLogoPreview(tenants[0].logo);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load tenant:', error);
+      }
+    };
+    loadTenant();
   }, []);
 
   const handleSave = async () => {
@@ -137,6 +163,69 @@ const Settings: React.FC = () => {
     setMessage({ type: 'success', text: 'Settings reset to defaults!' });
   };
 
+  const handleLogoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: 'Please select an image file' });
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
+        return;
+      }
+      setLogoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setMessage(null);
+    }
+  };
+
+  const handleLogoUpload = async () => {
+    if (!logoFile || !currentTenant) return;
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const updatedTenant = await tenantService.uploadLogo(currentTenant.id, logoFile);
+      setCurrentTenant(updatedTenant);
+      setLogoFile(null);
+      setMessage({ type: 'success', text: 'Logo uploaded successfully! Please refresh the page to see the logo in the sidebar.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to upload logo. Please try again.' });
+      console.error('Logo upload error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    if (!currentTenant) return;
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const updatedTenant = await tenantService.removeLogo(currentTenant.id);
+      setCurrentTenant(updatedTenant);
+      setLogoPreview(null);
+      setLogoFile(null);
+      setMessage({ type: 'success', text: 'Logo removed successfully! Please refresh the page to see changes in the sidebar.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to remove logo. Please try again.' });
+      console.error('Logo remove error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <Container>
@@ -160,6 +249,73 @@ const Settings: React.FC = () => {
       )}
 
       <SettingsContent>
+        {/* Tenant Branding Settings */}
+        {currentTenant && (user?.is_staff || user?.is_superuser) && (
+          <SettingsSection>
+            <SectionHeader>
+              <SectionIcon>🎨</SectionIcon>
+              <div>
+                <SectionTitle>Tenant Branding</SectionTitle>
+                <SectionDescription>
+                  Customize your organization's logo and appearance
+                </SectionDescription>
+              </div>
+            </SectionHeader>
+
+            <SettingGroup>
+              <SettingItem>
+                <SettingInfo>
+                  <SettingLabel>Organization Logo</SettingLabel>
+                  <SettingDescription>
+                    Upload a custom logo for your organization (max 5MB)
+                  </SettingDescription>
+                </SettingInfo>
+                <LogoSection>
+                  {logoPreview && (
+                    <LogoPreviewContainer>
+                      <LogoPreview src={logoPreview} alt="Logo preview" />
+                    </LogoPreviewContainer>
+                  )}
+                  <LogoActions>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoSelect}
+                      style={{ display: 'none' }}
+                    />
+                    <UploadButton
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={loading}
+                    >
+                      {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                    </UploadButton>
+                    {logoFile && (
+                      <SaveLogoButton onClick={handleLogoUpload} disabled={loading}>
+                        {loading ? 'Uploading...' : 'Save Logo'}
+                      </SaveLogoButton>
+                    )}
+                    {logoPreview && !logoFile && (
+                      <RemoveLogoButton onClick={handleLogoRemove} disabled={loading}>
+                        Remove Logo
+                      </RemoveLogoButton>
+                    )}
+                  </LogoActions>
+                </LogoSection>
+              </SettingItem>
+
+              <SettingItem>
+                <SettingInfo>
+                  <SettingLabel>Organization Name</SettingLabel>
+                  <SettingDescription>
+                    {currentTenant.name}
+                  </SettingDescription>
+                </SettingInfo>
+              </SettingItem>
+            </SettingGroup>
+          </SettingsSection>
+        )}
+
         {/* Notification Settings */}
         <SettingsSection>
           <SectionHeader>
@@ -561,6 +717,101 @@ const SaveButton = styled.button`
   &:hover:not(:disabled) {
     background: #5a67d8;
     transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const LogoSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+`;
+
+const LogoPreviewContainer = styled.div`
+  width: 100px;
+  height: 100px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: white;
+`;
+
+const LogoPreview = styled.img`
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+`;
+
+const LogoActions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`;
+
+const UploadButton = styled.button`
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #5a67d8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const SaveLogoButton = styled.button`
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #059669;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const RemoveLogoButton = styled.button`
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #dc2626;
   }
 
   &:disabled {
