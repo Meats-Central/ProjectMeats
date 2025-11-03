@@ -80,21 +80,19 @@ def get_or_create_role_group(role, tenant):
         for model_name in model_names:
             for perm_type in permission_types:
                 perm_codename = f"{perm_type}_{model_name}"
-                try:
-                    # Try to find the permission
-                    permission = Permission.objects.filter(
-                        codename=perm_codename
-                    ).first()
-                    if permission:
-                        group.permissions.add(permission)
-                        logger.debug(
-                            f"Added permission {perm_codename} to group {group_name}"
-                        )
-                except Permission.DoesNotExist:
+                # Try to find the permission
+                permission = Permission.objects.filter(
+                    codename=perm_codename
+                ).first()
+                if permission:
+                    group.permissions.add(permission)
+                    logger.debug(
+                        f"Added permission {perm_codename} to group {group_name}"
+                    )
+                else:
                     logger.warning(
                         f"Permission {perm_codename} not found for group {group_name}"
                     )
-                    continue
     
     return group
 

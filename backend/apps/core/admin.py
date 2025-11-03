@@ -123,17 +123,26 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         """
         Set tenant on object save if it's a new object.
         
-        Uses the user's first active tenant (prioritizing owner/admin roles).
+        Uses the user's first active tenant (prioritizing owner/admin/manager roles).
         """
         if not change and hasattr(obj, 'tenant') and not obj.tenant_id:
-            # Get user's primary tenant (prioritize owner/admin roles)
-            tenant_user = TenantUser.objects.filter(
+            # Define role priority order explicitly
+            role_priority = {'owner': 0, 'admin': 1, 'manager': 2, 'user': 3, 'readonly': 4}
+            
+            # Get user's primary tenant (prioritize by role order)
+            tenant_users = TenantUser.objects.filter(
                 user=request.user,
                 is_active=True
-            ).select_related('tenant').order_by('-role').first()
+            ).select_related('tenant')
             
-            if tenant_user:
-                obj.tenant = tenant_user.tenant
+            # Sort by role priority
+            sorted_tenant_users = sorted(
+                tenant_users,
+                key=lambda tu: role_priority.get(tu.role, 999)
+            )
+            
+            if sorted_tenant_users:
+                obj.tenant = sorted_tenant_users[0].tenant
         
         super().save_model(request, obj, form, change)
 
