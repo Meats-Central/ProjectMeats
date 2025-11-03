@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-from apps.tenants.models import Tenant, Domain
+from apps.tenants.models import Tenant, TenantDomain
 
 
 class Command(BaseCommand):
@@ -173,7 +173,7 @@ class Command(BaseCommand):
                     if verbosity >= 1:
                         self.stdout.write(f'Creating domain: {domain_name}...')
                     
-                    domain = Domain.objects.create(
+                    domain = TenantDomain.objects.create(
                         domain=domain_name.lower(),
                         tenant=tenant,
                         is_primary=is_primary,

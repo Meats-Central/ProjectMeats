@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from django.db import transaction
 from django.utils import timezone
-from apps.tenants.models import Tenant, Domain
+from apps.tenants.models import Tenant, TenantDomain
 
 
 def create_demo_tenants(
@@ -206,7 +206,7 @@ def create_single_tenant(
             
             # Create domain if provided
             if domain:
-                domain_obj = Domain.objects.create(
+                domain_obj = TenantDomain.objects.create(
                     domain=domain.lower(),
                     tenant=tenant,
                     is_primary=is_primary,

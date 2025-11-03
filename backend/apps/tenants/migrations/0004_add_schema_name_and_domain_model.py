@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.CreateModel(
-            name="Domain",
+            name="TenantDomain",
             fields=[
                 (
                     "id",
@@ -57,21 +57,21 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         help_text="Tenant associated with this domain",
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="domains",
+                        related_name="tenant_domains",
                         to="tenants.tenant",
                     ),
                 ),
             ],
             options={
-                "db_table": "tenants_domain",
+                "db_table": "tenants_tenantdomain",
                 "ordering": ["domain"],
                 "indexes": [
                     models.Index(
-                        fields=["domain"], name="tenants_dom_domain_6df599_idx"
+                        fields=["domain"], name="tenants_ten_domain_6df599_idx"
                     ),
                     models.Index(
                         fields=["tenant", "is_primary"],
-                        name="tenants_dom_tenant__3bd559_idx",
+                        name="tenants_ten_tenant__3bd559_idx",
                     ),
                 ],
             },
