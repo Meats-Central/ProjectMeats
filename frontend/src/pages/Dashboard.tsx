@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { apiService, Supplier, PurchaseOrder } from '../services/apiService';
+import { useTheme } from '../contexts/ThemeContext';
+import { Theme } from '../config/theme';
 import SupplierPerformanceChart from '../components/Visualization/SupplierPerformanceChart';
 import PurchaseOrderTrends from '../components/Visualization/PurchaseOrderTrends';
 
@@ -35,6 +37,7 @@ interface PurchaseOrderTrendData {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [stats, setStats] = useState<DashboardStats>({
     suppliers: 0,
     customers: 0,
@@ -281,15 +284,15 @@ const Dashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingContainer>Loading dashboard...</LoadingContainer>;
+    return <LoadingContainer $theme={theme}>Loading dashboard...</LoadingContainer>;
   }
 
   if (error) {
     return (
-      <ErrorContainer>
+      <ErrorContainer $theme={theme}>
         <ErrorIcon>⚠️</ErrorIcon>
-        <ErrorTitle>Error Loading Dashboard</ErrorTitle>
-        <ErrorMessage>{error}</ErrorMessage>
+        <ErrorTitle $theme={theme}>Error Loading Dashboard</ErrorTitle>
+        <ErrorMessage $theme={theme}>{error}</ErrorMessage>
         <RetryButton onClick={handleRefresh}>Retry</RetryButton>
       </ErrorContainer>
     );
@@ -300,43 +303,43 @@ const Dashboard: React.FC = () => {
       <DashboardHeader>
         <HeaderTop>
           <TitleSection>
-            <Title>Dashboard</Title>
-            <Subtitle>Welcome to ProjectMeats Business Management System</Subtitle>
+            <Title $theme={theme}>Dashboard</Title>
+            <Subtitle $theme={theme}>Welcome to ProjectMeats Business Management System</Subtitle>
           </TitleSection>
-          <RefreshButton onClick={handleRefresh}>🔄 Refresh Data</RefreshButton>
+          <RefreshButton onClick={handleRefresh} $theme={theme}>🔄 Refresh Data</RefreshButton>
         </HeaderTop>
       </DashboardHeader>
 
       <StatsGrid>
-        <StatCard>
+        <StatCard $theme={theme}>
           <StatIcon>🏭</StatIcon>
           <StatContent>
-            <StatNumber>{stats.suppliers}</StatNumber>
-            <StatLabel>Suppliers</StatLabel>
+            <StatNumber $theme={theme}>{stats.suppliers}</StatNumber>
+            <StatLabel $theme={theme}>Suppliers</StatLabel>
           </StatContent>
         </StatCard>
 
-        <StatCard>
+        <StatCard $theme={theme}>
           <StatIcon>👥</StatIcon>
           <StatContent>
-            <StatNumber>{stats.customers}</StatNumber>
-            <StatLabel>Customers</StatLabel>
+            <StatNumber $theme={theme}>{stats.customers}</StatNumber>
+            <StatLabel $theme={theme}>Customers</StatLabel>
           </StatContent>
         </StatCard>
 
-        <StatCard>
+        <StatCard $theme={theme}>
           <StatIcon>📋</StatIcon>
           <StatContent>
-            <StatNumber>{stats.purchaseOrders}</StatNumber>
-            <StatLabel>Purchase Orders</StatLabel>
+            <StatNumber $theme={theme}>{stats.purchaseOrders}</StatNumber>
+            <StatLabel $theme={theme}>Purchase Orders</StatLabel>
           </StatContent>
         </StatCard>
 
-        <StatCard>
+        <StatCard $theme={theme}>
           <StatIcon>💰</StatIcon>
           <StatContent>
-            <StatNumber>{stats.accountsReceivables}</StatNumber>
-            <StatLabel>Accounts Receivables</StatLabel>
+            <StatNumber $theme={theme}>{stats.accountsReceivables}</StatNumber>
+            <StatLabel $theme={theme}>Accounts Receivables</StatLabel>
           </StatContent>
         </StatCard>
       </StatsGrid>
@@ -347,59 +350,59 @@ const Dashboard: React.FC = () => {
       </ChartsContainer>
 
       <ChartsContainer>
-        <ChartCard>
-          <ChartTitle>Recent Activity</ChartTitle>
+        <ChartCard $theme={theme}>
+          <ChartTitle $theme={theme}>Recent Activity</ChartTitle>
           {recentActivity.length > 0 ? (
             <ActivityList>
               {recentActivity.map((activity, index) => (
-                <ActivityItem key={index}>
-                  <ActivityIcon>{getActivityIcon(activity.type)}</ActivityIcon>
+                <ActivityItem key={index} $theme={theme}>
+                  <ActivityIcon>{ getActivityIcon(activity.type)}</ActivityIcon>
                   <ActivityContent>
-                    <ActivityTitle>{activity.title}</ActivityTitle>
-                    <ActivityDescription>{activity.description}</ActivityDescription>
+                    <ActivityTitle $theme={theme}>{activity.title}</ActivityTitle>
+                    <ActivityDescription $theme={theme}>{activity.description}</ActivityDescription>
                   </ActivityContent>
-                  <ActivityTime>{formatTimestamp(activity.timestamp)}</ActivityTime>
+                  <ActivityTime $theme={theme}>{formatTimestamp(activity.timestamp)}</ActivityTime>
                 </ActivityItem>
               ))}
             </ActivityList>
           ) : (
-            <ChartPlaceholder>
+            <ChartPlaceholder $theme={theme}>
               <ChartIcon>📈</ChartIcon>
-              <ChartText>No recent activity to display</ChartText>
+              <ChartText $theme={theme}>No recent activity to display</ChartText>
             </ChartPlaceholder>
           )}
         </ChartCard>
 
-        <ChartCard>
-          <ChartTitle>Quick Stats</ChartTitle>
+        <ChartCard $theme={theme}>
+          <ChartTitle $theme={theme}>Quick Stats</ChartTitle>
           <StatsOverview>
-            <OverviewStat>
-              <OverviewLabel>Total Entities</OverviewLabel>
-              <OverviewNumber>
+            <OverviewStat $theme={theme}>
+              <OverviewLabel $theme={theme}>Total Entities</OverviewLabel>
+              <OverviewNumber $theme={theme}>
                 {stats.suppliers +
                   stats.customers +
                   stats.purchaseOrders +
                   stats.accountsReceivables}
               </OverviewNumber>
             </OverviewStat>
-            <OverviewStat>
-              <OverviewLabel>Active POs</OverviewLabel>
-              <OverviewNumber>{stats.purchaseOrders}</OverviewNumber>
+            <OverviewStat $theme={theme}>
+              <OverviewLabel $theme={theme}>Active POs</OverviewLabel>
+              <OverviewNumber $theme={theme}>{stats.purchaseOrders}</OverviewNumber>
             </OverviewStat>
-            <OverviewStat>
-              <OverviewLabel>Outstanding AR</OverviewLabel>
-              <OverviewNumber>{stats.accountsReceivables}</OverviewNumber>
+            <OverviewStat $theme={theme}>
+              <OverviewLabel $theme={theme}>Outstanding AR</OverviewLabel>
+              <OverviewNumber $theme={theme}>{stats.accountsReceivables}</OverviewNumber>
             </OverviewStat>
-            <OverviewStat>
-              <OverviewLabel>Business Partners</OverviewLabel>
-              <OverviewNumber>{stats.suppliers + stats.customers}</OverviewNumber>
+            <OverviewStat $theme={theme}>
+              <OverviewLabel $theme={theme}>Business Partners</OverviewLabel>
+              <OverviewNumber $theme={theme}>{stats.suppliers + stats.customers}</OverviewNumber>
             </OverviewStat>
           </StatsOverview>
         </ChartCard>
       </ChartsContainer>
 
-      <QuickActions>
-        <QuickActionTitle>Quick Actions</QuickActionTitle>
+      <QuickActions $theme={theme}>
+        <QuickActionTitle $theme={theme}>Quick Actions</QuickActionTitle>
         <ActionButtons>
           <ActionButton onClick={() => handleQuickAction('add-supplier')}>
             + Add Supplier
@@ -423,13 +426,13 @@ const DashboardContainer = styled.div`
   max-width: 1200px;
 `;
 
-const LoadingContainer = styled.div`
+const LoadingContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   justify-content: center;
   align-items: center;
   height: 200px;
   font-size: 18px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
 `;
 
 const DashboardHeader = styled.div`
@@ -453,10 +456,10 @@ const TitleSection = styled.div`
   flex: 1;
 `;
 
-const RefreshButton = styled.button`
-  background: #f8f9fa;
-  color: #495057;
-  border: 1px solid #dee2e6;
+const RefreshButton = styled.button<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
+  color: ${(props) => props.$theme.colors.textPrimary};
+  border: 1px solid ${(props) => props.$theme.colors.border};
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 14px;
@@ -466,8 +469,8 @@ const RefreshButton = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background: #e9ecef;
-    border-color: #adb5bd;
+    background: ${(props) => props.$theme.colors.surfaceHover};
+    border-color: ${(props) => props.$theme.colors.borderLight};
     transform: translateY(-1px);
   }
 
@@ -476,16 +479,16 @@ const RefreshButton = styled.button`
   }
 `;
 
-const Title = styled.h1`
+const Title = styled.h1<{ $theme: Theme }>`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin: 0 0 8px 0;
 `;
 
-const Subtitle = styled.p`
+const Subtitle = styled.p<{ $theme: Theme }>`
   font-size: 16px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
   margin: 0;
 `;
 
@@ -496,21 +499,21 @@ const StatsGrid = styled.div`
   margin-bottom: 30px;
 `;
 
-const StatCard = styled.div`
-  background: white;
+const StatCard = styled.div<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
   border-radius: 12px;
   padding: 25px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 20px ${(props) => props.$theme.colors.shadowMedium};
   }
 `;
 
@@ -524,16 +527,16 @@ const StatContent = styled.div`
   flex-direction: column;
 `;
 
-const StatNumber = styled.div`
+const StatNumber = styled.div<{ $theme: Theme }>`
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin-bottom: 4px;
 `;
 
-const StatLabel = styled.div`
+const StatLabel = styled.div<{ $theme: Theme }>`
   font-size: 14px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
   font-weight: 500;
 `;
 
@@ -548,29 +551,29 @@ const ChartsContainer = styled.div`
   }
 `;
 
-const ChartCard = styled.div`
-  background: white;
+const ChartCard = styled.div<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
   border-radius: 12px;
   padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
 `;
 
-const ChartTitle = styled.h3`
+const ChartTitle = styled.h3<{ $theme: Theme }>`
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin: 0 0 20px 0;
 `;
 
-const ChartPlaceholder = styled.div`
+const ChartPlaceholder = styled.div<{ $theme: Theme }>`
   height: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: ${(props) => props.$theme.colors.background};
   border-radius: 8px;
-  border: 2px dashed #dee2e6;
+  border: 2px dashed ${(props) => props.$theme.colors.border};
 `;
 
 const ChartIcon = styled.div`
@@ -579,22 +582,22 @@ const ChartIcon = styled.div`
   opacity: 0.5;
 `;
 
-const ChartText = styled.div`
-  color: #6c757d;
+const ChartText = styled.div<{ $theme: Theme }>`
+  color: ${(props) => props.$theme.colors.textSecondary};
   font-style: italic;
 `;
 
-const QuickActions = styled.div`
-  background: white;
+const QuickActions = styled.div<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
   border-radius: 12px;
   padding: 25px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
 `;
 
-const QuickActionTitle = styled.h3`
+const QuickActionTitle = styled.h3<{ $theme: Theme }>`
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin: 0 0 20px 0;
 `;
 
@@ -622,7 +625,7 @@ const ActionButton = styled.button`
 `;
 
 // Error components
-const ErrorContainer = styled.div`
+const ErrorContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -636,16 +639,16 @@ const ErrorIcon = styled.div`
   margin-bottom: 16px;
 `;
 
-const ErrorTitle = styled.h2`
+const ErrorTitle = styled.h2<{ $theme: Theme }>`
   font-size: 24px;
   font-weight: 600;
-  color: #e74c3c;
+  color: ${(props) => props.$theme.colors.error};
   margin: 0 0 8px 0;
 `;
 
-const ErrorMessage = styled.p`
+const ErrorMessage = styled.p<{ $theme: Theme }>`
   font-size: 16px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
   margin: 0 0 24px 0;
 `;
 
@@ -672,12 +675,12 @@ const ActivityList = styled.div`
   overflow-y: auto;
 `;
 
-const ActivityItem = styled.div`
+const ActivityItem = styled.div<{ $theme: Theme }>`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: 1px solid ${(props) => props.$theme.colors.borderLight};
 
   &:last-child {
     border-bottom: none;
@@ -694,21 +697,21 @@ const ActivityContent = styled.div`
   min-width: 0;
 `;
 
-const ActivityTitle = styled.div`
+const ActivityTitle = styled.div<{ $theme: Theme }>`
   font-size: 14px;
   font-weight: 500;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin-bottom: 2px;
 `;
 
-const ActivityDescription = styled.div`
+const ActivityDescription = styled.div<{ $theme: Theme }>`
   font-size: 12px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
 `;
 
-const ActivityTime = styled.div`
+const ActivityTime = styled.div<{ $theme: Theme }>`
   font-size: 11px;
-  color: #95a5a6;
+  color: ${(props) => props.$theme.colors.textDisabled};
   white-space: nowrap;
 `;
 
@@ -719,24 +722,24 @@ const StatsOverview = styled.div`
   gap: 20px;
 `;
 
-const OverviewStat = styled.div`
+const OverviewStat = styled.div<{ $theme: Theme }>`
   text-align: center;
   padding: 20px;
-  background: #f8f9fa;
+  background: ${(props) => props.$theme.colors.background};
   border-radius: 8px;
 `;
 
-const OverviewLabel = styled.div`
+const OverviewLabel = styled.div<{ $theme: Theme }>`
   font-size: 12px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
   margin-bottom: 8px;
   font-weight: 500;
 `;
 
-const OverviewNumber = styled.div`
+const OverviewNumber = styled.div<{ $theme: Theme }>`
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
 `;
 
 export default Dashboard;
