@@ -3,19 +3,28 @@
  * 
  * Manages theme state (light/dark mode) across the application.
  * Persists theme preference to localStorage and syncs with backend.
+ * Fetches tenant-specific branding (logo, colors) from backend.
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Theme, themes } from '../config/theme';
+import { Theme, themes, lightTheme, darkTheme } from '../config/theme';
 import { getRuntimeConfig } from '../config/runtime';
 import axios from 'axios';
 
 type ThemeName = 'light' | 'dark';
+
+interface TenantBranding {
+  logoUrl: string | null;
+  primaryColorLight: string;
+  primaryColorDark: string;
+  tenantName: string;
+}
 
 interface ThemeContextType {
   theme: Theme;
   themeName: ThemeName;
   toggleTheme: () => void;
   setTheme: (themeName: ThemeName) => void;
+  tenantBranding: TenantBranding | null;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -30,8 +39,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const stored = localStorage.getItem('theme');
     return (stored === 'light' || stored === 'dark') ? stored : 'light';
   });
+  
+  const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
+  const [customTheme, setCustomTheme] = useState<Theme | null>(null);
 
-  const theme = themes[themeName];
+  // Use custom theme if tenant branding is loaded, otherwise use default theme
+  const theme = customTheme || themes[themeName];
 
   // Sync theme to backend when it changes
   useEffect(() => {
@@ -57,6 +70,57 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
 
     syncThemeToBackend();
+  }, [themeName]);
+
+  // Load tenant branding from backend on mount
+  useEffect(() => {
+    const loadTenantBranding = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1');
+        const response = await axios.get(
+          `${apiBaseUrl}/tenants/current_theme/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`,
+            },
+          }
+        );
+
+        const branding = {
+          logoUrl: response.data.logo_url,
+          primaryColorLight: response.data.primary_color_light,
+          primaryColorDark: response.data.primary_color_dark,
+          tenantName: response.data.name,
+        };
+        
+        setTenantBranding(branding);
+        
+        // Create custom theme with tenant colors
+        const baseLight = { ...lightTheme };
+        const baseDark = { ...darkTheme };
+        
+        // Apply tenant primary colors
+        baseLight.colors.primary = branding.primaryColorLight;
+        baseLight.colors.primaryHover = adjustColor(branding.primaryColorLight, -10);
+        baseLight.colors.primaryActive = adjustColor(branding.primaryColorLight, -20);
+        baseLight.colors.sidebarActive = branding.primaryColorLight;
+        
+        baseDark.colors.primary = branding.primaryColorDark;
+        baseDark.colors.primaryHover = adjustColor(branding.primaryColorDark, 10);
+        baseDark.colors.primaryActive = adjustColor(branding.primaryColorDark, -10);
+        baseDark.colors.sidebarActive = branding.primaryColorDark;
+        
+        // Set the custom theme based on current theme name
+        setCustomTheme(themeName === 'light' ? baseLight : baseDark);
+      } catch (error) {
+        console.error('Failed to load tenant branding:', error);
+      }
+    };
+
+    loadTenantBranding();
   }, [themeName]);
 
   // Load theme from backend on mount
@@ -105,10 +169,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     themeName,
     toggleTheme,
     setTheme,
+    tenantBranding,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
+
+// Helper function to adjust color brightness
+function adjustColor(color: string, percent: number): string {
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = ((num >> 16)) + amt;
+  const G = ((num >> 8) & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return '#' + (
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  ).toString(16).slice(1).toUpperCase();
+}
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);

@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
-  const { theme } = useTheme();
+  const { theme, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
   const [keepOpen, setKeepOpen] = useState(() => {
@@ -68,8 +68,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     >
       <SidebarHeader $theme={theme}>
         <Logo>
-          <LogoIcon>🥩</LogoIcon>
-          {isExpanded && <LogoText>ProjectMeats</LogoText>}
+          {tenantBranding?.logoUrl ? (
+            <LogoImage src={tenantBranding.logoUrl} alt={tenantBranding.tenantName} />
+          ) : (
+            <LogoIcon>🥩</LogoIcon>
+          )}
+          {isExpanded && <LogoText>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
         </Logo>
         <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
           📌
@@ -121,6 +125,13 @@ const Logo = styled.div`
 
 const LogoIcon = styled.span`
   font-size: 24px;
+`;
+
+const LogoImage = styled.img`
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
 `;
 
 const LogoText = styled.h2`
