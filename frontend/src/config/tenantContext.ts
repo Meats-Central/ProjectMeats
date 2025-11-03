@@ -121,12 +121,15 @@ function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'ua
   if (tenant) {
     const protocol = environment === 'development' ? 'http' : 'https';
     
-    // Build environment prefix
+    // Build environment prefix based on environment
     let envPrefix = '';
     if (environment === 'development') {
       envPrefix = '-dev';
     } else if (environment === 'uat') {
       envPrefix = '-uat';
+    } else {
+      // Production has no prefix
+      envPrefix = '';
     }
     
     // Use tenant-specific API endpoint
@@ -186,14 +189,14 @@ export function getTenantBranding(): {
 export function initializeTenantContext(): TenantInfo {
   const context = getTenantContext();
   
-  // Log in development mode only
+  // Log in development mode only (without exposing full API URL)
   if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line no-console
     console.log('[Tenant Context] Initialized:', {
       hostname: window.location.hostname,
       tenant: context.tenant || 'none',
       environment: context.environment,
-      apiBaseUrl: context.apiBaseUrl,
+      // Don't log full API URL to avoid exposing endpoint structure
     });
   }
   

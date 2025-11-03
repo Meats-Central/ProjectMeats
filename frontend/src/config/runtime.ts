@@ -128,6 +128,7 @@ export function getCurrentTenant(): string | null {
 export { getRuntimeConfig, getRuntimeConfigBoolean, getRuntimeConfigNumber };
 
 // Log configuration source in development
+// Note: This only runs once when the module is first imported
 if (process.env.NODE_ENV === 'development') {
   // eslint-disable-next-line no-console
   console.log('[Runtime Config] Loaded from:', 
