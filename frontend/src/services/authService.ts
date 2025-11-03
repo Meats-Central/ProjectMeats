@@ -2,6 +2,7 @@
  * Authentication service for managing user authentication state.
  */
 import axios from 'axios';
+import { config } from '../config/runtime';
 import { UserProfile } from '../types';
 
 const API_BASE_URL = config.API_BASE_URL;
