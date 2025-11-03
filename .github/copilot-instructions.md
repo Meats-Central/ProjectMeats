@@ -1,225 +1,110 @@
-# Developer & Copilot Coding Agent Instructions  
-## ProjectMeats – Repository Maintenance, PR Automation, and Coding Standards
+# Enhanced Copilot Instructions for ProjectMeats
 
----
+## General Guidelines
 
-## 🚩 Branch Organization, Naming, Tagging, and Promotion
+1. Always create a new feature branch from main for each task, named descriptively (e.g., "feature/enhance-db-models").
+2. Review the entire task context carefully, including any referenced previous responses or PRs.
+3. If the task involves code changes, especially database models:
+   - Update models.py files with new fields/relationships using Django best practices (e.g., appropriate field types, choices, null/blank, migrations).
+   - Generate and apply migrations (makemigrations and migrate) locally to test.
+   - Update related components: admin.py for admin interface visibility, serializers.py for API, views.py if needed, forms.py for frontend forms, and templates if displaying data.
+   - Ensure no data loss or conflicts with existing data.
+   - Test changes locally, then push to UAT for verification.
 
-- **Branch Structure:**  
-  Use three main branches:
-  - `development` (all features/fixes/experiments start + merge here)
-  - `UAT` (staging; only code tested/reviewed in dev gets promoted here)
-  - `main` (production; only code signed off in UAT is promoted here)
+4. Assume repo structure: backend/apps/[app_name]/models.py, etc. Adjust if incorrect.
+5. If changes affect production, ensure CI/CD workflow approvals are followed.
+6. Minimize changes to only what's necessary; merge without duplication if fields exist.
+7. After implementation, verify on UAT (uat.meatscentral.com) and note if fields are visible in admin or relevant pages. If not, fix deployment or configuration issues.
+8. Commit with clear messages, e.g., "Enhance models and apply migrations for visibility".
 
-  See [Branch Workflow Checklist](../branch-workflow-checklist.md) for diagrams and step-by-step workflow.
+## Continuous Learning and Logging
 
-- **Branch Naming Conventions:**  
-  ```
-  feature/<concise-topic>          # New features
-  fix/<bug-topic>                  # Bugfixes
-  chore/<infra-maintenance>        # Tooling, infra or CI
-  refactor/<module>                # Refactoring
-  hotfix/<emergency-topic>         # Emergency quick fixes
-  ```
-  - Use lowercase/hyphens; prefix by type for scanning.
-  - Never work or merge directly in `main` or `UAT`.
+For every task, after completion and before creating the PR, append an entry to "copilot-log.md" in the root:
 
-- **Tagging & Releases:**  
-  - Tag major/minor releases in `main` as `vX.Y.Z` after stable PR merges.
-  - Use annotated tags for official releases.
-  - Remove obsolete tags/branches as part of monthly repo maintenance.
-
-- **Branch Protection:**  
-  - Enable branch protection in GitHub settings: require status checks, reviews, restrict force-pushes/deletes on `main`, `UAT`, `development`.
-
----
-
-## 💡 Auto-PR Creation for Environment Promotion (via GitHub Actions)
-
-Auto-promotion between environments is implemented in `.github/workflows/` with workflows like below:
-
-**Example**: Promote changes from `development` → `UAT` automatically after merge:
-
-```yaml name=.github/workflows/promote-dev-to-uat.yml
-name: Promote Dev to UAT
-
-on:
-  push:
-    branches:
-      - development
-  workflow_dispatch:
-
-jobs:
-  create-uat-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Create Pull Request to UAT
-        uses: peter-evans/create-pull-request@v5
-        with:
-          source-branch: development
-          destination-branch: uat
-          title: 'Promote development to UAT'
-          body: |
-            Auto-created PR to promote tested changes from development to UAT environment.
-          labels: uat-promotion, automation
-          reviewers: Vacilator
+### Format:
+```
+## Task: [Brief task description] - [Date: YYYY-MM-DD]
+- **Actions Taken**: [List key steps]
+- **Misses/Failures**: [What was overlooked or didn't work, e.g., forgot to update admin.py leading to invisible fields]
+- **Lessons Learned**: [Insights, e.g., Always check admin interface after model changes]
+- **Efficiency Suggestions**: [Ways to improve next time, e.g., Add automated tests for model fields]
 ```
 
-Repeat similarly for `UAT` → `main`:
+Keep entries concise (under 200 words). Review previous logs before starting a task to apply past learnings.
+If a task repeats a past mistake, note it and propose preventive measures.
 
-- Ensure only fast-forward, conflict-free merges
-- PR is auto-created, not auto-merged (review/approval required, CI must pass)
-- Template body should clearly state promotion reason/scope
-- Configure branch protection to prevent unintended merges
+## Specific to DB Enhancements
 
----
+1. For customer/supplier models: Ensure ManyToMany for proteins, ForeignKeys to Plant/Contact, etc., as per spreadsheets.
+2. If fields aren't visible post-merge: Check if migrations were run on UAT/PROD, update admin registrations, or debug deployment.
 
-## 📄 Documentation, File Placement, Standards & Logging
+## Migration Verification Checklist
 
-- **Docs Location:**  
-  - Main guides: `/docs/`, root `README.md`
-  - API/component: with module code (see `backend/apps/<app>/docs/`, `frontend/docs/`)
-  - Workflow/process: `/docs/WORKFLOW.md` (gives branch flow, environments, CI)
-  - Use usage/code examples + diagrams (`mermaid`/PlantUML)
-
-- **Copilot Logging:**  
-  - After each PR/task, add to `copilot-log.md`:
-    ```
-    ## Task: [Brief task] - [Date: YYYY-MM-DD]
-    - **Actions Taken**:
-    - **Misses/Failures**:
-    - **Lessons Learned**:
-    ```
-- **Docs Updates:**  
-  - Keep all env/config/infra docs up to date with code/workflow changes
-
----
-
-## 🧹 Clean-Ups, Refactoring, & Repository Health
-
-- **Regular Clean-Up:**  
-  - Remove unused deps, dead code, deprecated configs/scripts
-  - Archive inactive branches/tags (> 3 months old unless needed)
-  - Format/lint all code before merge (Black for Python, Prettier for JS/TS)
-
-- **Refactoring:**  
-  - Modularize/reduce tech debt, maintain/test coverage
-  - No breaking API/model changes without migration plan/docs/review
-  - Remove feature flags once stable
-
-- **Maintenance:**  
-  - Audit permissions, branches, tags, dependencies monthly
-  - Remove/Archive obsolete Terraform/HCL/infra unless strictly needed
-  - Sync CI/CD pipeline configs to current branch/env structure
-
----
-
-## ⚡ Requirements & Dependency Management
-
-**Python/Django**
-- Pin dependencies in `requirements*.txt`
-- Lock with pip-compile/poetry (keep sync!)
-- Run `pip-audit` for vulnerabilities regularly
-
-**TypeScript/Node**
-- Pin in `package.json`/`lock`
-- Audit/cleanup regularly (`npm audit`, `yarn audit`)
-- Remove unused packages monthly
-- Enable Dependabot for automated update PRs
-
-**Makefile/Shell**
-- Document all scripts (`docs/dev-scripts.md`)
-- Remove those not used in CI/docs
-
----
-
-## 🔄 PR Automation & Review Requirements
-
-- All code changes merged by PR, with required reviewers and checklist
-- CI must pass on `development`, `UAT`, `main`
-- Promotion/merges require environment-specific checks
-- PR template must include migration notes, review checklist, clear scope/reasoning
-
----
-
-## ⚙️ Coding Guidelines & Component Update Checklists
-
-- Always update relevant files for component changes (models, admin, serializers, forms, templates, docs, tests)
-- Test locally and in UAT before production
-- Use descriptive commits referencing issues/PRs
-
-**Django/Backend**
-- Use Django model best practices
-- Always commit/run migrations with model changes
-- Update admin.py/serializers/tests/docs for new fields
-
-**Frontend/TypeScript**
-- Use best practices in components/state/UI/auth
-- API contract compatibility with backend—document in frontend docs
-- Add/maintain tests for all new UI/endpoint logic
-
-**Continuous Improvement**
-- Use copilot-log.md for postmortems and to prevent repeated errors
-- Log and solve recurring issues through workflow updates
-
----
-
-## 🛡️ Repository Maintenance for Ideal State
-
-- Monthly audit: stale branches, tags, permissions, dependencies/CI
-- Remove legacy infra (e.g., Terraform) unless referenced by docs/workflows
-- README must cover all of: project goals, stack overview, branch/workflow, getting started
-- Archive deprecated docs/code/scripts
-
----
-
-## ⚡ Checklist Summaries
-
-### Migration Verification Checklist
+Before considering any database-related task complete:
 
 - [ ] Run `python manage.py makemigrations` locally
-- [ ] Run `python manage.py migrate` locally
+- [ ] Run `python manage.py migrate` locally  
 - [ ] Test model changes in Django admin interface
-- [ ] Update admin.py for new fields
-- [ ] Update serializers/forms/templates/tests/docs
+- [ ] Update admin.py registrations for new fields
+- [ ] Update serializers.py for API endpoints
+- [ ] Update forms.py if frontend forms are affected
 - [ ] Test API endpoints with new fields
-- [ ] Document migration dependencies and rollback steps
+- [ ] Verify field visibility in admin interface
+- [ ] Document migration dependencies and potential rollback procedures
 
-### Component Update Checklist
+## Component Update Checklist
 
-- [ ] **Models**: Field changes, types/constraints
-- [ ] **Admin**: Register new fields
-- [ ] **Serializers**: API coverage
-- [ ] **Views**: Handle new fields
-- [ ] **Forms**: Support in UI
-- [ ] **Templates**: Show new fields
-- [ ] **Tests**: Add/update tests
-- [ ] **Docs**: Update documentation
+When adding new model fields or relationships:
 
-### UAT and Production Verification
-- **UAT**:  migrations/tests/UI/API/permissions
-- **Production**: CI approvals/logs/db/api monitoring
+- [ ] **Models**: Add fields with appropriate types, constraints, and defaults
+- [ ] **Admin**: Update admin.py to display new fields in list_display, fieldsets, etc.
+- [ ] **Serializers**: Update API serializers to include new fields
+- [ ] **Views**: Update views if they need to handle new fields
+- [ ] **Forms**: Update frontend forms if they interact with new fields
+- [ ] **Templates**: Update templates if they display new data
+- [ ] **Tests**: Add or update tests for new functionality
+- [ ] **Documentation**: Update API documentation and field descriptions
 
----
+## UAT and Production Verification
 
-## 🏷️ Common Pitfalls to Avoid
+After deploying changes:
 
-- Missing admin/serializer updates for model changes
-- Incomplete migrations/tests
-- API inconsistencies across stack
-- Outdated documentation and stale branches/tags
-- Unused/test/deprecated dependencies/scripts
-- Direct merges to production branches
-- Skipping code reviews or required CI status
+1. **UAT Environment** (uat.meatscentral.com):
+   - [ ] Verify migrations were applied successfully
+   - [ ] Check admin interface for field visibility
+   - [ ] Test API endpoints return new fields
+   - [ ] Verify frontend displays new data correctly
+   - [ ] Check for any console errors or warnings
 
----
+2. **Production Environment**:
+   - [ ] Confirm CI/CD workflow approvals completed
+   - [ ] Monitor deployment logs for migration success
+   - [ ] Verify field visibility and functionality
+   - [ ] Check performance impact of new fields
+   - [ ] Monitor error logs for any issues
 
-## 🔗 References
+## Error Prevention Strategies
 
-- [Branch Workflow Checklist](../branch-workflow-checklist.md)
-- [Django Best Practices](https://docs.djangoproject.com/en/5.0/topics/db/models/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/)
-- [GitHub Flow & DX Best Practices](https://docs.github.com/en/get-started/quickstart/github-flow)
-- Questions/improvements → open an issue or start a repo discussion.
+1. **Before Starting**: Always review copilot-log.md for similar past tasks and lessons learned
+2. **During Development**: Use the checklists above systematically
+3. **Testing**: Test locally before pushing, test on UAT before production
+4. **Documentation**: Document any non-standard approaches or workarounds
+5. **Review**: Have changes reviewed by team members for complex modifications
+
+## Common Pitfalls to Avoid
+
+1. **Missing Admin Updates**: Always update admin.py when adding model fields
+2. **Incomplete Migrations**: Ensure migrations handle data preservation and constraints
+3. **API Inconsistencies**: Update serializers to maintain API contract consistency
+4. **Frontend Disconnection**: Ensure frontend components can handle new data structures
+5. **Testing Gaps**: Don't skip local testing before UAT deployment
+6. **Documentation Lag**: Update documentation as changes are made, not afterwards
+
+## Best Practices for Django Development
+
+1. **Model Fields**: Use appropriate field types, set null/blank correctly, add help_text
+2. **Migrations**: Review generated migrations before applying, add custom migrations when needed
+3. **Admin Interface**: Use fieldsets, list_display, search_fields for better UX
+4. **API Design**: Follow RESTful principles, maintain backward compatibility
+5. **Error Handling**: Implement proper error handling and user feedback
+6. **Performance**: Consider database indexing for frequently queried fields
