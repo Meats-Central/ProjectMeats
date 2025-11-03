@@ -41,9 +41,10 @@ DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlit
 
 if DB_ENGINE == "django.db.backends.postgresql":
     # PostgreSQL configuration - requires all environment variables
+    # Using django-tenants backend for schema-based multi-tenancy
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.postgresql",
+            "ENGINE": "django_tenants.postgresql_backend",  # Use django-tenants backend
             "NAME": config("DB_NAME"),
             "USER": config("DB_USER"),
             "PASSWORD": config("DB_PASSWORD"),

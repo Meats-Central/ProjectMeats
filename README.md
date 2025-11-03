@@ -21,6 +21,7 @@ The automated setup script configures everything needed including authentication
 ## 🏗️ Technology Stack
 
 - **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (recommended) or SQLite (fallback)
+- **Multi-tenancy**: django-tenants for schema-based isolation + shared-schema approach
 - **Frontend**: React 18.2.0 + TypeScript + Styled Components  
 - **AI Assistant**: OpenAI GPT-4 integration with modern Copilot-style interface
 - **Authentication**: Django User system with profile management

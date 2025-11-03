@@ -53,14 +53,21 @@ for h in _ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS:
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
+# Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
+_db_config = dj_database_url.config(
+    default=config(
+        "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
+    ),  # noqa: F405
+    conn_max_age=600,
+    conn_health_checks=True,
+)
+
+# Use django-tenants backend for PostgreSQL to enable schema-based multi-tenancy
+if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+    _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=config(
-            "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
-        ),  # noqa: F405
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    "default": _db_config
 }
 
 # -----------------------------------------------------------------------------

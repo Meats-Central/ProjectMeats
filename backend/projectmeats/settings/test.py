@@ -7,6 +7,9 @@ from .base import *  # noqa
 SECRET_KEY = 'test-secret-key-not-for-production-use-only-testing'
 
 # Use SQLite for testing (faster and doesn't require PostgreSQL)
+# Note: django-tenants requires its router, but Client/Domain models won't be
+# fully functional with SQLite (schemas not supported). Use PostgreSQL for
+# testing schema-based multi-tenancy features.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

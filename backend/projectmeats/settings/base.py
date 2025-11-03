@@ -20,6 +20,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    "django_tenants",  # Schema-based multi-tenancy - must be before django apps
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
@@ -54,7 +55,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "apps.tenants.middleware.TenantMiddleware",  # Multi-tenancy middleware
+    # Multi-tenancy middleware - currently using shared-schema approach
+    # For schema-based routing, replace with: django_tenants.middleware.TenantMainMiddleware
+    # This will be configured in future PRs based on deployment needs
+    "apps.tenants.middleware.TenantMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -250,3 +254,68 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+
+# Django-Tenants Configuration
+# Schema-based multi-tenancy settings
+# Reference: https://django-tenants.readthedocs.io/
+#
+# NOTE: This is a DUAL multi-tenancy setup:
+# 1. Schema-based (django-tenants): Client/Domain models for complete isolation
+# 2. Shared-schema (legacy): Tenant/TenantUser models for simpler setups
+#
+# INSTALLED_APPS is kept for backward compatibility with shared-schema approach.
+# SHARED_APPS/TENANT_APPS configure schema-based routing.
+# Middleware routing (choosing TenantMiddleware vs TenantMainMiddleware) will be
+# handled in future PRs based on deployment needs.
+
+# Tenant model for schema-based multi-tenancy
+TENANT_MODEL = "tenants.Client"
+
+# Domain model for routing requests to tenants
+TENANT_DOMAIN_MODEL = "tenants.Domain"
+
+# Common Django apps used in both shared and tenant schemas
+# These are required for basic Django functionality
+_DJANGO_CORE_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+]
+
+# Apps available in all schemas (shared across all tenants)
+SHARED_APPS = [
+    "django_tenants",  # Must be first
+] + _DJANGO_CORE_APPS + [
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "drf_spectacular",
+    "django_filters",
+    "apps.core",
+    "apps.tenants",  # Tenant management is shared
+]
+
+# Apps that will be created in each tenant schema
+# Include Django core apps for tenant-specific data (users, permissions, etc.)
+TENANT_APPS = _DJANGO_CORE_APPS + [
+    "apps.accounts_receivables",
+    "apps.suppliers",
+    "apps.customers",
+    "apps.contacts",
+    "apps.purchase_orders",
+    "apps.plants",
+    "apps.carriers",
+    "apps.bug_reports",
+    "apps.ai_assistant",
+    "apps.products",
+    "apps.sales_orders",
+    "apps.invoices",
+]
+
+# Database router for multi-tenancy
+DATABASE_ROUTERS = [
+    "django_tenants.routers.TenantSyncRouter",
+]
