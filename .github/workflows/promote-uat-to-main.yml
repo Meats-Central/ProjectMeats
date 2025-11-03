@@ -1,0 +1,26 @@
+name: Promote UAT to Main
+
+on:
+  push:
+    branches:
+      - uat
+  workflow_dispatch:
+
+jobs:
+  create-main-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request to Main
+        uses: peter-evans/create-pull-request@v5
+        with:
+          source-branch: uat
+          destination-branch: main
+          title: Promote UAT to Main (Production Release)
+          body: |
+            Auto-created PR to promote reviewed changes from UAT to main.
+            CI must pass and approval is required before merging to production.
+          labels: prod-release, automation
+          reviewers: Vacilator
