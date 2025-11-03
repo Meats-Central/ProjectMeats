@@ -197,7 +197,7 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${(props) => props.$theme.colors.surfaceHover};
+    background-color: ${(props) => props.$theme.colors.sidebarBorder};
     color: ${(props) => props.$theme.colors.sidebarTextHover};
   }
 
