@@ -39,7 +39,7 @@ def perform_create(self, serializer):
         tenant_user = (
             TenantUser.objects.filter(user=self.request.user, is_active=True)
             .select_related('tenant')
-            .order_by('-role')  # Prioritize owner/admin roles
+            .order_by('-role')  # Alphabetical ordering (consistent with middleware)
             .first()
         )
         if tenant_user:
@@ -55,6 +55,8 @@ def perform_create(self, serializer):
     
     serializer.save(tenant=tenant)
 ```
+
+**Note on Role Ordering**: The `order_by('-role')` uses alphabetical descending order since role is a CharField. This results in ordering: "user" > "owner" > "manager" > "admin" > "readonly". While not perfect, this pattern is used consistently across the codebase (middleware and all ViewSets) for consistency. A future enhancement could implement explicit role priority ordering using Django's Case/When expressions.
 
 ## Files Changed
 
