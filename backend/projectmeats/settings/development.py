@@ -155,15 +155,3 @@ CACHES = {
 # Disable secure cookies for development
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
-
-# CSRF Trusted Origins - Allow requests from frontend domains
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://dev.meatscentral.com",
-    "https://dev-backend.meatscentral.com",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:3003",
-    "http://127.0.0.1:3003",
-]

@@ -43,11 +43,6 @@ CACHES = {
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=True, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
 
-# CSRF Trusted Origins - Inherited from production settings
-# Configure via CSRF_TRUSTED_ORIGINS environment variable (comma-separated)
-# Example: CSRF_TRUSTED_ORIGINS=https://uat.meatscentral.com,https://uat-backend.meatscentral.com
-# Note: This setting is inherited from production.py via the import statement at the top
-
 # Staging health checks (more lenient)
 HEALTH_CHECK = {
     "DISK_USAGE_MAX": 95,  # percent
