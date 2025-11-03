@@ -3,7 +3,7 @@ Middleware for multi-tenancy support in ProjectMeats.
 
 This middleware sets the current tenant in the request context based on:
 1. X-Tenant-ID header (for API requests) - HIGHEST PRIORITY
-2. Full domain name match (via Domain model) - NEW
+2. Full domain name match (via TenantDomain model) - NEW
 3. Subdomain (if configured)
 4. Authenticated user's default tenant association - FALLBACK
 
@@ -14,9 +14,9 @@ Tenant Resolution Order:
    - Validates user has access to requested tenant
    - Returns 403 Forbidden if user lacks permission
    
-2. **Domain Match**: For multi-tenant domain routing (django-tenants pattern)
-   - Matches full domain against Domain model entries
-   - Example: tenant.example.com → Domain.objects.get(domain="tenant.example.com")
+2. **Domain Match**: For multi-tenant domain routing (shared-schema pattern)
+   - Matches full domain against TenantDomain model entries
+   - Example: tenant.example.com → TenantDomain.objects.get(domain="tenant.example.com")
    
 3. **Subdomain**: For multi-tenant web applications
    - Extracts subdomain from request host
@@ -33,7 +33,7 @@ ViewSets should handle None tenant by returning empty querysets or raising valid
 """
 
 from django.http import HttpRequest, HttpResponseForbidden
-from .models import Tenant, TenantUser, Domain
+from .models import Tenant, TenantUser, TenantDomain
 import logging
 
 logger = logging.getLogger(__name__)
@@ -93,19 +93,19 @@ class TenantMiddleware:
                     f"path={request.path}"
                 )
 
-        # 2. Try to get tenant from full domain match (via Domain model)
+        # 2. Try to get tenant from full domain match (via TenantDomain model)
         if not tenant:
             host = request.get_host().split(":")[0]  # Remove port if present
             try:
-                domain_obj = Domain.objects.select_related('tenant').get(
+                domain_obj = TenantDomain.objects.select_related('tenant').get(
                     domain=host
                 )
                 if domain_obj.tenant.is_active:
                     tenant = domain_obj.tenant
                     resolution_method = f"domain ({host})"
-            except Domain.DoesNotExist:
+            except TenantDomain.DoesNotExist:
                 logger.debug(
-                    f"No Domain entry found for: {host}, "
+                    f"No TenantDomain entry found for: {host}, "
                     f"path={request.path}"
                 )
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tenant, TenantUser, Domain
+from .models import Tenant, TenantUser, TenantDomain, Domain, Client
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -44,7 +44,7 @@ class TenantSerializer(serializers.ModelSerializer):
                 "domain": domain.domain,
                 "is_primary": domain.is_primary
             }
-            for domain in obj.domains.all()
+            for domain in obj.tenant_domains.all()
         ]
 
     def validate_slug(self, value):
@@ -164,14 +164,14 @@ class UserTenantSerializer(serializers.ModelSerializer):
         ]
 
 
-class DomainSerializer(serializers.ModelSerializer):
-    """Serializer for Domain model."""
+class TenantDomainSerializer(serializers.ModelSerializer):
+    """Serializer for TenantDomain model (shared-schema approach)."""
     
     tenant_name = serializers.CharField(source="tenant.name", read_only=True)
     tenant_slug = serializers.CharField(source="tenant.slug", read_only=True)
     
     class Meta:
-        model = Domain
+        model = TenantDomain
         fields = [
             "id",
             "domain",
@@ -189,6 +189,39 @@ class DomainSerializer(serializers.ModelSerializer):
         if value:
             value = value.lower()
             if (
+                TenantDomain.objects.filter(domain=value)
+                .exclude(pk=self.instance.pk if self.instance else None)
+                .exists()
+            ):
+                raise serializers.ValidationError(
+                    "A domain with this name already exists."
+                )
+        return value
+
+
+class DomainSerializer(serializers.ModelSerializer):
+    """Serializer for Domain model (schema-based django-tenants approach)."""
+    
+    tenant_name = serializers.CharField(source="tenant.name", read_only=True)
+    tenant_schema = serializers.CharField(source="tenant.schema_name", read_only=True)
+    
+    class Meta:
+        model = Domain
+        fields = [
+            "id",
+            "domain",
+            "tenant",
+            "tenant_name",
+            "tenant_schema",
+            "is_primary",
+        ]
+        read_only_fields = ["id"]
+    
+    def validate_domain(self, value):
+        """Ensure domain is lowercase and unique."""
+        if value:
+            value = value.lower()
+            if (
                 Domain.objects.filter(domain=value)
                 .exclude(pk=self.instance.pk if self.instance else None)
                 .exists()
@@ -197,3 +230,33 @@ class DomainSerializer(serializers.ModelSerializer):
                     "A domain with this name already exists."
                 )
         return value
+
+
+class ClientSerializer(serializers.ModelSerializer):
+    """Serializer for Client model (schema-based django-tenants approach)."""
+    
+    domain_count = serializers.SerializerMethodField()
+    primary_domain = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Client
+        fields = [
+            "id",
+            "schema_name",
+            "name",
+            "description",
+            "created_at",
+            "updated_at",
+            "domain_count",
+            "primary_domain",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+    
+    def get_domain_count(self, obj):
+        """Get count of domains for this client."""
+        return obj.domains.count()
+    
+    def get_primary_domain(self, obj):
+        """Get primary domain for this client."""
+        primary = obj.domains.filter(is_primary=True).first()
+        return primary.domain if primary else None
