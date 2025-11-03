@@ -29,7 +29,7 @@ jobs:
       - name: Check if PR already exists
         id: check-pr
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           PR_COUNT=$(gh pr list --base uat --head development --state open --json number --jq 'length')
           echo "pr_count=$PR_COUNT" >> $GITHUB_OUTPUT
@@ -37,7 +37,7 @@ jobs:
       - name: Create Pull Request
         if: steps.check-pr.outputs.pr_count == '0'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           gh pr create \
             --base uat \
