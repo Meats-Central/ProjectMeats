@@ -48,6 +48,14 @@ class Tenant(models.Model):
     settings = models.JSONField(
         default=dict, help_text="Tenant-specific configuration settings"
     )
+    
+    # Tenant branding
+    logo = models.ImageField(
+        upload_to='tenant_logos/',
+        null=True,
+        blank=True,
+        help_text="Tenant logo image for branding"
+    )
 
     class Meta:
         db_table = "tenants_tenant"
@@ -75,6 +83,63 @@ class Tenant(models.Model):
         if self.slug:
             self.slug = self.slug.lower()
         super().save(*args, **kwargs)
+    
+    def get_theme_settings(self):
+        """
+        Get tenant theme settings from settings JSON.
+        
+        Returns dict with:
+        - logo_url: URL to tenant logo
+        - primary_color_light: Primary color for light theme
+        - primary_color_dark: Primary color for dark theme
+        - name: Tenant display name
+        """
+        theme = self.settings.get('theme', {})
+        
+        # Safely get logo URL
+        logo_url = None
+        if self.logo:
+            try:
+                logo_url = self.logo.url
+            except (ValueError, AttributeError):
+                # File doesn't exist or error accessing URL
+                pass
+        
+        return {
+            'logo_url': logo_url,
+            'primary_color_light': theme.get('primary_color_light', '#3498db'),
+            'primary_color_dark': theme.get('primary_color_dark', '#5dade2'),
+            'name': self.name,
+        }
+    
+    def set_theme_colors(self, light_color=None, dark_color=None):
+        """
+        Set custom theme colors for this tenant.
+        
+        Args:
+            light_color: Hex color for light theme (e.g., '#3498db')
+            dark_color: Hex color for dark theme (e.g., '#5dade2')
+        
+        Raises:
+            ValueError: If color format is invalid
+        """
+        import re
+        hex_pattern = re.compile(r'^#[0-9A-Fa-f]{6}$')
+        
+        if 'theme' not in self.settings:
+            self.settings['theme'] = {}
+        
+        if light_color:
+            if not hex_pattern.match(light_color):
+                raise ValueError(f"Invalid hex color format for light_color: {light_color}")
+            self.settings['theme']['primary_color_light'] = light_color
+            
+        if dark_color:
+            if not hex_pattern.match(dark_color):
+                raise ValueError(f"Invalid hex color format for dark_color: {dark_color}")
+            self.settings['theme']['primary_color_dark'] = dark_color
+        
+        self.save()
 
 
 class TenantUser(models.Model):

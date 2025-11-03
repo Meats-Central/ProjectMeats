@@ -26,6 +26,7 @@ class TenantSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "settings",
+            "logo",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
 

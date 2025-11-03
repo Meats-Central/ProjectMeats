@@ -3,7 +3,6 @@
  */
 import axios from 'axios';
 import { UserProfile } from '../types';
-import { config } from '../config/runtime';
 
 const API_BASE_URL = config.API_BASE_URL;
 

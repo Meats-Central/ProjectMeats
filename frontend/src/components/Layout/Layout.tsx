@@ -6,9 +6,12 @@ import Header from './Header';
 import Breadcrumb from '../Navigation/Breadcrumb';
 import Omnibox from '../AIAssistant/Omnibox';
 import { useNavigation } from '../../contexts/NavigationContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Theme } from '../../config/theme';
 
 const Layout: React.FC = () => {
   const { sidebarOpen, setSidebarOpen } = useNavigation();
+  const { theme } = useTheme();
   const [showOmnibox, setShowOmnibox] = useState(false);
 
   const toggleSidebar = () => {
@@ -35,11 +38,11 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <LayoutContainer>
+    <LayoutContainer $theme={theme}>
       <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
       <MainArea $sidebarOpen={sidebarOpen}>
         <Header />
-        <Content>
+        <Content $theme={theme}>
           <Breadcrumb />
           <Outlet />
         </Content>
@@ -49,16 +52,17 @@ const Layout: React.FC = () => {
         onClose={() => setShowOmnibox(false)}
         onSubmit={handleOmniboxSubmit}
       />
-      <KeyboardShortcutHint>
+      <KeyboardShortcutHint $theme={theme}>
         Press <kbd>Ctrl+K</kbd> (or <kbd>⌘K</kbd>) to open AI Command Center
       </KeyboardShortcutHint>
     </LayoutContainer>
   );
 };
 
-const LayoutContainer = styled.div`
+const LayoutContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   height: 100vh;
+  background-color: ${(props) => props.$theme.colors.background};
 `;
 
 const MainArea = styled.div<{ $sidebarOpen: boolean }>`
@@ -69,18 +73,19 @@ const MainArea = styled.div<{ $sidebarOpen: boolean }>`
   flex-direction: column;
 `;
 
-const Content = styled.main`
+const Content = styled.main<{ $theme: Theme }>`
   flex: 1;
   padding: 30px;
-  background-color: #f8f9fa;
+  background-color: ${(props) => props.$theme.colors.background};
   overflow-y: auto;
 `;
 
-const KeyboardShortcutHint = styled.div`
+const KeyboardShortcutHint = styled.div<{ $theme: Theme }>`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.8);
+  background: ${(props) =>
+    props.$theme.name === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)'};
   color: white;
   padding: 8px 12px;
   border-radius: 8px;

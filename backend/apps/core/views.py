@@ -163,3 +163,56 @@ def logout(request):
     except Token.DoesNotExist:
         return Response({"message": "Already logged out"})
 
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from apps.core.models import UserPreferences
+from apps.core.serializers import UserPreferencesSerializer
+
+
+class UserPreferencesViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for UserPreferences.
+    
+    Provides CRUD operations for user preferences.
+    Users can only access/modify their own preferences.
+    """
+    
+    serializer_class = UserPreferencesSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return preferences for the current user only."""
+        return UserPreferences.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Create preferences for the current user."""
+        serializer.save(user=self.request.user)
+    
+    @action(detail=False, methods=['get', 'put', 'patch'])
+    def me(self, request):
+        """
+        Get or update preferences for the current user.
+        
+        GET: Returns current user's preferences (creates if not exists)
+        PUT/PATCH: Updates current user's preferences
+        """
+        # Get or create preferences for current user
+        preferences, created = UserPreferences.objects.get_or_create(
+            user=request.user
+        )
+        
+        if request.method in ['PUT', 'PATCH']:
+            serializer = self.get_serializer(
+                preferences,
+                data=request.data,
+                partial=(request.method == 'PATCH')
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        
+        # GET request
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
