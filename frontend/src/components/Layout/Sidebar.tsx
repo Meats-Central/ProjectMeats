@@ -90,9 +90,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
           )}
           {isExpanded && <LogoText>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
         </Logo>
-        <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
-          📌
-        </KeepOpenToggle>
+        {isExpanded && (
+          <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
+            📌
+          </KeepOpenToggle>
+        )}
       </SidebarHeader>
 
       <Navigation>
