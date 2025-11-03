@@ -26,7 +26,7 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  const { tenantBranding } = useTheme();
+  const { tenantBranding: _tenantBranding } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
