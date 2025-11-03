@@ -34,51 +34,76 @@ ALLOWED_HOSTS = [
 # Database Configuration
 # Development now uses PostgreSQL for environment parity with staging/production
 # Falls back to SQLite if PostgreSQL environment variables are not configured
-# Get DB_ENGINE with fallback for empty values
-# Using config() to read from .env file for local development
-# The .strip() or pattern handles empty strings from GitHub Secrets
-DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
 
-if DB_ENGINE == "django.db.backends.postgresql":
-    # PostgreSQL configuration - requires all environment variables
-    # Using django-tenants backend for schema-based multi-tenancy
+# Priority 1: Use DATABASE_URL if provided (common in CI/CD)
+# Priority 2: Use DB_ENGINE with individual DB_* settings
+# Priority 3: Fall back to SQLite
+
+database_url = config("DATABASE_URL", default="").strip()
+
+if database_url:
+    # Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
+    _db_config = dj_database_url.parse(database_url)
+    
+    # Use django-tenants backend for PostgreSQL to enable schema-based multi-tenancy
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+    
+    # Set connection settings for development
+    _db_config.setdefault("CONN_MAX_AGE", 0)  # Close connections after each request in development
+    _db_config.setdefault("OPTIONS", {})
+    _db_config["OPTIONS"].setdefault("connect_timeout", 10)
+    
     DATABASES = {
-        "default": {
-            "ENGINE": "django_tenants.postgresql_backend",  # Use django-tenants backend
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
-            "HOST": config("DB_HOST"),
-            "PORT": config("DB_PORT", default="5432"),
-            "CONN_MAX_AGE": 0,  # Close connections after each request in development
-            "OPTIONS": {
-                "connect_timeout": 10,
-            },
-        }
+        "default": _db_config
     }
-elif DB_ENGINE == "django.db.backends.sqlite3":
-    # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
-    # This is maintained for backward compatibility during migration period
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+    DB_ENGINE = _db_config["ENGINE"]
 else:
-    # Log invalid DB_ENGINE value for debugging
-    logger.error(
-        f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
-        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
-        f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
-    )
-    raise ValueError(
-        f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
-        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
-        f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
-        f"or configure it in config/environments/development.env. "
-        f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
-    )
+    # Get DB_ENGINE with fallback for empty values
+    # Using config() to read from .env file for local development
+    # The .strip() or pattern handles empty strings from GitHub Secrets
+    DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
+
+    if DB_ENGINE == "django.db.backends.postgresql":
+        # PostgreSQL configuration - requires all environment variables
+        # Using django-tenants backend for schema-based multi-tenancy
+        DATABASES = {
+            "default": {
+                "ENGINE": "django_tenants.postgresql_backend",  # Use django-tenants backend
+                "NAME": config("DB_NAME"),
+                "USER": config("DB_USER"),
+                "PASSWORD": config("DB_PASSWORD"),
+                "HOST": config("DB_HOST"),
+                "PORT": config("DB_PORT", default="5432"),
+                "CONN_MAX_AGE": 0,  # Close connections after each request in development
+                "OPTIONS": {
+                    "connect_timeout": 10,
+                },
+            }
+        }
+    elif DB_ENGINE == "django.db.backends.sqlite3":
+        # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
+        # This is maintained for backward compatibility during migration period
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+    else:
+        # Log invalid DB_ENGINE value for debugging
+        logger.error(
+            f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
+            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
+        )
+        raise ValueError(
+            f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
+            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
+            f"or configure it in config/environments/development.env. "
+            f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
+        )
 
 # Log which database backend is being used
 logger.info(f"Development environment using database backend: {DB_ENGINE}")
