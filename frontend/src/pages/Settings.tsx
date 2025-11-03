@@ -190,9 +190,6 @@ const Settings: React.FC = () => {
     if (!logoFile || !currentTenant) return;
 
     // Validate tenant ID exists (debugging aid as suggested in issue)
-    console.log('currentTenant:', currentTenant);
-    console.log('currentTenant.id:', currentTenant.id);
-    
     if (!currentTenant.id) {
       setMessage({ type: 'error', text: 'Unable to upload logo: Tenant ID is missing. Please try refreshing the page.' });
       console.error('Logo upload error: currentTenant.id is undefined or null', currentTenant);
