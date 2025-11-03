@@ -120,17 +120,6 @@ describe('Tenant Context', () => {
       expect(context.environment).toBe('production');
     });
     
-    it('should respect window.ENV.API_BASE_URL when set', () => {
-      window.location.hostname = 'acme.projectmeats.com';
-      (window as any).ENV = { API_BASE_URL: 'https://custom-api.example.com/api/v1' };
-      const { getTenantContext } = require('./tenantContext');
-      
-      const context = getTenantContext();
-      expect(context.tenant).toBe('acme');
-      expect(context.environment).toBe('production');
-      expect(context.apiBaseUrl).toBe('https://custom-api.example.com/api/v1');
-    });
-    
     it('should ignore www subdomain', () => {
       window.location.hostname = 'www.projectmeats.com';
       const { getTenantContext } = require('./tenantContext');
@@ -177,8 +166,6 @@ describe('Tenant Context', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       
       process.env.NODE_ENV = 'development';
-      delete process.env.CI;
-      
       window.location.hostname = 'localhost';
       
       // Clear and reload module

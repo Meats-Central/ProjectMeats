@@ -5,11 +5,11 @@
  * after the application is built and deployed. This solves the issue
  * where environment variables are baked in at build-time.
  * 
- * Configuration priority:
- * 1. Tenant context from domain detection (via tenantContext.ts)
- * 2. Runtime config from window.ENV (set via env-config.js)
- * 3. Build-time environment variables (process.env.REACT_APP_*)
- * 4. Default values
+ * Configuration priority for API_BASE_URL and ENVIRONMENT:
+ * 1. Runtime config from window.ENV (set via env-config.js) - explicit override
+ * 2. Tenant context from domain detection (via tenantContext.ts) - automatic
+ * 3. Build-time environment variables (process.env.REACT_APP_*) - legacy fallback
+ * 4. Default values - last resort
  */
 
 import { getTenantContext } from './tenantContext';
@@ -33,39 +33,33 @@ declare global {
 
 /**
  * Get runtime configuration value
- * Priority: tenant context > window.ENV > process.env > default
+ * Priority: window.ENV > tenant context > process.env > default
+ * 
+ * Note: For API_BASE_URL and ENVIRONMENT, we check window.ENV first
+ * to allow explicit override, then fall back to tenant context.
  */
 function getRuntimeConfig(key: string, defaultValue: string = ''): string {
-  // For API_BASE_URL, prioritize tenant context
-  if (key === 'API_BASE_URL') {
-    try {
-      const tenantContext = getTenantContext();
-      if (tenantContext.apiBaseUrl) {
-        return tenantContext.apiBaseUrl;
-      }
-    } catch (error) {
-      // Silently fall through to other config sources if tenant context fails
-      // This ensures backward compatibility
-    }
-  }
-  
-  // For ENVIRONMENT, prioritize tenant context
-  if (key === 'ENVIRONMENT') {
-    try {
-      const tenantContext = getTenantContext();
-      if (tenantContext.environment) {
-        return tenantContext.environment;
-      }
-    } catch (error) {
-      // Silently fall through to other config sources
-    }
-  }
-  
-  // Check runtime config from env-config.js
+  // Check runtime config from env-config.js first for explicit override
   if (window.ENV && key in window.ENV) {
     const value = window.ENV[key as keyof typeof window.ENV];
     if (value !== undefined && value !== null && value !== '') {
       return value;
+    }
+  }
+  
+  // For API_BASE_URL and ENVIRONMENT, use tenant context as fallback
+  if (key === 'API_BASE_URL' || key === 'ENVIRONMENT') {
+    try {
+      const tenantContext = getTenantContext();
+      if (key === 'API_BASE_URL' && tenantContext.apiBaseUrl) {
+        return tenantContext.apiBaseUrl;
+      }
+      if (key === 'ENVIRONMENT' && tenantContext.environment) {
+        return tenantContext.environment;
+      }
+    } catch (error) {
+      // Silently fall through to other config sources if tenant context fails
+      // This ensures backward compatibility
     }
   }
   
@@ -133,9 +127,8 @@ export function getCurrentTenant(): string | null {
 // Export helper functions for dynamic config access
 export { getRuntimeConfig, getRuntimeConfigBoolean, getRuntimeConfigNumber };
 
-// Log configuration source in development (but not during CI build)
-// Only log the source to avoid exposing sensitive endpoint URLs
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+// Log configuration source in development
+if (process.env.NODE_ENV === 'development') {
   // eslint-disable-next-line no-console
   console.log('[Runtime Config] Loaded from:', 
     window.ENV ? 'window.ENV (runtime)' : 'process.env (build-time)'

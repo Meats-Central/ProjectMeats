@@ -108,17 +108,26 @@ function extractTenant(hostname: string, environment: string): string | null {
 
 /**
  * Build API base URL for tenant and environment
+ * 
+ * Priority:
+ * 1. Tenant-specific API URL (if tenant detected)
+ * 2. Default API URL for environment
+ * 
+ * Note: window.ENV.API_BASE_URL is checked in runtime.ts, not here,
+ * to maintain proper configuration priority chain.
  */
 function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'uat' | 'production'): string {
-  // If runtime config has already set API_BASE_URL, use it
-  if (window.ENV && window.ENV.API_BASE_URL) {
-    return window.ENV.API_BASE_URL;
-  }
-  
   // For tenant-specific domains, construct the API URL
   if (tenant) {
     const protocol = environment === 'development' ? 'http' : 'https';
-    const envPrefix = environment === 'development' ? '-dev' : environment === 'uat' ? '-uat' : '';
+    
+    // Build environment prefix
+    let envPrefix = '';
+    if (environment === 'development') {
+      envPrefix = '-dev';
+    } else if (environment === 'uat') {
+      envPrefix = '-uat';
+    }
     
     // Use tenant-specific API endpoint
     return `${protocol}://${tenant}${envPrefix}-api.projectmeats.com/api/v1`;
@@ -177,8 +186,8 @@ export function getTenantBranding(): {
 export function initializeTenantContext(): TenantInfo {
   const context = getTenantContext();
   
-  // Log in development mode (but not during CI build)
-  if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+  // Log in development mode only
+  if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line no-console
     console.log('[Tenant Context] Initialized:', {
       hostname: window.location.hostname,
