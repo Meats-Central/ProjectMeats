@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import Tenant, TenantUser
@@ -165,3 +166,57 @@ class TenantAPITests(APITestCase):
 
         # DRF returns 403 for unauthenticated users when authentication is required
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_logo_field(self):
+        """Test that tenant logo field can be set and retrieved."""
+        # Create a simple test image
+        image_content = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        image = SimpleUploadedFile("test_logo.gif", image_content, content_type="image/gif")
+        
+        # Update tenant with logo
+        self.tenant.logo = image
+        self.tenant.save()
+        
+        # Retrieve and verify
+        tenant = Tenant.objects.get(id=self.tenant.id)
+        self.assertIsNotNone(tenant.logo)
+        self.assertTrue(tenant.logo.name.endswith('.gif'))
+    
+    def test_tenant_logo_upload_via_api(self):
+        """Test uploading tenant logo via API."""
+        url = reverse("tenants:tenant-detail", kwargs={"pk": self.tenant.id})
+        
+        # Create a simple test image
+        image_content = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        image = SimpleUploadedFile("logo.gif", image_content, content_type="image/gif")
+        
+        # Upload logo
+        response = self.client.patch(url, {"logo": image}, format="multipart")
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("logo", response.data)
+        self.assertIsNotNone(response.data["logo"])
+        
+        # Verify logo was saved
+        self.tenant.refresh_from_db()
+        self.assertIsNotNone(self.tenant.logo)
+    
+    def test_get_theme_settings(self):
+        """Test getting tenant theme settings."""
+        # Set theme colors
+        self.tenant.set_theme_colors('#FF5733', '#33FF57')
+        
+        theme = self.tenant.get_theme_settings()
+        
+        self.assertEqual(theme['primary_color_light'], '#FF5733')
+        self.assertEqual(theme['primary_color_dark'], '#33FF57')
+        self.assertEqual(theme['name'], 'Test Company')
+        self.assertIsNone(theme['logo_url'])  # No logo uploaded yet
