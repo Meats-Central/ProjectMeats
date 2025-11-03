@@ -26,6 +26,7 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  // tenantBranding from context - not directly used but ensures context is initialized
   const { tenantBranding: _tenantBranding } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
@@ -196,12 +197,7 @@ const Settings: React.FC = () => {
       const updatedTenant = await tenantService.uploadLogo(currentTenant.id, logoFile);
       setCurrentTenant(updatedTenant);
       setLogoFile(null);
-      setMessage({ type: 'success', text: 'Logo uploaded successfully! Refresh the page to see changes.' });
-      
-      // Reload the page after 2 seconds to refresh theme context
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      setMessage({ type: 'success', text: 'Logo uploaded successfully! Please refresh the page to see the logo in the sidebar.' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to upload logo. Please try again.' });
       console.error('Logo upload error:', error);
@@ -221,12 +217,7 @@ const Settings: React.FC = () => {
       setCurrentTenant(updatedTenant);
       setLogoPreview(null);
       setLogoFile(null);
-      setMessage({ type: 'success', text: 'Logo removed successfully! Refresh the page to see changes.' });
-      
-      // Reload the page after 2 seconds to refresh theme context
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      setMessage({ type: 'success', text: 'Logo removed successfully! Please refresh the page to see changes in the sidebar.' });
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to remove logo. Please try again.' });
       console.error('Logo remove error:', error);
