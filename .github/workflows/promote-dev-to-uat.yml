@@ -38,7 +38,6 @@ jobs:
             --head development \
             --title "Promote development to UAT" \
             --body "Auto-created PR to promote tested changes from development to UAT environment. Only merges after CI/test checks and review." \
-            --label "uat-promotion,automation" \
             --reviewer Vacilator
 
       - name: PR Already Exists
