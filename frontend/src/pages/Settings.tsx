@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { tenantService, Tenant } from '../services/tenantService';
 import styled from 'styled-components';
 
@@ -188,6 +189,16 @@ const Settings: React.FC = () => {
   const handleLogoUpload = async () => {
     if (!logoFile || !currentTenant) return;
 
+    // Validate tenant ID exists (debugging aid as suggested in issue)
+    console.log('currentTenant:', currentTenant);
+    console.log('currentTenant.id:', currentTenant.id);
+    
+    if (!currentTenant.id) {
+      setMessage({ type: 'error', text: 'Unable to upload logo: Tenant ID is missing. Please try refreshing the page.' });
+      console.error('Logo upload error: currentTenant.id is undefined or null', currentTenant);
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
@@ -206,6 +217,13 @@ const Settings: React.FC = () => {
 
   const handleLogoRemove = async () => {
     if (!currentTenant) return;
+
+    // Validate tenant ID exists
+    if (!currentTenant.id) {
+      setMessage({ type: 'error', text: 'Unable to remove logo: Tenant ID is missing. Please try refreshing the page.' });
+      console.error('Logo remove error: currentTenant.id is undefined or null', currentTenant);
+      return;
+    }
 
     setLoading(true);
     setMessage(null);
