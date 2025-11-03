@@ -7,9 +7,10 @@ import { Theme } from '../../config/theme';
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onHoverChange?: (isHovered: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
@@ -43,12 +44,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     }
   }, [keepOpen, isOpen, onToggle]);
 
+  // Reset hover state when sidebar is pinned (separate effect to avoid dependency issues)
+  useEffect(() => {
+    if (keepOpen) {
+      setIsHovered(false);
+    }
+  }, [keepOpen]);
+
   // Auto-close on route change unless keepOpen is enabled
   useEffect(() => {
     if (!keepOpen && isOpen) {
       onToggle();
     }
   }, [location.pathname, keepOpen, isOpen, onToggle]);
+
+  // Notify parent of hover state changes
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(isHovered);
+    }
+  }, [isHovered, onHoverChange]);
 
   const handleKeepOpenToggle = () => {
     const newKeepOpen = !keepOpen;
@@ -75,9 +90,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           )}
           {isExpanded && <LogoText>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
         </Logo>
-        <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
-          📌
-        </KeepOpenToggle>
+        {isExpanded && (
+          <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
+            📌
+          </KeepOpenToggle>
+        )}
       </SidebarHeader>
 
       <Navigation>
@@ -180,7 +197,9 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${(props) => props.$theme.colors.surfaceHover};
+    background-color: ${(props) => props.$theme.name === 'dark' 
+      ? 'rgba(52, 152, 219, 0.15)' 
+      : 'rgba(52, 152, 219, 0.1)'};
     color: ${(props) => props.$theme.colors.sidebarTextHover};
   }
 

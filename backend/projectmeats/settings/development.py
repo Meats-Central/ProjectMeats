@@ -117,6 +117,20 @@ CORS_ALLOW_METHODS = [
     "PUT",
 ]
 
+# CSRF Settings - Required for cross-origin POST requests from frontend to backend admin
+# When frontend and backend are on different domains/subdomains, Django's CSRF protection
+# requires explicit configuration via CSRF_TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://dev.meatscentral.com",
+    "https://dev-backend.meatscentral.com",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3003",
+    "http://127.0.0.1:3003",
+]
+
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 

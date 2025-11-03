@@ -345,9 +345,13 @@ This repository includes comprehensive deployment tools:
 ## 🛠️ Contributing
 
 1. **Setup**: Follow Quick Start guide above
-2. **Standards**: Use existing patterns from implemented entities
-3. **Testing**: Add tests for new functionality
-4. **Code Quality**: Run `make format` and `make lint` before commits
+2. **Branch Naming**: Use `<type>/<description>` format (e.g., `feature/add-export`, `fix/login-bug`)
+3. **PR Title**: Follow Conventional Commits format (e.g., `feat(customers): add export functionality`)
+4. **Standards**: Use existing patterns from implemented entities
+5. **Testing**: Add tests for new functionality
+6. **Code Quality**: Run `make format` and `make lint` before commits
+
+See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workflow guide and [Contributing Guide](CONTRIBUTING.md) for comprehensive contribution guidelines.
 
 ## 📚 Documentation
 
@@ -367,9 +371,11 @@ This repository includes comprehensive deployment tools:
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
 
 ### CI/CD & Workflows
+- **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Branch naming conventions and workflow guide
 - **[Unified Workflow](docs/workflows/unified-workflow.md)** - Main CI/CD workflow documentation
 - **[CI/CD Infrastructure](docs/workflows/cicd-infrastructure.md)** - Infrastructure details
 - **[Database Backup](docs/workflows/database-backup.md)** - Backup workflow documentation
+- **[GitHub Actions Workflows](.github/workflows/README.md)** - Detailed workflow documentation
 
 ### Implementation Summaries
 - **[Dashboard Enhancement](docs/implementation-summaries/dashboard-enhancement.md)** - Dashboard improvements

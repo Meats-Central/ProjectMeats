@@ -102,6 +102,42 @@ These workflows automate PR creation between environments while enforcing CI/CD 
   - Protects main/uat/development branches
   - Never deletes branches with open PRs
 
+## Validation Workflows (6x series)
+
+These workflows enforce naming conventions and best practices:
+
+### validate-branch-name.yml
+- **Trigger**: On PR open, edit, or sync
+- **Purpose**: Validates branch naming conventions
+- **Validates**:
+  - Branch follows `<type>/<description>` format
+  - Type is from approved list (feature, fix, chore, refactor, hotfix, etc.)
+  - Description uses lowercase and hyphens only
+  - Protected branches (main, uat, development) are exempt
+- **On Failure**: Posts helpful comment on PR with examples and guidance
+
+### validate-pr-title.yml
+- **Trigger**: On PR open, edit, or sync
+- **Purpose**: Validates PR titles follow Conventional Commits
+- **Validates**:
+  - Title follows `<type>(<scope>): <description>` format
+  - Type is from approved list (feat, fix, docs, chore, etc.)
+  - Description is lowercase and properly formatted
+  - Auto-promotion PRs are exempt
+- **On Failure**: Posts helpful comment with format requirements and examples
+
+### validate-tag-name.yml
+- **Trigger**: On tag push
+- **Purpose**: Validates tag naming and automates release creation
+- **Validates**:
+  - Production releases follow semantic versioning (v1.0.0)
+  - Pre-release tags are properly formatted (v1.0.0-alpha.1)
+  - Environment tags are valid (v1.0.0-dev, v1.0.0-uat)
+- **On Success**: 
+  - Auto-creates GitHub Release for production tags
+  - Auto-creates Pre-Release for alpha/beta/rc tags
+- **On Failure**: Provides guidance on proper tag formats
+
 ## Workflow Naming Convention
 
 Workflows are numbered in series:
@@ -110,6 +146,8 @@ Workflows are numbered in series:
 - **3x**: Planner/automation workflows
 - **4x**: Auto-promotion workflows
 - **5x**: Cleanup/maintenance workflows
+- **6x**: Validation workflows (naming conventions, standards)
+- **Standalone**: Promotion workflows (promote-dev-to-uat.yml, promote-uat-to-main.yml)
 
 ## CI/CD Flow
 

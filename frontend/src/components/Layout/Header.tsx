@@ -13,6 +13,9 @@ const Header: React.FC<HeaderProps> = () => {
   const { theme, themeName, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [showQuickMenu, setShowQuickMenu] = useState(false);
+  
+  // Get tenant name from localStorage
+  const tenantName = localStorage.getItem('tenantName') || 'ProjectMeats';
 
   const quickMenuItems = [
     { label: 'New Supplier', path: '/suppliers/new', icon: '🏭' },
@@ -28,7 +31,7 @@ const Header: React.FC<HeaderProps> = () => {
 
   return (
     <HeaderContainer $theme={theme}>
-      <HeaderTitle $theme={theme}>Business Management System</HeaderTitle>
+      <HeaderTitle $theme={theme}>{tenantName}</HeaderTitle>
       <HeaderActions>
         {/* Quick Menu */}
         <QuickMenuContainer>

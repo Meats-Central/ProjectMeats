@@ -2,12 +2,13 @@
 Django admin configuration for Contacts app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Contact
 
 
 @admin.register(Contact)
-class ContactAdmin(admin.ModelAdmin):
-    """Admin interface for Contact model."""
+class ContactAdmin(TenantFilteredAdmin):
+    """Admin interface for Contact model with tenant filtering."""
 
     list_display = (
         "get_full_name",

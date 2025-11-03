@@ -1,10 +1,17 @@
 from django.contrib import admin
-from .models import Tenant, TenantUser, TenantInvitation
+from apps.core.admin import TenantFilteredAdmin
+from .models import Tenant, TenantUser, TenantInvitation, Domain
 
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    """Admin interface for Tenant model."""
+    """
+    Admin interface for Tenant model.
+    
+    Note: This uses base ModelAdmin, not TenantFilteredAdmin, because:
+    - The Tenant model itself doesn't have a 'tenant' field (it IS the tenant)
+    - Instead, we filter by user association in get_queryset
+    """
 
     list_display = [
         "name",
@@ -20,8 +27,9 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at", "updated_at"]
 
     fieldsets = [
-        ("Basic Information", {"fields": ("name", "slug", "domain")}),
+        ("Basic Information", {"fields": ("name", "slug", "schema_name", "domain")}),
         ("Contact Information", {"fields": ("contact_email", "contact_phone")}),
+        ("Branding", {"fields": ("logo",)}),
         ("Status & Trial", {"fields": ("is_active", "is_trial", "trial_ends_at")}),
         ("Configuration", {"fields": ("settings",), "classes": ["collapse"]}),
         (
@@ -34,12 +42,31 @@ class TenantAdmin(admin.ModelAdmin):
     ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("created_by")
+        """
+        Filter tenants by user association.
+        
+        - Superusers see all tenants
+        - Staff users only see tenants they are associated with
+        """
+        qs = super().get_queryset(request).select_related("created_by")
+        
+        # Superusers see all tenants
+        if request.user.is_superuser:
+            return qs
+        
+        # Get tenant IDs the user is associated with
+        tenant_ids = TenantUser.objects.filter(
+            user=request.user,
+            is_active=True
+        ).values_list('tenant_id', flat=True)
+        
+        # Filter to only show associated tenants
+        return qs.filter(id__in=tenant_ids)
 
 
 @admin.register(TenantUser)
-class TenantUserAdmin(admin.ModelAdmin):
-    """Admin interface for TenantUser associations."""
+class TenantUserAdmin(TenantFilteredAdmin):
+    """Admin interface for TenantUser associations with tenant filtering."""
 
     list_display = ["user", "tenant", "role", "is_active", "created_at"]
     list_filter = ["role", "is_active", "tenant"]
@@ -53,12 +80,14 @@ class TenantUserAdmin(admin.ModelAdmin):
     ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("user", "tenant")
+        # Get base queryset from TenantFilteredAdmin (which filters by tenant)
+        qs = super().get_queryset(request)
+        return qs.select_related("user", "tenant")
 
 
 @admin.register(TenantInvitation)
-class TenantInvitationAdmin(admin.ModelAdmin):
-    """Admin interface for TenantInvitation model."""
+class TenantInvitationAdmin(TenantFilteredAdmin):
+    """Admin interface for TenantInvitation model with tenant filtering."""
 
     list_display = [
         "email",
@@ -89,6 +118,30 @@ class TenantInvitationAdmin(admin.ModelAdmin):
     ]
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            "tenant", "invited_by", "accepted_by"
-        )
+        # Get base queryset from TenantFilteredAdmin (which filters by tenant)
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant", "invited_by", "accepted_by")
+
+
+@admin.register(Domain)
+class DomainAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Domain model.
+    
+    Manages domain-to-tenant mappings following django-tenants patterns.
+    """
+
+    list_display = ["domain", "tenant", "is_primary", "created_at"]
+    list_filter = ["is_primary", "created_at"]
+    search_fields = ["domain", "tenant__name", "tenant__slug"]
+    readonly_fields = ["created_at", "updated_at"]
+    
+    fieldsets = [
+        ("Domain Information", {"fields": ("domain", "tenant", "is_primary")}),
+        ("Metadata", {"fields": ("created_at", "updated_at"), "classes": ["collapse"]}),
+    ]
+    
+    def get_queryset(self, request):
+        """Optimize queries by selecting related tenant."""
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant")

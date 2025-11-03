@@ -13,9 +13,14 @@ const Layout: React.FC = () => {
   const { sidebarOpen, setSidebarOpen } = useNavigation();
   const { theme } = useTheme();
   const [showOmnibox, setShowOmnibox] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSidebarHoverChange = (isHovered: boolean) => {
+    setSidebarHovered(isHovered);
   };
 
   // Global keyboard shortcut for Omnibox (Cmd/Ctrl + K)
@@ -39,8 +44,8 @@ const Layout: React.FC = () => {
 
   return (
     <LayoutContainer $theme={theme}>
-      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-      <MainArea $sidebarOpen={sidebarOpen}>
+      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} onHoverChange={handleSidebarHoverChange} />
+      <MainArea $sidebarOpen={sidebarOpen} $sidebarHovered={sidebarHovered}>
         <Header />
         <Content $theme={theme}>
           <Breadcrumb />
@@ -65,9 +70,9 @@ const LayoutContainer = styled.div<{ $theme: Theme }>`
   background-color: ${(props) => props.$theme.colors.background};
 `;
 
-const MainArea = styled.div<{ $sidebarOpen: boolean }>`
+const MainArea = styled.div<{ $sidebarOpen: boolean; $sidebarHovered: boolean }>`
   flex: 1;
-  margin-left: ${(props) => (props.$sidebarOpen ? '250px' : '60px')};
+  margin-left: ${(props) => (props.$sidebarOpen || props.$sidebarHovered ? '250px' : '60px')};
   transition: margin-left 0.3s ease;
   display: flex;
   flex-direction: column;
