@@ -30,16 +30,16 @@ ls -la .github/workflows/ | grep "42-auto-promote-uat-to-main.yml"
 **Test the workflows manually to ensure they work:**
 ```bash
 # Manually trigger dev→uat promotion workflow
-gh workflow run 41-auto-promote-dev-to-uat.yml
+gh workflow run "Auto-Promote Dev to UAT"
 
 # Check workflow run status
-gh run list --workflow=41-auto-promote-dev-to-uat.yml --limit 1
+gh run list --workflow="Auto-Promote Dev to UAT" --limit 1
 
 # Manually trigger uat→main promotion workflow
-gh workflow run 42-auto-promote-uat-to-main.yml
+gh workflow run "Auto-Promote UAT to Main"
 
 # Check workflow run status
-gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
+gh run list --workflow="Auto-Promote UAT to Main" --limit 1
 ```
 **Expected**: Workflows should run successfully and create PRs (if none exist)
 
@@ -61,7 +61,7 @@ gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
    ```
 4. After deployment succeeds, check if auto-promotion workflow runs:
    ```bash
-   gh run list --workflow=41-auto-promote-dev-to-uat.yml --limit 1
+   gh run list --workflow="Auto-Promote Dev to UAT" --limit 1
    ```
 5. Check if PR was created:
    ```bash
@@ -82,7 +82,7 @@ gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
    ```
 3. After deployment succeeds, check if auto-promotion workflow runs:
    ```bash
-   gh run list --workflow=42-auto-promote-uat-to-main.yml --limit 1
+   gh run list --workflow="Auto-Promote UAT to Main" --limit 1
    ```
 4. Check if PR was created:
    ```bash
