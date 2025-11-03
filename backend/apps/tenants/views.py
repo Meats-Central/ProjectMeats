@@ -143,8 +143,14 @@ class TenantViewSet(viewsets.ModelViewSet):
         dark_color = request.data.get('primary_color_dark')
         
         if light_color or dark_color:
-            tenant.set_theme_colors(light_color, dark_color)
-            return Response(tenant.get_theme_settings())
+            try:
+                tenant.set_theme_colors(light_color, dark_color)
+                return Response(tenant.get_theme_settings())
+            except ValueError as e:
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         
         return Response(
             {"error": "No theme colors provided"},

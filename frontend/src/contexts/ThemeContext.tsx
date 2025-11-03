@@ -72,7 +72,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     syncThemeToBackend();
   }, [themeName]);
 
-  // Load tenant branding from backend on mount
+  // Load tenant branding from backend on mount (only once)
   useEffect(() => {
     const loadTenantBranding = async () => {
       const token = localStorage.getItem('token');
@@ -97,31 +97,42 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         };
         
         setTenantBranding(branding);
-        
-        // Create custom theme with tenant colors
-        const baseLight = { ...lightTheme };
-        const baseDark = { ...darkTheme };
-        
-        // Apply tenant primary colors
-        baseLight.colors.primary = branding.primaryColorLight;
-        baseLight.colors.primaryHover = adjustColor(branding.primaryColorLight, -10);
-        baseLight.colors.primaryActive = adjustColor(branding.primaryColorLight, -20);
-        baseLight.colors.sidebarActive = branding.primaryColorLight;
-        
-        baseDark.colors.primary = branding.primaryColorDark;
-        baseDark.colors.primaryHover = adjustColor(branding.primaryColorDark, 10);
-        baseDark.colors.primaryActive = adjustColor(branding.primaryColorDark, -10);
-        baseDark.colors.sidebarActive = branding.primaryColorDark;
-        
-        // Set the custom theme based on current theme name
-        setCustomTheme(themeName === 'light' ? baseLight : baseDark);
       } catch (error) {
         console.error('Failed to load tenant branding:', error);
       }
     };
 
     loadTenantBranding();
-  }, [themeName]);
+  }, []); // Only run once on mount
+
+  // Update custom theme when themeName changes (switch between light/dark)
+  useEffect(() => {
+    if (tenantBranding) {
+      // Deep copy to avoid mutations
+      const baseLight = { 
+        ...lightTheme, 
+        colors: { ...lightTheme.colors }
+      };
+      const baseDark = { 
+        ...darkTheme, 
+        colors: { ...darkTheme.colors }
+      };
+      
+      // Apply tenant primary colors to both themes
+      baseLight.colors.primary = tenantBranding.primaryColorLight;
+      baseLight.colors.primaryHover = adjustColor(tenantBranding.primaryColorLight, -10);
+      baseLight.colors.primaryActive = adjustColor(tenantBranding.primaryColorLight, -20);
+      baseLight.colors.sidebarActive = tenantBranding.primaryColorLight;
+      
+      baseDark.colors.primary = tenantBranding.primaryColorDark;
+      baseDark.colors.primaryHover = adjustColor(tenantBranding.primaryColorDark, 10);
+      baseDark.colors.primaryActive = adjustColor(tenantBranding.primaryColorDark, -10);
+      baseDark.colors.sidebarActive = tenantBranding.primaryColorDark;
+      
+      // Set the custom theme based on current theme name
+      setCustomTheme(themeName === 'light' ? baseLight : baseDark);
+    }
+  }, [themeName, tenantBranding]);
 
   // Load theme from backend on mount
   useEffect(() => {
@@ -184,9 +195,9 @@ function adjustColor(color: string, percent: number): string {
   const B = (num & 0x0000FF) + amt;
   return '#' + (
     0x1000000 +
-    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-    (B < 255 ? (B < 1 ? 0 : B) : 255)
+    (R < 255 ? (R <= 0 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G <= 0 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B <= 0 ? 0 : B) : 255)
   ).toString(16).slice(1).toUpperCase();
 }
 

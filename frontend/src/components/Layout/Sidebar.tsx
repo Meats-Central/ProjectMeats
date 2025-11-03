@@ -41,14 +41,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     } else if (!keepOpen && isOpen) {
       onToggle();
     }
-  }, [keepOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [keepOpen, isOpen, onToggle]);
 
   // Auto-close on route change unless keepOpen is enabled
   useEffect(() => {
     if (!keepOpen && isOpen) {
       onToggle();
     }
-  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname, keepOpen, isOpen, onToggle]);
 
   const handleKeepOpenToggle = () => {
     const newKeepOpen = !keepOpen;
