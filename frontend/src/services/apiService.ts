@@ -94,7 +94,18 @@ function getErrorMessage(error: unknown): string {
     if (axiosError.request && !axiosError.response) {
       const url = axiosError.config?.url || 'unknown endpoint';
       const baseURL = axiosError.config?.baseURL || '';
-      const fullURL = baseURL + url;
+      
+      // Properly construct full URL
+      let fullURL = url;
+      if (baseURL) {
+        try {
+          // Use URL constructor for proper URL joining
+          fullURL = new URL(url, baseURL).href;
+        } catch {
+          // Fallback to simple concatenation if URL constructor fails
+          fullURL = baseURL.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
+        }
+      }
       
       // Provide more specific error messages based on error code
       if (axiosError.code === 'ERR_NETWORK') {
