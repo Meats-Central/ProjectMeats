@@ -22,6 +22,7 @@ class TenantAdmin(admin.ModelAdmin):
     fieldsets = [
         ("Basic Information", {"fields": ("name", "slug", "domain")}),
         ("Contact Information", {"fields": ("contact_email", "contact_phone")}),
+        ("Branding", {"fields": ("logo",)}),
         ("Status & Trial", {"fields": ("is_active", "is_trial", "trial_ends_at")}),
         ("Configuration", {"fields": ("settings",), "classes": ["collapse"]}),
         (
