@@ -1,7 +1,6 @@
 """
 Development settings for ProjectMeats.
 """
-import os
 import logging
 from decouple import config
 import dj_database_url
@@ -44,19 +43,19 @@ database_url = config("DATABASE_URL", default="").strip()
 if database_url:
     # Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
     _db_config = dj_database_url.parse(database_url)
-    
+
     # Use django-tenants backend for PostgreSQL to enable schema-based multi-tenancy
     if _db_config.get("ENGINE") == "django.db.backends.postgresql":
         _db_config["ENGINE"] = "django_tenants.postgresql_backend"
-    
+
     # Set connection settings for development
-    _db_config.setdefault("CONN_MAX_AGE", 0)  # Close connections after each request in development
+    _db_config.setdefault(
+        "CONN_MAX_AGE", 0
+    )  # Close connections after each request in development
     _db_config.setdefault("OPTIONS", {})
     _db_config["OPTIONS"].setdefault("connect_timeout", 10)
-    
-    DATABASES = {
-        "default": _db_config
-    }
+
+    DATABASES = {"default": _db_config}
     DB_ENGINE = _db_config["ENGINE"]
 else:
     # Get DB_ENGINE with fallback for empty values
