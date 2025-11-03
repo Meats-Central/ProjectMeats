@@ -146,9 +146,9 @@ class TenantViewSet(viewsets.ModelViewSet):
             try:
                 tenant.set_theme_colors(light_color, dark_color)
                 return Response(tenant.get_theme_settings())
-            except ValueError as e:
+            except ValueError:
                 return Response(
-                    {"error": str(e)},
+                    {"error": "Invalid hex color format. Use format: #RRGGBB (e.g., #3498db)"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
