@@ -55,7 +55,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "apps.tenants.middleware.TenantMiddleware",  # Multi-tenancy middleware
+    # Multi-tenancy middleware - currently using shared-schema approach
+    # For schema-based routing, replace with: django_tenants.middleware.TenantMainMiddleware
+    # This will be configured in future PRs based on deployment needs
+    "apps.tenants.middleware.TenantMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -255,6 +258,15 @@ CACHES = {
 # Django-Tenants Configuration
 # Schema-based multi-tenancy settings
 # Reference: https://django-tenants.readthedocs.io/
+#
+# NOTE: This is a DUAL multi-tenancy setup:
+# 1. Schema-based (django-tenants): Client/Domain models for complete isolation
+# 2. Shared-schema (legacy): Tenant/TenantUser models for simpler setups
+#
+# INSTALLED_APPS is kept for backward compatibility with shared-schema approach.
+# SHARED_APPS/TENANT_APPS configure schema-based routing.
+# Middleware routing (choosing TenantMiddleware vs TenantMainMiddleware) will be
+# handled in future PRs based on deployment needs.
 
 # Tenant model for schema-based multi-tenancy
 TENANT_MODEL = "tenants.Client"
