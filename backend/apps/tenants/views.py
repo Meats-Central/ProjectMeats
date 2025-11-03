@@ -89,6 +89,73 @@ class TenantViewSet(viewsets.ModelViewSet):
 
         serializer = UserTenantSerializer(tenant_users, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=["get"])
+    def current_theme(self, request):
+        """
+        Get theme settings for the current user's active tenant.
+        
+        Returns tenant logo, name, and theme colors.
+        Used by frontend to apply tenant-specific branding.
+        """
+        # Get user's current/active tenant (you might have this in session or request header)
+        # For now, get the first tenant the user belongs to
+        tenant_user = TenantUser.objects.filter(
+            user=request.user, is_active=True
+        ).select_related("tenant").first()
+        
+        if not tenant_user:
+            return Response(
+                {"error": "User not associated with any tenant"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        theme_settings = tenant_user.tenant.get_theme_settings()
+        return Response(theme_settings)
+    
+    @action(detail=True, methods=["post", "patch"])
+    def update_theme(self, request, pk=None):
+        """
+        Update theme settings for a tenant.
+        
+        Only owners and admins can update theme settings.
+        Accepts: primary_color_light, primary_color_dark
+        """
+        tenant = self.get_object()
+        
+        # Check if user has permission (owner or admin)
+        if (
+            not TenantUser.objects.filter(
+                tenant=tenant,
+                user=request.user,
+                role__in=["owner", "admin"],
+                is_active=True,
+            ).exists()
+            and not request.user.is_superuser
+        ):
+            return Response(
+                {"error": "Only owners and admins can update theme settings"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Update theme colors
+        light_color = request.data.get('primary_color_light')
+        dark_color = request.data.get('primary_color_dark')
+        
+        if light_color or dark_color:
+            try:
+                tenant.set_theme_colors(light_color, dark_color)
+                return Response(tenant.get_theme_settings())
+            except ValueError:
+                return Response(
+                    {"error": "Invalid hex color format. Use format: #RRGGBB (e.g., #3498db)"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        return Response(
+            {"error": "No theme colors provided"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class TenantUserViewSet(viewsets.ModelViewSet):

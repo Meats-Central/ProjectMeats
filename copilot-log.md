@@ -2,6 +2,33 @@
 
 This file tracks all tasks completed by GitHub Copilot, including actions taken, misses/failures, lessons learned, and efficiency suggestions.
 
+## Task: Fix CSRF Verification Error for Admin Login - [Date: 2025-11-02]
+
+### Actions Taken:
+1. **Analyzed the issue**: User clicking "View as Admin" button from profile dropdown received 403 Forbidden error with message "Origin checking failed - https://dev-backend.meatscentral.com does not match any trusted origins"
+2. **Identified root cause**: `CSRF_TRUSTED_ORIGINS` was not configured in Django settings, causing CSRF protection to reject cross-origin requests from frontend to backend admin
+3. **Implemented fix**:
+   - Added `CSRF_TRUSTED_ORIGINS` to development settings with hardcoded list of trusted domains (localhost, dev.meatscentral.com, dev-backend.meatscentral.com)
+   - Added `CSRF_TRUSTED_ORIGINS` to production settings configured via environment variable using existing `_split_list()` helper
+   - Updated `.env.production.example` to document the new environment variable with usage example
+4. **Validated changes**: 
+   - Ran Django system checks for both development and production settings - passed
+   - Verified CSRF_TRUSTED_ORIGINS loads correctly in both environments
+   - Confirmed production correctly parses comma-separated values from environment variable
+
+### Misses/Failures:
+- None identified during this task
+
+### Lessons Learned:
+1. **CSRF_TRUSTED_ORIGINS is required for cross-origin POST requests**: When frontend and backend are on different domains (even subdomains), Django's CSRF protection requires explicit configuration via `CSRF_TRUSTED_ORIGINS`
+2. **Follow existing patterns**: Production settings already had patterns for environment-based configuration (e.g., `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`) - following the same pattern ensures consistency
+3. **Document new environment variables**: Always update `.env.example` files when adding new environment-based configuration
+
+### Efficiency Suggestions:
+1. **Consider adding CSRF_TRUSTED_ORIGINS to deployment checklist**: To prevent similar issues in future deployments across different environments
+2. **Add validation in CI/CD**: Could add a check to ensure CSRF_TRUSTED_ORIGINS is set in production environments
+
+
 ## Task: CORRECTION - Revert Incorrect Migration Fix from PR #135 - [Date: 2025-10-16]
 
 ### Context:

@@ -32,7 +32,10 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
     [key: string]: Record<string, unknown>;
   }>({});
   const [breadcrumbPath, setBreadcrumbPath] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Initialize sidebarOpen from localStorage 'sidebarKeepOpen' preference
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    return localStorage.getItem('sidebarKeepOpen') === 'true';
+  });
 
   // Get current module from location
   const currentModule = location.pathname.split('/')[1] || 'dashboard';
