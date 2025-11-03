@@ -76,7 +76,6 @@ jobs:
             ❌ feat(customers) add export (missing colon)
 
             See: https://www.conventionalcommits.org/
-EOF
             exit 1
           fi
 
