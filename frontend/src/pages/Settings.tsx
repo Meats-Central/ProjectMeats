@@ -25,6 +25,7 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  useTheme(); // Initialize theme context
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);

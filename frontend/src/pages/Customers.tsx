@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useTheme } from '../contexts/ThemeContext';
+import { Theme } from '../config/theme';
 import { apiService, Customer } from '../services/apiService';
 
 const Customers: React.FC = () => {
@@ -7,6 +9,7 @@ const Customers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -119,29 +122,29 @@ const Customers: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingContainer>Loading customers...</LoadingContainer>;
+    return <LoadingContainer $theme={theme}>Loading customers...</LoadingContainer>;
   }
 
   return (
     <Container>
       <Header>
-        <Title>Customers</Title>
+        <Title $theme={theme}>Customers</Title>
         <AddButton onClick={() => setShowForm(true)}>+ Add Customer</AddButton>
       </Header>
 
       {showForm && (
         <FormOverlay>
-          <FormContainer>
-            <FormHeader>
-              <FormTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</FormTitle>
-              <CloseButton onClick={handleCancel}>×</CloseButton>
+          <FormContainer $theme={theme}>
+            <FormHeader $theme={theme}>
+              <FormTitle $theme={theme}>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</FormTitle>
+              <CloseButton $theme={theme} onClick={handleCancel}>×</CloseButton>
             </FormHeader>
 
             <Form onSubmit={handleSubmit}>
               <FormGrid>
                 <FormGroup>
-                  <Label>Company Name *</Label>
-                  <Input
+                  <Label $theme={theme}>Company Name *</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -150,8 +153,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Contact Person</Label>
-                  <Input
+                  <Label $theme={theme}>Contact Person</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.contact_person}
                     onChange={(e) =>
@@ -164,8 +167,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Email</Label>
-                  <Input
+                  <Label $theme={theme}>Email</Label>
+                  <Input $theme={theme}
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -173,8 +176,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Phone</Label>
-                  <Input
+                  <Label $theme={theme}>Phone</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -182,8 +185,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup $fullWidth>
-                  <Label>Address</Label>
-                  <Input
+                  <Label $theme={theme}>Address</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -191,8 +194,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>City</Label>
-                  <Input
+                  <Label $theme={theme}>City</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -200,8 +203,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>State</Label>
-                  <Input
+                  <Label $theme={theme}>State</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
@@ -209,8 +212,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>ZIP Code</Label>
-                  <Input
+                  <Label $theme={theme}>ZIP Code</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.zip_code}
                     onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
@@ -218,8 +221,8 @@ const Customers: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Country</Label>
-                  <Input
+                  <Label $theme={theme}>Country</Label>
+                  <Input $theme={theme}
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
@@ -240,40 +243,40 @@ const Customers: React.FC = () => {
         </FormOverlay>
       )}
 
-      <TableContainer>
+      <TableContainer $theme={theme}>
         {customers.length === 0 ? (
           <EmptyState>
             <EmptyIcon>👥</EmptyIcon>
-            <EmptyText>No customers found</EmptyText>
-            <EmptySubText>Add your first customer to get started</EmptySubText>
+            <EmptyText $theme={theme}>No customers found</EmptyText>
+            <EmptySubText $theme={theme}>Add your first customer to get started</EmptySubText>
           </EmptyState>
         ) : (
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>Company Name</TableHeaderCell>
-                <TableHeaderCell>Contact Person</TableHeaderCell>
-                <TableHeaderCell>Email</TableHeaderCell>
-                <TableHeaderCell>Phone</TableHeaderCell>
-                <TableHeaderCell>Location</TableHeaderCell>
-                <TableHeaderCell>Actions</TableHeaderCell>
+            <TableHeader $theme={theme}>
+              <TableRow $theme={theme}>
+                <TableHeaderCell $theme={theme}>Company Name</TableHeaderCell>
+                <TableHeaderCell $theme={theme}>Contact Person</TableHeaderCell>
+                <TableHeaderCell $theme={theme}>Email</TableHeaderCell>
+                <TableHeaderCell $theme={theme}>Phone</TableHeaderCell>
+                <TableHeaderCell $theme={theme}>Location</TableHeaderCell>
+                <TableHeaderCell $theme={theme}>Actions</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
               {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <CompanyName>{customer.name}</CompanyName>
+                <TableRow $theme={theme} key={customer.id}>
+                  <TableCell $theme={theme}>
+                    <CompanyName $theme={theme}>{customer.name}</CompanyName>
                   </TableCell>
-                  <TableCell>{customer.contact_person || '-'}</TableCell>
-                  <TableCell>{customer.email || '-'}</TableCell>
-                  <TableCell>{customer.phone || '-'}</TableCell>
-                  <TableCell>
+                  <TableCell $theme={theme}>{customer.contact_person || '-'}</TableCell>
+                  <TableCell $theme={theme}>{customer.email || '-'}</TableCell>
+                  <TableCell $theme={theme}>{customer.phone || '-'}</TableCell>
+                  <TableCell $theme={theme}>
                     {customer.city && customer.state
                       ? `${customer.city}, ${customer.state}`
                       : customer.city || customer.state || '-'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell $theme={theme}>
                     <ActionButton onClick={() => handleEdit(customer)}>Edit</ActionButton>
                     <DeleteButton onClick={() => handleDelete(customer.id)}>Delete</DeleteButton>
                   </TableCell>
@@ -292,13 +295,13 @@ const Container = styled.div`
   max-width: 1200px;
 `;
 
-const LoadingContainer = styled.div`
+const LoadingContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   justify-content: center;
   align-items: center;
   height: 200px;
   font-size: 18px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
 `;
 
 const Header = styled.div`
@@ -308,10 +311,10 @@ const Header = styled.div`
   margin-bottom: 30px;
 `;
 
-const Title = styled.h1`
+const Title = styled.h1<{ $theme: Theme }>`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin: 0;
 `;
 
@@ -345,8 +348,8 @@ const FormOverlay = styled.div`
   z-index: 1000;
 `;
 
-const FormContainer = styled.div`
-  background: white;
+const FormContainer = styled.div<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
   border-radius: 12px;
   padding: 0;
   max-width: 600px;
@@ -355,28 +358,28 @@ const FormContainer = styled.div`
   overflow-y: auto;
 `;
 
-const FormHeader = styled.div`
+const FormHeader = styled.div<{ $theme: Theme }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid ${(props) => props.$theme.colors.border};
 `;
 
-const FormTitle = styled.h2`
+const FormTitle = styled.h2<{ $theme: Theme }>`
   margin: 0;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
 `;
 
-const CloseButton = styled.button`
+const CloseButton = styled.button<{ $theme: Theme }>`
   background: none;
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
 
   &:hover {
-    color: #2c3e50;
+    color: ${(props) => props.$theme.colors.textPrimary};
   }
 `;
 
@@ -395,17 +398,17 @@ const FormGroup = styled.div<{ $fullWidth?: boolean }>`
   grid-column: ${(props) => (props.$fullWidth ? '1 / -1' : 'auto')};
 `;
 
-const Label = styled.label`
+const Label = styled.label<{ $theme: Theme }>`
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
 `;
 
-const Input = styled.input`
+const Input = styled.input<{ $theme: Theme }>`
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #dee2e6;
+  border: 1px solid ${(props) => props.$theme.colors.border};
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s ease;
@@ -451,11 +454,11 @@ const SubmitButton = styled.button`
   }
 `;
 
-const TableContainer = styled.div`
-  background: white;
+const TableContainer = styled.div<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.surface};
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
 `;
 
 const EmptyState = styled.div`
@@ -468,14 +471,14 @@ const EmptyIcon = styled.div`
   margin-bottom: 16px;
 `;
 
-const EmptyText = styled.div`
+const EmptyText = styled.div<{ $theme: Theme }>`
   font-size: 18px;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   margin-bottom: 8px;
 `;
 
-const EmptySubText = styled.div`
-  color: #6c757d;
+const EmptySubText = styled.div<{ $theme: Theme }>`
+  color: ${(props) => props.$theme.colors.textSecondary};
 `;
 
 const Table = styled.table`
@@ -483,34 +486,34 @@ const Table = styled.table`
   border-collapse: collapse;
 `;
 
-const TableHeader = styled.thead`
-  background: #f8f9fa;
+const TableHeader = styled.thead<{ $theme: Theme }>`
+  background: ${(props) => props.$theme.colors.background};
 `;
 
 const TableBody = styled.tbody``;
 
-const TableRow = styled.tr`
-  border-bottom: 1px solid #e9ecef;
+const TableRow = styled.tr<{ $theme: Theme }>`
+  border-bottom: 1px solid ${(props) => props.$theme.colors.border};
 
   &:hover {
-    background: #f8f9fa;
+    background: ${(props) => props.$theme.colors.background};
   }
 `;
 
-const TableHeaderCell = styled.th`
+const TableHeaderCell = styled.th<{ $theme: Theme }>`
   padding: 15px 20px;
   text-align: left;
   font-weight: 600;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
 `;
 
-const TableCell = styled.td`
+const TableCell = styled.td<{ $theme: Theme }>`
   padding: 15px 20px;
 `;
 
-const CompanyName = styled.div`
+const CompanyName = styled.div<{ $theme: Theme }>`
   font-weight: 600;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
 `;
 
 const ActionButton = styled.button`

@@ -5,7 +5,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { config } from '../../config/runtime';
+import { Theme } from '../../config/theme';
 
 interface ProfileDropdownProps {
   // No props needed currently
@@ -13,6 +15,7 @@ interface ProfileDropdownProps {
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   const { user, logout, isAdmin, loading } = useAuth();
+  const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -76,10 +79,10 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   if (loading) {
     return (
       <DropdownContainer ref={dropdownRef}>
-        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen}>
-          <UserAvatar>⏳</UserAvatar>
-          <UserName>Loading...</UserName>
-          <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
+        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen} $theme={theme}>
+          <UserAvatar $theme={theme}>⏳</UserAvatar>
+          <UserName $theme={theme}>Loading...</UserName>
+          <DropdownArrow $isOpen={isOpen} $theme={theme}>▼</DropdownArrow>
         </UserMenu>
       </DropdownContainer>
     );
@@ -88,22 +91,22 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
   if (!user) {
     return (
       <DropdownContainer ref={dropdownRef}>
-        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen}>
-          <UserAvatar>👤</UserAvatar>
-          <UserName>Guest</UserName>
-          <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
+        <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen} $theme={theme}>
+          <UserAvatar $theme={theme}>👤</UserAvatar>
+          <UserName $theme={theme}>Guest</UserName>
+          <DropdownArrow $isOpen={isOpen} $theme={theme}>▼</DropdownArrow>
         </UserMenu>
 
         {isOpen && (
-          <DropdownMenu>
-            <DropdownItem onClick={handleLoginClick}>
+          <DropdownMenu $theme={theme}>
+            <DropdownItem onClick={handleLoginClick} $theme={theme}>
               <ItemIcon>🔐</ItemIcon>
               Login
             </DropdownItem>
 
-            <DropdownDivider />
+            <DropdownDivider $theme={theme} />
 
-            <DropdownItem onClick={handleSignUpClick}>
+            <DropdownItem onClick={handleSignUpClick} $theme={theme}>
               <ItemIcon>📝</ItemIcon>
               Sign Up
             </DropdownItem>
@@ -118,34 +121,34 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = () => {
 
   return (
     <DropdownContainer ref={dropdownRef}>
-      <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen}>
-        <UserAvatar>👤</UserAvatar>
-        <UserName>{displayName}</UserName>
-        <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
+      <UserMenu onClick={() => setIsOpen(!isOpen)} $isOpen={isOpen} $theme={theme}>
+        <UserAvatar $theme={theme}>👤</UserAvatar>
+        <UserName $theme={theme}>{displayName}</UserName>
+        <DropdownArrow $isOpen={isOpen} $theme={theme}>▼</DropdownArrow>
       </UserMenu>
 
       {isOpen && (
-        <DropdownMenu>
-          <DropdownItem onClick={handleProfileClick}>
+        <DropdownMenu $theme={theme}>
+          <DropdownItem onClick={handleProfileClick} $theme={theme}>
             <ItemIcon>👤</ItemIcon>
             View Profile
           </DropdownItem>
 
-          <DropdownItem onClick={handleSettingsClick}>
+          <DropdownItem onClick={handleSettingsClick} $theme={theme}>
             <ItemIcon>⚙️</ItemIcon>
             Settings
           </DropdownItem>
 
           {isAdmin && (
-            <DropdownItem onClick={handleAdminClick}>
+            <DropdownItem onClick={handleAdminClick} $theme={theme}>
               <ItemIcon>🔧</ItemIcon>
               View as Admin
             </DropdownItem>
           )}
 
-          <DropdownDivider />
+          <DropdownDivider $theme={theme} />
 
-          <DropdownItem onClick={handleLogout} $isLogout>
+          <DropdownItem onClick={handleLogout} $isLogout $theme={theme}>
             <ItemIcon>🚪</ItemIcon>
             Logout
           </DropdownItem>
@@ -159,7 +162,7 @@ const DropdownContainer = styled.div`
   position: relative;
 `;
 
-const UserMenu = styled.div<{ $isOpen?: boolean }>`
+const UserMenu = styled.div<{ $isOpen?: boolean; $theme: Theme }>`
   display: flex;
   align-items: center;
   gap: 10px;
@@ -167,45 +170,45 @@ const UserMenu = styled.div<{ $isOpen?: boolean }>`
   padding: 8px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  background-color: ${(props) => (props.$isOpen ? '#f8f9fa' : 'transparent')};
+  background-color: ${(props) => (props.$isOpen ? props.$theme.colors.surfaceHover : 'transparent')};
 
   &:hover {
-    background-color: #f8f9fa;
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
   }
 `;
 
-const UserAvatar = styled.div`
+const UserAvatar = styled.div<{ $theme: Theme }>`
   font-size: 20px;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e9ecef;
+  background-color: ${(props) => props.$theme.colors.borderLight};
   border-radius: 50%;
 `;
 
-const UserName = styled.span`
+const UserName = styled.span<{ $theme: Theme }>`
   font-weight: 500;
-  color: #2c3e50;
+  color: ${(props) => props.$theme.colors.textPrimary};
   font-size: 14px;
 `;
 
-const DropdownArrow = styled.span<{ $isOpen: boolean }>`
+const DropdownArrow = styled.span<{ $isOpen: boolean; $theme: Theme }>`
   font-size: 10px;
-  color: #6c757d;
+  color: ${(props) => props.$theme.colors.textSecondary};
   transform: ${(props) => (props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)')};
   transition: transform 0.2s ease;
 `;
 
-const DropdownMenu = styled.div`
+const DropdownMenu = styled.div<{ $theme: Theme }>`
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
-  border: 1px solid #e9ecef;
+  background: ${(props) => props.$theme.colors.surface};
+  border: 1px solid ${(props) => props.$theme.colors.border};
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px ${(props) => props.$theme.colors.shadowMedium};
   min-width: 180px;
   z-index: 1000;
   padding: 8px 0;
@@ -218,15 +221,15 @@ const DropdownMenu = styled.div`
     right: 16px;
     width: 12px;
     height: 12px;
-    background: white;
-    border: 1px solid #e9ecef;
+    background: ${(props) => props.$theme.colors.surface};
+    border: 1px solid ${(props) => props.$theme.colors.border};
     border-bottom: none;
     border-right: none;
     transform: rotate(45deg);
   }
 `;
 
-const DropdownItem = styled.button<{ $isLogout?: boolean }>`
+const DropdownItem = styled.button<{ $isLogout?: boolean; $theme: Theme }>`
   width: 100%;
   display: flex;
   align-items: center;
@@ -236,16 +239,16 @@ const DropdownItem = styled.button<{ $isLogout?: boolean }>`
   background: none;
   cursor: pointer;
   font-size: 14px;
-  color: ${(props) => (props.$isLogout ? '#dc3545' : '#2c3e50')};
+  color: ${(props) => (props.$isLogout ? props.$theme.colors.error : props.$theme.colors.textPrimary)};
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: ${(props) => (props.$isLogout ? '#fff5f5' : '#f8f9fa')};
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
   }
 
   &:focus {
     outline: none;
-    background-color: ${(props) => (props.$isLogout ? '#fff5f5' : '#f8f9fa')};
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
   }
 `;
 
@@ -255,9 +258,9 @@ const ItemIcon = styled.span`
   text-align: center;
 `;
 
-const DropdownDivider = styled.hr`
+const DropdownDivider = styled.hr<{ $theme: Theme }>`
   border: none;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid ${(props) => props.$theme.colors.border};
   margin: 8px 0;
 `;
 
