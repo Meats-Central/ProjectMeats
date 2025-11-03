@@ -77,7 +77,6 @@ jobs:
             ❌ feature/add_customer_portal (use hyphens, not underscores)
 
             See: .github/copilot-instructions.md for more details
-EOF
             exit 1
           fi
 
