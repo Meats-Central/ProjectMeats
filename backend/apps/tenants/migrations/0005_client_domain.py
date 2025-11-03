@@ -10,7 +10,7 @@ import django_tenants.postgresql_backend.base
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tenants', '0003_tenant_logo'),
+        ('tenants', '0004_add_schema_name_and_domain_model'),
     ]
 
     operations = [
