@@ -225,9 +225,10 @@ jobs:
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
+          STATIC_DIR="/home/django/ProjectMeats/staticfiles"
           ENV_FILE="${APP_DIR}/.env"
 
-          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR"
+          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
 
           sudo tee "$ENV_FILE" > /dev/null <<ENV
           DJANGO_SETTINGS_MODULE=${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
@@ -260,12 +261,14 @@ jobs:
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py migrate --noinput
 
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
 
@@ -274,6 +277,7 @@ jobs:
             -p 8000:8000 \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
