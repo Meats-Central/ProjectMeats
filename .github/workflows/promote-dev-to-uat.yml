@@ -9,18 +9,40 @@ on:
 jobs:
   create-uat-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Create Pull Request to UAT
-        uses: peter-evans/create-pull-request@v5
         with:
-          source-branch: development
-          destination-branch: uat
-          title: Promote development to UAT
-          body: |
-            Auto-created PR to promote tested changes from development to UAT environment.
-            - Only merges after CI/test checks and review.
-          labels: uat-promotion, automation
-          reviewers: Vacilator
+          fetch-depth: 0
+          ref: development
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_COUNT=$(gh pr list --base uat --head development --state open --json number --jq 'length')
+          echo "pr_count=${PR_COUNT}" >> "$GITHUB_OUTPUT"
+          
+      - name: Create Pull Request to UAT
+        if: steps.check-pr.outputs.pr_count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base uat \
+            --head development \
+            --title "Promote development to UAT" \
+            --body "Auto-created PR to promote tested changes from development to UAT environment.
+          - Only merges after CI/test checks and review." \
+            --label "uat-promotion,automation" \
+            --reviewer Vacilator
+
+      - name: PR Already Exists
+        if: steps.check-pr.outputs.pr_count != '0'
+        run: |
+          echo "::notice::An open PR from development to uat already exists. Skipping PR creation."
