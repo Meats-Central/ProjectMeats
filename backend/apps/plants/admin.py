@@ -2,12 +2,13 @@
 Django admin configuration for Plants app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Plant
 
 
 @admin.register(Plant)
-class PlantAdmin(admin.ModelAdmin):
-    """Admin interface for Plant model."""
+class PlantAdmin(TenantFilteredAdmin):
+    """Admin interface for Plant model with tenant filtering."""
 
     list_display = (
         "name",

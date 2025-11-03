@@ -2,12 +2,13 @@
 Django admin configuration for Carriers app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Carrier
 
 
 @admin.register(Carrier)
-class CarrierAdmin(admin.ModelAdmin):
-    """Admin interface for Carrier model."""
+class CarrierAdmin(TenantFilteredAdmin):
+    """Admin interface for Carrier model with tenant filtering."""
 
     list_display = (
         "name",

@@ -73,6 +73,14 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF trusted origins - required for cross-origin POST requests to admin
+# Should match CORS_ALLOWED_ORIGINS for consistency
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+    if origin.strip()
+]
+
 # -----------------------------------------------------------------------------
 # Security Headers
 # -----------------------------------------------------------------------------

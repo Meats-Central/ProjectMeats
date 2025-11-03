@@ -2,12 +2,13 @@
 Django admin configuration for Products app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Product
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    """Admin interface for Product model."""
+class ProductAdmin(TenantFilteredAdmin):
+    """Admin interface for Product model with tenant filtering."""
 
     list_display = (
         "product_code",

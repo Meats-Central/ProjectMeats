@@ -1,4 +1,5 @@
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Tenant, TenantUser, TenantInvitation
 
 
@@ -38,8 +39,8 @@ class TenantAdmin(admin.ModelAdmin):
 
 
 @admin.register(TenantUser)
-class TenantUserAdmin(admin.ModelAdmin):
-    """Admin interface for TenantUser associations."""
+class TenantUserAdmin(TenantFilteredAdmin):
+    """Admin interface for TenantUser associations with tenant filtering."""
 
     list_display = ["user", "tenant", "role", "is_active", "created_at"]
     list_filter = ["role", "is_active", "tenant"]
@@ -53,12 +54,14 @@ class TenantUserAdmin(admin.ModelAdmin):
     ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("user", "tenant")
+        # Get base queryset from TenantFilteredAdmin (which filters by tenant)
+        qs = super().get_queryset(request)
+        return qs.select_related("user", "tenant")
 
 
 @admin.register(TenantInvitation)
-class TenantInvitationAdmin(admin.ModelAdmin):
-    """Admin interface for TenantInvitation model."""
+class TenantInvitationAdmin(TenantFilteredAdmin):
+    """Admin interface for TenantInvitation model with tenant filtering."""
 
     list_display = [
         "email",
@@ -89,6 +92,6 @@ class TenantInvitationAdmin(admin.ModelAdmin):
     ]
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
-            "tenant", "invited_by", "accepted_by"
-        )
+        # Get base queryset from TenantFilteredAdmin (which filters by tenant)
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant", "invited_by", "accepted_by")
