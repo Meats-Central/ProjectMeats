@@ -7,9 +7,10 @@ import { Theme } from '../../config/theme';
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onHoverChange?: (isHovered: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
@@ -49,6 +50,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       onToggle();
     }
   }, [location.pathname, keepOpen, isOpen, onToggle]);
+
+  // Notify parent of hover state changes
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(isHovered);
+    }
+  }, [isHovered, onHoverChange]);
 
   const handleKeepOpenToggle = () => {
     const newKeepOpen = !keepOpen;
