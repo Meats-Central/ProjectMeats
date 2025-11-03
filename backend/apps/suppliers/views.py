@@ -18,6 +18,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 from apps.suppliers.models import Supplier
 from apps.suppliers.serializers import SupplierSerializer
+from apps.tenants.models import TenantUser
 import logging
 from django.utils import timezone
 
@@ -83,7 +84,6 @@ class SupplierViewSet(viewsets.ModelViewSet):
         
         # Fallback: Query user's TenantUser association if middleware didn't set tenant
         elif self.request.user and self.request.user.is_authenticated:
-            from apps.tenants.models import TenantUser
             tenant_user = (
                 TenantUser.objects.filter(user=self.request.user, is_active=True)
                 .select_related('tenant')
