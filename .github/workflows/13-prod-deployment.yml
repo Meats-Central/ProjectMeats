@@ -229,6 +229,9 @@ jobs:
           ENV_FILE="${APP_DIR}/.env"
 
           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
+          
+          # Set permissions for mounted volumes (appuser in container has UID 1000)
+          sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
           sudo tee "$ENV_FILE" > /dev/null <<ENV
           DJANGO_SETTINGS_MODULE=${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}

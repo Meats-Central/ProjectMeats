@@ -220,6 +220,9 @@ jobs:
 
           # 0) Ensure dirs exist
           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
+          
+          # Set permissions for mounted volumes (appuser in container has UID 1000)
+          sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
           # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
