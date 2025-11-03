@@ -174,7 +174,7 @@ class Command(BaseCommand):
                         self.stdout.write(f'Creating domain: {domain_name}...')
                     
                     domain = Domain.objects.create(
-                        domain=domain_name,
+                        domain=domain_name.lower(),
                         tenant=tenant,
                         is_primary=is_primary,
                     )

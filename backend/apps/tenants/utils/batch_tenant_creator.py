@@ -207,7 +207,7 @@ def create_single_tenant(
             # Create domain if provided
             if domain:
                 domain_obj = Domain.objects.create(
-                    domain=domain,
+                    domain=domain.lower(),
                     tenant=tenant,
                     is_primary=is_primary,
                 )
