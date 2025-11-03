@@ -1,10 +1,141 @@
 """
 Core admin for ProjectMeats.
 
-Admin interface for core models.
+Admin interface for core models and base admin classes for multi-tenancy.
 """
 from django.contrib import admin
 from apps.core.models import Protein
+from apps.tenants.models import TenantUser
+
+
+class TenantFilteredAdmin(admin.ModelAdmin):
+    """
+    Base admin class that filters all querysets by the current user's tenant.
+    
+    This ensures that staff users only see data for their own tenant,
+    even when accessing the Django admin interface.
+    
+    Superusers see all data across all tenants.
+    """
+    
+    def get_queryset(self, request):
+        """
+        Filter queryset by user's tenant.
+        
+        - Superusers see everything
+        - Staff users (owners/admins/managers) only see their tenant's data
+        """
+        qs = super().get_queryset(request)
+        
+        # Superusers see all data
+        if request.user.is_superuser:
+            return qs
+        
+        # Get user's tenant(s)
+        tenant_users = TenantUser.objects.filter(
+            user=request.user,
+            is_active=True
+        ).select_related('tenant')
+        
+        if not tenant_users.exists():
+            # User has no tenant - return empty queryset
+            return qs.none()
+        
+        # Filter by user's tenant(s)
+        # If model has a 'tenant' field, filter by it
+        if hasattr(qs.model, 'tenant'):
+            tenant_ids = [tu.tenant_id for tu in tenant_users]
+            return qs.filter(tenant_id__in=tenant_ids)
+        
+        # If no tenant field, return all (for non-tenanted models like User, Group, etc.)
+        return qs
+    
+    def has_add_permission(self, request):
+        """
+        Check if user can add objects.
+        
+        Requires user to have at least one active tenant association.
+        """
+        if request.user.is_superuser:
+            return True
+        
+        # Check if user has any active tenant association
+        return TenantUser.objects.filter(
+            user=request.user,
+            is_active=True
+        ).exists()
+    
+    def has_change_permission(self, request, obj=None):
+        """
+        Check if user can change objects.
+        
+        If obj is provided, ensure it belongs to user's tenant.
+        """
+        if request.user.is_superuser:
+            return True
+        
+        # Check user has active tenant
+        if not TenantUser.objects.filter(user=request.user, is_active=True).exists():
+            return False
+        
+        # If checking specific object, ensure it belongs to user's tenant
+        if obj is not None and hasattr(obj, 'tenant'):
+            user_tenants = TenantUser.objects.filter(
+                user=request.user,
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            return obj.tenant_id in user_tenants
+        
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        """
+        Check if user can delete objects.
+        
+        Only owners and admins can delete. Managers and below cannot.
+        """
+        if request.user.is_superuser:
+            return True
+        
+        # Check if user has owner/admin role
+        admin_roles = ['owner', 'admin']
+        has_admin_role = TenantUser.objects.filter(
+            user=request.user,
+            role__in=admin_roles,
+            is_active=True
+        ).exists()
+        
+        if not has_admin_role:
+            return False
+        
+        # If checking specific object, ensure it belongs to user's tenant
+        if obj is not None and hasattr(obj, 'tenant'):
+            user_tenants = TenantUser.objects.filter(
+                user=request.user,
+                role__in=admin_roles,
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            return obj.tenant_id in user_tenants
+        
+        return True
+    
+    def save_model(self, request, obj, form, change):
+        """
+        Set tenant on object save if it's a new object.
+        
+        Uses the user's first active tenant (prioritizing owner/admin roles).
+        """
+        if not change and hasattr(obj, 'tenant') and not obj.tenant_id:
+            # Get user's primary tenant (prioritize owner/admin roles)
+            tenant_user = TenantUser.objects.filter(
+                user=request.user,
+                is_active=True
+            ).select_related('tenant').order_by('-role').first()
+            
+            if tenant_user:
+                obj.tenant = tenant_user.tenant
+        
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Protein)

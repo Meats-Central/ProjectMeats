@@ -136,6 +136,10 @@ def assign_role_permissions(sender, instance, created, **kwargs):
             f"(role: {role} at {tenant.slug})"
         )
     
+    # If this role doesn't grant staff access, check if user should lose it
+    if not should_be_staff:
+        _check_and_remove_staff_status(user)
+    
     # Add user to role-specific group for this tenant
     group = get_or_create_role_group(role, tenant)
     user.groups.add(group)
@@ -175,16 +179,18 @@ def remove_role_permissions(sender, instance, **kwargs):
         logger.warning(f"Group {group_name} not found during TenantUser deletion")
     
     # Check if user should lose staff status
-    _check_and_remove_staff_status(user)
+    # Exclude the instance being deleted when checking
+    _check_and_remove_staff_status(user, exclude_id=instance.id)
 
 
-def _check_and_remove_staff_status(user):
+def _check_and_remove_staff_status(user, exclude_id=None):
     """
     Check if user still has any admin-level roles across all tenants.
     Remove is_staff if they don't.
     
     Args:
         user: User instance to check
+        exclude_id: TenantUser ID to exclude from check (when deleting)
     """
     # Don't touch superusers
     if user.is_superuser:
@@ -192,9 +198,15 @@ def _check_and_remove_staff_status(user):
     
     # Check if user has any active admin-level roles
     admin_roles = ["owner", "admin", "manager"]
-    has_admin_role = TenantUser.objects.filter(
+    query = TenantUser.objects.filter(
         user=user, role__in=admin_roles, is_active=True
-    ).exists()
+    )
+    
+    # Exclude the instance being deleted if specified
+    if exclude_id:
+        query = query.exclude(id=exclude_id)
+    
+    has_admin_role = query.exists()
     
     if not has_admin_role and user.is_staff:
         user.is_staff = False
