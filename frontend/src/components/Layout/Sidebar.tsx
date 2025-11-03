@@ -1,6 +1,8 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Theme } from '../../config/theme';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,6 +10,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+  const { theme } = useTheme();
+  const location = useLocation();
+  const [isHovered, setIsHovered] = useState(false);
+  
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/suppliers', label: 'Suppliers', icon: '🏭' },
@@ -24,22 +30,39 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { path: '/ai-assistant', label: 'AI Assistant', icon: '🤖' },
   ];
 
+  // Auto-close on route change (for mobile/tablet)
+  useEffect(() => {
+    // Only auto-close on small screens when menu is open
+    if (isOpen && window.innerWidth < 768) {
+      onToggle();
+    }
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isExpanded = isOpen || isHovered;
+
   return (
-    <SidebarContainer $isOpen={isOpen}>
-      <SidebarHeader>
+    <SidebarContainer
+      $isOpen={isExpanded}
+      $theme={theme}
+      onMouseEnter={() => !isOpen && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <SidebarHeader $theme={theme}>
         <Logo>
           <LogoIcon>🥩</LogoIcon>
-          {isOpen && <LogoText>ProjectMeats</LogoText>}
+          {isExpanded && <LogoText>ProjectMeats</LogoText>}
         </Logo>
-        <ToggleButton onClick={onToggle}>{isOpen ? '◀' : '▶'}</ToggleButton>
+        <ToggleButton onClick={onToggle} $theme={theme}>
+          {isOpen ? '◀' : '▶'}
+        </ToggleButton>
       </SidebarHeader>
 
       <Navigation>
         {menuItems.map((item) => (
           <NavItem key={item.path}>
-            <StyledNavLink to={item.path}>
+            <StyledNavLink to={item.path} $theme={theme}>
               <NavIcon>{item.icon}</NavIcon>
-              {isOpen && <NavLabel>{item.label}</NavLabel>}
+              {isExpanded && <NavLabel>{item.label}</NavLabel>}
             </StyledNavLink>
           </NavItem>
         ))}
@@ -48,11 +71,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   );
 };
 
-const SidebarContainer = styled.div<{ $isOpen: boolean }>`
+const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
   width: ${(props) => (props.$isOpen ? '250px' : '60px')};
   height: 100vh;
-  background: #2c3e50;
-  color: white;
+  background: ${(props) => props.$theme.colors.sidebarBackground};
+  color: ${(props) => props.$theme.colors.sidebarText};
   transition: width 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -60,12 +83,12 @@ const SidebarContainer = styled.div<{ $isOpen: boolean }>`
   left: 0;
   top: 0;
   z-index: 1000;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 10px ${(props) => props.$theme.colors.shadowMedium};
 `;
 
-const SidebarHeader = styled.div`
+const SidebarHeader = styled.div<{ $theme: Theme }>`
   padding: 20px 15px;
-  border-bottom: 1px solid #34495e;
+  border-bottom: 1px solid ${(props) => props.$theme.colors.sidebarBorder};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -88,18 +111,19 @@ const LogoText = styled.h2`
   white-space: nowrap;
 `;
 
-const ToggleButton = styled.button`
+const ToggleButton = styled.button<{ $theme: Theme }>`
   background: none;
   border: none;
-  color: white;
+  color: ${(props) => props.$theme.colors.sidebarText};
   cursor: pointer;
   font-size: 16px;
   padding: 5px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: #34495e;
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
+    color: ${(props) => props.$theme.colors.sidebarTextHover};
   }
 `;
 
@@ -113,24 +137,24 @@ const NavItem = styled.li`
   margin-bottom: 2px;
 `;
 
-const StyledNavLink = styled(NavLink)`
+const StyledNavLink = styled(NavLink)<{ $theme: Theme }>`
   display: flex;
   align-items: center;
   gap: 15px;
   padding: 12px 20px;
-  color: #bdc3c7;
+  color: ${(props) => props.$theme.colors.sidebarText};
   text-decoration: none;
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: #34495e;
-    color: white;
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
+    color: ${(props) => props.$theme.colors.sidebarTextHover};
   }
 
   &.active {
-    background-color: #3498db;
+    background-color: ${(props) => props.$theme.colors.sidebarActive};
     color: white;
-    border-right: 3px solid #2980b9;
+    border-right: 3px solid ${(props) => props.$theme.colors.primaryActive};
   }
 `;
 
@@ -138,7 +162,7 @@ const NavIcon = styled.span`
   font-size: 20px;
   min-width: 20px;
   display: flex;
-  justify-content: center;
+  justify-center: center;
 `;
 
 const NavLabel = styled.span`
