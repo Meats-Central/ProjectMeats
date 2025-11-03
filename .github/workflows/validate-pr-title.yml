@@ -1,0 +1,146 @@
+name: Validate PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Check PR title format
+        id: check-title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          echo "Validating PR title: $PR_TITLE"
+
+          # Define valid PR title patterns based on Conventional Commits
+          # Format: <type>(<scope>): <description> OR <type>: <description>
+          # Also allow auto-promotion PR titles
+          CONVENTIONAL_PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert|hotfix)(\([a-z0-9-]+\))?: .+$"
+          PROMOTION_PATTERN="^Promote (development to UAT|UAT to Main|uat to main)"
+
+          if [[ "$PR_TITLE" =~ $CONVENTIONAL_PATTERN ]] || [[ "$PR_TITLE" =~ $PROMOTION_PATTERN ]]; then
+            echo "✅ PR title follows conventions"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Invalid PR title: $PR_TITLE"
+            echo "valid=false" >> $GITHUB_OUTPUT
+
+            # Create helpful error message
+            cat << EOF
+
+            PR title must follow Conventional Commits format:
+            <type>(<scope>): <description>
+            OR
+            <type>: <description>
+
+            Valid types:
+            - feat     : New features
+            - fix      : Bug fixes
+            - docs     : Documentation changes
+            - style    : Code style changes (formatting, no logic change)
+            - refactor : Code refactoring
+            - test     : Adding or updating tests
+            - chore    : Maintenance tasks
+            - perf     : Performance improvements
+            - ci       : CI/CD changes
+            - build    : Build system changes
+            - revert   : Revert previous changes
+            - hotfix   : Emergency quick fixes
+
+            Scope (optional):
+            - Component or area affected (e.g., customers, auth, api)
+            - Use lowercase with hyphens
+
+            Description:
+            - Brief summary of changes
+            - Start with lowercase (after the colon)
+            - No period at the end
+
+            Examples:
+            ✅ feat(customers): add customer export functionality
+            ✅ fix(auth): resolve token expiration handling
+            ✅ docs: update API documentation
+            ✅ chore(deps): update dependencies
+            ✅ refactor(payment): simplify payment service logic
+            ❌ Add customer export (missing type)
+            ❌ feat: Add customer export (description should be lowercase)
+            ❌ FEAT(customers): add export (type should be lowercase)
+            ❌ feat(customers) add export (missing colon)
+
+            See: https://www.conventionalcommits.org/
+EOF
+            exit 1
+          fi
+
+      - name: Comment on PR (if invalid)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const body = `### ❌ Invalid PR Title
+
+            The PR title \`${prTitle}\` does not follow our naming conventions.
+
+            **Required Format:** \`<type>(<scope>): <description>\` or \`<type>: <description>\`
+
+            **Valid Types:**
+            - \`feat\` - New features
+            - \`fix\` - Bug fixes
+            - \`docs\` - Documentation changes
+            - \`style\` - Code style changes (formatting, no logic change)
+            - \`refactor\` - Code refactoring
+            - \`test\` - Adding or updating tests
+            - \`chore\` - Maintenance tasks
+            - \`perf\` - Performance improvements
+            - \`ci\` - CI/CD changes
+            - \`build\` - Build system changes
+            - \`revert\` - Revert previous changes
+            - \`hotfix\` - Emergency quick fixes
+
+            **Scope (optional):**
+            - Component or area affected (e.g., \`customers\`, \`auth\`, \`api\`)
+            - Use lowercase with hyphens
+
+            **Description:**
+            - Brief summary of changes
+            - Start with lowercase (after the colon)
+            - No period at the end
+
+            **Examples:**
+            - ✅ \`feat(customers): add customer export functionality\`
+            - ✅ \`fix(auth): resolve token expiration handling\`
+            - ✅ \`docs: update API documentation\`
+            - ✅ \`chore(deps): update dependencies\`
+            - ✅ \`refactor(payment): simplify payment service logic\`
+            - ❌ \`Add customer export\` (missing type)
+            - ❌ \`feat: Add customer export\` (description should be lowercase)
+            - ❌ \`FEAT(customers): add export\` (type should be lowercase)
+            - ❌ \`feat(customers) add export\` (missing colon)
+
+            **To Fix:**
+            Edit this PR's title to match the required format.
+
+            **Reference:** [Conventional Commits](https://www.conventionalcommits.org/)`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Validation Summary
+        if: success()
+        run: |
+          echo "✅ PR title validation passed"
+          echo "Title: ${{ github.event.pull_request.title }}"
