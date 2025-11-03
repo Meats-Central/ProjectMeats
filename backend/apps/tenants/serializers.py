@@ -44,7 +44,7 @@ class TenantSerializer(serializers.ModelSerializer):
                 "domain": domain.domain,
                 "is_primary": domain.is_primary
             }
-            for domain in obj.domains.all()
+            for domain in obj.tenant_domains.all()
         ]
 
     def validate_slug(self, value):
