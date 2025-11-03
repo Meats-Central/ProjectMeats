@@ -90,28 +90,30 @@ class SupplierAPITests(APITestCase):
 
     def test_create_supplier_without_tenant(self):
         """
-        Test that creating a supplier without X-Tenant-ID header fails.
+        Test that creating a supplier without X-Tenant-ID header succeeds when user has TenantUser.
         
-        With strict tenant isolation, tenant must be explicitly provided via:
-        - X-Tenant-ID header, OR
-        - Request going through middleware which sets it from user's tenant association
+        With fallback tenant resolution, supplier creation should work via:
+        - X-Tenant-ID header (explicit), OR
+        - Request going through middleware which sets it from user's tenant association, OR
+        - Direct TenantUser query fallback in perform_create
         
-        In API testing without middleware, neither is set, so creation should fail.
-        This enforces proper security - explicit tenant context is always required.
+        In API testing without middleware, the fallback will query TenantUser and auto-assign tenant.
+        This provides a better user experience while maintaining security.
         """
         url = reverse("suppliers:supplier-list")
         data = {
             "name": "Test Supplier",
         }
 
-        # Don't send tenant header and middleware not active in tests
-        # Should fail because request.tenant won't be set
+        # Don't send tenant header - fallback should use user's TenantUser association
         response = self.client.post(url, data)
 
-        # Should fail without tenant context
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('Tenant context is required', str(response.data))
-        self.assertEqual(Supplier.objects.count(), 0)
+        # Should succeed with fallback tenant resolution
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Supplier.objects.count(), 1)
+        supplier = Supplier.objects.first()
+        self.assertEqual(supplier.name, "Test Supplier")
+        self.assertEqual(supplier.tenant, self.tenant)  # Auto-assigned from user's TenantUser
         
     def test_create_supplier_without_tenant_and_no_tenant_user(self):
         """Test that creating a supplier fails when user has no TenantUser association."""

@@ -18,6 +18,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 from apps.customers.models import Customer
 from apps.customers.serializers import CustomerSerializer
+from apps.tenants.models import TenantUser
 import logging
 from django.utils import timezone
 
@@ -66,7 +67,8 @@ class CustomerViewSet(viewsets.ModelViewSet):
         
         Tenant Resolution:
         1. Use request.tenant from TenantMiddleware
-        2. Raise ValidationError if no tenant found
+        2. Fallback to user's TenantUser association if middleware didn't set tenant
+        3. Raise ValidationError if no tenant found
         
         Args:
             serializer: Validated serializer instance
@@ -80,7 +82,22 @@ class CustomerViewSet(viewsets.ModelViewSet):
         if hasattr(self.request, 'tenant') and self.request.tenant:
             tenant = self.request.tenant
         
-        # Require tenant - no fallbacks or auto-creation
+        # Fallback: Query user's TenantUser association if middleware didn't set tenant
+        elif self.request.user and self.request.user.is_authenticated:
+            tenant_user = (
+                TenantUser.objects.filter(user=self.request.user, is_active=True)
+                .select_related('tenant')
+                .order_by('-role')  # Prioritize owner/admin roles
+                .first()
+            )
+            if tenant_user:
+                tenant = tenant_user.tenant
+                logger.debug(
+                    f'Tenant resolved from user association: {tenant.slug} '
+                    f'for user {self.request.user.username}'
+                )
+        
+        # Require tenant - raise error if still not found
         if not tenant:
             error_message = 'Tenant context is required to create a customer. Please ensure you are associated with a tenant.'
             logger.error(
