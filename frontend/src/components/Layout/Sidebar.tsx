@@ -7,9 +7,10 @@ import { Theme } from '../../config/theme';
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onHoverChange?: (isHovered: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
@@ -43,12 +44,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     }
   }, [keepOpen, isOpen, onToggle]);
 
+  // Reset hover state when sidebar is pinned (separate effect to avoid dependency issues)
+  useEffect(() => {
+    if (keepOpen) {
+      setIsHovered(false);
+    }
+  }, [keepOpen]);
+
   // Auto-close on route change unless keepOpen is enabled
   useEffect(() => {
     if (!keepOpen && isOpen) {
       onToggle();
     }
   }, [location.pathname, keepOpen, isOpen, onToggle]);
+
+  // Notify parent of hover state changes
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(isHovered);
+    }
+  }, [isHovered, onHoverChange]);
 
   const handleKeepOpenToggle = () => {
     const newKeepOpen = !keepOpen;

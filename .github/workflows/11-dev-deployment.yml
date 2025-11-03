@@ -215,10 +215,14 @@ jobs:
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
+          STATIC_DIR="/home/django/ProjectMeats/staticfiles"
           ENV_FILE="${APP_DIR}/.env"
 
           # 0) Ensure dirs exist
-          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR"
+          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
+          
+          # Set permissions for mounted volumes (appuser in container has UID 1000)
+          sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
           # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
@@ -258,12 +262,14 @@ jobs:
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py migrate --noinput
 
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
 
@@ -273,6 +279,7 @@ jobs:
             -p 8000:8000 \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
           # 5) Status

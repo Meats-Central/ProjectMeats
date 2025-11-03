@@ -171,6 +171,41 @@ None - implementation was successful on first attempt. All tests passed with no 
 - Previous Tenant Filtering Task: copilot-log.md line 4432-4579 (2025-11-03)
 
 ---
+## Task: Fix Django Admin Static Files 404 Errors in UAT - [Date: 2025-11-03]
+
+### Actions Taken:
+1. **Analyzed the issue**: Django admin interface in UAT was loading without CSS/JS, showing 404 errors for static files like `base.css`, `nav_sidebar.css`, etc.
+2. **Identified root cause**: 
+   - `collectstatic` was running in a temporary container (`--rm` flag) without persisting the collected files
+   - No volume mount for staticfiles directory in deployment workflows
+   - Main backend container had no access to collected static files
+   - File permission issues prevented non-root container user from writing to mounted volumes
+3. **Implemented fix**:
+   - Added `STATIC_DIR` variable pointing to `/home/django/ProjectMeats/staticfiles` in all deployment workflows (dev, UAT, prod)
+   - Added volume mount `-v "$STATIC_DIR:/app/staticfiles"` to migration, collectstatic, and main container steps
+   - Set proper ownership `sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"` to match container's `appuser` UID
+   - Updated Dockerfile to create `/app/staticfiles` and `/app/media` directories before switching to non-root user
+4. **Validated changes**: 
+   - Verified YAML syntax for all three deployment workflows
+   - Ensured Dockerfile changes maintain security (non-root user)
+   - Confirmed volume mounts are consistent across all docker run commands
+
+### Misses/Failures:
+- Initially only added volume mounts but didn't consider file permissions, which would have caused write failures for the non-root container user
+
+### Lessons Learned:
+1. **Volume mounts need proper permissions**: When mounting host directories into containers running as non-root users, must set ownership on host to match container UID
+2. **Static files persistence pattern**: For Django apps in containers, static files should be:
+   - Collected into a host-mounted volume
+   - Same volume mounted in the running container
+   - Directory created in Dockerfile before user switch
+3. **Consistency across environments**: Applied fix to all three environments (dev, UAT, prod) to prevent same issue from occurring elsewhere
+4. **WhiteNoise limitation**: WhiteNoise can only serve files that exist in the container's filesystem - it can't serve files that were never collected or persisted
+
+### Efficiency Suggestions:
+1. **Add deployment checklist**: Include verification that static files are properly served after deployment
+2. **Add health check for static files**: Could add a simple test that checks if admin CSS files are accessible
+3. **Consider baking static files into image**: Alternative approach would be to run collectstatic during docker build and include files in the image itself (though current approach is more flexible)
 
 ## Task: Fix CSRF Verification Error for Admin Login - [Date: 2025-11-02]
 
