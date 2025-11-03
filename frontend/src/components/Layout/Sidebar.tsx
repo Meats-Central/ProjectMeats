@@ -162,7 +162,7 @@ const NavIcon = styled.span`
   font-size: 20px;
   min-width: 20px;
   display: flex;
-  justify-center: center;
+  justify-content: center;
 `;
 
 const NavLabel = styled.span`

@@ -40,9 +40,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       if (!token) return;
 
       try {
-        const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000');
+        const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1');
         await axios.patch(
-          `${apiBaseUrl}/api/v1/preferences/me/`,
+          `${apiBaseUrl}/preferences/me/`,
           { theme: themeName },
           {
             headers: {
@@ -66,9 +66,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       if (!token) return;
 
       try {
-        const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000');
+        const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1');
         const response = await axios.get(
-          `${apiBaseUrl}/api/v1/preferences/me/`,
+          `${apiBaseUrl}/preferences/me/`,
           {
             headers: {
               Authorization: `Token ${token}`,
