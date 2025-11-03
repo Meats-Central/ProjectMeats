@@ -17,7 +17,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           source-branch: development
-          destination-branch: UAT
+          destination-branch: uat
           title: Promote development to UAT
           body: |
             Auto-created PR to promote tested changes from development to UAT environment.
