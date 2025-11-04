@@ -5,6 +5,81 @@ import uuid
 import secrets
 
 
+class Client(models.Model):
+    """
+    Client model for django-tenants schema-based multi-tenancy.
+    
+    This model represents a tenant in the schema-based multi-tenancy approach
+    where each client gets its own PostgreSQL schema for complete data isolation.
+    
+    This is separate from the Tenant model which is used for shared-schema
+    multi-tenancy. Both approaches are supported for flexibility.
+    """
+    
+    schema_name = models.CharField(
+        max_length=63,
+        unique=True,
+        db_index=True,
+        help_text="PostgreSQL schema name for this client"
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Client organization name"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the client"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = "tenants_client"
+    
+    def __str__(self):
+        return f"{self.name} ({self.schema_name})"
+
+
+class Domain(models.Model):
+    """
+    Domain model for django-tenants schema-based multi-tenancy.
+    
+    Maps domain names to Client tenants for schema-based routing.
+    This is the django-tenants DomainMixin-based model used for
+    schema-based multi-tenancy.
+    
+    This is separate from TenantDomain which is used for shared-schema
+    multi-tenancy routing.
+    """
+    
+    domain = models.CharField(
+        max_length=253,
+        unique=True,
+        db_index=True,
+        help_text="Domain name (e.g., 'client.example.com')"
+    )
+    tenant = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='domains',
+        help_text="Client associated with this domain"
+    )
+    is_primary = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Whether this is the primary domain for the client"
+    )
+    
+    class Meta:
+        db_table = "tenants_domain"
+    
+    def __str__(self):
+        primary = " (primary)" if self.is_primary else ""
+        return f"{self.domain} -> {self.tenant.name}{primary}"
+
+
 class Tenant(models.Model):
     """
     Tenant model for multi-tenancy support.
