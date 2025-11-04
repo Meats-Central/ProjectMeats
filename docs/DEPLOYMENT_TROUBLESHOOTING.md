@@ -269,7 +269,13 @@ Or: You have unapplied migrations. Run 'python manage.py migrate' to apply them.
 
 4. **Commit the new migration file(s)**:
    ```bash
-   git add backend/apps/*/migrations/*.py
+   # Add all new migration files
+   git add backend/
+   
+   # Review what's being committed
+   git status
+   
+   # Commit the changes
    git commit -m "Add missing migration files for model changes"
    ```
 
