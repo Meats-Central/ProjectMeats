@@ -80,6 +80,18 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-tenant-id",
+]
 
 # CSRF trusted origins - required for cross-origin POST requests to admin
 # Should match CORS_ALLOWED_ORIGINS for consistency
