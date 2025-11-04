@@ -93,10 +93,13 @@ python config/manage_env.py setup development
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 4. Run database migrations
+# 4. Set up pre-commit hooks (REQUIRED)
+pre-commit install
+
+# 5. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 5. Start development servers
+# 6. Start development servers
 make dev
 ```
 
@@ -133,7 +136,10 @@ cd ProjectMeats3
 # 2. Run setup (handles everything automatically)
 python setup_env.py
 
-# 3. Start development servers
+# 3. Set up pre-commit hooks (REQUIRED - run this after setup)
+pre-commit install
+
+# 4. Start development servers
 make dev
 # Windows: run backend and frontend in separate terminals
 ```
@@ -147,10 +153,13 @@ python config/manage_env.py setup development
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 3. Run database migrations
+# 3. Set up pre-commit hooks (REQUIRED)
+pre-commit install
+
+# 4. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 4. Start development servers
+# 5. Start development servers
 make dev
 ```
 
@@ -160,6 +169,38 @@ make dev
 - **Admin Panel**: http://localhost:8000/admin/
 
 > **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `DEVELOPMENT_SUPERUSER_USERNAME`, `DEVELOPMENT_SUPERUSER_EMAIL`, and `DEVELOPMENT_SUPERUSER_PASSWORD` settings.
+
+## 🔒 Pre-commit Hooks (REQUIRED)
+
+**⚠️ CRITICAL**: After cloning the repository, you **MUST** run `pre-commit install` to set up Git hooks that prevent common errors.
+
+```bash
+# Install pre-commit hooks (run once after cloning)
+pre-commit install
+```
+
+### What the hooks do:
+- **Code formatting**: Automatically format Python code with Black and isort
+- **Code quality**: Check Python syntax and style with flake8
+- **Migration validation**: **Validate Django migrations on every commit** to prevent CI failures
+- **File checks**: Prevent large files, merge conflicts, and syntax errors
+
+### Why this is required:
+The migration validation hook runs `python manage.py makemigrations --check --dry-run` on every commit. This **prevents CI pipeline failures** by ensuring:
+1. All model changes have corresponding migration files
+2. No unapplied migrations exist before pushing code
+3. Migration files are committed with model changes
+
+**If you skip this step**, your PRs will fail CI checks when unapplied migrations are detected.
+
+### Testing your hooks:
+```bash
+# Test pre-commit hooks manually
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run validate-django-migrations
+```
 
 ## 🏢 Multi-Tenancy Configuration
 

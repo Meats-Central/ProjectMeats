@@ -51,9 +51,9 @@ repos:
         files: ^backend/apps/.*/migrations/.*\.py$
         exclude: ^backend/apps/.*/migrations/__pycache__/
       
-      - id: check-migration-dependencies
-        name: Check Migration Dependencies
+      - id: validate-django-migrations
+        name: Validate Django Migrations
         entry: bash -c 'cd backend && python manage.py makemigrations --check --dry-run'
         language: system
         pass_filenames: false
-        files: ^backend/apps/.*/migrations/.*\.py$
+        always_run: true

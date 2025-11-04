@@ -232,6 +232,60 @@ Migration X is applied before its dependency Y on database 'default'.
 **Solution:**
 See [Migration Best Practices - Troubleshooting](MIGRATION_BEST_PRACTICES.md#inconsistentmigrationhistory-error) for detailed fix procedure.
 
+### Issue: Unapplied Migrations Detected in CI/CD
+
+**Error:**
+```
+CommandError: Conflicting migrations detected; multiple leaf nodes in the migration graph.
+Or: You have unapplied migrations. Run 'python manage.py migrate' to apply them.
+```
+
+**Cause:** Model changes were made but migration files were not created/committed, or migrations were created locally but not committed to the repository.
+
+**Prevention:** 
+- The pre-commit hook (`validate-django-migrations`) now runs on **every commit** to catch this before pushing
+- Always run `pre-commit install` after cloning the repository
+
+**Solution:**
+1. **Pull latest changes** to ensure you have the current codebase:
+   ```bash
+   git pull origin <branch-name>
+   ```
+
+2. **Generate missing migration files**:
+   ```bash
+   cd backend
+   python manage.py makemigrations
+   ```
+
+3. **Review the generated migrations** to ensure they're correct:
+   ```bash
+   # Check what migrations were created
+   git status
+   
+   # Review migration content
+   cat backend/apps/<app>/migrations/<new_migration>.py
+   ```
+
+4. **Commit the new migration file(s)**:
+   ```bash
+   # Add all new migration files
+   git add backend/
+   
+   # Review what's being committed
+   git status
+   
+   # Commit the changes
+   git commit -m "Add missing migration files for model changes"
+   ```
+
+5. **Push to re-trigger the CI pipeline**:
+   ```bash
+   git push
+   ```
+
+**Note:** This error is now caught by the pre-commit hook if you have run `pre-commit install`. The hook runs `python manage.py makemigrations --check --dry-run` on every commit to ensure no unapplied migrations exist.
+
 ### Issue: Migration Hangs
 
 **Symptom:** Migration process runs for > 5 minutes without completing
