@@ -57,3 +57,10 @@ repos:
         language: system
         pass_filenames: false
         files: ^backend/apps/.*/migrations/.*\.py$
+      
+      - id: validate-django-migrations
+        name: Validate Django Migrations
+        entry: bash -c 'cd backend && python manage.py makemigrations --check --dry-run'
+        language: system
+        pass_filenames: false
+        always_run: true

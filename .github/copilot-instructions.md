@@ -1426,6 +1426,7 @@ Based on recurring issues, we've added:
 - [ ] Update copilot-log.md with lessons learned
 
 **For Migration Changes:**
+- [ ] **CRITICAL: Before creating a PR, always run `python manage.py makemigrations` locally. If new files are generated, they MUST be committed. The CI pipeline will now fail any PR that has unapplied migrations, detected via the new pre-commit hook.**
 - [ ] Never modify applied migrations
 - [ ] Use minimal dependencies
 - [ ] Add `default=''` to CharField with `blank=True`
@@ -1434,6 +1435,7 @@ Based on recurring issues, we've added:
 - [ ] Verify migration plan: `python manage.py migrate --plan`
 
 **For Deployment Issues:**
+- [ ] If the deployment fails with "Unapplied migrations detected", the developer MUST run `git pull`, execute `python manage.py makemigrations`, commit the new file(s), and push to re-trigger the pipeline
 - [ ] Check [Deployment Troubleshooting](../docs/DEPLOYMENT_TROUBLESHOOTING.md) first
 - [ ] Review GitHub Actions logs
 - [ ] SSH to server and check container logs
