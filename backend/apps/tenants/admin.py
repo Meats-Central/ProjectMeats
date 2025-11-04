@@ -1,6 +1,6 @@
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Tenant, TenantUser, TenantInvitation, Domain, TenantDomain, Client
+from .models import Tenant, TenantUser, TenantInvitation, TenantDomain
 
 
 @admin.register(Tenant)
@@ -123,44 +123,9 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
         return qs.select_related("tenant", "invited_by", "accepted_by")
 
 
-@admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Client model (django-tenants schema-based).
-    
-    Manages tenants using PostgreSQL schemas for complete data isolation.
-    """
-
-    list_display = ["name", "schema_name", "created_at"]
-    search_fields = ["name", "schema_name", "description"]
-    readonly_fields = ["created_at", "updated_at"]
-    
-    fieldsets = [
-        ("Basic Information", {"fields": ("schema_name", "name", "description")}),
-        ("Metadata", {"fields": ("created_at", "updated_at"), "classes": ["collapse"]}),
-    ]
-
-
-@admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Domain model (django-tenants schema-based).
-    
-    Manages domain-to-client mappings for schema-based multi-tenancy.
-    """
-
-    list_display = ["domain", "tenant", "is_primary"]
-    list_filter = ["is_primary"]
-    search_fields = ["domain"]
-    
-    fieldsets = [
-        ("Domain Information", {"fields": ("domain", "tenant", "is_primary")}),
-    ]
-    
-    def get_queryset(self, request):
-        """Optimize queries by selecting related tenant (Client)."""
-        qs = super().get_queryset(request)
-        return qs.select_related("tenant")
+# Note: Client and Domain admin classes have been removed as these models
+# are not currently defined in models.py. They were intended for django-tenants
+# schema-based multi-tenancy but are not implemented in the current shared-schema approach.
 
 
 @admin.register(TenantDomain)

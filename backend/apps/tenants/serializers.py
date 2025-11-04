@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tenant, TenantUser, TenantDomain, Domain, Client
+from .models import Tenant, TenantUser, TenantDomain
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -198,65 +198,8 @@ class TenantDomainSerializer(serializers.ModelSerializer):
                 )
         return value
 
-
-class DomainSerializer(serializers.ModelSerializer):
-    """Serializer for Domain model (schema-based django-tenants approach)."""
-    
-    tenant_name = serializers.CharField(source="tenant.name", read_only=True)
-    tenant_schema = serializers.CharField(source="tenant.schema_name", read_only=True)
-    
-    class Meta:
-        model = Domain
-        fields = [
-            "id",
-            "domain",
-            "tenant",
-            "tenant_name",
-            "tenant_schema",
-            "is_primary",
-        ]
-        read_only_fields = ["id"]
-    
-    def validate_domain(self, value):
-        """Ensure domain is lowercase and unique."""
-        if value:
-            value = value.lower()
-            if (
-                Domain.objects.filter(domain=value)
-                .exclude(pk=self.instance.pk if self.instance else None)
-                .exists()
-            ):
-                raise serializers.ValidationError(
-                    "A domain with this name already exists."
-                )
-        return value
-
-
-class ClientSerializer(serializers.ModelSerializer):
-    """Serializer for Client model (schema-based django-tenants approach)."""
-    
-    domain_count = serializers.SerializerMethodField()
-    primary_domain = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Client
-        fields = [
-            "id",
-            "schema_name",
-            "name",
-            "description",
-            "created_at",
-            "updated_at",
-            "domain_count",
-            "primary_domain",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
-    
-    def get_domain_count(self, obj):
-        """Get count of domains for this client."""
-        return obj.domains.count()
-    
-    def get_primary_domain(self, obj):
-        """Get primary domain for this client."""
-        primary = obj.domains.filter(is_primary=True).first()
-        return primary.domain if primary else None
+# Note: DomainSerializer and ClientSerializer have been removed as Domain and Client
+# models are not currently defined in models.py. They were intended for django-tenants
+# schema-based multi-tenancy but are not implemented in the current shared-schema approach.
+# If schema-based multi-tenancy is needed in the future, these serializers should be
+# restored along with the corresponding models.
