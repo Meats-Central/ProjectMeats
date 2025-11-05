@@ -1,7 +1,7 @@
-# Staging Load Failure Fix - Quick Start Guide
+# Staging & UAT Load Failure Fix - Quick Start Guide
 
 ## 🎯 What This PR Does
-Fixes the persistent load failure on `staging.meatscentral.com` by adding debug logging, fixing configuration, and providing tools for diagnosis and resolution.
+Fixes the persistent load failure on `staging.meatscentral.com` and `uat.meatscentral.com` by adding debug logging, fixing configuration, and providing tools for diagnosis and resolution.
 
 ## 🚀 Quick Deploy
 
@@ -12,15 +12,22 @@ git checkout copilot/debug-staging-load-failure
 git pull
 ```
 
-### 2️⃣ Add Domain Entry (One-Time Setup)
+### 2️⃣ Add Domain Entries (One-Time Setup)
 ```bash
-# SSH to staging server
-ssh staging.meatscentral.com
+# SSH to staging/UAT server
+ssh staging.meatscentral.com  # or uat.meatscentral.com
 
-# Run management command
+# Run management commands
 cd /path/to/projectmeats/backend
+
+# For staging
 python manage.py add_tenant_domain \
     --domain=staging.meatscentral.com \
+    --tenant-slug=meatscentral
+
+# For UAT
+python manage.py add_tenant_domain \
+    --domain=uat.meatscentral.com \
     --tenant-slug=meatscentral
 ```
 
@@ -34,13 +41,17 @@ kubectl rollout restart deployment/projectmeats-backend
 ```
 
 ### 4️⃣ Test It
-Open browser → Navigate to `https://staging.meatscentral.com`
+Open browser → Navigate to `https://staging.meatscentral.com` or `https://uat.meatscentral.com`
 
 Should see: ✅ Application loads successfully
 
 ### 5️⃣ Verify Logs (Optional)
 ```bash
+# For staging logs
 tail -f /var/log/django.log | grep "STAGING DEBUG"
+
+# For UAT logs
+tail -f /var/log/django.log | grep "UAT DEBUG"
 ```
 
 Expected output:

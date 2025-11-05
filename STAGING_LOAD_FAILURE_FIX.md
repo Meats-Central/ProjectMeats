@@ -1,18 +1,18 @@
-# Staging Environment Load Failure Fix
+# Staging and UAT Environment Load Failure Fix
 
 ## Problem
-The staging.meatscentral.com environment was experiencing persistent load failures with no content or error messages displayed.
+The staging.meatscentral.com and uat.meatscentral.com environments were experiencing persistent load failures with no content or error messages displayed.
 
 ## Root Causes Identified
 
-1. **Missing ALLOWED_HOSTS Entry**: `staging.meatscentral.com` was not included in Django's ALLOWED_HOSTS configuration for the staging environment.
+1. **Missing ALLOWED_HOSTS Entry**: `staging.meatscentral.com` and `uat.meatscentral.com` were not included in Django's ALLOWED_HOSTS configuration for the staging environment.
 
-2. **Missing TenantDomain Entry**: The custom TenantMiddleware attempts to resolve tenants via domain lookup using the TenantDomain model. If no entry exists for `staging.meatscentral.com`, the middleware cannot resolve a tenant, resulting in a failed request.
+2. **Missing TenantDomain Entry**: The custom TenantMiddleware attempts to resolve tenants via domain lookup using the TenantDomain model. If no entry exists for these domains, the middleware cannot resolve a tenant, resulting in a failed request.
 
 ## Solution Implemented
 
 ### 1. Debug Logging Added
-Added comprehensive debug logging to `apps/tenants/middleware.py` that activates specifically for `staging.meatscentral.com`:
+Added comprehensive debug logging to `apps/tenants/middleware.py` that activates specifically for `staging.meatscentral.com` and `uat.meatscentral.com`:
 
 - Logs incoming request details (host, path, method, authenticated user)
 - Traces each tenant resolution attempt:
@@ -23,14 +23,15 @@ Added comprehensive debug logging to `apps/tenants/middleware.py` that activates
 - Logs response status code
 - Logs any exceptions during request processing
 
-All debug logs use the `[STAGING DEBUG]` prefix for easy filtering in log aggregation tools.
+Debug logs use `[STAGING DEBUG]` or `[UAT DEBUG]` prefixes for easy filtering in log aggregation tools.
 
 ### 2. ALLOWED_HOSTS Fix
-Added `staging.meatscentral.com` to the STAGING_HOSTS list in `backend/projectmeats/settings/staging.py`.
+Added `staging.meatscentral.com` and `uat.meatscentral.com` to the STAGING_HOSTS list in `backend/projectmeats/settings/staging.py`.
 
 ```python
 STAGING_HOSTS = [
     "staging.meatscentral.com",  # Primary staging domain
+    "uat.meatscentral.com",  # UAT environment
     "staging-projectmeats.ondigitalocean.app",
     "projectmeats-staging.herokuapp.com",  # Fallback
 ]
@@ -42,10 +43,10 @@ Created `add_tenant_domain.py` management command to add/update TenantDomain ent
 ## Deployment Instructions
 
 ### Step 1: Deploy Code Changes
-Deploy the updated code to the staging environment through the normal CI/CD pipeline.
+Deploy the updated code to the staging/UAT environments through the normal CI/CD pipeline.
 
-### Step 2: Add TenantDomain Entry
-SSH into the staging server and run the management command to create the TenantDomain entry:
+### Step 2: Add TenantDomain Entries
+SSH into the staging/UAT servers and run the management command to create the TenantDomain entries:
 
 ```bash
 # Connect to staging
@@ -57,17 +58,20 @@ cd /path/to/projectmeats/backend
 # Activate virtual environment (if applicable)
 source venv/bin/activate
 
-# Add the domain entry (replace 'meatscentral' with actual tenant slug if different)
+# Add the staging domain entry
 python manage.py add_tenant_domain --domain=staging.meatscentral.com --tenant-slug=meatscentral
 
-# Verify the entry was created
+# Add the UAT domain entry
+python manage.py add_tenant_domain --domain=uat.meatscentral.com --tenant-slug=meatscentral
+
+# Verify the entries were created
 python manage.py shell
 >>> from apps.tenants.models import TenantDomain
->>> TenantDomain.objects.filter(domain='staging.meatscentral.com')
+>>> TenantDomain.objects.filter(domain__in=['staging.meatscentral.com', 'uat.meatscentral.com'])
 >>> exit()
 ```
 
-**Note**: Replace `meatscentral` with the actual tenant slug if it's different in your staging environment.
+**Note**: Replace `meatscentral` with the actual tenant slug if it's different in your environment.
 
 ### Step 3: Restart Application
 Restart the Django application to ensure all settings are reloaded:

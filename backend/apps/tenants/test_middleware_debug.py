@@ -2,7 +2,7 @@
 Tests for TenantMiddleware debug logging functionality.
 
 These tests verify that the temporary debug logging for staging.meatscentral.com
-doesn't interfere with normal middleware operation.
+and uat.meatscentral.com doesn't interfere with normal middleware operation.
 """
 
 from django.test import TestCase, RequestFactory
@@ -14,7 +14,7 @@ import logging
 
 
 class TenantMiddlewareDebugLoggingTests(TestCase):
-    """Test that debug logging for staging.meatscentral.com works correctly."""
+    """Test that debug logging for staging.meatscentral.com and uat.meatscentral.com works correctly."""
 
     def setUp(self):
         """Set up test data."""
@@ -36,8 +36,8 @@ class TenantMiddlewareDebugLoggingTests(TestCase):
             password="testpass"
         )
 
-    def test_middleware_works_without_staging_domain(self):
-        """Test that middleware works normally for non-staging domains."""
+    def test_middleware_works_without_debug_domains(self):
+        """Test that middleware works normally for non-debug domains."""
         request = self.factory.get('/', HTTP_HOST='example.com')
         request.user = self.user
         
@@ -145,3 +145,48 @@ class TenantMiddlewareDebugLoggingTests(TestCase):
         self.assertIn('[STAGING DEBUG]', log_output)
         self.assertIn('Exception during request processing', log_output)
         self.assertIn('ValueError', log_output)
+
+    def test_middleware_works_with_uat_domain(self):
+        """Test that middleware works for uat.meatscentral.com."""
+        # Create domain entry for UAT
+        TenantDomain.objects.create(
+            domain="uat.meatscentral.com",
+            tenant=self.tenant,
+            is_primary=True
+        )
+        
+        request = self.factory.get('/', HTTP_HOST='uat.meatscentral.com')
+        request.user = self.user
+        
+        # Capture logs
+        with self.assertLogs('apps.tenants.middleware', level='INFO') as logs:
+            response = self.middleware(request)
+        
+        # Should process request normally
+        self.assertEqual(response.status_code, 200)
+        
+        # Should have UAT debug logs
+        log_output = '\n'.join(logs.output)
+        self.assertIn('[UAT DEBUG]', log_output)
+        self.assertIn('Request received', log_output)
+        self.assertIn('uat.meatscentral.com', log_output)
+
+    def test_middleware_logs_uat_tenant_resolution_success(self):
+        """Test that successful tenant resolution is logged for UAT."""
+        # Create domain entry
+        TenantDomain.objects.create(
+            domain="uat.meatscentral.com",
+            tenant=self.tenant,
+            is_primary=True
+        )
+        
+        request = self.factory.get('/', HTTP_HOST='uat.meatscentral.com')
+        request.user = self.user
+        
+        with self.assertLogs('apps.tenants.middleware', level='INFO') as logs:
+            response = self.middleware(request)
+        
+        log_output = '\n'.join(logs.output)
+        self.assertIn('[UAT DEBUG]', log_output)
+        self.assertIn('Final tenant resolution SUCCESS', log_output)
+        self.assertIn(f'tenant={self.tenant.slug}', log_output)

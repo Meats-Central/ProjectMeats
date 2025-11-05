@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script to remove temporary debug logging for staging.meatscentral.com.
-Run this after verifying that staging is working correctly.
+Script to remove temporary debug logging for staging.meatscentral.com and uat.meatscentral.com.
+Run this after verifying that staging/UAT is working correctly.
 
 Usage:
     python3 remove_debug_logging.py
@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 def remove_debug_logging():
-    """Remove all [STAGING DEBUG] logging from middleware."""
+    """Remove all [STAGING DEBUG] and [UAT DEBUG] logging from middleware."""
     middleware_file = Path("backend/apps/tenants/middleware.py")
     backup_file = middleware_file.with_suffix('.py.backup')
     
@@ -37,15 +37,21 @@ def remove_debug_logging():
     block_indent = None
     
     for line in lines:
-        # Check for start of staging debug block
+        # Check for start of debug host block
         # Note: This is string matching in source code, not URL validation
-        if 'is_staging' in line and '=' in line and 'staging.meatscentral.com' in line:
+        if 'is_debug_host' in line and '=' in line and ('staging.meatscentral.com' in line or 'uat.meatscentral.com' in line):
             skip_block = True
             block_indent = len(line) - len(line.lstrip())
             continue
         
-        # Check for if is_staging: conditions
-        if 'if is_staging:' in line:
+        # Check for debug_prefix definition
+        if 'debug_prefix' in line and '=' in line and ('[STAGING DEBUG]' in line or '[UAT DEBUG]' in line):
+            skip_block = True
+            block_indent = len(line) - len(line.lstrip())
+            continue
+        
+        # Check for if is_debug_host: conditions
+        if 'if is_debug_host:' in line:
             skip_block = True
             block_indent = len(line) - len(line.lstrip())
             continue
@@ -68,8 +74,8 @@ def remove_debug_logging():
     # Join back together
     cleaned_content = '\n'.join(cleaned_lines)
     
-    # Additional cleanup: remove any remaining [STAGING DEBUG] references
-    cleaned_content = re.sub(r'\s*logger\.(info|error)\([^)]*\[STAGING DEBUG\][^)]*\)\s*', '', cleaned_content)
+    # Additional cleanup: remove any remaining debug references
+    cleaned_content = re.sub(r'\s*logger\.(info|error)\([^)]*\[(STAGING|UAT) DEBUG\][^)]*\)\s*', '', cleaned_content)
     
     # Write cleaned content
     with open(middleware_file, 'w') as f:
@@ -81,7 +87,8 @@ def remove_debug_logging():
     print("Next steps:")
     print(f"1. Review the changes: git diff {middleware_file}")
     print("2. Test the application to ensure it still works")
-    print(f"3. Commit the changes: git add {middleware_file} && git commit -m 'Remove temporary staging debug logging'")
+    print(f"3. Commit the changes: git add {middleware_file} && git commit -m 'Remove temporary debug logging'")
+    print(f"4. Remove backup if satisfied: rm {backup_file}")
     print(f"4. Remove backup if satisfied: rm {backup_file}")
     
     return True

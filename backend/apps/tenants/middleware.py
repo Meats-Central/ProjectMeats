@@ -61,12 +61,13 @@ class TenantMiddleware:
         tenant = None
         resolution_method = None  # Track how tenant was resolved for logging
         
-        # Temporary debugging for staging.meatscentral.com
+        # Temporary debugging for staging.meatscentral.com and uat.meatscentral.com
         host = request.get_host().split(":")[0]
-        is_staging = host == "staging.meatscentral.com"
-        if is_staging:
+        is_debug_host = host in ["staging.meatscentral.com", "uat.meatscentral.com"]
+        debug_prefix = "[STAGING DEBUG]" if host == "staging.meatscentral.com" else "[UAT DEBUG]"
+        if is_debug_host:
             logger.info(
-                f"[STAGING DEBUG] Request received - "
+                f"{debug_prefix} Request received - "
                 f"host={host}, path={request.path}, "
                 f"method={request.method}, "
                 f"user={request.user.username if request.user.is_authenticated else 'Anonymous'}"
@@ -108,8 +109,8 @@ class TenantMiddleware:
         if not tenant:
             host = request.get_host().split(":")[0]  # Remove port if present
             
-            if is_staging:
-                logger.info(f"[STAGING DEBUG] Attempting domain lookup for: {host}")
+            if is_debug_host:
+                logger.info(f"{debug_prefix} Attempting domain lookup for: {host}")
             
             try:
                 domain_obj = TenantDomain.objects.select_related('tenant').get(
@@ -118,21 +119,21 @@ class TenantMiddleware:
                 if domain_obj.tenant.is_active:
                     tenant = domain_obj.tenant
                     resolution_method = f"domain ({host})"
-                    if is_staging:
+                    if is_debug_host:
                         logger.info(
-                            f"[STAGING DEBUG] Tenant resolved via domain - "
+                            f"{debug_prefix} Tenant resolved via domain - "
                             f"tenant={tenant.slug}, tenant_id={tenant.id}"
                         )
                 else:
-                    if is_staging:
+                    if is_debug_host:
                         logger.info(
-                            f"[STAGING DEBUG] Domain found but tenant is inactive - "
+                            f"{debug_prefix} Domain found but tenant is inactive - "
                             f"tenant={domain_obj.tenant.slug}"
                         )
             except TenantDomain.DoesNotExist:
-                if is_staging:
+                if is_debug_host:
                     logger.info(
-                        f"[STAGING DEBUG] No TenantDomain entry found for: {host}"
+                        f"{debug_prefix} No TenantDomain entry found for: {host}"
                     )
                 logger.debug(
                     f"No TenantDomain entry found for: {host}, "
@@ -145,20 +146,20 @@ class TenantMiddleware:
             subdomain = host.split(".")[0] if "." in host else None
 
             if subdomain and subdomain != "www":
-                if is_staging:
-                    logger.info(f"[STAGING DEBUG] Attempting subdomain lookup for: {subdomain}")
+                if is_debug_host:
+                    logger.info(f"{debug_prefix} Attempting subdomain lookup for: {subdomain}")
                 
                 try:
                     tenant = Tenant.objects.get(slug=subdomain, is_active=True)
                     resolution_method = f"subdomain ({subdomain})"
-                    if is_staging:
+                    if is_debug_host:
                         logger.info(
-                            f"[STAGING DEBUG] Tenant resolved via subdomain - "
+                            f"{debug_prefix} Tenant resolved via subdomain - "
                             f"tenant={tenant.slug}, tenant_id={tenant.id}"
                         )
                 except Tenant.DoesNotExist:
-                    if is_staging:
-                        logger.info(f"[STAGING DEBUG] No tenant found for subdomain: {subdomain}")
+                    if is_debug_host:
+                        logger.info(f"{debug_prefix} No tenant found for subdomain: {subdomain}")
                     logger.debug(
                         f"No tenant found for subdomain: {subdomain}, "
                         f"path={request.path}"
@@ -166,8 +167,8 @@ class TenantMiddleware:
 
         # 4. Get user's default tenant if authenticated
         if not tenant and request.user.is_authenticated:
-            if is_staging:
-                logger.info(f"[STAGING DEBUG] Attempting default tenant lookup for user: {request.user.username}")
+            if is_debug_host:
+                logger.info(f"{debug_prefix} Attempting default tenant lookup for user: {request.user.username}")
             
             tenant_user = (
                 TenantUser.objects.filter(user=request.user, is_active=True)
@@ -178,27 +179,27 @@ class TenantMiddleware:
             if tenant_user:
                 tenant = tenant_user.tenant
                 resolution_method = f"user default tenant (role={tenant_user.role})"
-                if is_staging:
+                if is_debug_host:
                     logger.info(
-                        f"[STAGING DEBUG] Tenant resolved via user default - "
+                        f"{debug_prefix} Tenant resolved via user default - "
                         f"tenant={tenant.slug}, tenant_id={tenant.id}, role={tenant_user.role}"
                     )
             else:
-                if is_staging:
+                if is_debug_host:
                     logger.info(
-                        f"[STAGING DEBUG] No default tenant found for user: {request.user.username}"
+                        f"{debug_prefix} No default tenant found for user: {request.user.username}"
                     )
 
-        # Final tenant resolution result for staging
-        if is_staging:
+        # Final tenant resolution result for debug hosts
+        if is_debug_host:
             if tenant:
                 logger.info(
-                    f"[STAGING DEBUG] Final tenant resolution SUCCESS - "
+                    f"{debug_prefix} Final tenant resolution SUCCESS - "
                     f"tenant={tenant.slug}, method={resolution_method}"
                 )
             else:
                 logger.info(
-                    f"[STAGING DEBUG] Final tenant resolution FAILED - "
+                    f"{debug_prefix} Final tenant resolution FAILED - "
                     f"No tenant could be resolved for request"
                 )
 
@@ -243,15 +244,15 @@ class TenantMiddleware:
         try:
             response = self.get_response(request)
             
-            if is_staging:
+            if is_debug_host:
                 logger.info(
-                    f"[STAGING DEBUG] Response generated - "
+                    f"{debug_prefix} Response generated - "
                     f"status_code={response.status_code if hasattr(response, 'status_code') else 'unknown'}"
                 )
         except Exception as e:
-            if is_staging:
+            if is_debug_host:
                 logger.error(
-                    f"[STAGING DEBUG] Exception during request processing - "
+                    f"{debug_prefix} Exception during request processing - "
                     f"error_type={type(e).__name__}, error={str(e)}"
                 )
             # Log session-related errors that may indicate readonly database
