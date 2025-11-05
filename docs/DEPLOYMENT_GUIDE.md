@@ -210,6 +210,72 @@ npm run build
 # Serve build files with nginx or similar
 ```
 
+## Migration Management
+
+### Django-Tenants Multi-Tenancy
+
+ProjectMeats uses **django-tenants** for schema-based multi-tenancy with separate tenant and shared schemas. This requires special handling for migrations.
+
+### For Migration Changes:
+
+**CRITICAL RULE:** For *any* change to a model in `TENANT_APPS`, you **must**:
+
+1. Run `python manage.py makemigrations <app_name>` to generate migration files
+2. **Commit the migration file** to version control
+3. Use `python manage.py migrate_schemas` for applying migrations, **NOT** `manage.py migrate`
+4. For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
+
+**TENANT_APPS** (require `migrate_schemas`):
+- `accounts_receivables`, `suppliers`, `customers`, `contacts`, `purchase_orders`, `plants`, `carriers`, `bug_reports`, `ai_assistant`, `products`, `sales_orders`, `invoices`
+
+**SHARED_APPS** (use regular `migrate`):
+- `core`, `tenants`, Django core apps (admin, auth, contenttypes, sessions, messages, staticfiles)
+
+### Migration Commands
+
+```bash
+# For models in SHARED_APPS (core, tenants)
+python manage.py makemigrations core
+python manage.py migrate
+
+# For models in TENANT_APPS (all business apps)
+python manage.py makemigrations suppliers
+python manage.py migrate_schemas --noinput
+
+# Check migration status
+python manage.py showmigrations
+python manage.py migrate_schemas --noinput --plan
+
+# Validation (run before committing)
+python manage.py makemigrations --check --dry-run
+```
+
+### Testing Migrations Locally
+
+Before committing migration changes:
+
+```bash
+# 1. Validate migration files are created
+python manage.py makemigrations --check --dry-run
+
+# 2. Test on fresh database
+dropdb projectmeats_dev && createdb projectmeats_dev
+python manage.py migrate
+python manage.py migrate_schemas --noinput
+
+# 3. Verify all migrations applied
+python manage.py showmigrations
+```
+
+### CI/CD Migration Validation
+
+The CI workflow (`.github/workflows/11-dev-deployment.yml`) automatically validates migrations using `.github/scripts/validate-migrations.sh`, which includes:
+
+1. Public schema validation: `makemigrations --check --dry-run`
+2. Tenant schema validation: `migrate_schemas --noinput --plan`
+3. Migration dependency checks
+4. Fresh database migration tests
+
 ## Superuser Management
 
 ### Environment Variables
