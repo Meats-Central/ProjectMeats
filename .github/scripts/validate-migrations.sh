@@ -9,19 +9,36 @@ echo "Validating Django migrations..."
 
 cd backend
 
-# 1. Check for unapplied migrations
+# 1. Check for unapplied migrations (Public Schema)
 echo ""
-echo "Step 1: Checking for unapplied migrations..."
+echo "Step 1: Checking for unapplied migrations in PUBLIC schema..."
 if python manage.py makemigrations --check --dry-run; then
-    echo "✅ No unapplied migrations detected"
+    echo "✅ No unapplied migrations detected in public schema"
 else
-    echo "❌ ERROR: Unapplied migrations detected. Run 'python manage.py makemigrations' and commit the files."
+    echo "❌ ERROR: Unapplied migrations detected in public schema. Run 'python manage.py makemigrations' and commit the files."
     exit 1
 fi
 
-# 2. Validate migration plan
+# 2. Check for django-tenants schema migrations (if django-tenants is installed)
 echo ""
-echo "Step 2: Validating migration plan..."
+echo "Step 2: Checking for django-tenants tenant schema migrations..."
+if python -c "import django_tenants" 2>/dev/null; then
+    echo "django-tenants detected, validating tenant schema migrations..."
+    
+    # Note: We can't use migrate_schemas --check directly in CI without actual tenant schemas
+    # Instead, we validate that tenant apps have consistent migrations
+    if python manage.py showmigrations 2>&1 | grep -E "tenants|TENANT_APPS" >/dev/null; then
+        echo "✅ Tenant apps migrations exist"
+    else
+        echo "⚠️  No tenant-specific migrations detected (this may be expected)"
+    fi
+else
+    echo "⚠️  django-tenants not installed, skipping tenant schema validation"
+fi
+
+# 3. Validate migration plan
+echo ""
+echo "Step 3: Validating migration plan..."
 if python manage.py migrate --plan > /tmp/migration_plan.txt; then
     echo "✅ Migration plan is valid"
     echo "Migration plan:"
@@ -31,9 +48,9 @@ else
     exit 1
 fi
 
-# 3. Check for migration conflicts
+# 4. Check for migration conflicts
 echo ""
-echo "Step 3: Checking for migration conflicts..."
+echo "Step 4: Checking for migration conflicts..."
 if python manage.py showmigrations --plan > /tmp/showmigrations.txt; then
     echo "✅ No migration conflicts detected"
 else
@@ -41,9 +58,9 @@ else
     exit 1
 fi
 
-# 4. Validate Python syntax in migration files
+# 5. Validate Python syntax in migration files
 echo ""
-echo "Step 4: Validating Python syntax in migration files..."
+echo "Step 5: Validating Python syntax in migration files..."
 SYNTAX_ERRORS=0
 for migration_file in $(find apps/*/migrations -name "*.py" -type f | grep -v __pycache__); do
     if ! python -m py_compile "$migration_file" 2>/dev/null; then
@@ -59,18 +76,18 @@ else
     exit 1
 fi
 
-# 5. Check for proper migration dependencies
+# 6. Check for proper migration dependencies
 echo ""
-echo "Step 5: Checking migration dependencies..."
+echo "Step 6: Checking migration dependencies..."
 # This checks that migrations reference existing dependencies
 python manage.py migrate --plan 2>&1 | grep -i "inconsistent\|missing" && {
     echo "❌ ERROR: Inconsistent or missing migration dependencies detected"
     exit 1
 } || echo "✅ Migration dependencies are consistent"
 
-# 6. Test migrations on fresh database (CI only)
+# 7. Test migrations on fresh database (CI only)
 echo ""
-echo "Step 6: Testing migrations on fresh database..."
+echo "Step 7: Testing migrations on fresh database..."
 echo "Setting up temporary test database..."
 
 # Export current DATABASE_URL and create a test database

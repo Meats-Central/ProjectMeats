@@ -733,6 +733,13 @@ Repeat similarly for `UAT` → `main`:
   - UAT: Auto-deploy on merge to `UAT` (requires approval)
   - Production: Auto-deploy on merge to `main` (requires 2 approvals)
 
+- **Environment Promotion:**
+  - All environment promotion PRs are managed exclusively by the automated workflows:
+    - `promote-dev-to-uat.yml`: Promotes changes from `development` to `UAT`
+    - `promote-uat-to-main.yml`: Promotes changes from `UAT` to `main`
+  - These workflows automatically close stale promotion PRs before creating new ones
+  - Manual PR creation for environment promotion is not required or recommended
+
 - **Deployment Gates:**
   - All tests pass in source environment
   - Code review approved
@@ -1427,12 +1434,14 @@ Based on recurring issues, we've added:
 
 **For Migration Changes:**
 - [ ] **CRITICAL: Before creating a PR, always run `python manage.py makemigrations` locally. If new files are generated, they MUST be committed. The CI pipeline will now fail any PR that has unapplied migrations, detected via the new pre-commit hook.**
+- [ ] **CRITICAL RULE FOR TENANT APPS**: For *any* change to a model in `TENANT_APPS` (apps that store data in tenant schemas), run `python manage.py makemigrations <app_name>` AND commit the generated migration file. Use `python manage.py migrate_schemas` for application in django-tenants environments, not `manage.py migrate`. For testing, use `--fake` if `TENANT_CREATION_FAKES_MIGRATIONS` is enabled.
 - [ ] Never modify applied migrations
 - [ ] Use minimal dependencies
 - [ ] Add `default=''` to CharField with `blank=True`
 - [ ] Test rollback: `python manage.py migrate <app> <previous>`
 - [ ] Document complex migrations with docstrings
 - [ ] Verify migration plan: `python manage.py migrate --plan`
+- [ ] For django-tenants: Validate both public and tenant schema migrations
 
 **For Deployment Issues:**
 - [ ] If the deployment fails with "Unapplied migrations detected", the developer MUST run `git pull`, execute `python manage.py makemigrations`, commit the new file(s), and push to re-trigger the pipeline

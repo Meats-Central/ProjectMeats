@@ -96,6 +96,14 @@ class TenantMiddleware:
         # 2. Try to get tenant from full domain match (via TenantDomain model)
         if not tenant:
             host = request.get_host().split(":")[0]  # Remove port if present
+            
+            # TEMPORARY DEBUG LOGGING FOR STAGING ENVIRONMENT
+            if host == "staging.meatscentral.com":
+                logger.info(
+                    f"[STAGING DEBUG] Attempting tenant resolution for staging.meatscentral.com - "
+                    f"request.host={host}, request.path={request.path}"
+                )
+            
             try:
                 domain_obj = TenantDomain.objects.select_related('tenant').get(
                     domain=host
@@ -103,11 +111,32 @@ class TenantMiddleware:
                 if domain_obj.tenant.is_active:
                     tenant = domain_obj.tenant
                     resolution_method = f"domain ({host})"
+                    
+                    # TEMPORARY DEBUG LOGGING FOR STAGING ENVIRONMENT
+                    if host == "staging.meatscentral.com":
+                        logger.info(
+                            f"[STAGING DEBUG] Successfully resolved tenant via domain - "
+                            f"tenant={tenant.slug}, tenant_id={tenant.id}, is_active={tenant.is_active}"
+                        )
+                else:
+                    # TEMPORARY DEBUG LOGGING FOR STAGING ENVIRONMENT
+                    if host == "staging.meatscentral.com":
+                        logger.info(
+                            f"[STAGING DEBUG] Found domain entry but tenant is inactive - "
+                            f"tenant={domain_obj.tenant.slug}, is_active={domain_obj.tenant.is_active}"
+                        )
             except TenantDomain.DoesNotExist:
-                logger.debug(
-                    f"No TenantDomain entry found for: {host}, "
-                    f"path={request.path}"
-                )
+                # TEMPORARY DEBUG LOGGING FOR STAGING ENVIRONMENT
+                if host == "staging.meatscentral.com":
+                    logger.info(
+                        f"[STAGING DEBUG] No TenantDomain entry found for: {host}, "
+                        f"path={request.path}. This likely means the domain entry needs to be created in the database."
+                    )
+                else:
+                    logger.debug(
+                        f"No TenantDomain entry found for: {host}, "
+                        f"path={request.path}"
+                    )
 
         # 3. Try to get tenant from subdomain
         if not tenant:
