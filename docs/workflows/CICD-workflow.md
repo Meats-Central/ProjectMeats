@@ -186,33 +186,29 @@ Each environment uses **two droplets**:
 **Environment Secrets for `uat2-backend`:**
 | Secret Name | Description | Example Value | Required |
 |-------------|-------------|---------------|----------|
-| `STAGING_API_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` | ✅ Yes |
-| `STAGING_SUPERUSER_USERNAME` | Admin username for staging | `admin` | ✅ Yes |
-| `STAGING_SUPERUSER_EMAIL` | Admin email for staging | `admin@yourdomain.com` | ✅ Yes |
-| `STAGING_SUPERUSER_PASSWORD` | Admin password for staging | `SecurePassword123!` | ✅ Yes |
-| `STAGING_SECRET_KEY` | Django secret key | Generate with `get_random_secret_key()` | ✅ Yes |
-| `STAGING_DB_USER` | PostgreSQL database username | `projectmeats_staging` | ✅ Yes |
-| `STAGING_DB_PASSWORD` | PostgreSQL database password | `db_secure_password` | ✅ Yes |
-| `STAGING_DB_HOST` | PostgreSQL database host | `localhost` or `db.yourdomain.com` | ✅ Yes |
-| `STAGING_DB_PORT` | PostgreSQL database port | `5432` | ✅ Yes |
-| `STAGING_DB_NAME` | PostgreSQL database name | `projectmeats_staging` | ✅ Yes |
-| `STAGING_DOMAIN` | Main staging domain | `uat.yourdomain.com` | ✅ Yes |
-| `STAGING_API_DOMAIN` | API staging domain | `uat-api.yourdomain.com` | ✅ Yes |
-| `STAGING_FRONTEND_DOMAIN` | Frontend staging domain | `uat.yourdomain.com` | ✅ Yes |
-| `STAGING_OPENAI_API_KEY` | OpenAI API key | `sk-...` | ⚪ Optional |
-| `STAGING_ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` | ⚪ Optional |
-| `STAGING_EMAIL_HOST` | SMTP server hostname | `smtp.gmail.com` | ⚪ Optional |
-| `STAGING_EMAIL_USER` | SMTP username | `noreply@yourdomain.com` | ⚪ Optional |
-| `STAGING_EMAIL_PASSWORD` | SMTP password | `email_password` | ⚪ Optional |
-| `STAGING_REDIS_HOST` | Redis server host | `localhost` | ⚪ Optional |
-| `STAGING_REDIS_PORT` | Redis server port | `6379` | ⚪ Optional |
-| `STAGING_SENTRY_DSN` | Sentry error tracking DSN | `https://...@sentry.io/...` | ⚪ Optional |
+| `STAGING_API_URL` | Staging backend API URL | `https://uat-api.yourdomain.com` | 
+| `STAGING_SUPERUSER_USERNAME` | Admin username for staging | `admin` | 
+| `STAGING_SUPERUSER_EMAIL` | Admin email for staging | `admin@yourdomain.com` | 
+| `STAGING_SUPERUSER_PASSWORD` | Admin password for staging | `SecurePassword123!` | 
+| `STAGING_SECRET_KEY` | Django secret key | Generate with `get_random_secret_key()` | 
+| `STAGING_DB_USER` | PostgreSQL database username | `projectmeats_staging` | 
+| `STAGING_DB_PASSWORD` | PostgreSQL database password | `db_secure_password` | 
+| `STAGING_DB_HOST` | PostgreSQL database host | `localhost` or `db.yourdomain.com` | 
+| `STAGING_DB_PORT` | PostgreSQL database port | `5432` | 
+| `STAGING_DB_NAME` | PostgreSQL database name | `projectmeats_staging` | 
+| `STAGING_DOMAIN` | Main staging domain | `uat.yourdomain.com` | 
+| `STAGING_API_DOMAIN` | API staging domain | `uat-api.yourdomain.com` | 
+| `STAGING_FRONTEND_DOMAIN` | Frontend staging domain | `uat.yourdomain.com` | 
+| `STAGING_OPENAI_API_KEY` | OpenAI API key | `sk-...` | 
+| `STAGING_ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` | 
+| `STAGING_EMAIL_HOST` | SMTP server hostname | `smtp.gmail.com` | 
+| `STAGING_EMAIL_USER` | SMTP username | `noreply@yourdomain.com` | 
+| `STAGING_EMAIL_PASSWORD` | SMTP password | `email_password` | 
+| `STAGING_REDIS_HOST` | Redis server host | `localhost` | 
+| `STAGING_REDIS_PORT` | Redis server port | `6379` | 
 
-**⚠️ Important Notes for Staging Secrets:**
-1. **Currently Implemented**: The GitHub Actions workflow currently only passes `STAGING_SUPERUSER_*` credentials to the deployment script
-2. **Requires Workflow Update**: To use the database and other secrets listed above, the workflow file `.github/workflows/unified-deployment.yml` must be updated to export these environment variables during the deployment step (similar to how Development deployment handles `DEVELOPMENT_DB_*` variables)
-3. **Server Configuration**: In the meantime, these variables must be manually configured on the staging server's environment (e.g., in `/etc/environment`, systemd service files, or shell profile)
-4. **Alignment**: The `config/environments/staging.env` file uses placeholder syntax (e.g., `${STAGING_DB_USER}`) that matches these secret names for consistency
+
+
 
 **Environment Secrets for `uat2` (staging frontend):**
 | Secret Name | Description | Example Value |
@@ -251,10 +247,10 @@ Each environment uses **two droplets**:
 | `REACT_APP_ENABLE_CHAT_EXPORT` | Enable chat exports | `true` |
 | `REACT_APP_MAX_FILE_SIZE` | Max upload size in bytes | `10485760` (10MB) |
 | `REACT_APP_SUPPORTED_FILE_TYPES` | Allowed file extensions | `.pdf,.doc,.docx,.txt` |
-| `REACT_APP_ENABLE_DEBUG` | Debug mode | `false` ⚠️ |
-| `REACT_APP_ENABLE_DEVTOOLS` | DevTools enabled | `false` ⚠️ |
+| `REACT_APP_ENABLE_DEBUG` | Debug mode | `false`  |
+| `REACT_APP_ENABLE_DEVTOOLS` | DevTools enabled | `false`  |
 
-**⚠️ Important**: Production should have `REACT_APP_ENABLE_DEBUG` and `REACT_APP_ENABLE_DEVTOOLS` set to `false` for security.
+*
 
 ### Quick Reference: Secrets Checklist
 
@@ -320,8 +316,8 @@ Use this checklist when setting up a new environment:
 - [ ] `PRODUCTION_URL`
 - [ ] `REACT_APP_API_BASE_URL`
 - [ ] All other `REACT_APP_*` variables
-- [ ] `REACT_APP_ENABLE_DEBUG` (set to `false`) ⚠️
-- [ ] `REACT_APP_ENABLE_DEVTOOLS` (set to `false`) ⚠️
+- [ ] `REACT_APP_ENABLE_DEBUG` (set to `false`) 
+- [ ] `REACT_APP_ENABLE_DEVTOOLS` (set to `false`) 
 
 > **Note:** Images are tagged with short commit SHA and a moving `*-latest` for quick rollbacks.
 
@@ -346,8 +342,7 @@ Use this checklist when setting up a new environment:
 * Backend: `backend/Dockerfile`
 * Frontend: `frontend/Dockerfile`
 
-**Diagram (placeholder):**
-![Containerization](docs/assets/diagrams/pm-containers.png)
+
 
 ---
 
@@ -445,8 +440,7 @@ PY'
   * Recreates container with `--restart unless-stopped`
   * Nginx reload and health checks
 
-**Pipeline Diagram (placeholder):**
-![CI/CD Pipeline](docs/assets/diagrams/pm-pipeline.png)
+
 
 ---
 
