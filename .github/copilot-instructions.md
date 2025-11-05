@@ -263,6 +263,7 @@ Repeat similarly for `UAT` → `main`:
   - Mock external dependencies (APIs, file system, email)
   - Test edge cases, error conditions, and boundary values
   - Test tenant isolation in multi-tenant features
+  - **CRITICAL: Cache Isolation Tests Required** - For all new caching features, write tests to verify tenant-aware caching isolation. Ensure no cache key collisions between tenants using `tenant_context` from `django_tenants.utils`. See `apps/tenants/tests_caching.py` for examples.
   - Avoid test interdependencies (each test should be independent)
 
 ### Frontend Testing (React + TypeScript)
