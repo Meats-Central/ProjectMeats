@@ -21,6 +21,10 @@ if database_url:
 
     # Use django-tenants backend for PostgreSQL to enable schema-based testing
     # This allows testing of tenant isolation features that require schema support
+    # Note: ProjectMeats supports DUAL multi-tenancy approaches:
+    # 1. Schema-based (django-tenants): Client/Domain models for PostgreSQL schema isolation
+    # 2. Shared-schema (legacy): Tenant/TenantDomain models for simpler setups
+    # These tests use the Client/Domain models for schema-based testing
     if _db_config.get("ENGINE") == "django.db.backends.postgresql":
         _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
@@ -31,6 +35,7 @@ if database_url:
     PUBLIC_SCHEMA_NAME = 'public'
     
     # Use Client and Domain models from apps.tenants for django-tenants
+    # These are schema-based multi-tenancy models, separate from shared-schema Tenant/TenantDomain
     TENANT_MODEL = "tenants.Client"
     TENANT_DOMAIN_MODEL = "tenants.Domain"
 else:

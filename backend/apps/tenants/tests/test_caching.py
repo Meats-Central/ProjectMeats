@@ -4,7 +4,17 @@ Tests for tenant-aware caching isolation.
 This module verifies that cache operations are properly isolated between tenants
 when using django-tenants utilities, ensuring no key collisions occur.
 
-Note: These tests require PostgreSQL with django-tenants backend to run in a full
+**Multi-Tenancy Approach:**
+ProjectMeats supports DUAL multi-tenancy implementations:
+1. Schema-based (django-tenants): Uses Client/Domain models for PostgreSQL schema isolation
+2. Shared-schema (legacy): Uses Tenant/TenantDomain models for simpler setups
+
+These tests use the schema-based approach (Client/Domain) to test cache isolation
+with django-tenants utilities. The Client and Domain models are specifically designed
+for schema-based multi-tenancy where each tenant gets its own PostgreSQL schema.
+
+**Testing Requirements:**
+These tests require PostgreSQL with django-tenants backend to run in a full
 schema-based multi-tenancy setup. Due to Django test runner limitations with
 django-tenants, these tests serve as documentation and reference implementation.
 
@@ -28,22 +38,32 @@ def is_django_tenants_available():
     Check if django-tenants is available and properly configured.
     
     Returns True if:
-    - django_tenants can be imported
+    - django_tenants utilities can be imported
     - Database backend is django_tenants.postgresql_backend
-    - Required models are available
+    - Required Client and Domain models are available
     
     Note: This check may return False in Django test environment even when
     django-tenants is configured, due to test database setup limitations.
+    
+    ProjectMeats supports DUAL multi-tenancy:
+    - Schema-based (django-tenants): Client/Domain for PostgreSQL schema isolation
+    - Shared-schema (legacy): Tenant/TenantDomain for simpler setups
     """
     try:
+        # First check if django-tenants utilities can be imported
         from django_tenants.utils import tenant_context, schema_context, get_public_schema_name
-        from apps.tenants.models import Client, Domain
-        
-        # Check if the database backend supports django-tenants
-        engine = settings.DATABASES['default'].get('ENGINE', '')
-        return 'django_tenants' in engine
-    except (ImportError, AttributeError):
+    except ImportError:
         return False
+    
+    try:
+        # Check if schema-based multi-tenancy models are available
+        from apps.tenants.models import Client, Domain
+    except ImportError:
+        return False
+    
+    # Check if the database backend supports django-tenants
+    engine = settings.DATABASES['default'].get('ENGINE', '')
+    return 'django_tenants' in engine
 
 
 class TenantCacheIsolationTests(TestCase):
