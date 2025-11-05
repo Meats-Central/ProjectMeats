@@ -31,7 +31,8 @@ if python manage.py help migrate_schemas &> /dev/null; then
         echo "✅ Tenant schema migrations validated successfully"
         echo "Tenant migration plan (first 20 lines):"
         head -20 /tmp/tenant_migration_plan.txt
-        if [ $(wc -l < /tmp/tenant_migration_plan.txt) -gt 20 ]; then
+        LINES=$(wc -l < /tmp/tenant_migration_plan.txt)
+        if [ "$LINES" -gt 20 ]; then
             echo "... (truncated, see full plan in CI logs)"
         fi
     else
@@ -39,7 +40,7 @@ if python manage.py help migrate_schemas &> /dev/null; then
         if grep -q "TENANT_APPS\|SHARED_APPS\|has no attribute" /tmp/tenant_migration_plan.txt; then
             echo "⚠️  django-tenants configuration incomplete - skipping tenant validation"
             echo "    This is expected if django-tenants is not fully configured yet"
-            cat /tmp/tenant_migration_plan.txt | grep -i "error\|TENANT" || true
+            grep -i "error\|TENANT" /tmp/tenant_migration_plan.txt || true
         else
             echo "❌ ERROR: Tenant schema migration validation failed"
             echo "Error details:"
