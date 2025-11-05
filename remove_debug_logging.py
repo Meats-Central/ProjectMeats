@@ -38,6 +38,7 @@ def remove_debug_logging():
     
     for line in lines:
         # Check for start of staging debug block
+        # Note: This is string matching in source code, not URL validation
         if 'is_staging' in line and '=' in line and 'staging.meatscentral.com' in line:
             skip_block = True
             block_indent = len(line) - len(line.lstrip())
