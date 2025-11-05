@@ -365,3 +365,32 @@ class UserPreferences(models.Model):
     
     def __str__(self):
         return f"Preferences for {self.user.username}"
+
+
+class QuotaModel(models.Model):
+    """
+    Placeholder model for sales quotas.
+    
+    Tracks sales quotas that can be associated with Clients.
+    """
+    
+    name = models.CharField(
+        max_length=100,
+        help_text="Name or description of the quota"
+    )
+    quota_amount = models.IntegerField(
+        default=0,
+        help_text="Quota amount (e.g., sales target)"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Quota"
+        verbose_name_plural = "Quotas"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.quota_amount})"

@@ -4,7 +4,7 @@ Core admin for ProjectMeats.
 Admin interface for core models and base admin classes for multi-tenancy.
 """
 from django.contrib import admin
-from apps.core.models import Protein, UserPreferences
+from apps.core.models import Protein, UserPreferences, QuotaModel
 from apps.tenants.models import TenantUser
 
 
@@ -175,6 +175,26 @@ class UserPreferencesAdmin(admin.ModelAdmin):
         ("Layout Configuration", {
             "fields": ("dashboard_layout", "widget_preferences", "quick_menu_items"),
             "classes": ("collapse",)
+        }),
+        ("Metadata", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
+    )
+
+
+@admin.register(QuotaModel)
+class QuotaModelAdmin(admin.ModelAdmin):
+    """Admin interface for QuotaModel."""
+
+    list_display = ["name", "quota_amount", "created_at", "updated_at"]
+    search_fields = ["name"]
+    list_filter = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at"]
+    
+    fieldsets = (
+        ("Quota Information", {
+            "fields": ("name", "quota_amount")
         }),
         ("Metadata", {
             "fields": ("created_at", "updated_at"),
