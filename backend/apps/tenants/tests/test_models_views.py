@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Tenant, TenantUser, TenantDomain
+from apps.tenants.models import Tenant, TenantUser, TenantDomain
 import uuid
 
 
