@@ -37,10 +37,11 @@ if python manage.py help migrate_schemas &> /dev/null; then
         fi
     else
         # Check if it's a configuration issue vs actual migration problem
-        if grep -q "TENANT_APPS\|SHARED_APPS\|has no attribute" /tmp/tenant_migration_plan.txt; then
+        # Look for specific django-tenants configuration errors
+        if grep -q "TENANT_MODEL\|SHARED_APPS.*not.*defined\|TENANT_APPS.*not.*defined" /tmp/tenant_migration_plan.txt; then
             echo "⚠️  django-tenants configuration incomplete - skipping tenant validation"
             echo "    This is expected if django-tenants is not fully configured yet"
-            grep -i "error\|TENANT" /tmp/tenant_migration_plan.txt || true
+            grep -i "error\|TENANT\|SHARED" /tmp/tenant_migration_plan.txt | head -5 || true
         else
             echo "❌ ERROR: Tenant schema migration validation failed"
             echo "Error details:"

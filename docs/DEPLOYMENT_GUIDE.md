@@ -269,7 +269,7 @@ python manage.py showmigrations
 
 ### CI/CD Migration Validation
 
-The CI workflow (`.github/workflows/11-dev-deployment.yml`) automatically validates migrations using `.github/scripts/validate-migrations.sh`, which includes:
+The CI workflows (`.github/workflows/11-dev-deployment.yml`, `12-uat-deployment.yml`, and `13-prod-deployment.yml`) automatically validate migrations using `.github/scripts/validate-migrations.sh`, which includes:
 
 1. Public schema validation: `makemigrations --check --dry-run`
 2. Tenant schema validation: `migrate_schemas --noinput --plan`
