@@ -265,6 +265,18 @@ Repeat similarly for `UAT` → `main`:
   - Test tenant isolation in multi-tenant features
   - Avoid test interdependencies (each test should be independent)
 
+- **Multi-Tenancy Testing Requirements:**
+  - **Cache Isolation Tests**: All new caching features MUST include tests verifying tenant isolation
+  - **No Key Collisions**: Ensure cached data from one tenant cannot be accessed by another tenant
+  - **Schema Context Testing**: When using django-tenants utilities, test cache operations within `tenant_context()` and `schema_context()`
+  - **Public Schema Verification**: Verify that tenant-specific cached data is not accessible from public schema
+  - **Test Pattern**: See `apps/tenants/tests/test_caching.py` for reference implementation
+  - **Key Requirements**:
+    - Each tenant must have isolated cache namespace
+    - Same cache keys in different tenants must not collide
+    - Cache delete operations must be tenant-scoped
+    - Cache timeout behavior must be independent per tenant
+
 ### Frontend Testing (React + TypeScript)
 
 - **Test Organization:**

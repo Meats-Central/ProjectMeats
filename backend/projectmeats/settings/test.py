@@ -19,12 +19,20 @@ if database_url:
     # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use standard PostgreSQL backend (not django-tenants)
-    # ProjectMeats uses custom shared-schema multi-tenancy
-    # if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-    #     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+    # Use django-tenants backend for PostgreSQL to enable schema-based testing
+    # This allows testing of tenant isolation features that require schema support
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
     DATABASES = {"default": _db_config}
+    
+    # Configure django-tenants for schema-based multi-tenancy testing
+    # Set public schema name for django-tenants
+    PUBLIC_SCHEMA_NAME = 'public'
+    
+    # Use Client and Domain models from apps.tenants for django-tenants
+    TENANT_MODEL = "tenants.Client"
+    TENANT_DOMAIN_MODEL = "tenants.Domain"
 else:
     # Use SQLite for testing (faster and doesn't require PostgreSQL)
     # Note: For full multi-tenancy testing with PostgreSQL schemas,
