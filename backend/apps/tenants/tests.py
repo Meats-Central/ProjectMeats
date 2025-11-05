@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Tenant, TenantUser, TenantDomain
+from .models import Tenant, TenantUser, TenantDomain, Client
 import uuid
 
 
@@ -341,3 +341,144 @@ class TenantSchemaNameTests(TestCase):
                 contact_email="admin2@testcompany.com",
                 created_by=self.user,
             )
+
+
+class ClientModelTests(TestCase):
+    """Test cases for Client model with new business fields."""
+
+    def setUp(self):
+        """Set up test client and quota instances."""
+        from apps.core.models import QuotaModel
+
+        self.client_obj = Client.objects.create(
+            name="Test Client",
+            schema_name="test_client",
+            description="A test client for schema-based tenancy",
+        )
+        
+        self.quota1 = QuotaModel.objects.create(
+            name="Q1 Sales Target",
+            quota_amount=100000
+        )
+        self.quota2 = QuotaModel.objects.create(
+            name="Q2 Sales Target",
+            quota_amount=150000
+        )
+
+    def test_client_creation(self):
+        """Test basic client creation."""
+        self.assertEqual(self.client_obj.name, "Test Client")
+        self.assertEqual(self.client_obj.schema_name, "test_client")
+        self.assertEqual(self.client_obj.description, "A test client for schema-based tenancy")
+        self.assertIsNotNone(self.client_obj.created_at)
+        self.assertIsNotNone(self.client_obj.updated_at)
+
+    def test_meat_specialty_field(self):
+        """Test that meat_specialty field accepts valid choices."""
+        self.client_obj.meat_specialty = 'beef'
+        self.client_obj.save()
+        self.assertEqual(self.client_obj.meat_specialty, 'beef')
+        
+        self.client_obj.meat_specialty = 'pork'
+        self.client_obj.save()
+        self.assertEqual(self.client_obj.meat_specialty, 'pork')
+        
+        self.client_obj.meat_specialty = 'poultry'
+        self.client_obj.save()
+        self.assertEqual(self.client_obj.meat_specialty, 'poultry')
+
+    def test_meat_specialty_field_nullable(self):
+        """Test that meat_specialty can be null or blank."""
+        self.client_obj.meat_specialty = None
+        self.client_obj.save()
+        self.assertIsNone(self.client_obj.meat_specialty)
+
+    def test_logistics_integration_active_default(self):
+        """Test that logistics_integration_active defaults to False."""
+        self.assertFalse(self.client_obj.logistics_integration_active)
+
+    def test_logistics_integration_active_field(self):
+        """Test that logistics_integration_active can be set."""
+        self.client_obj.logistics_integration_active = True
+        self.client_obj.save()
+        self.assertTrue(self.client_obj.logistics_integration_active)
+
+    def test_sales_quota_m2m_relationship(self):
+        """Test ManyToMany relationship with QuotaModel."""
+        # Initially should have no quotas
+        self.assertEqual(self.client_obj.sales_quota_m2m.count(), 0)
+        
+        # Add quotas
+        self.client_obj.sales_quota_m2m.add(self.quota1)
+        self.assertEqual(self.client_obj.sales_quota_m2m.count(), 1)
+        self.assertIn(self.quota1, self.client_obj.sales_quota_m2m.all())
+        
+        # Add another quota
+        self.client_obj.sales_quota_m2m.add(self.quota2)
+        self.assertEqual(self.client_obj.sales_quota_m2m.count(), 2)
+        self.assertIn(self.quota2, self.client_obj.sales_quota_m2m.all())
+
+    def test_sales_quota_m2m_reverse_relationship(self):
+        """Test reverse relationship from QuotaModel to Client."""
+        self.client_obj.sales_quota_m2m.add(self.quota1, self.quota2)
+        
+        # Check reverse relationship
+        self.assertIn(self.client_obj, self.quota1.clients.all())
+        self.assertIn(self.client_obj, self.quota2.clients.all())
+
+    def test_client_str_method(self):
+        """Test string representation of client."""
+        expected_str = f"Test Client (test_client)"
+        self.assertEqual(str(self.client_obj), expected_str)
+
+    def test_all_new_fields_together(self):
+        """Test all new fields working together."""
+        self.client_obj.meat_specialty = 'beef'
+        self.client_obj.logistics_integration_active = True
+        self.client_obj.sales_quota_m2m.add(self.quota1, self.quota2)
+        self.client_obj.save()
+        
+        # Refresh from database
+        self.client_obj.refresh_from_db()
+        
+        # Verify all fields
+        self.assertEqual(self.client_obj.meat_specialty, 'beef')
+        self.assertTrue(self.client_obj.logistics_integration_active)
+        self.assertEqual(self.client_obj.sales_quota_m2m.count(), 2)
+
+
+class QuotaModelTests(TestCase):
+    """Test cases for QuotaModel."""
+
+    def test_quota_creation(self):
+        """Test basic quota creation."""
+        from apps.core.models import QuotaModel
+        
+        quota = QuotaModel.objects.create(
+            name="Q1 Target",
+            quota_amount=50000
+        )
+        
+        self.assertEqual(quota.name, "Q1 Target")
+        self.assertEqual(quota.quota_amount, 50000)
+        self.assertIsNotNone(quota.created_at)
+        self.assertIsNotNone(quota.updated_at)
+
+    def test_quota_str_method(self):
+        """Test string representation of quota."""
+        from apps.core.models import QuotaModel
+        
+        quota = QuotaModel.objects.create(
+            name="Q1 Target",
+            quota_amount=50000
+        )
+        
+        expected_str = "Q1 Target (50000)"
+        self.assertEqual(str(quota), expected_str)
+
+    def test_quota_default_amount(self):
+        """Test quota amount defaults to 0."""
+        from apps.core.models import QuotaModel
+        
+        quota = QuotaModel.objects.create(name="Test Quota")
+        self.assertEqual(quota.quota_amount, 0)
