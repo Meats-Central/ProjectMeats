@@ -28,6 +28,31 @@ class Client(models.Model):
         blank=True, help_text="Optional description of the client"
     )
 
+    # Business logic fields for ProjectMeats
+    MEAT_SPECIALTY_CHOICES = [
+        ('beef', 'Beef'),
+        ('pork', 'Pork'),
+        ('poultry', 'Poultry'),
+    ]
+    
+    meat_specialty = models.CharField(
+        max_length=50,
+        choices=MEAT_SPECIALTY_CHOICES,
+        blank=True,
+        default='',
+        help_text="Primary meat specialty for this client"
+    )
+    logistics_integration_active = models.BooleanField(
+        default=False,
+        help_text="Activates custom logistics sync for this client"
+    )
+    sales_quota_m2m = models.ManyToManyField(
+        'core.QuotaModel',
+        blank=True,
+        related_name='clients',
+        help_text="Sales quotas associated with this client"
+    )
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

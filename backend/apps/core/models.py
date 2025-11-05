@@ -365,3 +365,38 @@ class UserPreferences(models.Model):
     
     def __str__(self):
         return f"Preferences for {self.user.username}"
+
+
+class QuotaModel(models.Model):
+    """
+    Quota model for sales quotas and targets.
+    
+    This is a placeholder model for the sales quota management system.
+    Used by Client model for M2M relationships.
+    """
+    
+    name = models.CharField(
+        max_length=255,
+        help_text="Name of the quota (e.g., 'Q4 2024 Sales Target')"
+    )
+    target_amount = models.IntegerField(
+        default=0,
+        help_text="Target amount for this quota (in applicable units)"
+    )
+    description = models.TextField(
+        blank=True,
+        default='',
+        help_text="Optional description of the quota"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Quota"
+        verbose_name_plural = "Quotas"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} (Target: {self.target_amount})"

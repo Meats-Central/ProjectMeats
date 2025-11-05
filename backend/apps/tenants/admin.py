@@ -1,6 +1,6 @@
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Tenant, TenantUser, TenantInvitation, TenantDomain
+from .models import Tenant, TenantUser, TenantInvitation, TenantDomain, Client, Domain
 
 
 @admin.register(Tenant)
@@ -123,9 +123,60 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
         return qs.select_related("tenant", "invited_by", "accepted_by")
 
 
-# Note: Client and Domain admin classes have been removed as these models
-# are not currently defined in models.py. They were intended for django-tenants
-# schema-based multi-tenancy but are not implemented in the current shared-schema approach.
+@admin.register(Client)
+class ClientAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Client model (django-tenants schema-based multi-tenancy).
+    
+    Manages schema-based tenants with business logic fields for ProjectMeats.
+    """
+
+    list_display = [
+        "name",
+        "schema_name",
+        "meat_specialty",
+        "logistics_integration_active",
+        "created_at",
+    ]
+    list_filter = ["meat_specialty", "logistics_integration_active", "created_at"]
+    search_fields = ["name", "schema_name", "description"]
+    readonly_fields = ["created_at", "updated_at"]
+    filter_horizontal = ["sales_quota_m2m"]
+    
+    fieldsets = [
+        ("Basic Information", {
+            "fields": ("schema_name", "name", "description")
+        }),
+        ("Business Configuration", {
+            "fields": ("meat_specialty", "logistics_integration_active", "sales_quota_m2m")
+        }),
+        ("Metadata", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ["collapse"]
+        }),
+    ]
+
+
+@admin.register(Domain)
+class DomainAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Domain model (django-tenants schema-based multi-tenancy).
+    
+    Manages domain-to-client mappings for schema-based multi-tenancy.
+    """
+
+    list_display = ["domain", "tenant", "is_primary"]
+    list_filter = ["is_primary"]
+    search_fields = ["domain", "tenant__name", "tenant__schema_name"]
+    
+    fieldsets = [
+        ("Domain Information", {"fields": ("domain", "tenant", "is_primary")}),
+    ]
+    
+    def get_queryset(self, request):
+        """Optimize queries by selecting related tenant."""
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant")
 
 
 @admin.register(TenantDomain)
