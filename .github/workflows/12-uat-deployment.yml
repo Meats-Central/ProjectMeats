@@ -1,4 +1,6 @@
 name: Deploy UAT (Frontend + Backend via DOCR)
+# IMPORTANT: UAT (uat.meatscentral.com) is the active middle environment per pipeline.
+# DEPRECATED: staging.meatscentral.com is no longer used. Use uat.meatscentral.com for staging/UAT operations.
 
 on:
   push:

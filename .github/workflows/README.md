@@ -17,8 +17,9 @@ These workflows handle building, testing, and deploying the application to diffe
 
 ### 12-uat-deployment.yml
 - **Trigger**: Push to `uat` branch
-- **Environment**: UAT (User Acceptance Testing)
+- **Environment**: UAT (User Acceptance Testing) - uat.meatscentral.com
 - **Purpose**: Deploys to UAT environment for stakeholder testing
+- **Note**: UAT is the active middle environment per pipeline. staging.meatscentral.com is DEPRECATED.
 - **Gates**:
   - Frontend build & tests
   - Backend build & tests
