@@ -66,6 +66,8 @@
 
 Auto-promotion between environments is implemented in `.github/workflows/` with workflows like below:
 
+> **Note**: All environment promotion PRs are managed **exclusively** by the superior workflows (`promote-dev-to-uat.yml` and `promote-uat-to-main.yml`). These workflows automatically close any existing stale PRs before creating a new one to ensure only the latest changes are promoted. No other workflow files should be used for this purpose.
+
 **Example**: Promote changes from `development` → `UAT` automatically after merge:
 
 ```yaml name=.github/workflows/promote-dev-to-uat.yml
@@ -95,8 +97,15 @@ jobs:
           reviewers: Vacilator
 ```
 
-Repeat similarly for `UAT` → `main`:
+Repeat similarly for `UAT` → `main`.
 
+**Key Features of Superior Promotion Workflows:**
+- **Automatic Stale PR Management**: Before creating a new PR, the workflow checks for and closes any existing open PRs between the same branches, preventing duplicate or conflicting PRs
+- **Fresh Promotion**: Each workflow run creates a PR with the latest commits from the source branch
+- **Manual Trigger Support**: Workflows can be triggered manually via `workflow_dispatch` in addition to automatic triggers on branch pushes
+- **Reviewer Assignment**: Automatically assigns reviewers (e.g., `Vacilator`) for accountability
+
+**Workflow Requirements:**
 - Ensure only fast-forward, conflict-free merges
 - PR is auto-created, not auto-merged (review/approval required, CI must pass)
 - Template body should clearly state promotion reason/scope
@@ -725,6 +734,8 @@ Repeat similarly for `UAT` → `main`:
 
 ### Deployment Workflow
 
+> **Important**: Environment promotion PRs (development → UAT → production) are managed **exclusively** by automated workflows (`.github/workflows/promote-dev-to-uat.yml` and `.github/workflows/promote-uat-to-main.yml`). These workflows automatically close stale PRs and create fresh ones with the latest commits. Do not create manual PRs for environment promotion or use any other workflow files for this purpose.
+
 - **Environment Progression:**
   ```
   development → UAT → production
@@ -822,6 +833,12 @@ Repeat similarly for `UAT` → `main`:
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
   - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md))
+  - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
+    - Run `python manage.py makemigrations <app_name>` AND commit the migration file
+    - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
+    - For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
+    - TENANT_APPS include: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
+    - SHARED_APPS (use regular `migrate`): core, tenants, and Django core apps
   - Always run `python manage.py makemigrations --check` before committing
   - Test migrations on fresh database locally before PR
   - Use minimal dependencies (only depend on migrations you actually need)
