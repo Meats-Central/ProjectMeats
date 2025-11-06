@@ -14,6 +14,8 @@ ALLOWED_HOSTS = [host.strip() for host in env_allowed_hosts.split(",") if host.s
 
 # Add default staging hosts if not already included
 STAGING_HOSTS = [
+    "staging.meatscentral.com",  # Primary staging domain
+    "uat.meatscentral.com",  # UAT environment
     "staging-projectmeats.ondigitalocean.app",
     "projectmeats-staging.herokuapp.com",  # Fallback
 ]
