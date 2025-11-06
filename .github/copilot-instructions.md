@@ -822,6 +822,12 @@ Repeat similarly for `UAT` → `main`:
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
   - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md))
+  - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
+    - Run `python manage.py makemigrations <app_name>` AND commit the migration file
+    - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
+    - For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
+    - TENANT_APPS include: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
+    - SHARED_APPS (use regular `migrate`): core, tenants, and Django core apps
   - Always run `python manage.py makemigrations --check` before committing
   - Test migrations on fresh database locally before PR
   - Use minimal dependencies (only depend on migrations you actually need)
