@@ -8,6 +8,7 @@ per the pipeline configuration. Please use uat.meatscentral.com for all staging/
 """
 
 import logging
+from decouple import config
 from .production import *
 
 # Log deprecation warning if old staging domain is detected
