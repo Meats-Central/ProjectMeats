@@ -433,10 +433,12 @@ jobs:
   # Job to deploy the frontend
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [ test-frontend]
+    needs: [test-frontend]
     environment: dev-frontend
     steps:
       - name: Deploy frontend container
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}  # Ensure SSH password is set
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
           docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
@@ -449,6 +451,7 @@ jobs:
         run: |
           sleep 5
           curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+
 
   # Job to deploy the backend
   deploy-backend:
