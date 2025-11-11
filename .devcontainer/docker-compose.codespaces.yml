@@ -2,36 +2,39 @@ version: "3.9"
 services:
   backend:
     build:
-      context: ../
+      context: ..
       dockerfile: backend/Dockerfile
     container_name: pm-backend
-    working_dir: /workspace/backend
+    working_dir: /workspaces/${localWorkspaceFolderBasename}/backend
+    # Use the Codespaces workspace mount path:
     volumes:
-      - ..:/workspace:cached  # Mount the code to the container
+      - ..:/workspaces/${localWorkspaceFolderBasename}:cached
     ports:
-      - "8000:8000"  # Expose port for backend API
+      - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health/"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+    # Remove healthcheck that depends on curl existing in the image
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/v1/health/ || exit 1"]
+    #   interval: 30s
+    #   timeout: 5s
+    #   retries: 5
 
   frontend:
     build:
-      context: ../
+      context: ..
       dockerfile: frontend/Dockerfile
     container_name: pm-frontend
-    working_dir: /app/frontend
+    working_dir: /workspaces/${localWorkspaceFolderBasename}/frontend
     volumes:
-      - ..:/app:cached
+      - ..:/workspaces/${localWorkspaceFolderBasename}:cached
     ports:
-      - "8080:80"  
+      - "8080:80"
     depends_on:
-      - backend  
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
-      interval: 30s
-      timeout: 3s
-      retries: 5
+      - backend
+    # Remove healthcheck that depends on wget existing in the image
+    # healthcheck:
+    #   test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+    #   interval: 30s
+    #   timeout: 3s
+    #   retries: 5
