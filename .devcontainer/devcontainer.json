@@ -1,8 +1,8 @@
 {
   "name": "ProjectMeats Dev Container",
-  "dockerComposeFile": "docker-compose.codespaces.yml",  // Use Docker Compose to manage services
-  "service": "backend",  // Start with backend service
-  "workspaceFolder": "/workspace",
+  "dockerComposeFile": "docker-compose.codespaces.yml",
+  "service": "backend",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -11,6 +11,8 @@
       ]
     }
   },
-  "postCreateCommand": "echo Ready",  // Optional: run commands after Codespace is created
-  "forwardPorts": [8000, 8080]  // Forward necessary ports for frontend and backend
+  "postCreateCommand": "echo Ready",
+  "forwardPorts": [8000, 8080],
+  "runServices": ["backend", "frontend"],
+  "overrideCommand": false
 }
