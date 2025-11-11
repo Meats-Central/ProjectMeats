@@ -27,6 +27,8 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "dev.meatscentral.com",
     "dev-backend.meatscentral.com",
+    "uat.meatscentral.com",
+    "uat-backend.meatscentral.com",
     "157.245.114.182",
 ]
 
@@ -117,6 +119,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://dev.meatscentral.com",
     "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",
+    "https://uat-backend.meatscentral.com",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:3003",
@@ -155,6 +159,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://dev.meatscentral.com",
     "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",          
+    "https://uat-backend.meatscentral.com",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:3003",
