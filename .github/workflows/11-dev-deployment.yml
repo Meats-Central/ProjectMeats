@@ -320,7 +320,7 @@ env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}            
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} 
   BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND  }} 
-  GHCR_REGISTRY: ghcr.io/Meats-Central # GHCR Registry URL
+  GHCR_REGISTRY: ghcr.io/meats-central # GHCR Registry URL
 
 jobs:
   
