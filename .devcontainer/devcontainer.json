@@ -1,6 +1,6 @@
 {
   "name": "ProjectMeats Dev Container",
-  "image": "ghcr.io/<your-org>/<your-repo>:dev-latest",  // Use the versioned image from GHCR
+  "image": "ghcr.io/meats-central/projectmeats-backend:dev-170e76c",  // Use the correct image tag
   "service": "backend",  // Start with the backend service
   "workspaceFolder": "/workspace",  // Default workspace directory in the container
 
@@ -16,6 +16,7 @@
   "postCreateCommand": "echo Ready",  // Optional: run commands after Codespace is created
 
   "forwardPorts": [8000, 8080],  // Forward necessary ports for frontend and backend
+
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "editor.formatOnSave": true
