@@ -332,12 +332,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Login to DOCR
       - name: Login to DOCR
         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
 
+      # Login to GHCR using the PAT secret
       - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      # Build & Push Frontend to DOCR and GHCR
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
         run: |
@@ -352,6 +355,7 @@ jobs:
           docker push $GHCR_REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7}
           docker push $GHCR_REGISTRY/$FRONTEND_IMAGE:dev-latest
 
+      # Build & Push Backend to DOCR and GHCR
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
         run: |
