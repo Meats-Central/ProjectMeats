@@ -1,6 +1,6 @@
 {
   "name": "ProjectMeats Dev Container",
-  "image": "ghcr.io/meats-central/projectmeats-backend:dev-170e76c",  // Use the correct image tag
+  "image": "ghcr.io/meats-central/projectmeats-backend:dev-170e76c",  // Correct image tag
   "service": "backend",  // Start with the backend service
   "workspaceFolder": "/workspace",  // Default workspace directory in the container
 
@@ -13,7 +13,7 @@
     }
   },
 
-  "postCreateCommand": "echo Ready",  // Optional: run commands after Codespace is created
+  "postCreateCommand": "mkdir -p /workspace && echo Ready",  // Ensure /workspace exists
 
   "forwardPorts": [8000, 8080],  // Forward necessary ports for frontend and backend
 
