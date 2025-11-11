@@ -344,7 +344,7 @@ jobs:
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
         run: |
-          FRONTEND_IMAGE_LC=$(echo $FRONTEND_IMAGE | tr '[:upper:]' '[:lower:]') # Convert frontend image name to lowercase
+          FRONTEND_IMAGE_LC="${FRONTEND_IMAGE,,}" # Convert frontend image name to lowercase
           docker build -f frontend/Dockerfile \
             -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
@@ -360,7 +360,7 @@ jobs:
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
         run: |
-          BACKEND_IMAGE_LC=$(echo $BACKEND_IMAGE | tr '[:upper:]' '[:lower:]') # Convert backend image name to lowercase
+          BACKEND_IMAGE_LC="${BACKEND_IMAGE,,}" # Convert backend image name to lowercase
           docker build -f backend/Dockerfile \
             -t $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
             -t $REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
