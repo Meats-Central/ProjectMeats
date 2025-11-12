@@ -366,6 +366,12 @@ jobs:
           echo "EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}" >> .env
           echo "EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}" >> .env
 
+      - name: Print Environment Secrets for Debugging
+        run: |
+          echo "DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}"
+          echo "SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}"
+          echo "DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}"
+
       # Build & Push Frontend to DOCR and GHCR (ensure lowercase tag names)
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
