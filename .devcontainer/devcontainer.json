@@ -84,7 +84,7 @@
     {
       "name": "frontend",
       "image": "ghcr.io/meats-central/projectmeats-frontend:dev-latest", 
-      "workspaceFolder": "/app",  
+      "workspaceFolder": "/app/frontend",  
       "forwardPorts": [3000]  // Forward the port for frontend service
     }
   ]
