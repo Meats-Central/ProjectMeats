@@ -68,8 +68,8 @@
   ],
 
   "features": {
-    "python": "latest",  // Ensure Python is available
-    "docker": "latest"   // Ensure Docker is available
+    "python": "latest"  // Ensure Python is available
+    // Removed deprecated docker feature
   },
 
   "remoteUser": "appuser",  
@@ -85,7 +85,7 @@
       "name": "frontend",
       "image": "ghcr.io/meats-central/projectmeats-frontend:dev-latest", 
       "workspaceFolder": "/app",  
-      "forwardPorts": [3000] 
+      "forwardPorts": [3000]  // Forward the port for frontend service
     }
   ]
 }
