@@ -1,6 +1,6 @@
 # Use Node 20 to match Storybook engines and avoid EBADENGINE warnings
 FROM node:20-alpine AS build
-WORKDIR /app
+WORKDIR /app/frontend
 
 # 1) Install deps
 COPY frontend/package*.json ./frontend/
