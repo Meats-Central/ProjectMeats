@@ -1,41 +1,17 @@
 {
   "name": "ProjectMeats Dev Container",
-  "image": "ghcr.io/meats-central/projectmeats-backend:dev-latest",  // Backend image from GHCR
-  "workspaceFolder": "/workspace",  // The folder inside the container where your project will be mapped
-
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "github.copilot",
-        "ms-azuretools.vscode-docker",
-        "dbaeumer.vscode-eslint",  // You can add useful extensions for linting
-        "esbenp.prettier-vscode"   // Prettier for code formatting
-      ]
-    }
-  },
-
-  "forwardPorts": [
-    8000,  // Backend port for Django
-    8080   // Frontend port for Nginx
-  ],
-
-  "settings": {
-    "terminal.integrated.shell.linux": "/bin/bash",  // Using Bash for the integrated terminal
-    "editor.formatOnSave": true  // Automatically format code when saving
-  },
-
-  "postCreateCommand": "echo 'Dev container ready!'",  // Simple post-create command
-  "shutdownAction": "none",  // Keep container running after codespace session ends
-
+  "image": "ghcr.io/meats-central/projectmeats-backend:dev-latest",
+  "workspaceFolder": "/app",  // You can use /app or any other directory
   "mounts": [
-    "source=/var/lib/docker/codespacemount/workspace/ProjectMeats,target=/workspace,type=bind"  // Mount the workspace directory into container
+    "source=${localWorkspaceFolder},target=/app,type=bind"  // Mount your local folder to /app in the container
   ],
-
-  "containerEnv": {
-    "DOCKER_REGISTRY": "ghcr.io",
-    "FRONTEND_IMAGE": "projectmeats-frontend",
-    "BACKEND_IMAGE": "projectmeats-backend",
-    "FRONTEND_TAG": "dev-latest",
-    "BACKEND_TAG": "dev-latest"
-  }
+  "postCreateCommand": "echo 'Workspace setup complete!'",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "editor.formatOnSave": true
+  },
+  "extensions": [
+    "ms-python.python",
+    "dbaeumer.vscode-eslint"
+  ]
 }
