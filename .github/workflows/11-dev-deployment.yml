@@ -344,7 +344,7 @@ jobs:
       # Create .env file with secrets
       - name: Create .env file with secrets
         run: |
-          echo "DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}" >> .env
+          echo "DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}" > .env
           echo "SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}" >> .env
           echo "CORS_ALLOWED_ORIGINS=${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}" >> .env
           echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> .env
@@ -366,7 +366,7 @@ jobs:
           echo "EMAIL_USE_TLS=${{ secrets.DEV_EMAIL_USE_TLS }}" >> .env
           echo "EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}" >> .env
           echo "EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}" >> .env
-          
+
       # Build & Push Frontend to DOCR and GHCR (ensure lowercase tag names)
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
