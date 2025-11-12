@@ -3,13 +3,12 @@ FROM node:20-alpine AS build
 WORKDIR /app/frontend
 
 # 1) Install deps
-# Make sure frontend/package*.json is copied correctly from the root
-COPY frontend/package*.json ./  # Copy package.json to /app/frontend
+COPY frontend/package*.json ./
 RUN npm ci  # Install dependencies
 
 # 2) Copy sources INCLUDING the shared/ folder your TS imports use
 COPY frontend ./  # Copy the frontend source files to /app/frontend
-COPY shared ./shared  # Copy the shared folder
+COPY shared ./shared  # Ensure the shared directory is copied correctly
 
 # 3) Build from inside frontend
 WORKDIR /app/frontend
