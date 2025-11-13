@@ -62,7 +62,7 @@
   "name": "ProjectMeats Dev Container",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "backend",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/workspace",
 
   "remoteUser": "appuser",
 
@@ -117,5 +117,5 @@
     }
   },
 
-  "postAttachCommand": "cd /app/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  "postAttachCommand": "cd /workspace/app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
