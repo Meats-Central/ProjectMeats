@@ -10,9 +10,9 @@ services:
 
   frontend:
     image: ghcr.io/meats-central/projectmeats-frontend:dev-latest
-    working_dir: /app
+    working_dir: /project
     volumes:
-      - ..:/app
+      - ..:/project
     ports:
       - "3000:3000"
     command: sleep infinity
