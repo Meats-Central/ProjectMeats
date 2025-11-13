@@ -1,52 +1,72 @@
+
 // {
 //   "name": "ProjectMeats Dev Container",
-//   "image": "ghcr.io/meats-central/projectmeats-backend:dev-latest",  // Use the backend image from GHCR
-//   "service": "backend",  // Start with the backend service
-//   "workspaceFolder": "/app",  // Use /app as the workspace folder inside the container
+//   "image": "ghcr.io/meats-central/projectmeats-backend:dev-latest",
+//   "workspaceFolder": "/app",
+
+//   "remoteUser": "appuser",
+
+//   "forwardPorts": [8000],
+
+//   "remoteEnv": {
+//     "DJANGO_SETTINGS_MODULE": "${localEnv:DEV_DJANGO_SETTINGS_MODULE}",
+//     "SECRET_KEY": "${localEnv:DEV_SECRET_KEY}",
+//     "CORS_ALLOWED_ORIGINS": "${localEnv:DEV_CORS_ALLOWED_ORIGINS}",
+//     "DATABASE_URL": "${localEnv:DEV_DATABASE_URL}",
+//     "ALLOWED_HOSTS": "${localEnv:DEV_ALLOWED_HOSTS}",
+//     "LOG_LEVEL": "${localEnv:LOG_LEVEL}",
+//     "DB_ENGINE": "${localEnv:DEV_DB_ENGINE}",
+//     "DB_NAME": "${localEnv:DEV_DB_NAME}",
+//     "DB_USER": "${localEnv:DEV_DB_USER}",
+//     "DB_PASSWORD": "${localEnv:DEV_DB_PASSWORD}",
+//     "DB_HOST": "${localEnv:DEV_DB_HOST}",
+//     "DB_PORT": "${localEnv:DEV_DB_PORT}",
+//     "CORS_ALLOW_ALL_ORIGINS": "${localEnv:CORS_ALLOW_ALL_ORIGINS}",
+//     "SESSION_COOKIE_SECURE": "${localEnv:SESSION_COOKIE_SECURE}",
+//     "CSRF_COOKIE_SECURE": "${localEnv:CSRF_COOKIE_SECURE}",
+//     "OPENAI_API_KEY": "${localEnv:DEV_OPENAI_API_KEY}",
+//     "EMAIL_BACKEND": "${localEnv:DEV_EMAIL_BACKEND}",
+//     "EMAIL_HOST": "${localEnv:DEV_EMAIL_HOST}",
+//     "EMAIL_PORT": "${localEnv:DEV_EMAIL_PORT}",
+//     "EMAIL_USE_TLS": "${localEnv:DEV_EMAIL_USE_TLS}",
+//     "EMAIL_HOST_USER": "${localEnv:DEV_EMAIL_HOST_USER}",
+//     "EMAIL_HOST_PASSWORD": "${localEnv:DEV_EMAIL_HOST_PASSWORD}"
+    
+
+
+//   },
+
+//   "settings": {
+//     "terminal.integrated.shell.linux": "/bin/bash",
+//     "editor.formatOnSave": true,
+//     "python.defaultInterpreterPath": "/usr/local/bin/python3.12"
+//   },
 
 //   "customizations": {
 //     "vscode": {
 //       "extensions": [
 //         "github.copilot",
 //         "ms-azuretools.vscode-docker",
-//         "ms-python.python"  // Python extension for Django
+//         "ms-python.python"
 //       ]
 //     }
 //   },
 
-//   "postCreateCommand": "echo 'Dev container setup completed!' && pip install -r requirements.txt",  // Install dependencies after container setup
-
-//   "forwardPorts": [8000, 8080],  // Forward necessary ports for frontend and backend
-
-//   "settings": {
-//     "terminal.integrated.shell.linux": "/bin/bash",  // Set terminal shell to bash
-//     "editor.formatOnSave": true,  // Automatically format code on save
-//     "python.pythonPath": "/usr/local/bin/python3.12"  // Ensure the correct Python interpreter is selected
-//   },
-
-//   "mounts": [
-//     "source=/mnt/data/tenant_onboarding,target=/app/tenant_onboarding,type=bind"  // Mount additional volumes if required
-//   ],
-
 //   "features": {
-//     "python": "latest"  // Ensure Python is available
+//     "ghcr.io/devcontainers/features/common-utils:2": {}
 //   },
 
-//   "postAttachCommand": "python /app/manage.py migrate && python /app/manage.py runserver",  // Run Django commands when container is attached
-//   "remoteUser": "appuser",  // Use appuser (non-root) inside the container
-//   "extensions": [
-//     "ms-python.python",  // Install Python extension in VSCode
-//     "dbaeumer.vscode-eslint"  // If linting is required in the frontend
-//   ]
+//   "postAttachCommand": "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 // }
 {
   "name": "ProjectMeats Dev Container",
-  "image": "ghcr.io/meats-central/projectmeats-backend:dev-latest",
+  "dockerComposeFile": "docker-compose.devcontainer.yml",
+  "service": "backend",
   "workspaceFolder": "/app",
 
   "remoteUser": "appuser",
 
-  "forwardPorts": [8000],
+  "forwardPorts": [8000, 3000],
 
   "remoteEnv": {
     "DJANGO_SETTINGS_MODULE": "${localEnv:DEV_DJANGO_SETTINGS_MODULE}",
@@ -70,10 +90,7 @@
     "EMAIL_PORT": "${localEnv:DEV_EMAIL_PORT}",
     "EMAIL_USE_TLS": "${localEnv:DEV_EMAIL_USE_TLS}",
     "EMAIL_HOST_USER": "${localEnv:DEV_EMAIL_HOST_USER}",
-    "EMAIL_HOST_PASSWORD": "${localEnv:DEV_EMAIL_HOST_PASSWORD}",
-    
-
-
+    "EMAIL_HOST_PASSWORD": "${localEnv:DEV_EMAIL_HOST_PASSWORD}"
   },
 
   "settings": {
@@ -87,14 +104,18 @@
       "extensions": [
         "github.copilot",
         "ms-azuretools.vscode-docker",
-        "ms-python.python"
+        "ms-python.python",
+        "dbaeumer.vscode-eslint"
       ]
     }
   },
 
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
   },
 
-  "postAttachCommand": "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  "postAttachCommand": "cd /app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
