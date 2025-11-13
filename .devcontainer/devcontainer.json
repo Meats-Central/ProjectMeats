@@ -64,7 +64,7 @@
   "service": "backend",
   "workspaceFolder": "/workspace",
 
-  "remoteUser": "appuser",
+  "remoteUser": "root",
 
   "forwardPorts": [8000, 3000],
 
