@@ -61,8 +61,7 @@
 {
   "name": "ProjectMeats Dev Container",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
-  "service": "backend",
-  "workspaceFolder": "/app",
+  
 
   "remoteUser": "appuser",
 
