@@ -317,13 +317,12 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ vars.DOCR_REGISTRY }}            
-  FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} 
-  BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND }} 
-  GHCR_REGISTRY: ghcr.io/meats-central # GHCR Registry URL
+  REGISTRY: ${{ vars.DOCR_REGISTRY }}
+  FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }}
+  BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND }}
+  GHCR_REGISTRY: ghcr.io/meats-central
 
 jobs:
-  
   build-and-push:
     runs-on: ubuntu-latest
     strategy:
@@ -332,51 +331,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Login to DOCR
       - name: Login to DOCR
         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
 
-      # Login to GHCR using the GitHub token
       - name: Login to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Create .env file with secrets
-      - name: Create .env file with secrets
-        run: |
-          echo "DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}" > .env
-          echo "SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}" >> .env
-          echo "CORS_ALLOWED_ORIGINS=${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}" >> .env
-          echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> .env
-          echo "ALLOWED_HOSTS=${{ secrets.DEV_ALLOWED_HOSTS }}" >> .env
-          echo "LOG_LEVEL=${{ secrets.LOG_LEVEL }}" >> .env
-          echo "DB_ENGINE=${{ secrets.DEV_DB_ENGINE }}" >> .env
-          echo "DB_NAME=${{ secrets.DEV_DB_NAME }}" >> .env
-          echo "DB_USER=${{ secrets.DEV_DB_USER }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}" >> .env
-          echo "DB_HOST=${{ secrets.DEV_DB_HOST }}" >> .env
-          echo "DB_PORT=${{ secrets.DEV_DB_PORT }}" >> .env
-          echo "CORS_ALLOW_ALL_ORIGINS=${{ secrets.CORS_ALLOW_ALL_ORIGINS }}" >> .env
-          echo "SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}" >> .env
-          echo "CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}" >> .env
-          echo "OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}" >> .env
-          echo "EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}" >> .env
-          echo "EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}" >> .env
-          echo "EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}" >> .env
-          echo "EMAIL_USE_TLS=${{ secrets.DEV_EMAIL_USE_TLS }}" >> .env
-          echo "EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}" >> .env
-          echo "EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}" >> .env
-
-      - name: Print Environment Secrets for Debugging
-        run: |
-          echo "DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}"
-          echo "SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}"
-          echo "DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}"
-
-      # Build & Push Frontend to DOCR and GHCR (ensure lowercase tag names)
+      # Build & Push Frontend to DOCR and GHCR
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
         run: |
-          FRONTEND_IMAGE_LC="${FRONTEND_IMAGE,,}" # Convert frontend image name to lowercase
+          FRONTEND_IMAGE_LC="${FRONTEND_IMAGE,,}"
           docker build -f frontend/Dockerfile \
             -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
@@ -388,11 +353,11 @@ jobs:
           docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7}
           docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-latest
 
-      # Build & Push Backend to DOCR and GHCR (ensure lowercase tag names)
+      # Build & Push Backend to DOCR and GHCR
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
         run: |
-          BACKEND_IMAGE_LC="${BACKEND_IMAGE,,}" # Convert backend image name to lowercase
+          BACKEND_IMAGE_LC="${BACKEND_IMAGE,,}"
           docker build -f backend/Dockerfile \
             -t $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
             -t $REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
@@ -404,7 +369,6 @@ jobs:
           docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7}
           docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-latest
 
-  # Job to test the frontend code
   test-frontend:
     runs-on: ubuntu-latest
     needs: build-and-push
@@ -422,7 +386,6 @@ jobs:
       - working-directory: ./frontend
         run: npm run type-check
 
-  # Job to test the backend code
   test-backend:
     runs-on: ubuntu-latest
     needs: build-and-push
@@ -462,7 +425,6 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         run: python manage.py test
 
-  # Job to deploy the frontend
   deploy-frontend:
     runs-on: ubuntu-latest
     needs: [test-frontend]
@@ -482,7 +444,6 @@ jobs:
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
           set -e
 
-          # 1) Runtime env for frontend
           sudo mkdir -p /opt/pm/frontend/env
           sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
           window.ENV = {
@@ -491,18 +452,15 @@ jobs:
           };
           JS'
 
-          # 2) Pull image
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 3) Recreate container on 8080
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 4) If host Nginx exists, proxy port 80 -> 127.0.0.1:8080
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
             server {
@@ -520,7 +478,6 @@ jobs:
             sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
-          # 5) Show status
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           DEPLOY_SCRIPT
 
@@ -529,7 +486,6 @@ jobs:
           sleep 5
           curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
 
-  # Job to deploy the backend
   deploy-backend:
     runs-on: ubuntu-latest
     needs: [test-backend]
@@ -558,13 +514,9 @@ jobs:
           STATIC_DIR="/home/django/ProjectMeats/staticfiles"
           ENV_FILE="${APP_DIR}/.env"
 
-          # 0) Ensure dirs exist
           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
-          
-          # Set permissions for mounted volumes (appuser in container has UID 1000)
           sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
-          # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
           DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
           SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}
@@ -582,8 +534,6 @@ jobs:
           SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}
           CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}
           OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}
-          #STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
-          #MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
           EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}
@@ -594,13 +544,12 @@ jobs:
           sudo chown root:root "$ENV_FILE"
           sudo chmod 600 "$ENV_FILE"
 
-          # 2) Pull image
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # 3) Migrate and collectstatic using the same .env
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
+            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
@@ -608,21 +557,21 @@ jobs:
 
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
+            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
 
-          # 4) Recreate app container
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
             --env-file "$ENV_FILE" \
+            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
-          # 5) Status
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           SSH
 
