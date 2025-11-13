@@ -1,26 +1,52 @@
-# Use Node 20 to match Storybook engines and avoid EBADENGINE warnings
+# # Use Node 20 to match Storybook engines and avoid EBADENGINE warnings
+# FROM node:20-alpine AS build
+# WORKDIR /app
+
+# # 1) Install deps
+# COPY frontend/package*.json ./frontend/
+# RUN cd frontend && npm ci
+
+# # 2) Copy sources INCLUDING the shared/ folder your TS imports use
+# COPY frontend ./frontend
+# COPY shared  ./shared
+
+# # 3) Build from inside frontend
+# WORKDIR /app/frontend
+# # Optional: ensure CRA treats this as CI (non-interactive)
+# ENV CI=true
+# RUN npm run build
+
+# # Runtime
+# FROM nginx:alpine
+# COPY deploy/nginx/frontend.conf /etc/nginx/conf.d/default.conf
+# COPY --from=build /app/frontend/build /usr/share/nginx/html
+# EXPOSE 80
+# HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1/ || exit 1
+
+
+# Use Node 20
 FROM node:20-alpine AS build
-WORKDIR /app
+WORKDIR /project
 
 # 1) Install deps
 COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm ci
 
-# 2) Copy sources INCLUDING the shared/ folder your TS imports use
+# 2) Copy sources
 COPY frontend ./frontend
 COPY shared  ./shared
 
-# 3) Build from inside frontend
-WORKDIR /app/frontend
-# Optional: ensure CRA treats this as CI (non-interactive)
+# 3) Build inside frontend
+WORKDIR /project/frontend
 ENV CI=true
 RUN npm run build
 
 # Runtime
 FROM nginx:alpine
 COPY deploy/nginx/frontend.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/frontend/build /usr/share/nginx/html
+
+# update here as well
+COPY --from=build /project/frontend/build /usr/share/nginx/html
+
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1/ || exit 1
-
-
