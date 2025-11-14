@@ -1,0 +1,14 @@
+# Dev image for Codespaces only
+FROM mcr.microsoft.com/devcontainers/python:3.12
+
+# Install Node 20 for frontend
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get update \
+    && apt-get install -y nodejs \
+    && npm install -g npm
+
+# Create work directory that will hold repo
+WORKDIR /workspace
+
+# Optional: install common tools
+RUN apt-get update && apt-get install -y git curl
