@@ -67,7 +67,7 @@
     "context": "."
   },
 
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspace/ProjectMeats",
   "remoteUser": "vscode",
 
   "forwardPorts": [8000, 3000],
@@ -118,5 +118,5 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
 
-  "postAttachCommand": "cd /workspace/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  "postAttachCommand": "cd /workspace/ProjectMeats/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
