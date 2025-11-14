@@ -67,7 +67,7 @@
     "context": "."
   },
 
-  "workspaceFolder": "/ProjectMeats",
+  "workspaceFolder": "/workspaces/ProjectMeats",
   "remoteUser": "vscode",
 
   "forwardPorts": [8000, 3000],
