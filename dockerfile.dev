@@ -8,7 +8,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm install -g npm
 
 # Create work directory that will hold repo
-WORKDIR /workspace
+WORKDIR /ProjectMeats
 
 # Optional: install common tools
 RUN apt-get update && apt-get install -y git curl
