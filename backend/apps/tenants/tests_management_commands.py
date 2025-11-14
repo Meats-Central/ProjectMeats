@@ -1,12 +1,14 @@
 """
-Tests for the create_super_tenant management command.
+Tests for the create_super_tenant and create_tenant management commands.
 """
 from io import StringIO
 from unittest import mock
-from django.core.management import call_command
+from datetime import datetime
+from django.core.management import call_command, CommandError
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from apps.tenants.models import Tenant, TenantUser
+from django.utils import timezone
+from apps.tenants.models import Tenant, TenantUser, TenantDomain
 
 
 User = get_user_model()
@@ -821,5 +823,359 @@ class SetupSuperuserCommandTests(TestCase):
                 # Should raise ValueError about password verification failure
                 self.assertIn('password', str(context.exception).lower())
                 self.assertIn('verification', str(context.exception).lower())
+
+
+class CreateTenantCommandTests(TestCase):
+    """Test cases for create_tenant management command."""
+
+    def setUp(self):
+        """Set up test environment."""
+        # Clean up any existing data
+        Tenant.objects.all().delete()
+        TenantDomain.objects.all().delete()
+
+    def test_creates_tenant_with_required_params(self):
+        """Test that command creates tenant with only required parameters."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='test_tenant',
+            name='Test Tenant',
+            stdout=out
+        )
+        
+        # Check tenant was created
+        self.assertTrue(Tenant.objects.filter(schema_name='test_tenant').exists())
+        tenant = Tenant.objects.get(schema_name='test_tenant')
+        self.assertEqual(tenant.name, 'Test Tenant')
+        self.assertEqual(tenant.slug, 'test-tenant')  # Auto-generated from schema_name
+        self.assertEqual(tenant.contact_email, 'admin@test-tenant.local')  # Default
+        self.assertTrue(tenant.is_active)
+        self.assertFalse(tenant.is_trial)  # Default when --on-trial not specified
+        
+        # Check output
+        output = out.getvalue()
+        self.assertIn('Tenant created', output)
+        self.assertIn('test_tenant', output)
+
+    def test_creates_tenant_with_domain(self):
+        """Test that command creates tenant with domain."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='acme_corp',
+            name='ACME Corporation',
+            domain='acme.example.com',
+            stdout=out
+        )
+        
+        # Check tenant was created
+        tenant = Tenant.objects.get(schema_name='acme_corp')
+        self.assertEqual(tenant.name, 'ACME Corporation')
+        
+        # Check domain was created
+        self.assertTrue(TenantDomain.objects.filter(domain='acme.example.com').exists())
+        domain = TenantDomain.objects.get(domain='acme.example.com')
+        self.assertEqual(domain.tenant, tenant)
+        self.assertTrue(domain.is_primary)
+        
+        # Check output
+        output = out.getvalue()
+        self.assertIn('Domain created', output)
+        self.assertIn('acme.example.com', output)
+
+    def test_creates_trial_tenant_with_paid_until(self):
+        """Test that command creates trial tenant with paid_until date."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='trial_tenant',
+            name='Trial Tenant',
+            on_trial=True,
+            paid_until='2024-12-31',
+            stdout=out
+        )
+        
+        tenant = Tenant.objects.get(schema_name='trial_tenant')
+        self.assertTrue(tenant.is_trial)
+        self.assertIsNotNone(tenant.trial_ends_at)
+        # Check the date is correct
+        expected_date = datetime(2024, 12, 31)
+        self.assertEqual(tenant.trial_ends_at.year, expected_date.year)
+        self.assertEqual(tenant.trial_ends_at.month, expected_date.month)
+        self.assertEqual(tenant.trial_ends_at.day, expected_date.day)
+
+    def test_creates_trial_tenant_with_auto_paid_until(self):
+        """Test that trial tenant gets automatic 30-day trial period."""
+        out = StringIO()
+        
+        before_time = timezone.now()
+        
+        call_command(
+            'create_tenant',
+            schema_name='auto_trial',
+            name='Auto Trial Tenant',
+            on_trial=True,
+            stdout=out
+        )
+        
+        after_time = timezone.now()
+        
+        tenant = Tenant.objects.get(schema_name='auto_trial')
+        self.assertTrue(tenant.is_trial)
+        self.assertIsNotNone(tenant.trial_ends_at)
+        
+        # Trial should be approximately 30 days from now
+        # Allow for test execution time
+        from datetime import timedelta
+        expected_min = before_time + timedelta(days=29)
+        expected_max = after_time + timedelta(days=31)
+        self.assertGreater(tenant.trial_ends_at, expected_min)
+        self.assertLess(tenant.trial_ends_at, expected_max)
+
+    def test_creates_tenant_with_custom_contact_info(self):
+        """Test that command accepts custom contact information."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='custom_contact',
+            name='Custom Contact Tenant',
+            contact_email='admin@custom.com',
+            contact_phone='+1-555-1234',
+            stdout=out
+        )
+        
+        tenant = Tenant.objects.get(schema_name='custom_contact')
+        self.assertEqual(tenant.contact_email, 'admin@custom.com')
+        self.assertEqual(tenant.contact_phone, '+1-555-1234')
+
+    def test_creates_tenant_with_custom_slug(self):
+        """Test that command accepts custom slug."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='test_schema',
+            name='Test Tenant',
+            slug='custom-slug',
+            stdout=out
+        )
+        
+        tenant = Tenant.objects.get(schema_name='test_schema')
+        self.assertEqual(tenant.slug, 'custom-slug')
+
+    def test_validates_schema_name_format(self):
+        """Test that command validates schema_name format."""
+        out = StringIO()
+        
+        # Invalid: starts with number
+        with self.assertRaises(CommandError) as context:
+            call_command(
+                'create_tenant',
+                schema_name='123invalid',
+                name='Invalid Tenant',
+                stdout=out
+            )
+        self.assertIn('Invalid schema name', str(context.exception))
+        
+        # Invalid: contains special characters
+        with self.assertRaises(CommandError) as context:
+            call_command(
+                'create_tenant',
+                schema_name='invalid-name',
+                name='Invalid Tenant',
+                stdout=out
+            )
+        self.assertIn('Invalid schema name', str(context.exception))
+
+    def test_validates_paid_until_date_format(self):
+        """Test that command validates paid_until date format."""
+        out = StringIO()
+        
+        with self.assertRaises(CommandError) as context:
+            call_command(
+                'create_tenant',
+                schema_name='invalid_date',
+                name='Invalid Date Tenant',
+                paid_until='12/31/2024',  # Wrong format
+                stdout=out
+            )
+        self.assertIn('Invalid date format', str(context.exception))
+
+    def test_shows_migration_warning_without_run_migrations(self):
+        """Test that command shows migration warning when --run-migrations not used."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='no_migrations',
+            name='No Migrations Tenant',
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        self.assertIn('Schema migrations not run', output)
+        self.assertIn('shared-schema', output)
+
+    def test_shows_migration_info_with_run_migrations(self):
+        """Test that command shows migration info when --run-migrations is used."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='with_migrations',
+            name='With Migrations Tenant',
+            run_migrations=True,
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        self.assertIn('Schema migration requested', output)
+        self.assertIn('django_tenants.postgresql_backend', output)
+
+    def test_verbosity_level_2_shows_detailed_output(self):
+        """Test that verbosity level 2 produces detailed logging."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='verbose_tenant',
+            name='Verbose Tenant',
+            domain='verbose.example.com',
+            verbosity=2,
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        
+        # Check for detailed configuration output
+        self.assertIn('Tenant Configuration:', output)
+        self.assertIn('Schema Name: verbose_tenant', output)
+        self.assertIn('Name: Verbose Tenant', output)
+        self.assertIn('Domain: verbose.example.com', output)
+
+    def test_summary_output_includes_all_info(self):
+        """Test that summary output includes all tenant information."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='summary_test',
+            name='Summary Test Tenant',
+            domain='summary.example.com',
+            on_trial=True,
+            contact_email='test@summary.com',
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        
+        # Check summary contains key information
+        self.assertIn('TENANT CREATION COMPLETE', output)
+        self.assertIn('summary_test', output)
+        self.assertIn('Summary Test Tenant', output)
+        self.assertIn('summary.example.com', output)
+        self.assertIn('test@summary.com', output)
+        self.assertIn('Trial: True', output)
+
+    def test_environment_parameter(self):
+        """Test that environment parameter is accepted."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='env_test',
+            name='Environment Test',
+            environment='staging',
+            verbosity=2,
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        self.assertIn('Environment: staging', output)
+
+    def test_cannot_create_duplicate_schema_name(self):
+        """Test that command prevents duplicate schema_name."""
+        # Create first tenant
+        Tenant.objects.create(
+            schema_name='duplicate_test',
+            name='First Tenant',
+            slug='first-tenant',
+            contact_email='first@example.com'
+        )
+        
+        out = StringIO()
+        
+        # Try to create second tenant with same schema_name
+        with self.assertRaises(Exception):  # Django IntegrityError
+            call_command(
+                'create_tenant',
+                schema_name='duplicate_test',
+                name='Second Tenant',
+                stdout=out
+            )
+
+    def test_auto_generates_slug_from_schema_name(self):
+        """Test that slug is auto-generated from schema_name."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='auto_slug_test',
+            name='Auto Slug Test',
+            stdout=out
+        )
+        
+        tenant = Tenant.objects.get(schema_name='auto_slug_test')
+        self.assertEqual(tenant.slug, 'auto-slug-test')  # Underscores converted to hyphens
+
+    def test_auto_generates_contact_email_from_slug(self):
+        """Test that contact_email is auto-generated from slug."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='email_test',
+            name='Email Test',
+            stdout=out
+        )
+        
+        tenant = Tenant.objects.get(schema_name='email_test')
+        self.assertEqual(tenant.contact_email, 'admin@email-test.local')
+
+    def test_domain_lowercase_normalization(self):
+        """Test that domain names are normalized to lowercase."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='case_test',
+            name='Case Test',
+            domain='UPPERCASE.EXAMPLE.COM',
+            stdout=out
+        )
+        
+        domain = TenantDomain.objects.get(tenant__schema_name='case_test')
+        self.assertEqual(domain.domain, 'uppercase.example.com')
+
+    def test_next_steps_output(self):
+        """Test that next steps are shown in output."""
+        out = StringIO()
+        
+        call_command(
+            'create_tenant',
+            schema_name='next_steps',
+            name='Next Steps Test',
+            stdout=out
+        )
+        
+        output = out.getvalue()
+        self.assertIn('Next steps:', output)
+        self.assertIn('Create users for this tenant', output)
+        self.assertIn('Configure tenant settings', output)
 
 

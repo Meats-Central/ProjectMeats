@@ -5,8 +5,13 @@ ProjectMeats3 Post-Deployment Health Check
 Quick script to verify deployment is working correctly.
 Can be run locally or in CI/CD after deployment.
 
+Environment Priority:
+    Primary staging environment: uat.meatscentral.com (UAT)
+    Legacy staging: staging.meatscentral.com (DEPRECATED - use UAT instead)
+    Production: meatscentral.com
+
 Usage:
-    python health_check.py https://your-app.ondigitalocean.app
+    python health_check.py https://uat.meatscentral.com
     python health_check.py https://projectmeats.app --verbose
 """
 
@@ -81,6 +86,15 @@ def run_health_checks(base_url: str, verbose: bool = False) -> bool:
     """Run comprehensive health checks"""
     log(f"{Colors.BOLD}ProjectMeats3 Health Check{Colors.END}")
     log(f"Testing: {base_url}")
+    
+    # Check if using deprecated staging domain and log warning
+    if "staging.meatscentral.com" in base_url.lower():
+        log("⚠️  WARNING: staging.meatscentral.com is DEPRECATED", "WARNING")
+        log("   Please use uat.meatscentral.com as the primary middle environment", "WARNING")
+        log("   UAT is the active staging environment per pipeline configuration", "WARNING")
+    elif "uat.meatscentral.com" in base_url.lower():
+        log("✓  Using UAT environment (uat.meatscentral.com) - Primary middle environment", "SUCCESS")
+    
     log("-" * 50)
     
     # Define endpoints to check

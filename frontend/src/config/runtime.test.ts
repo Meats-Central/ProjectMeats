@@ -27,27 +27,27 @@ describe('Runtime Configuration', () => {
     it('should fall back to process.env when window.ENV is not available', () => {
       const { getRuntimeConfig } = require('./runtime');
       
-      process.env.REACT_APP_API_BASE_URL = 'https://buildtime.example.com/api/v1';
+      process.env.REACT_APP_CUSTOM_KEY = 'https://buildtime.example.com/api/v1';
 
-      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      const result = getRuntimeConfig('CUSTOM_KEY', 'http://default.com/api/v1');
       expect(result).toBe('https://buildtime.example.com/api/v1');
     });
 
     it('should use default value when neither window.ENV nor process.env is set', () => {
       const { getRuntimeConfig } = require('./runtime');
       
-      delete process.env.REACT_APP_API_BASE_URL;
-      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      delete process.env.REACT_APP_CUSTOM_KEY;
+      const result = getRuntimeConfig('CUSTOM_KEY', 'http://default.com/api/v1');
       expect(result).toBe('http://default.com/api/v1');
     });
 
     it('should handle empty string values by falling back', () => {
       const { getRuntimeConfig } = require('./runtime');
       
-      (window as any).ENV = { API_BASE_URL: '' };
-      delete process.env.REACT_APP_API_BASE_URL;
+      (window as any).ENV = { CUSTOM_KEY: '' };
+      delete process.env.REACT_APP_CUSTOM_KEY;
 
-      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      const result = getRuntimeConfig('CUSTOM_KEY', 'http://default.com/api/v1');
       expect(result).toBe('http://default.com/api/v1');
     });
   });
@@ -136,6 +136,65 @@ describe('Runtime Configuration', () => {
       expect(config).toHaveProperty('AI_ASSISTANT_ENABLED');
       expect(config).toHaveProperty('ENABLE_DOCUMENT_UPLOAD');
       expect(config).toHaveProperty('ENABLE_CHAT_EXPORT');
+    });
+  });
+
+  describe('tenant-aware API_BASE_URL', () => {
+    beforeEach(() => {
+      delete (window as any).ENV;
+      delete (window as any).location;
+      (window as any).location = { hostname: 'localhost' };
+    });
+
+    it('should use tenant context for API_BASE_URL on localhost', () => {
+      window.location.hostname = 'localhost';
+      jest.resetModules();
+      const { getRuntimeConfig } = require('./runtime');
+      
+      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      expect(result).toBe('http://localhost:8000/api/v1');
+    });
+
+    it('should use tenant context for API_BASE_URL with tenant subdomain', () => {
+      window.location.hostname = 'acme.projectmeats.com';
+      jest.resetModules();
+      const { getRuntimeConfig } = require('./runtime');
+      
+      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      expect(result).toBe('https://acme-api.projectmeats.com/api/v1');
+    });
+
+    it('should prioritize window.ENV over tenant context for API_BASE_URL', () => {
+      window.location.hostname = 'acme.projectmeats.com';
+      (window as any).ENV = { API_BASE_URL: 'https://override.example.com/api/v1' };
+      jest.resetModules();
+      const { getRuntimeConfig } = require('./runtime');
+      
+      const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
+      expect(result).toBe('https://override.example.com/api/v1');
+    });
+  });
+
+  describe('getCurrentTenant', () => {
+    beforeEach(() => {
+      delete (window as any).location;
+      (window as any).location = { hostname: 'localhost' };
+    });
+
+    it('should return null for localhost', () => {
+      window.location.hostname = 'localhost';
+      jest.resetModules();
+      const { getCurrentTenant } = require('./runtime');
+      
+      expect(getCurrentTenant()).toBeNull();
+    });
+
+    it('should return tenant for tenant subdomain', () => {
+      window.location.hostname = 'acme.projectmeats.com';
+      jest.resetModules();
+      const { getCurrentTenant } = require('./runtime');
+      
+      expect(getCurrentTenant()).toBe('acme');
     });
   });
 });

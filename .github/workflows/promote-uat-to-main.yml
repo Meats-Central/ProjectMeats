@@ -1,4 +1,6 @@
 name: Promote UAT to Main
+# UAT (uat.meatscentral.com) is the active middle environment before production.
+# DEPRECATED: staging.meatscentral.com - use uat.meatscentral.com instead.
 
 on:
   push:

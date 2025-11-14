@@ -5,11 +5,14 @@
  * after the application is built and deployed. This solves the issue
  * where environment variables are baked in at build-time.
  * 
- * Configuration priority:
- * 1. Runtime config from window.ENV (set via env-config.js)
- * 2. Build-time environment variables (process.env.REACT_APP_*)
- * 3. Default values
+ * Configuration priority for API_BASE_URL and ENVIRONMENT:
+ * 1. Runtime config from window.ENV (set via env-config.js) - explicit override
+ * 2. Tenant context from domain detection (via tenantContext.ts) - automatic
+ * 3. Build-time environment variables (process.env.REACT_APP_*) - legacy fallback
+ * 4. Default values - last resort
  */
+
+import { getTenantContext } from './tenantContext';
 
 // Extend Window interface to include ENV
 declare global {
@@ -30,14 +33,33 @@ declare global {
 
 /**
  * Get runtime configuration value
- * Priority: window.ENV > process.env > default
+ * Priority: window.ENV > tenant context > process.env > default
+ * 
+ * Note: For API_BASE_URL and ENVIRONMENT, we check window.ENV first
+ * to allow explicit override, then fall back to tenant context.
  */
 function getRuntimeConfig(key: string, defaultValue: string = ''): string {
-  // Check runtime config first (from env-config.js)
+  // Check runtime config from env-config.js first for explicit override
   if (window.ENV && key in window.ENV) {
     const value = window.ENV[key as keyof typeof window.ENV];
     if (value !== undefined && value !== null && value !== '') {
       return value;
+    }
+  }
+  
+  // For API_BASE_URL and ENVIRONMENT, use tenant context as fallback
+  if (key === 'API_BASE_URL' || key === 'ENVIRONMENT') {
+    try {
+      const tenantContext = getTenantContext();
+      if (key === 'API_BASE_URL' && tenantContext.apiBaseUrl) {
+        return tenantContext.apiBaseUrl;
+      }
+      if (key === 'ENVIRONMENT' && tenantContext.environment) {
+        return tenantContext.environment;
+      }
+    } catch (error) {
+      // Silently fall through to other config sources if tenant context fails
+      // This ensures backward compatibility
     }
   }
   
@@ -71,10 +93,10 @@ function getRuntimeConfigNumber(key: string, defaultValue: number = 0): number {
 
 // Export configuration values
 export const config = {
-  // API Configuration
+  // API Configuration - uses tenant context for domain-based multi-tenancy
   API_BASE_URL: getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1'),
   
-  // Environment
+  // Environment - uses tenant context for domain-based detection
   ENVIRONMENT: getRuntimeConfig('ENVIRONMENT', 'development'),
   
   // Feature Flags
@@ -89,14 +111,38 @@ export const config = {
   SUPPORTED_FILE_TYPES: getRuntimeConfig('SUPPORTED_FILE_TYPES', 'pdf,jpg,jpeg,png,txt,doc,docx,xls,xlsx'),
 };
 
+/**
+ * Get current tenant information from domain
+ * Exported for use in components that need tenant-specific logic
+ */
+export function getCurrentTenant(): string | null {
+  try {
+    const tenantContext = getTenantContext();
+    return tenantContext.tenant;
+  } catch (error) {
+    return null;
+  }
+}
+
 // Export helper functions for dynamic config access
 export { getRuntimeConfig, getRuntimeConfigBoolean, getRuntimeConfigNumber };
 
-// Log configuration source in development (but not during CI build)
-// Only log the source to avoid exposing sensitive endpoint URLs
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+// Log configuration source in development
+// Note: This only runs once when the module is first imported
+if (process.env.NODE_ENV === 'development') {
   // eslint-disable-next-line no-console
   console.log('[Runtime Config] Loaded from:', 
     window.ENV ? 'window.ENV (runtime)' : 'process.env (build-time)'
   );
+  
+  try {
+    const tenantContext = getTenantContext();
+    // eslint-disable-next-line no-console
+    console.log('[Runtime Config] Multi-tenancy:', {
+      tenant: tenantContext.tenant || 'none',
+      environment: tenantContext.environment,
+    });
+  } catch (error) {
+    // Ignore errors in development logging
+  }
 }
