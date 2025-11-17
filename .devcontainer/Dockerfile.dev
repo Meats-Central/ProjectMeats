@@ -1,14 +1,53 @@
+# # Dev image for Codespaces only
+# FROM mcr.microsoft.com/devcontainers/python:3.12
+
+# # Install Node 20 for frontend
+# RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+#     && apt-get update \
+#     && apt-get install -y nodejs \
+#     && npm install -g npm
+
+# # Create work directory that will hold repo
+# WORKDIR /workspaces/ProjectMeats
+
+# # Optional: install common tools
+# RUN apt-get update && apt-get install -y git curl
+
 # Dev image for Codespaces only
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
-# Install Node 20 for frontend
+# Install Node 20
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get update \
     && apt-get install -y nodejs \
     && npm install -g npm
 
-# Create work directory that will hold repo
+# Create work directory for repo
 WORKDIR /workspaces/ProjectMeats
 
-# Optional: install common tools
+# Install system tools
 RUN apt-get update && apt-get install -y git curl
+
+# ------------------------------------------------------
+# BACKEND: Install Python dependencies automatically
+# ------------------------------------------------------
+# Copy backend requirements
+COPY backend/requirements.txt /tmp/requirements.txt
+
+# Install virtual environment + deps globally inside the container
+RUN python -m venv /venv \
+    && /venv/bin/pip install --upgrade pip \
+    && /venv/bin/pip install -r /tmp/requirements.txt
+
+ENV PATH="/venv/bin:$PATH"
+
+# ------------------------------------------------------
+# FRONTEND: Install node dependencies automatically
+# ------------------------------------------------------
+COPY frontend/package.json frontend/package-lock.json /tmp/frontend/
+
+RUN cd /tmp/frontend \
+    && npm ci
+
+# Node_modules will be recreated inside container when code mounts
+ENV FRONTEND_NODEMODULES=/tmp/frontend/node_modules
