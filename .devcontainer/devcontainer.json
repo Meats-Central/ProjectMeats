@@ -118,5 +118,5 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
 
-  "postAttachCommand": "cd /workspaces/ProjectMeats && python -m venv .venv && . .venv/bin/activate && pip install -r backend/requirements.txt && cd frontend && npm ci && cd /workspaces/ProjectMeats/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  "postAttachCommand": "cd /workspaces/ProjectMeats && python -m venv .venv && . .venv/bin/activate && pip install -r backend/requirements.txt && cd frontend && npm install && cd /workspaces/ProjectMeats/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
