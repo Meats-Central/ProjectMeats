@@ -29,25 +29,16 @@ WORKDIR /workspaces/ProjectMeats
 RUN apt-get update && apt-get install -y git curl
 
 # ------------------------------------------------------
-# BACKEND: Install Python dependencies automatically
+# BACKEND: Install Python dependencies globally
 # ------------------------------------------------------
-# Copy backend requirements
 COPY backend/requirements.txt /tmp/requirements.txt
 
-# Install virtual environment + deps globally inside the container
 RUN python -m venv /venv \
     && /venv/bin/pip install --upgrade pip \
     && /venv/bin/pip install -r /tmp/requirements.txt
 
 ENV PATH="/venv/bin:$PATH"
 
-# ------------------------------------------------------
-# FRONTEND: Install node dependencies automatically
-# ------------------------------------------------------
-COPY frontend/package.json frontend/package-lock.json /tmp/frontend/
-
-RUN cd /tmp/frontend \
-    && npm ci
-
-# Node_modules will be recreated inside container when code mounts
-ENV FRONTEND_NODEMODULES=/tmp/frontend/node_modules
+# Nothing for frontend here.
+# Frontend deps will be installed after the Codespace is created
+# using npm ci inside /workspaces/ProjectMeats/frontend.
