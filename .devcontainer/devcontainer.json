@@ -118,5 +118,5 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
 
-  "postAttachCommand": "cd /ProjectMeats/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  "postAttachCommand": "cd /workspaces/ProjectMeats/backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
