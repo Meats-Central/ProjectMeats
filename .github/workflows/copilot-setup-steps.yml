@@ -11,17 +11,46 @@ on:
 
 jobs:
   copilot-setup-steps:
-    # This exact job name is what GitHub Copilot looks for
     runs-on: ubuntu-latest
+
+    environment:
+      name: copilot
 
     permissions:
       contents: read
+      packages: read
+
+    env:
+      DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+      SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+      CORS_ALLOWED_ORIGINS: ${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      ALLOWED_HOSTS: ${{ secrets.DEV_ALLOWED_HOSTS }}
+      LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
+
+      DB_ENGINE: ${{ secrets.DEV_DB_ENGINE }}
+      DB_NAME: ${{ secrets.DEV_DB_NAME }}
+      DB_USER: ${{ secrets.DEV_DB_USER }}
+      DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DEV_DB_HOST }}
+      DB_PORT: ${{ secrets.DEV_DB_PORT }}
+
+      CORS_ALLOW_ALL_ORIGINS: ${{ secrets.CORS_ALLOW_ALL_ORIGINS }}
+      SESSION_COOKIE_SECURE: ${{ secrets.SESSION_COOKIE_SECURE }}
+      CSRF_COOKIE_SECURE: ${{ secrets.CSRF_COOKIE_SECURE }}
+
+      OPENAI_API_KEY: ${{ secrets.DEV_OPENAI_API_KEY }}
+      EMAIL_BACKEND: ${{ secrets.DEV_EMAIL_BACKEND }}
+      EMAIL_HOST: ${{ secrets.DEV_EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.DEV_EMAIL_PORT }}
+      EMAIL_USE_TLS: ${{ secrets.DEV_EMAIL_USE_TLS }}
+      EMAIL_HOST_USER: ${{ secrets.DEV_EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.DEV_EMAIL_HOST_PASSWORD }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Backend environment  Django plus Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -33,7 +62,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      # Frontend environment  React plus Node
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -45,15 +73,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # Optional sanity info for logs
       - name: Show tool versions
         run: |
           python --version
           node --version
           npm --version
 
-      # Optional note about your GHCR images
-      # This does not change the environment yet
       - name: Note GHCR images available
         run: |
           echo "Backend image in GHCR:"
