@@ -118,5 +118,5 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
 
-  "postCreateCommand": "cd frontend && npm ci"
+  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
