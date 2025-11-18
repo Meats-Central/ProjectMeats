@@ -39,6 +39,3 @@ RUN python -m venv /venv \
 
 ENV PATH="/venv/bin:$PATH"
 
-# Nothing for frontend here.
-# Frontend deps will be installed after the Codespace is created
-# using npm ci inside /workspaces/ProjectMeats/frontend.
