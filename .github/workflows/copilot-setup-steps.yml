@@ -1,0 +1,62 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/copilot-setup-steps.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/copilot-setup-steps.yml"
+
+jobs:
+  copilot-setup-steps:
+    # This exact job name is what GitHub Copilot looks for
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Backend environment  Django plus Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      # Frontend environment  React plus Node
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Optional sanity info for logs
+      - name: Show tool versions
+        run: |
+          python --version
+          node --version
+          npm --version
+
+      # Optional note about your GHCR images
+      # This does not change the environment yet
+      - name: Note GHCR images available
+        run: |
+          echo "Backend image in GHCR:"
+          echo "  ghcr.io/meats-central/projectmeats-backend:dev-latest"
+          echo "Frontend image in GHCR:"
+          echo "  ghcr.io/meats-central/projectmeats-frontend:dev-latest"
