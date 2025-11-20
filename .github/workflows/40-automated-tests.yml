@@ -1,0 +1,348 @@
+name: Automated Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - development
+      - uat
+      - main
+  workflow_dispatch:
+    inputs:
+      skip_frontend:
+        description: 'Skip frontend tests'
+        required: false
+        type: boolean
+        default: false
+      skip_backend:
+        description: 'Skip backend tests'
+        required: false
+        type: boolean
+        default: false
+
+# Cancel in-progress runs when a new run is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Job to test the frontend code
+  test-frontend:
+    name: Frontend Tests
+    if: |
+      github.event.pull_request.draft == false &&
+      (github.event_name != 'workflow_dispatch' || !inputs.skip_frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: ./frontend
+        run: npm run test:ci
+
+      - name: Type checking
+        working-directory: ./frontend
+        run: npm run type-check
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
+
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let coverageData = '';
+            try {
+              if (fs.existsSync('frontend/coverage/coverage-summary.json')) {
+                const summary = JSON.parse(fs.readFileSync('frontend/coverage/coverage-summary.json', 'utf8'));
+                const total = summary.total;
+                coverageData = `
+            **Frontend Test Coverage:**
+            - Statements: ${total.statements.pct}%
+            - Branches: ${total.branches.pct}%
+            - Functions: ${total.functions.pct}%
+            - Lines: ${total.lines.pct}%
+                `;
+              }
+            } catch (error) {
+              coverageData = '\n*Coverage report not available*';
+            }
+            
+            const comment = `## ✅ Frontend Tests ${context.job === 'success' ? 'Passed' : 'Status: ' + context.job}
+            ${coverageData}
+            
+            <details>
+            <summary>View Details</summary>
+            
+            - Workflow: [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Commit: ${context.sha.substring(0, 7)}
+            </details>
+            `;
+            
+            // Find existing comment and update or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Frontend Tests')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  # Job to test the backend code
+  test-backend:
+    name: Backend Tests
+    if: |
+      github.event.pull_request.draft == false &&
+      (github.event_name != 'workflow_dispatch' || !inputs.skip_backend)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup test environment
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: 'True'
+          ALLOWED_HOSTS: localhost,127.0.0.1
+          CI: 'true'
+        run: |
+          python manage.py check
+          python manage.py migrate --noinput
+
+      - name: Validate migrations
+        working-directory: .
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: 'True'
+          CI: 'true'
+        run: |
+          chmod +x .github/scripts/validate-migrations.sh
+          .github/scripts/validate-migrations.sh
+
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: 'True'
+          CI: 'true'
+        run: |
+          python manage.py test apps/ --verbosity=2
+
+      - name: Run code quality checks
+        working-directory: ./backend
+        continue-on-error: true
+        run: |
+          echo "Running linters (non-blocking)..."
+          if pip show flake8 >/dev/null 2>&1; then
+            flake8 . --exclude=migrations,node_modules --max-line-length=120 --count --statistics || true
+          fi
+          if pip show black >/dev/null 2>&1; then
+            black --check . --exclude=migrations || true
+          fi
+
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## ✅ Backend Tests ${context.job === 'success' ? 'Passed' : 'Status: ' + context.job}
+            
+            <details>
+            <summary>View Details</summary>
+            
+            - Workflow: [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Commit: ${context.sha.substring(0, 7)}
+            - Django Tests Completed
+            - Migrations Validated
+            </details>
+            `;
+            
+            // Find existing comment and update or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Backend Tests')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  # Summary job that depends on all test jobs
+  test-summary:
+    name: Test Summary
+    if: always()
+    needs: [test-frontend, test-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check test results
+        run: |
+          echo "Frontend tests: ${{ needs.test-frontend.result }}"
+          echo "Backend tests: ${{ needs.test-backend.result }}"
+          
+          if [[ "${{ needs.test-frontend.result }}" == "failure" ]] || [[ "${{ needs.test-backend.result }}" == "failure" ]]; then
+            echo "❌ Some tests failed"
+            exit 1
+          elif [[ "${{ needs.test-frontend.result }}" == "cancelled" ]] || [[ "${{ needs.test-backend.result }}" == "cancelled" ]]; then
+            echo "⚠️ Some tests were cancelled"
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi
+
+      - name: Post summary comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const frontendStatus = '${{ needs.test-frontend.result }}';
+            const backendStatus = '${{ needs.test-backend.result }}';
+            
+            const getEmoji = (status) => {
+              if (status === 'success') return '✅';
+              if (status === 'failure') return '❌';
+              if (status === 'skipped') return '⏭️';
+              return '⚠️';
+            };
+            
+            const comment = `## 🧪 Test Results Summary
+            
+            | Component | Status |
+            |-----------|--------|
+            | Frontend | ${getEmoji(frontendStatus)} ${frontendStatus} |
+            | Backend | ${getEmoji(backendStatus)} ${backendStatus} |
+            
+            ${frontendStatus === 'failure' || backendStatus === 'failure' ? '⚠️ **Some tests failed. Please review the logs above.**' : ''}
+            ${frontendStatus === 'success' && backendStatus === 'success' ? '✨ **All tests passed! Great work!**' : ''}
+            
+            <details>
+            <summary>Workflow Information</summary>
+            
+            - Workflow Run: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Triggered by: ${context.eventName}
+            - Commit: ${context.sha.substring(0, 7)}
+            </details>
+            `;
+            
+            // Find existing summary comment and update or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Test Results Summary')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

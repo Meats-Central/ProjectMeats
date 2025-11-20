@@ -1,16 +1,51 @@
-name: 33-Review and Test
+name: 33-Planner Review and Test Trigger
+
 on:
   pull_request:
     types: [ready_for_review]
+
 jobs:
-  test:
+  trigger-tests:
+    name: Trigger Automated Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: pytest && jest  # Adjust for your test suite
-      - name: Request Approval
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger automated tests workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: '40-automated-tests.yml',
+              ref: context.ref
+            });
+            console.log('✅ Triggered automated tests workflow');
+
+      - name: Add PR to project board
         uses: actions/add-to-project@v0.4.0
+        continue-on-error: true
         with:
           project-url: https://github.com/orgs/Meats-Central/projects/2
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          column-id: 4  # Review column ID
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚀 **PR marked as ready for review!**
+              
+              The automated test workflow has been triggered. Results will be posted here once complete.
+              
+              - Added to project board for tracking
+              - Tests running: [View workflow runs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/40-automated-tests.yml)
+              `
+            });
