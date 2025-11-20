@@ -1,13 +1,9 @@
 name: "Copilot Setup Steps"
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - ".github/workflows/copilot-setup-steps.yml"
-  pull_request:
-    paths:
-      - ".github/workflows/copilot-setup-steps.yml"
+  issues:
+    types:
+      - assigned
 
 jobs:
   copilot-setup-steps:
@@ -27,18 +23,15 @@ jobs:
       DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
       ALLOWED_HOSTS: ${{ secrets.DEV_ALLOWED_HOSTS }}
       LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
-
       DB_ENGINE: ${{ secrets.DEV_DB_ENGINE }}
       DB_NAME: ${{ secrets.DEV_DB_NAME }}
       DB_USER: ${{ secrets.DEV_DB_USER }}
       DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
       DB_HOST: ${{ secrets.DEV_DB_HOST }}
       DB_PORT: ${{ secrets.DEV_DB_PORT }}
-
       CORS_ALLOW_ALL_ORIGINS: ${{ secrets.CORS_ALLOW_ALL_ORIGINS }}
       SESSION_COOKIE_SECURE: ${{ secrets.SESSION_COOKIE_SECURE }}
       CSRF_COOKIE_SECURE: ${{ secrets.CSRF_COOKIE_SECURE }}
-
       OPENAI_API_KEY: ${{ secrets.DEV_OPENAI_API_KEY }}
       EMAIL_BACKEND: ${{ secrets.DEV_EMAIL_BACKEND }}
       EMAIL_HOST: ${{ secrets.DEV_EMAIL_HOST }}
