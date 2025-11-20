@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [ready_for_review]
 
+permissions:
+  contents: read
+  actions: write
+  pull-requests: write
+  issues: write
+
 jobs:
   trigger-tests:
     name: Trigger Automated Tests
