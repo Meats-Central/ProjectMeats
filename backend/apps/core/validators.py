@@ -3,10 +3,10 @@ Validators for ProjectMeats.
 
 Provides OWASP-compliant validators for common field types.
 """
-from django.core.exceptions import ValidationError
-from django.core.validators import EmailValidator, RegexValidator
 import re
 
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator, RegexValidator
 
 # Email validator following OWASP recommendations
 email_validator = EmailValidator(
@@ -19,7 +19,10 @@ email_validator = EmailValidator(
 # Allows formats: +1-234-567-8900, (123) 456-7890, 123-456-7890, 1234567890, +11234567890
 phone_validator = RegexValidator(
     regex=r"^\+?[\d\s\-\(\)]+$",
-    message="Enter a valid phone number. Formats: +1-234-567-8900, (123) 456-7890, 123-456-7890, 1234567890",
+    message=(
+        "Enter a valid phone number. Formats: +1-234-567-8900, "
+        "(123) 456-7890, 123-456-7890, 1234567890"
+    ),
     code="invalid_phone",
 )
 
@@ -62,7 +65,9 @@ def validate_product_code(value):
         raise ValidationError("Product code must be between 3 and 50 characters.")
 
     if not re.match(r"^[A-Za-z0-9\-_]+$", value):
-        raise ValidationError("Product code can only contain letters, numbers, hyphens, and underscores.")
+        raise ValidationError(
+            "Product code can only contain letters, numbers, hyphens, and underscores."
+        )
 
 
 def validate_positive_decimal(value):
@@ -88,3 +93,40 @@ def validate_percentage(value):
     if value is not None:
         if value < 0 or value > 100:
             raise ValidationError("Percentage must be between 0 and 100.")
+
+
+def format_display_name(first_name, last_name):
+    """
+    Format a display name from first and last names.
+
+    Handles edge cases like missing names, extra whitespace, etc.
+    Returns "Unknown User" if both names are empty.
+
+    Args:
+        first_name (str): First name
+        last_name (str): Last name
+
+    Returns:
+        str: Formatted display name
+
+    Examples:
+        >>> format_display_name("John", "Doe")
+        "John Doe"
+        >>> format_display_name("John", "")
+        "John"
+        >>> format_display_name("", "")
+        "Unknown User"
+    """
+    # Strip whitespace from names
+    first = (first_name or "").strip()
+    last = (last_name or "").strip()
+
+    # Return formatted name or default
+    if first and last:
+        return f"{first} {last}"
+    elif first:
+        return first
+    elif last:
+        return last
+    else:
+        return "Unknown User"
