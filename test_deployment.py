@@ -5,6 +5,11 @@ ProjectMeats3 Deployment Testing Script
 This script validates the entire deployment process and configuration.
 It can be run locally or in CI to ensure deployment readiness.
 
+Environment Priority:
+    Primary staging environment: UAT (uat.meatscentral.com)
+    Legacy staging: staging.meatscentral.com (DEPRECATED - use UAT)
+    Production: meatscentral.com
+
 Usage:
     python test_deployment.py --environment production
     python test_deployment.py --environment development --full-test
@@ -46,6 +51,11 @@ class DeploymentTester:
         self.backend_dir = self.project_root / 'backend'
         self.frontend_dir = self.project_root / 'frontend'
         self.config_dir = self.project_root / 'config'
+        
+        # Log warning if using deprecated staging terminology
+        if environment == "staging":
+            self.log("⚠️  NOTE: 'staging' refers to UAT environment (uat.meatscentral.com)", "WARNING")
+            self.log("   staging.meatscentral.com is DEPRECATED - UAT is the active middle environment", "WARNING")
         
         self.test_results = {
             "passed": 0,
@@ -370,7 +380,7 @@ Examples:
         '--environment',
         choices=['development', 'staging', 'production'],
         default='development',
-        help='Environment to test (default: development)'
+        help='Environment to test (default: development). NOTE: Use "staging" for UAT environment - staging.meatscentral.com is deprecated.'
     )
     
     parser.add_argument(

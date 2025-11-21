@@ -21,6 +21,7 @@ The automated setup script configures everything needed including authentication
 ## 🏗️ Technology Stack
 
 - **Backend**: Django 4.2.7 + Django REST Framework + PostgreSQL (recommended) or SQLite (fallback)
+- **Multi-tenancy**: django-tenants for schema-based isolation + shared-schema approach
 - **Frontend**: React 18.2.0 + TypeScript + Styled Components  
 - **AI Assistant**: OpenAI GPT-4 integration with modern Copilot-style interface
 - **Authentication**: Django User system with profile management
@@ -92,10 +93,13 @@ python config/manage_env.py setup development
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 4. Run database migrations
+# 4. Set up pre-commit hooks (REQUIRED)
+pre-commit install
+
+# 5. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 5. Start development servers
+# 6. Start development servers
 make dev
 ```
 
@@ -132,7 +136,10 @@ cd ProjectMeats3
 # 2. Run setup (handles everything automatically)
 python setup_env.py
 
-# 3. Start development servers
+# 3. Set up pre-commit hooks (REQUIRED - run this after setup)
+pre-commit install
+
+# 4. Start development servers
 make dev
 # Windows: run backend and frontend in separate terminals
 ```
@@ -146,10 +153,13 @@ python config/manage_env.py setup development
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
 
-# 3. Run database migrations
+# 3. Set up pre-commit hooks (REQUIRED)
+pre-commit install
+
+# 4. Run database migrations
 cd backend && python manage.py migrate && cd ..
 
-# 4. Start development servers
+# 5. Start development servers
 make dev
 ```
 
@@ -159,6 +169,177 @@ make dev
 - **Admin Panel**: http://localhost:8000/admin/
 
 > **Note**: Default superuser credentials are set via environment variables. See `config/environments/development.env` for the `DEVELOPMENT_SUPERUSER_USERNAME`, `DEVELOPMENT_SUPERUSER_EMAIL`, and `DEVELOPMENT_SUPERUSER_PASSWORD` settings.
+
+## 🔒 Pre-commit Hooks (REQUIRED)
+
+**⚠️ CRITICAL**: After cloning the repository, you **MUST** run `pre-commit install` to set up Git hooks that prevent common errors.
+
+```bash
+# Install pre-commit hooks (run once after cloning)
+pre-commit install
+```
+
+### What the hooks do:
+- **Code formatting**: Automatically format Python code with Black and isort
+- **Code quality**: Check Python syntax and style with flake8
+- **Migration validation**: **Validate Django migrations on every commit** to prevent CI failures
+- **File checks**: Prevent large files, merge conflicts, and syntax errors
+
+### Why this is required:
+The migration validation hook runs `python manage.py makemigrations --check --dry-run` on every commit. This **prevents CI pipeline failures** by ensuring:
+1. All model changes have corresponding migration files
+2. No unapplied migrations exist before pushing code
+3. Migration files are committed with model changes
+
+**If you skip this step**, your PRs will fail CI checks when unapplied migrations are detected.
+
+### Testing your hooks:
+```bash
+# Test pre-commit hooks manually
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run validate-django-migrations
+```
+
+## 🏢 Multi-Tenancy Configuration
+
+ProjectMeats implements a **dual multi-tenancy architecture** using django-tenants for maximum flexibility:
+
+### Architecture Overview
+
+1. **Schema-Based Multi-Tenancy** (django-tenants)
+   - Complete data isolation using PostgreSQL schemas
+   - Each tenant gets its own database schema
+   - Models: `Client` and `Domain` (inheriting from `TenantMixin` and `DomainMixin`)
+   - Best for: Enterprise deployments requiring strict data isolation
+
+2. **Shared-Schema Multi-Tenancy** (Legacy/Custom)
+   - Data isolation via tenant foreign keys
+   - All tenants share the same database schema
+   - Models: `Tenant`, `TenantUser`, and `TenantDomain`
+   - Best for: Simpler deployments and backward compatibility
+
+### Django Settings Structure
+
+The multi-tenancy settings are split between **SHARED_APPS** and **TENANT_APPS** as required by django-tenants:
+
+**SHARED_APPS** (in `backend/projectmeats/settings/base.py`):
+```python
+SHARED_APPS = [
+    "django_tenants",  # Must be first
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    # ... core Django apps
+    "apps.core",
+    "apps.tenants",  # Tenant management
+]
+```
+
+**TENANT_APPS** (tenant-specific data):
+```python
+TENANT_APPS = [
+    "django.contrib.admin",  # Tenant-specific admin
+    "django.contrib.auth",   # Tenant-specific users
+    # ... business apps
+    "apps.suppliers",
+    "apps.customers",
+    "apps.purchase_orders",
+    # ... other tenant-specific apps
+]
+```
+
+### Middleware Configuration
+
+The middleware stack includes django-tenants middleware for schema-based routing:
+
+```python
+MIDDLEWARE = [
+    "django_tenants.middleware.TenantMainMiddleware",  # Must be first
+    # ... other middleware
+    "apps.tenants.middleware.TenantMiddleware",  # Custom middleware for additional features
+]
+```
+
+### Database Configuration
+
+**Development** (`projectmeats/settings/development.py`):
+```python
+# PostgreSQL with django-tenants backend
+DATABASES = {
+    "default": {
+        "ENGINE": "django_tenants.postgresql_backend",  # Required for schema-based multi-tenancy
+        "NAME": "projectmeats_dev",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
+```
+
+**Production** (`projectmeats/settings/production.py`):
+```python
+# Automatically uses django_tenants.postgresql_backend when DATABASE_URL contains PostgreSQL
+```
+
+### Environment Variables for Multi-Tenancy
+
+Configure these in your environment files (`config/environments/development.env`):
+
+```bash
+# Database Engine (automatically converted to django_tenants.postgresql_backend)
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=projectmeats_dev
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+### Tenant Models Reference
+
+| Model | Purpose | Database Table |
+|-------|---------|---------------|
+| `Client` | Schema-based tenant (django-tenants) | `tenants_client` |
+| `Domain` | Domain routing for Client | `tenants_domain` |
+| `Tenant` | Shared-schema tenant (legacy) | `tenants_tenant` |
+| `TenantDomain` | Domain routing for Tenant | `tenants_tenantdomain` |
+| `TenantUser` | User-tenant associations | `tenants_tenant_user` |
+
+### Creating Tenants
+
+**Schema-Based Tenant:**
+```python
+from apps.tenants.models import Client, Domain
+
+# Create client with schema
+client = Client.objects.create(
+    schema_name="acme_corp",
+    name="ACME Corporation"
+)
+
+# Add domain
+Domain.objects.create(
+    domain="acme.example.com",
+    tenant=client,
+    is_primary=True
+)
+```
+
+**Shared-Schema Tenant:**
+```bash
+# Using management command
+python manage.py create_tenant \
+    --schema-name=acme \
+    --name="ACME Corp" \
+    --domain=acme.example.com
+```
+
+For more details, see:
+- [Multi-Tenancy Implementation Guide](MULTI_TENANCY_IMPLEMENTATION.md)
+- [Django-Tenants Documentation](https://django-tenants.readthedocs.io/)
 
 ## 👤 Superuser Management
 

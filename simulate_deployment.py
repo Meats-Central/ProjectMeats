@@ -5,6 +5,11 @@ ProjectMeats3 Deployment Simulator
 Simulates a full Digital Ocean App Platform deployment to test the process
 without actually deploying. This helps validate our deployment guide.
 
+Environment Priority:
+    Primary staging environment: UAT (uat.meatscentral.com)
+    Legacy staging: staging.meatscentral.com (DEPRECATED - use UAT)
+    Production: meatscentral.com
+
 Usage:
     python simulate_deployment.py --environment production
     python simulate_deployment.py --dry-run --verbose
@@ -46,6 +51,11 @@ class DeploymentSimulator:
         self.project_root = Path(__file__).parent
         self.backend_dir = self.project_root / 'backend'
         self.frontend_dir = self.project_root / 'frontend'
+        
+        # Log warning if using deprecated staging terminology
+        if environment == "staging":
+            self.log("⚠️  NOTE: 'staging' refers to UAT environment (uat.meatscentral.com)", "WARNING")
+            self.log("   staging.meatscentral.com is DEPRECATED - UAT is the active middle environment", "WARNING")
         
         self.deployment_steps = []
         self.deployment_successful = True
@@ -218,7 +228,7 @@ class DeploymentSimulator:
             ("Configure email notifications", 3.0),
             ("Set up monitoring alerts", 2.5),
             ("Configure automated backups", 3.0),
-            ("Set up staging environment", 6.0),
+            ("Set up UAT environment (uat.meatscentral.com)", 6.0),
         ]
         
         all_success = True
@@ -313,7 +323,7 @@ Examples:
         '--environment',
         choices=['development', 'staging', 'production'],
         default='production',
-        help='Environment to simulate (default: production)'
+        help='Environment to simulate (default: production). NOTE: "staging" refers to UAT - staging.meatscentral.com is deprecated.'
     )
     
     parser.add_argument(

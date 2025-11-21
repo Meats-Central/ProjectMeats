@@ -1,9 +1,18 @@
 """
 Staging settings for ProjectMeats.
 Used for pre-production testing and validation.
+
+IMPORTANT: This configuration file is maintained for UAT environment (uat.meatscentral.com).
+The domain staging.meatscentral.com is DEPRECATED. UAT is the active middle environment
+per the pipeline configuration. Please use uat.meatscentral.com for all staging/UAT operations.
 """
 
+import logging
+from decouple import config
 from .production import *
+
+# Log deprecation warning if old staging domain is detected
+logger = logging.getLogger(__name__)
 
 # Override production settings for staging
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -12,11 +21,20 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 env_allowed_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in env_allowed_hosts.split(",") if host.strip()]
 
-# Add default staging hosts if not already included
+# Add UAT hosts (primary) and legacy staging hosts (deprecated)
 STAGING_HOSTS = [
+    "uat.meatscentral.com",  # PRIMARY - Use this for UAT/staging
     "staging-projectmeats.ondigitalocean.app",
     "projectmeats-staging.herokuapp.com",  # Fallback
 ]
+
+# Check for deprecated staging domain and log warning
+if any("staging.meatscentral.com" in host for host in ALLOWED_HOSTS):
+    logger.warning(
+        "DEPRECATION WARNING: staging.meatscentral.com is deprecated. "
+        "Please use uat.meatscentral.com as the primary middle environment. "
+        "UAT is the active staging environment per pipeline configuration."
+    )
 
 # Merge with environment hosts, avoiding duplicates
 for host in STAGING_HOSTS:

@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import Tenant, TenantUser, Domain
+from .models import Tenant, TenantUser, TenantDomain
 import uuid
 
 
@@ -238,7 +238,7 @@ class DomainModelTests(TestCase):
 
     def test_domain_creation(self):
         """Test basic domain creation."""
-        domain = Domain.objects.create(
+        domain = TenantDomain.objects.create(
             domain="test-company.example.com",
             tenant=self.tenant,
             is_primary=True
@@ -250,7 +250,7 @@ class DomainModelTests(TestCase):
 
     def test_domain_lowercase_conversion(self):
         """Test that domain is automatically converted to lowercase."""
-        domain = Domain.objects.create(
+        domain = TenantDomain.objects.create(
             domain="TEST-COMPANY.EXAMPLE.COM",
             tenant=self.tenant,
             is_primary=True
@@ -260,7 +260,7 @@ class DomainModelTests(TestCase):
 
     def test_domain_str_method(self):
         """Test string representation of domain."""
-        domain = Domain.objects.create(
+        domain = TenantDomain.objects.create(
             domain="test-company.example.com",
             tenant=self.tenant,
             is_primary=True
@@ -273,7 +273,7 @@ class DomainModelTests(TestCase):
         """Test that domain must be unique."""
         from django.db import IntegrityError
         
-        Domain.objects.create(
+        TenantDomain.objects.create(
             domain="test-company.example.com",
             tenant=self.tenant,
             is_primary=True
@@ -281,7 +281,7 @@ class DomainModelTests(TestCase):
 
         # Attempting to create another domain with same name should fail
         with self.assertRaises(IntegrityError):
-            Domain.objects.create(
+            TenantDomain.objects.create(
                 domain="test-company.example.com",
                 tenant=self.tenant,
                 is_primary=False

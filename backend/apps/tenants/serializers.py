@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Tenant, TenantUser, Domain
+from .models import Tenant, TenantUser, TenantDomain
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -44,7 +44,7 @@ class TenantSerializer(serializers.ModelSerializer):
                 "domain": domain.domain,
                 "is_primary": domain.is_primary
             }
-            for domain in obj.domains.all()
+            for domain in obj.tenant_domains.all()
         ]
 
     def validate_slug(self, value):
@@ -164,14 +164,14 @@ class UserTenantSerializer(serializers.ModelSerializer):
         ]
 
 
-class DomainSerializer(serializers.ModelSerializer):
-    """Serializer for Domain model."""
+class TenantDomainSerializer(serializers.ModelSerializer):
+    """Serializer for TenantDomain model (shared-schema approach)."""
     
     tenant_name = serializers.CharField(source="tenant.name", read_only=True)
     tenant_slug = serializers.CharField(source="tenant.slug", read_only=True)
     
     class Meta:
-        model = Domain
+        model = TenantDomain
         fields = [
             "id",
             "domain",
@@ -189,7 +189,7 @@ class DomainSerializer(serializers.ModelSerializer):
         if value:
             value = value.lower()
             if (
-                Domain.objects.filter(domain=value)
+                TenantDomain.objects.filter(domain=value)
                 .exclude(pk=self.instance.pk if self.instance else None)
                 .exists()
             ):
@@ -197,3 +197,9 @@ class DomainSerializer(serializers.ModelSerializer):
                     "A domain with this name already exists."
                 )
         return value
+
+# Note: DomainSerializer and ClientSerializer have been removed as Domain and Client
+# models are not currently defined in models.py. They were intended for django-tenants
+# schema-based multi-tenancy but are not implemented in the current shared-schema approach.
+# If schema-based multi-tenancy is needed in the future, these serializers should be
+# restored along with the corresponding models.

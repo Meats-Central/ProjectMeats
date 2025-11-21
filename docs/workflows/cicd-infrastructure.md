@@ -67,105 +67,283 @@ The infrastructure is provisioned on Digital Ocean using Terraform, consisting o
    - SSH to each droplet: `ssh deploy@<ip>`.
    - Clone repo: `git clone https://github.com/Meats-Central/ProjectMeats3.git /opt/projectmeats`.
    - Ensure `db.sqlite3` for DEV: `touch /opt/projectmeats/db.sqlite3; chown deploy:deploy /opt/projectmeats/db.sqlite3`.
-
 ### ASCII Architecture Diagram
-```
-    +--------------+           +--------------+     +--------------+
-    | DEV Droplet  |           | UAT Droplet  |     | PROD Droplet |
-    | 1vCPU/1GB    |           | 2vCPU/2GB    |     | 4vCPU/8GB    |
-    | SQLite       |           | PostgreSQL   |     | PostgreSQL   |
-    +--------------+           +--------------+     +--------------+
-    | Traefik      |           | Traefik      |     | Traefik      |
-    | Django API   |           | Django API   |     | Django API   |
-    | React SPA    |           | React SPA    |     | React SPA    |
-    +--------------+           +--------------+     +--------------+
-           |                           |                   |
- DNS: dev.meatscentral.com | uat.meatscentral.com | prod.meatscentral.com
-```
 
-## 2. CI/CD Workflow Details
+              ┌───────────────────────────────────────────────┐
+              │                 GitHub Repository             │
+              │  ├── development branch → Dev Environment     │
+              │  ├── uat branch → UAT Environment             │
+              │  └── main branch → Production Environment     │
+              └───────────────────────────────────────────────┘
+                                   │
+                                   ▼
+            ┌─────────────────────────────────────────────┐
+            │        DigitalOcean Container Registry      │
+            │   Stores built Docker images per branch     │
+            │   (backend:dev, frontend:dev, uat, prod)    │
+            └─────────────────────────────────────────────┘
+                                   │
+                                   ▼
+     ┌─────────────────────────────────────────────┐   ┌─────────────────────────────────────────────┐
+     │           DEV Droplets (Frontend/Backend)   │   │          UAT Droplets (Frontend/Backend)    │
+     │   docker run pm-backend:dev-latest          │   │   docker run pm-backend:uat-latest          │
+     │   docker run pm-frontend:dev-latest         │   │   docker run pm-frontend:uat-latest         │
+     └─────────────────────────────────────────────┘   └─────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                        ┌──────────────────────────────┐
+                        │   PROD Droplets (Live App)   │
+                        │   pm-backend:prod-latest     │
+                        │   pm-frontend:prod-latest    │
+                        └──────────────────────────────┘
+
+
+```
+   
+```
 
 ### Workflow Overview
-The CI/CD pipeline (`ci-cd.yml`) automates building, testing, and deploying the application to DEV, UAT, and PROD. Triggered by pushes to `dev`, `main_rep`, or `main`, or manual dispatch, it uses GitHub Container Registry (GHCR.io) for image storage.
 
-- **Triggers**:
-  - Push to `dev`, `main_rep`, or `main`.
-  - Manual (`workflow_dispatch`).
+The CI/CD pipeline (`deploy.yml`) automates building, testing, and deploying containerized services (**backend** and **frontend**) across **Development**, **UAT**, and **Production** environments.
+It is triggered by branch merges or manual executions and uses **DigitalOcean Container Registry (DOCR)** for image management, while all environment configurations and secrets are managed in **GitHub Environments**.
 
-- **Permissions**:
-  - `contents: read`, `packages: write` (for GHCR.io).
+* **Triggers**:
 
-- **Jobs**:
-  - **build_test_package**: Builds/tests backend (Django) and frontend (React), pushes images to GHCR.io.
-  - **deploy_dev**: Deploys to DEV if on `dev` branch.
-  - **promote_and_deploy_uat**: Deploys to UAT after DEV.
-  - **deploy_prod**: Deploys to PROD after UAT, with manual approval.
+  * Push to `development` → Deploys to **DEV**
+  * Push to `uat` → Deploys to **UAT**
+  * Push to `main` → Deploys to **PROD**
+  * Manual (`workflow_dispatch`) trigger supported for redeployment or rollback operations.
+
+* **Permissions**:
+
+  * `contents: read`
+  * `packages: write`
+  * `id-token: write` (for authentication with DOCR)
+
+* **Jobs**:
+
+  * **build_and_push_images**: Builds Docker images for backend and frontend, tags, and pushes them to DOCR.
+  * **deploy_dev**: Deploys the new images automatically to the DEV environment when code is pushed to `development`.
+  * **deploy_uat**: Deploys to the UAT environment after merging `development` into `uat`.
+  * **deploy_prod**: Deploys to the production environment after approval and merging `uat` into `main`.
+
+---
 
 ### Detailed Job Flow
-1. **build_test_package**:
-   - Checkout code.
-   - Setup Python/Node, install dependencies, run tests.
-   - Build and push images to GHCR.io (e.g., `ghcr.io/meats-central/projectmeats-backend:<sha>`, `ghcr.io/meats-central/projectmeats-frontend:<sha>`).
-   - Outputs image tags for deployments.
+
+1. **build_and_push_images**:
+
+   * Checkout repository source code.
+   * Setup both **Node.js** (for frontend) and **Python** (for backend) environments.
+   * Install project dependencies.
+   * Run tests for both backend and frontend.
+   * Build Docker images for both services.
+   * Tag images with `<environment>-<commit-sha>` and `<environment>-latest`.
+   * Push tagged images to **DigitalOcean Container Registry**:
+
+     * `registry.digitalocean.com/<registry>/backend:<tag>`
+     * `registry.digitalocean.com/<registry>/frontend:<tag>`
+   * Export image tags as reusable variables for downstream jobs.
 
 2. **deploy_dev**:
-   - Render `dev.env` and `image.env`.
-   - Upload env/compose files via SSH.
-   - Deploy using `deploy_via_compose.sh` (login, pull, migrate, up -d, healthcheck).
-   - Validate deployment.
 
-3. **promote_and_deploy_uat**:
-   - Similar to DEV, but for UAT.
+   * Automatically triggered when the pipeline runs for the `development` branch.
+   * Establishes SSH connection to the DEV droplet using secure GitHub secrets.
+   * Writes environment variables to:
+
+     * `/opt/pm/backend/.env`
+     * `/opt/pm/frontend/env-config.js`
+   * Pulls the latest images from DOCR.
+   * Stops and removes previous container versions.
+   * Runs new containers:
+
+     * `pm-backend` exposed on port `8000`
+     * `pm-frontend` served on port `80` (Nginx)
+   * Runs database migrations and collects static assets.
+   * Performs API and UI health checks.
+
+3. **deploy_uat**:
+
+   * Triggered after merging changes from `development` → `uat`.
+   * Executes the same deployment sequence as **deploy_dev**, but with **UAT environment secrets**.
+   * Pulls updated image tags (`uat-<sha>` and `uat-latest`) from DOCR.
+   * Validates deployment through health checks:
+
+     * Backend: `/api/v1/health/`
+     * Frontend: root URL (index.html response).
+   * Marks UAT deployment as complete after successful verification.
 
 4. **deploy_prod**:
-   - Similar to UAT, but requires approval.
+
+   * Triggered after merging **UAT** into **main**.
+   * Requires **manual approval** through GitHub Environment Protection Rules before deployment.
+   * Pulls production images (`prod-<sha>` and `prod-latest`) from DOCR.
+   * Applies production-specific environment variables from GitHub Secrets.
+   * Runs new containers using production configurations:
+
+     * Gunicorn for Django backend.
+     * Nginx for React frontend.
+   * Executes health checks on both backend API and frontend domain.
+   * Publishes deployment status summary to GitHub Actions logs.
+
+---
+
+
 
 ### Diagram
 ```
-Push to dev/main_rep/main
-|
-v
-build_test_package (Build/Test/Push Images)
-|
-v
-deploy_dev (Deploy DEV, Validate)
-|
-v
-promote_and_deploy_uat (Deploy UAT, Validate)
-|
-v
-deploy_prod (Manual Approval, Deploy PROD, Validate)
+Push → development branch
+│
+├── Build & Push (backend + frontend images)
+│
+├── Test (unit + migration checks)
+│
+└── Deploy to DEV droplets (auto)
+      │
+      ├── UAT merge → auto deploy to UAT
+      └── UAT approved → merge to main → deploy to PROD
+
 ```
 
 ## 3. Deployment Process
 
-### Deployment Flow
-- **Trigger**: Push to `dev`, `main_rep`, or `main` builds images and deploys to DEV/UAT automatically; PROD requires approval.
-- **Image Management**: Images tagged with commit SHA and `latest`, pushed to GHCR.io.
-- **Remote Deployment**:
-  - SSH to droplet using `deploy` user.
-  - Pull images, run migrations (all envs), collectstatic (UAT/PROD).
-  - Start services with `docker compose up -d` (Traefik, API, Web).
-  - Health/smoke checks verify deployment.
+### Deployment Process
 
-### Step-by-Step Deployment
-1. **Build Images**: `build_test_package` builds backend/frontend, pushes to GHCR.io.
-2. **Env Rendering**: Each job renders environment-specific `.env` files.
-3. **Upload Files**: Env and compose files uploaded to `/opt/projectmeats`.
-4. **Execute Script**: `deploy_via_compose.sh` handles:
-   - GHCR.io login with `GITHUB_TOKEN`.
-   - Pull images (`ghcr.io/meats-central/projectmeats-backend:<sha>`, `ghcr.io/meats-central/projectmeats-frontend:<sha>`).
-   - Migrations (all envs) and collectstatic (UAT/PROD).
-   - `docker compose up -d`.
-   - Health/smoke checks (local `http://127.0.0.1:8000/healthz`, public `https://${APP_DOMAIN}/healthz`).
-5. **Cleanup**: `remote-docker-cleanup` prunes old images, keeping 2 latest.
+The deployment process is managed through **GitHub Actions** and executed automatically across all environments — **Development**, **UAT**, and **Production** — using **DigitalOcean Container Registry (DOCR)** and SSH-based Docker deployment.
+
+---
+
+### Deployment Sequence
+
+1. **Build images** → GitHub Actions builds backend and frontend Docker images and pushes them to **DOCR**.
+2. **Establish SSH connection** → The pipeline connects to the target droplet using credentials stored in GitHub Secrets.
+3. **Inject environment variables** → Writes `.env` files for backend and frontend inside `/opt/pm/<service>/`.
+4. **Pull new images** → The pipeline pulls the latest tagged images (`dev-latest`, `uat-latest`, `prod-latest`) from DOCR.
+5. **Recreate containers** → Existing containers are stopped and replaced with updated ones.
+6. **Validate health checks** → Confirms successful deployment through endpoint checks for both backend and frontend.
+
+---
+
+### Health Verification
+
+* **Backend Health Check:**
+
+  ```bash
+  curl -I http://127.0.0.1:8000/api/v1/health/
+  ```
+
+* **Frontend Health Check:**
+
+  ```bash
+  curl -I http://127.0.0.1/
+  ```
+
+If any check fails, the pipeline halts and displays container logs for debugging.
+
+---
+
+### Rollback Procedure
+
+#### Manual Rollback Steps
+
+1. **Access the droplet:**
+
+   ```bash
+   ssh deploy@<server-ip>
+   ```
+
+2. **Pull the previous stable image:**
+
+   ```bash
+   docker pull registry.digitalocean.com/<registry>/<service>:uat-abc1234
+   ```
+
+3. **Replace the running container:**
+
+   ```bash
+   docker rm -f pm-backend
+   docker run -d --name pm-backend --env-file /opt/pm/backend/.env \
+   -p 8000:8000 registry.digitalocean.com/<registry>/backend:uat-abc1234
+   ```
+
+4. **Validate using health checks:**
+
+   ```bash
+   curl -I http://127.0.0.1:8000/api/v1/health/
+   ```
+
+> **Note:** Database migrations are not automatically reverted. Manual schema rollback may be required if changes were applied.
+
+---
 
 ### Troubleshooting
-- Check GitHub Actions logs for errors (e.g., pull failures, migration issues).
-- SSH to droplets (`ssh deploy@<ip>`) for:
-  - `docker ps` (running containers).
-  - `docker logs <container>` (service logs).
-  - `docker images` (available images).
-- Verify DNS resolution: `dig dev.meatscentral.com`.
+
+#### Frontend Using `localhost` API
+
+If the frontend continues calling `http://localhost:8000` after deployment:
+
+* Verify container environment variables:
+
+  ```bash
+  docker exec -it pm-frontend printenv | grep REACT_APP
+  ```
+* If variables are correct, the issue is due to **React build-time variable injection**.
+  Ensure `REACT_APP_API_BASE_URL` exists **during the build process**, or use a dynamic runtime configuration file like `env-config.js`.
+
+---
+
+#### Backend Not Connecting to Database
+
+* Confirm the active database environment variables:
+
+  ```bash
+  docker exec -it pm-backend /bin/sh -c 'printenv | grep DATABASE'
+  ```
+* Ensure the value points to **PostgreSQL**, not SQLite.
+
+---
+
+#### Health Check Failures
+
+* View container logs:
+
+  ```bash
+  docker logs pm-backend --tail 100
+  docker logs pm-frontend --tail 100
+  ```
+* Restart containers if required:
+
+  ```bash
+  docker restart pm-backend pm-frontend
+  ```
+
+---
+
+### Maintenance and Monitoring
+
+| **Task**                   | **Frequency** | **Command / Action**            |
+| -------------------------- | ------------- | ------------------------------- |
+| Prune unused Docker images | Weekly        | `docker image prune -af`        |
+| Check disk usage           | Weekly        | `df -h`                         |
+| Rotate secrets             | Monthly       | Review GitHub Environments      |
+| Verify database backups    | Monthly       | Validate DigitalOcean snapshots |
+
+---
+
+### Benefits Summary
+
+| **Aspect**             | **Before**                  | **After**                                          |
+| ---------------------- | --------------------------- | -------------------------------------------------- |
+| **Deployment**         | Manual SSH commands         | Fully automated via GitHub Actions                 |
+| **Configuration**      | Hardcoded on droplet        | Managed through GitHub Secrets                     |
+| **Rollback**           | Manual file replacement     | Tag-based rollback through DOCR                    |
+| **Infrastructure**     | Non-containerized           | Fully Dockerized setup                             |
+| **Environment Parity** | Inconsistent between stages | Identical configurations across DEV, UAT, and PROD |
+| **Reliability**        | High chance of drift        | Reproducible and standardized builds               |
+
+---
+
+**Maintained By:** DevOps Engineering — *Vital Steer LLC*
+**Last Updated:** November 2025
 
 ---

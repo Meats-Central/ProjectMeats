@@ -1,4 +1,6 @@
 name: Promote Development to UAT
+# UAT (uat.meatscentral.com) is the active middle environment per pipeline.
+# DEPRECATED: staging.meatscentral.com - use uat.meatscentral.com instead.
 
 on:
   push:
