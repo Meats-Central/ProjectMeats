@@ -52,10 +52,36 @@ These workflows help with project management and automation:
 - **Purpose**: Auto-assigns certain issues to Copilot for automated handling
 
 ### 33-planner-review-and-test
+- **Trigger**: When PR is marked as ready for review
 - **Purpose**: Automated review and test planning
+- **Actions**:
+  - Triggers the automated tests workflow (40-automated-tests.yml)
+  - Adds PR to project board for tracking
+  - Posts notification comment on PR
 
 ### 34-planner-sprint-gen.yml
 - **Purpose**: Sprint generation and planning automation
+
+## Test Automation Workflows (4x series)
+
+### 40-automated-tests.yml
+- **Trigger**: 
+  - Automatically on pull requests (opened, synchronized, reopened, ready_for_review)
+  - Manual trigger via workflow_dispatch with options to skip frontend/backend tests
+- **Purpose**: Runs comprehensive test suite for frontend and backend
+- **Features**:
+  - **Frontend Tests**: React/TypeScript tests with coverage reporting
+  - **Backend Tests**: Django test suite with PostgreSQL service
+  - **Migration Validation**: Ensures database migrations are valid
+  - **Code Quality**: Runs linters (flake8, black) on backend code
+  - **PR Comments**: Posts test results and coverage to PR comments
+  - **Test Summary**: Provides consolidated view of all test results
+- **Jobs**:
+  1. `test-frontend`: Runs npm tests, type checking, and generates coverage
+  2. `test-backend`: Runs Django tests with PostgreSQL, validates migrations
+  3. `test-summary`: Aggregates results and posts summary to PR
+- **Concurrency**: Cancels in-progress runs when new commits are pushed
+- **Skip Options**: Manual runs can skip frontend or backend tests
 
 ## Auto-Promotion Workflows (4x series)
 
@@ -145,10 +171,12 @@ Workflows are numbered in series:
 - **1x**: Deployment workflows
 - **2x**: Database workflows
 - **3x**: Planner/automation workflows
-- **4x**: Auto-promotion workflows
+- **4x**: Test automation workflows (NEW: 40-automated-tests.yml)
 - **5x**: Cleanup/maintenance workflows
 - **6x**: Validation workflows (naming conventions, standards)
 - **Standalone**: Promotion workflows (promote-dev-to-uat.yml, promote-uat-to-main.yml)
+
+**Note**: The 4x series has been reassigned from auto-promotion workflows to test automation workflows. Auto-promotion workflows (41, 42) will be renumbered in future updates to maintain consistency.
 
 ## CI/CD Flow
 

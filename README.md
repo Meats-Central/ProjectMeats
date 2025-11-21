@@ -513,6 +513,17 @@ make test-frontend     # React tests only
 
 **Coverage**: 95+ backend tests covering all business logic, API endpoints, and data models.
 
+### Automated Testing on Pull Requests
+
+The repository includes automated testing that runs on every pull request:
+- ✅ **Frontend Tests**: Jest + React Testing Library with coverage reporting
+- ✅ **Backend Tests**: Django test suite with PostgreSQL
+- ✅ **Type Checking**: TypeScript validation
+- ✅ **Code Quality**: Linting and formatting checks
+- 🤖 **Auto-trigger**: Tests run automatically when PRs are marked ready for review
+
+**📖 See [docs/automated-testing.md](docs/automated-testing.md) for complete testing workflow documentation**
+
 ## 🛠️ Deployment Tools
 
 This repository includes comprehensive deployment tools:
@@ -553,6 +564,7 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 
 ### CI/CD & Workflows
 - **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Branch naming conventions and workflow guide
+- **[Automated Testing Guide](docs/automated-testing.md)** - PR test automation and workflow usage
 - **[Unified Workflow](docs/workflows/unified-workflow.md)** - Main CI/CD workflow documentation
 - **[CI/CD Infrastructure](docs/workflows/cicd-infrastructure.md)** - Infrastructure details
 - **[Database Backup](docs/workflows/database-backup.md)** - Backup workflow documentation
