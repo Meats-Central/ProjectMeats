@@ -1,3 +1,29 @@
+# # Dev image for Codespaces only
+# FROM mcr.microsoft.com/devcontainers/python:3.12
+
+# # Install Node 20
+# RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+#     && apt-get update \
+#     && apt-get install -y nodejs \
+#     && npm install -g npm
+
+# # Create work directory for repo
+# WORKDIR /workspaces/ProjectMeats
+
+# # Install system tools
+# RUN apt-get update && apt-get install -y git curl
+
+# # ------------------------------------------------------
+# # BACKEND: Install Python dependencies globally
+# # ------------------------------------------------------
+# COPY backend/requirements.txt /tmp/requirements.txt
+
+# RUN python -m venv /venv \
+#     && /venv/bin/pip install --upgrade pip \
+#     && /venv/bin/pip install -r /tmp/requirements.txt
+
+# ENV PATH="/venv/bin:$PATH"
+
 # Dev image for Codespaces only
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
@@ -24,3 +50,12 @@ RUN python -m venv /venv \
 
 ENV PATH="/venv/bin:$PATH"
 
+# ------------------------------------------------------
+# Install PostgreSQL client
+# ------------------------------------------------------
+RUN apt-get update && apt-get install -y postgresql-client
+
+# ------------------------------------------------------
+# Install Docker Compose
+# ------------------------------------------------------
+RUN apt-get install -y docker-compose
