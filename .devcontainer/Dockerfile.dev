@@ -1,3 +1,5 @@
+
+
 # # Dev image for Codespaces only
 # FROM mcr.microsoft.com/devcontainers/python:3.12
 
@@ -23,6 +25,17 @@
 #     && /venv/bin/pip install -r /tmp/requirements.txt
 
 # ENV PATH="/venv/bin:$PATH"
+
+# # ------------------------------------------------------
+# # Install PostgreSQL client
+# # ------------------------------------------------------
+# RUN apt-get update && apt-get install -y postgresql-client
+
+# # ------------------------------------------------------
+# # Install Docker Compose
+# # ------------------------------------------------------
+# RUN apt-get install -y docker-compose
+
 
 # Dev image for Codespaces only
 FROM mcr.microsoft.com/devcontainers/python:3.12
@@ -51,11 +64,6 @@ RUN python -m venv /venv \
 ENV PATH="/venv/bin:$PATH"
 
 # ------------------------------------------------------
-# Install PostgreSQL client
-# ------------------------------------------------------
-RUN apt-get update && apt-get install -y postgresql-client
-
-# ------------------------------------------------------
-# Install Docker Compose
+# Install Docker Compose (if needed for other services)
 # ------------------------------------------------------
 RUN apt-get install -y docker-compose
