@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: /workspaces/ProjectMeats/.devcontainer
+      dockerfile: Dockerfile.dev
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=projectmeats_dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    volumes:
+      - /workspaces:/workspaces
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=projectmeats_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
