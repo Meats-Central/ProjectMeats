@@ -76,13 +76,13 @@
   "forwardPorts": [8000, 3000, 5432],
 
   "remoteEnv": {
-    "DJANGO_SETTINGS_MODULE": "${localEnv:DEV_DJANGO_SETTINGS_MODULE}",
+    //"DJANGO_SETTINGS_MODULE": "${localEnv:DEV_DJANGO_SETTINGS_MODULE}",
     "SECRET_KEY": "${localEnv:DEV_SECRET_KEY}",
     "CORS_ALLOWED_ORIGINS": "${localEnv:DEV_CORS_ALLOWED_ORIGINS}",
-    "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/projectmeats_dev",
+    //"DATABASE_URL": "postgres://postgres:postgres@localhost:5432/projectmeats_dev",
     "ALLOWED_HOSTS": "${localEnv:DEV_ALLOWED_HOSTS}",
     "LOG_LEVEL": "${localEnv:LOG_LEVEL}",
-    "DB_ENGINE": "${localEnv:DEV_DB_ENGINE}",
+    //"DB_ENGINE": "${localEnv:DEV_DB_ENGINE}",
     "DB_NAME": "projectmeats_dev",
     "DB_USER": "postgres",
     "DB_PASSWORD": "postgres",
