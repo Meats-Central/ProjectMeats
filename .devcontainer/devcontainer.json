@@ -71,7 +71,7 @@
   },
 
   "workspaceFolder": "/workspaces/ProjectMeats",
-  "remoteUser": "vscode",
+  "remoteUser": "root",
 
   "forwardPorts": [8000, 3000, 5432],
 
