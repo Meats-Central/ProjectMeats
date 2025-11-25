@@ -63,21 +63,73 @@
 
 //divide----------------------------------------------------
 
+// {
+//   "name": "ProjectMeats Dev Codespace",
+
+//   "build": {
+//     "dockerfile": "Dockerfile.dev",
+//     "context": ".."
+//   },
+
+//   "workspaceFolder": "/workspaces/ProjectMeats",
+//   "remoteUser": "root",
+
+//   "forwardPorts": [8000, 3000, 5432],
+
+//   "remoteEnv": {
+//     "DB_HOST": "postgres",
+//     "DB_NAME": "projectmeats_dev",
+//     "DB_PASSWORD": "postgres",
+//     "DB_PORT": "5432",
+//     "DB_USER": "postgres"
+//   },
+
+//   "settings": {
+//     "terminal.integrated.shell.linux": "/bin/bash",
+//     "editor.formatOnSave": true,
+//     "python.defaultInterpreterPath": "/venv/bin/python"
+//   },
+
+//   "customizations": {
+//     "vscode": {
+//       "extensions": [
+//         "github.copilot",
+//         "ms-azuretools.vscode-docker",
+//         "ms-python.python",
+//         "dbaeumer.vscode-eslint"
+//       ]
+//     }
+//   },
+
+//   "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000",
+  
+//   "features": {
+//     "ghcr.io/devcontainers-contrib/features/postgres:2": {
+//       "version": "15",
+//       "user": "postgres",
+//       "password": "postgres",
+//       "database": "projectmeats_dev"
+//     }
+//   },
+// }
+
+//----------------------divide---------------------
+
 {
   "name": "ProjectMeats Dev Codespace",
 
-  "build": {
-    "dockerfile": "Dockerfile.dev",
-    "context": ".."
-  },
-
+  // Use Docker Compose instead of 'build' or 'features'
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app", // 'app' is the name of our main service in the YAML
   "workspaceFolder": "/workspaces/ProjectMeats",
+
   "remoteUser": "root",
 
-  "forwardPorts": [8000, 3000, 5432],
+  "forwardPorts":[8000, 3000, 5432],
 
   "remoteEnv": {
-    "DB_HOST": "postgres",
+    // !! IMPORTANT !!: DB_HOST must now match the service name in docker-compose.yml
+    "DB_HOST": "db", 
     "DB_NAME": "projectmeats_dev",
     "DB_PASSWORD": "postgres",
     "DB_PORT": "5432",
@@ -101,17 +153,7 @@
     }
   },
 
-  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000",
-  
-  "features": {
-    "ghcr.io/devcontainers-contrib/features/postgres:2": {
-      "version": "15",
-      "user": "postgres",
-      "password": "postgres",
-      "database": "projectmeats_dev"
-    }
-  },
+  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 }
-
 
 
