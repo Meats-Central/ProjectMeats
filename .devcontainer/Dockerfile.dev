@@ -36,7 +36,7 @@
 # # ------------------------------------------------------
 # RUN apt-get install -y docker-compose
 
-
+#--------------------devide----------------#
 # Dev image for Codespaces only
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
