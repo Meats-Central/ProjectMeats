@@ -66,30 +66,34 @@
 {
   "name": "ProjectMeats Dev Codespace",
 
-  "build": {
-    "dockerfile": "Dockerfile.dev",
-    "context": ".."
-  },
-
+  // Use Docker Compose to define services (app and db)
+  "dockerComposeFile": "docker-compose.yml",
+  // 'app' is the name of the service that we will attach VS Code to
+  "service": "app", 
   "workspaceFolder": "/workspaces/ProjectMeats",
+
   "remoteUser": "root",
 
-  "forwardPorts": [8000, 3000, 5432],
+  // Forward the necessary ports to your local machine
+  "forwardPorts":[8000, 3000, 5432],
 
+  // Set environment variables for your application (DB_HOST points to the 'db' service name)
   "remoteEnv": {
-    "DB_HOST": "postgres",
+    "DB_HOST": "db", 
     "DB_NAME": "projectmeats_dev",
     "DB_PASSWORD": "postgres",
     "DB_PORT": "5432",
     "DB_USER": "postgres"
   },
 
+  // VS Code settings
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "editor.formatOnSave": true,
     "python.defaultInterpreterPath": "/venv/bin/python"
   },
 
+  // Install recommended extensions automatically
   "customizations": {
     "vscode": {
       "extensions": [
@@ -101,17 +105,8 @@
     }
   },
 
-  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000",
-  
-  "features": {
-    "ghcr.io/devcontainers-contrib/features/postgres:2": {
-      "version": "15",
-      "user": "postgres",
-      "password": "postgres",
-      "database": "projectmeats_dev"
-    }
-  },
+  // Commands to run after the container is created and ready
+  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && /venv/bin/python manage.py migrate"
 }
-
 
 
