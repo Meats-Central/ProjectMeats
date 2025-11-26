@@ -57,8 +57,11 @@ if database_url:
     _db_config.setdefault(
         "CONN_MAX_AGE", 0
     )  # Close connections after each request in development
-    _db_config.setdefault("OPTIONS", {})
-    _db_config["OPTIONS"].setdefault("connect_timeout", 10)
+    
+    # Only add connect_timeout for PostgreSQL (not supported in SQLite)
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config.setdefault("OPTIONS", {})
+        _db_config["OPTIONS"].setdefault("connect_timeout", 10)
 
     DATABASES = {"default": _db_config}
 else:

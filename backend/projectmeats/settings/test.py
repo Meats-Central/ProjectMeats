@@ -25,6 +25,12 @@ if database_url:
     #     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
     DATABASES = {"default": _db_config}
+    
+    # If using standard PostgreSQL backend (not django_tenants.postgresql_backend),
+    # remove django-tenants middleware as it requires schema-based features
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        MIDDLEWARE = [m for m in MIDDLEWARE if "django_tenants" not in m]  # noqa
+        DATABASE_ROUTERS = []
 else:
     # Use SQLite for testing (faster and doesn't require PostgreSQL)
     # Note: For full multi-tenancy testing with PostgreSQL schemas,
@@ -57,3 +63,6 @@ PASSWORD_HASHERS = [
 #     def __getitem__(self, item):
 #         return None
 # MIGRATION_MODULES = DisableMigrations()
+
+# Allow all hosts for testing (including middleware tests with various domains)
+ALLOWED_HOSTS = ["*"]
