@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.dev
+    volumes:
+      - ..:/workspaces/ProjectMeats:cached
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+
+  db:
+    image: postgres:15 # The actual server image from Docker Hub
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: projectmeats_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+    driver: local

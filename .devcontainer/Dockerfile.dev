@@ -67,3 +67,9 @@ ENV PATH="/venv/bin:$PATH"
 # Install Docker Compose (if needed for other services)
 # ------------------------------------------------------
 RUN apt-get install -y docker-compose
+
+# ------------------------------------------------------
+# Keep the container running for Codespaces
+# CMD is required for the container to stay alive after build completes
+# ------------------------------------------------------
+CMD ["sleep", "infinity"]
