@@ -79,6 +79,8 @@
 
   // Set environment variables for your application (DB_HOST points to the 'db' service name)
   "remoteEnv": {
+    "DJANGO_SETTINGS_MODULE": "${localEnv:DEV_DJANGO_SETTINGS_MODULE}",
+    "DB_ENGINE": "${localEnv:DEV_DB_ENGINE}",
     "DB_HOST": "db", 
     "DB_NAME": "projectmeats_dev",
     "DB_PASSWORD": "postgres",
