@@ -28,8 +28,7 @@ class Command(BaseCommand):
                     schema_name='public',
                     defaults={
                         'name': 'Public Schema',
-                        'paid_until': '2099-12-31',
-                        'on_trial': False
+                        'description': 'Public schema for shared tenant resources'
                     }
                 )
                 
