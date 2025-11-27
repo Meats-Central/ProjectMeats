@@ -326,6 +326,10 @@ jobs:
   # Lint YAML files to prevent syntax errors
   lint-yaml:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       
