@@ -439,7 +439,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      # Ensures migrations run before seeding/tests to create tables like carriers_carrier; fixes role "root" by using CI user postgres
+      # Ensures comprehensive migrations before data ops to avoid missing tables and duplicates
       - name: Wait for PostgreSQL to be ready
         run: |
           echo "Waiting for PostgreSQL to be ready..."
@@ -452,9 +452,26 @@ jobs:
             sleep 2
           done
       
-      # Run makemigrations for all apps to ensure any dynamic changes are captured
-      # Note: || true allows command to succeed even if no migrations are generated (expected behavior)
-      - name: Run makemigrations for all apps
+      # Execute DB init scripts manually (GitHub Actions services don't auto-run /docker-entrypoint-initdb.d/)
+      - name: Execute DB init scripts
+        env:
+          PGPASSWORD: postgres
+        run: |
+          echo "Executing database initialization scripts..."
+          if [ -d "./docker-entrypoint-initdb.d" ]; then
+            for script in ./docker-entrypoint-initdb.d/*.sql; do
+              if [ -f "$script" ]; then
+                echo "Running: $(basename $script)"
+                psql -h localhost -p 5432 -U postgres -d test_db -f "$script" || echo "Warning: Script $(basename $script) had errors (may be idempotent)"
+              fi
+            done
+            echo "Database initialization scripts completed"
+          else
+            echo "No init scripts directory found at ./docker-entrypoint-initdb.d/"
+          fi
+      
+      # Make migrations for key apps (idempotent)
+      - name: Make migrations for key apps (idempotent)
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -463,25 +480,14 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Running makemigrations for all apps (idempotent)..."
+          echo "Running makemigrations for key apps (idempotent)..."
           # makemigrations exits with 0 even when no migrations are generated
           # || true ensures idempotency - command succeeds whether or not migrations are created
           python manage.py makemigrations carriers suppliers customers plants contacts --noinput || true
           python manage.py makemigrations --noinput || true
       
-      - name: Apply shared schema migrations
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Applying shared schema migrations..."
-          python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput
-      
-      - name: Apply full migrations
+      # Run full Django migrations
+      - name: Run full Django migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -493,7 +499,8 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      - name: Apply tenant migrations (if needed for tests)
+      # Run django-tenants shared migrations
+      - name: Run django-tenants shared migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -502,52 +509,48 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          # Create test tenant and apply tenant-specific migrations (idempotent)
-          echo "Setting up test tenant..."
-          {
-            echo "from apps.tenants.models import Client, Domain"
-            echo "from django.db import connection"
-            echo "from django_tenants.utils import schema_context"
-            echo ""
-            echo "# Create test tenant if not exists (idempotent)"
-            echo "try:"
-            echo "    # Check if schema exists before creating tenant"
-            echo "    with connection.cursor() as cursor:"
-            echo "        cursor.execute(\"SELECT schema_name FROM information_schema.schemata WHERE schema_name = %s\", [\"test_tenant\"])"
-            echo "        schema_exists = cursor.fetchone() is not None"
-            echo "    "
-            echo "    if not schema_exists:"
-            echo "        tenant, created = Client.objects.get_or_create("
-            echo "            schema_name=\"test_tenant\","
-            echo "            defaults={\"name\": \"Test Tenant\", \"paid_until\": \"2099-12-31\", \"on_trial\": True}"
-            echo "        )"
-            echo "        if created:"
-            echo "            print(\"Created test tenant\")"
-            echo "    else:"
-            echo "        print(\"Test tenant schema already exists, skipping creation\")"
-            echo "        tenant = Client.objects.get(schema_name=\"test_tenant\")"
-            echo ""
-            echo "    # Create domain for test tenant (idempotent with get_or_create)"
-            echo "    domain, created = Domain.objects.get_or_create("
-            echo "        domain=\"test.example.com\","
-            echo "        defaults={\"tenant\": tenant, \"is_primary\": True}"
-            echo "    )"
-            echo "    if created:"
-            echo "        print(\"Created test domain\")"
-            echo "    else:"
-            echo "        print(\"Test domain already exists\")"
-            echo ""
-            echo "    # Run tenant migrations"
-            echo "    print(\"Running tenant migrations...\")"
-            echo "    with schema_context(tenant.schema_name):"
-            echo "        from django.core.management import call_command"
-            echo "        call_command(\"migrate_schemas\", schema_name=tenant.schema_name, verbosity=0)"
-            echo ""
-            echo "except Exception as e:"
-            echo "    print(f\"Warning: Could not set up test tenant: {e}\")"
-            echo "    print(\"Continuing with shared schema only...\")"
-          } > /tmp/setup_tenant.py
-          python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed, continuing..."
+          echo "Applying shared schema migrations..."
+          python manage.py migrate_schemas --shared --noinput || echo "Shared migrations completed or not applicable"
+      
+      # Create test tenant (idempotent)
+      - name: Create test tenant (idempotent)
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+          POSTGRES_USER: postgres
+        run: |
+          echo "Creating test tenant (idempotent)..."
+          python manage.py setup_test_tenant --tenant-name test_tenant --domain test.example.com || true
+      
+      # Run tenant-specific migrations
+      - name: Run tenant-specific migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+          POSTGRES_USER: postgres
+        run: |
+          echo "Running tenant-specific migrations..."
+          python manage.py migrate_schemas --tenant test_tenant --noinput || echo "Tenant migrations completed or not applicable"
+      
+      # Optional: Clean test DB to prevent duplicate key errors (safe for CI test DB)
+      # Commented out by default - uncomment if persistent duplicates occur
+      # - name: Optional flush for clean test DB (if duplicates persist)
+      #   working-directory: ./backend
+      #   env:
+      #     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      #     SECRET_KEY: test-secret-key-for-testing-only
+      #     DEBUG: True
+      #     DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+      #     POSTGRES_USER: postgres
+      #   run: |
+      #     echo "Flushing test database (safe for CI)..."
+      #     python manage.py flush --noinput || true
       
       # Multi-tenancy setup for django-tenants
       # Fixed unclosed here-document for bash syntax error

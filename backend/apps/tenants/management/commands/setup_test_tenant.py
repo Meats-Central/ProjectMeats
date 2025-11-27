@@ -44,14 +44,13 @@ class Command(BaseCommand):
         tenant_name = options['tenant_name']
         domain_name = options['domain']
 
-        # Create tenant
+        # Create tenant (idempotent with get_or_create)
         Client = get_tenant_model()
         tenant, created = Client.objects.get_or_create(
             schema_name=tenant_name,
             defaults={
                 'name': f'Test Tenant ({tenant_name})',
-                'paid_until': '2099-12-31',
-                'on_trial': True
+                'description': 'Test tenant for CI/CD environments'
             }
         )
 
