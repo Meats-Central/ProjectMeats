@@ -323,8 +323,23 @@ env:
   GHCR_REGISTRY: ghcr.io/meats-central
 
 jobs:
+  # Lint YAML files to prevent syntax errors
+  lint-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run yamllint
+        uses: reviewdog/action-yamllint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          yamllint_flags: '.github/workflows/'
+  
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [lint-yaml]
     strategy:
       matrix:
         app: [ frontend, backend ]
