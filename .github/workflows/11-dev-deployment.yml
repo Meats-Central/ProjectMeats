@@ -439,9 +439,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      # Multi-tenancy setup for django-tenants
-      # Fixed unclosed here-document for bash syntax error
-      - name: Setup tenant schemas and run tests
+      # Ensures migrations run before seeding/tests to create tables like carriers_carrier; fixes role "root" by using CI user postgres
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Apply shared schema migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -449,62 +460,63 @@ jobs:
           DEBUG: True
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
         run: |
-          # Wait for PostgreSQL to be ready
-          sleep 5
-          
-          # Check django-tenants configuration
-          echo "Checking django-tenants configuration..."
-          python manage.py check
-          
-          # Apply shared migrations first
           echo "Applying shared schema migrations..."
-          if python manage.py help migrate_schemas >/dev/null 2>&1; then
-            # django-tenants is configured - use schema-based migrations
-            python manage.py migrate_schemas --shared --noinput
-            
-            # Create a test tenant if needed
-            echo "Setting up test tenant..."
-            # Write Python script directly without here-document to avoid EOF delimiter issues
-            {
-              echo "from apps.tenants.models import Client, Domain"
-              echo "from django.db import connection"
-              echo "from django_tenants.utils import schema_context"
-              echo ""
-              echo "# Create test tenant if not exists"
-              echo "try:"
-              echo "    tenant, created = Client.objects.get_or_create("
-              echo "        schema_name=\"test_tenant\","
-              echo "        defaults={\"name\": \"Test Tenant\", \"paid_until\": \"2099-12-31\", \"on_trial\": True}"
-              echo "    )"
-              echo "    if created:"
-              echo "        print(\"Created test tenant\")"
-              echo ""
-              echo "    # Create domain for test tenant"
-              echo "    domain, created = Domain.objects.get_or_create("
-              echo "        domain=\"test.example.com\","
-              echo "        defaults={\"tenant\": tenant, \"is_primary\": True}"
-              echo "    )"
-              echo "    if created:"
-              echo "        print(\"Created test domain\")"
-              echo ""
-              echo "    # Run tenant migrations"
-              echo "    print(\"Running tenant migrations...\")"
-              echo "    with schema_context(tenant.schema_name):"
-              echo "        from django.core.management import call_command"
-              echo "        call_command(\"migrate_schemas\", schema_name=tenant.schema_name, verbosity=0)"
-              echo ""
-              echo "except Exception as e:"
-              echo "    print(f\"Warning: Could not set up test tenant: {e}\")"
-              echo "    print(\"Continuing with shared schema only...\")"
-            } > /tmp/setup_tenant.py
-            python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed"
-          else
-            # django-tenants not configured - use regular migrations
-            echo "django-tenants not configured, using regular migrations..."
-            python manage.py migrate --noinput
-          fi
-          
-          # Run tests
+          python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput
+      
+      - name: Apply tenant migrations (if needed for tests)
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+        run: |
+          # Create test tenant and apply tenant-specific migrations
+          echo "Setting up test tenant..."
+          {
+            echo "from apps.tenants.models import Client, Domain"
+            echo "from django.db import connection"
+            echo "from django_tenants.utils import schema_context"
+            echo ""
+            echo "# Create test tenant if not exists"
+            echo "try:"
+            echo "    tenant, created = Client.objects.get_or_create("
+            echo "        schema_name=\"test_tenant\","
+            echo "        defaults={\"name\": \"Test Tenant\", \"paid_until\": \"2099-12-31\", \"on_trial\": True}"
+            echo "    )"
+            echo "    if created:"
+            echo "        print(\"Created test tenant\")"
+            echo ""
+            echo "    # Create domain for test tenant"
+            echo "    domain, created = Domain.objects.get_or_create("
+            echo "        domain=\"test.example.com\","
+            echo "        defaults={\"tenant\": tenant, \"is_primary\": True}"
+            echo "    )"
+            echo "    if created:"
+            echo "        print(\"Created test domain\")"
+            echo ""
+            echo "    # Run tenant migrations"
+            echo "    print(\"Running tenant migrations...\")"
+            echo "    with schema_context(tenant.schema_name):"
+            echo "        from django.core.management import call_command"
+            echo "        call_command(\"migrate_schemas\", schema_name=tenant.schema_name, verbosity=0)"
+            echo ""
+            echo "except Exception as e:"
+            echo "    print(f\"Warning: Could not set up test tenant: {e}\")"
+            echo "    print(\"Continuing with shared schema only...\")"
+          } > /tmp/setup_tenant.py
+          python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed, continuing..."
+      
+      # Multi-tenancy setup for django-tenants
+      # Fixed unclosed here-document for bash syntax error
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+        run: |
           echo "Running tests..."
           python manage.py test apps/ --verbosity=2
 
