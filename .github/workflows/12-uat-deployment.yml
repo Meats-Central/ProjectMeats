@@ -315,7 +315,11 @@ except Exception as e:
             sh -c "
               if python manage.py help migrate_schemas >/dev/null 2>&1; then
                 echo 'Using django-tenants migrations...'
+                echo 'Step 1: Running shared schema migrations...'
                 python manage.py migrate_schemas --shared --noinput
+                echo 'Step 2: Ensuring public tenant exists...'
+                python manage.py ensure_public_tenant --domain=uat.meatscentral.com
+                echo 'Step 3: Running tenant-specific migrations...'
                 python manage.py migrate_schemas --noinput
               else
                 echo 'Using regular migrations...'
