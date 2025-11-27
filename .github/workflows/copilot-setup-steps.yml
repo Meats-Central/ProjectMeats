@@ -4,10 +4,25 @@ on:
   issues:
     types:
       - assigned
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
+
+    
+    container:
+      image: ghcr.io/meats-central/projectmeats-backend:dev-latest
+      
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     environment:
       name: copilot
@@ -16,6 +31,7 @@ jobs:
       contents: read
       packages: read
 
+   
     env:
       DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
       SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
@@ -44,37 +60,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install backend dependencies
+      
+      - name: Verify Container Environment
         run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "frontend/package-lock.json"
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Show tool versions
-        run: |
-          python --version
-          node --version
-          npm --version
-
-      - name: Note GHCR images available
-        run: |
-          echo "Backend image in GHCR:"
-          echo "  ghcr.io/meats-central/projectmeats-backend:dev-latest"
-          echo "Frontend image in GHCR:"
-          echo "  ghcr.io/meats-central/projectmeats-frontend:dev-latest"
+          echo "Copilot agent is running inside the deployed backend container."
+          echo "Python version:"
+          python --version || true
+          echo
+          echo "First 20 installed Python packages:"
+          pip list | head -20 || true
+          echo
+          echo "Repository structure (top level):"
+          ls -R . | head -100 || true
