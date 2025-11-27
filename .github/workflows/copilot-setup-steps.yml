@@ -20,6 +20,8 @@ jobs:
     container:
       image: ghcr.io/meats-central/projectmeats-backend:dev-latest
       
+      options: --user root
+      
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
