@@ -492,7 +492,7 @@ jobs:
                 print("Continuing with shared schema only...")
             EOF
             # Remove leading whitespace from the Python file
-            sed -i 's/^            //' /tmp/setup_tenant.py
+            sed -i 's/^[[:space:]]*//' /tmp/setup_tenant.py
             python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed"
           else
             # django-tenants not configured - use regular migrations
