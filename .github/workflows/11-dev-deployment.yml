@@ -444,7 +444,7 @@ jobs:
             
             # Create a test tenant if needed
             echo "Setting up test tenant..."
-            python -c "
+            python -c '
 from apps.tenants.models import Client, Domain
 from django.db import connection
 from django_tenants.utils import schema_context
@@ -452,30 +452,30 @@ from django_tenants.utils import schema_context
 # Create test tenant if not exists
 try:
     tenant, created = Client.objects.get_or_create(
-        schema_name='test_tenant',
-        defaults={'name': 'Test Tenant', 'paid_until': '2099-12-31', 'on_trial': True}
+        schema_name="test_tenant",
+        defaults={"name": "Test Tenant", "paid_until": "2099-12-31", "on_trial": True}
     )
     if created:
-        print('Created test tenant')
+        print("Created test tenant")
     
     # Create domain for test tenant
     domain, created = Domain.objects.get_or_create(
-        domain='test.example.com',
-        defaults={'tenant': tenant, 'is_primary': True}
+        domain="test.example.com",
+        defaults={"tenant": tenant, "is_primary": True}
     )
     if created:
-        print('Created test domain')
+        print("Created test domain")
         
     # Run tenant migrations
-    print('Running tenant migrations...')
+    print("Running tenant migrations...")
     with schema_context(tenant.schema_name):
         from django.core.management import call_command
-        call_command('migrate_schemas', schema_name=tenant.schema_name, verbosity=0)
+        call_command("migrate_schemas", schema_name=tenant.schema_name, verbosity=0)
         
 except Exception as e:
-    print(f'Warning: Could not set up test tenant: {e}')
-    print('Continuing with shared schema only...')
-" || echo "Warning: Tenant setup failed, continuing with shared schema..."
+    print(f"Warning: Could not set up test tenant: {e}")
+    print("Continuing with shared schema only...")
+' || echo "Warning: Tenant setup failed, continuing with shared schema..."
           else
             # django-tenants not configured - use regular migrations
             echo "django-tenants not configured, using regular migrations..."
