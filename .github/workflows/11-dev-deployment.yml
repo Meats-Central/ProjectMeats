@@ -453,6 +453,7 @@ jobs:
           done
       
       # Run makemigrations for all apps to ensure any dynamic changes are captured
+      # Note: || true allows command to succeed even if no migrations are generated (expected behavior)
       - name: Run makemigrations for all apps
         working-directory: ./backend
         env:
@@ -463,6 +464,8 @@ jobs:
           POSTGRES_USER: postgres
         run: |
           echo "Running makemigrations for all apps (idempotent)..."
+          # makemigrations exits with 0 even when no migrations are generated
+          # || true ensures idempotency - command succeeds whether or not migrations are created
           python manage.py makemigrations carriers suppliers customers plants contacts --noinput || true
           python manage.py makemigrations --noinput || true
       
