@@ -444,7 +444,7 @@ jobs:
             
             # Create a test tenant if needed
             echo "Setting up test tenant..."
-            python manage.py shell <<'PYTHON_SCRIPT'
+            cat > /tmp/setup_tenant.py << 'EOF'
 from apps.tenants.models import Client, Domain
 from django.db import connection
 from django_tenants.utils import schema_context
@@ -475,7 +475,8 @@ try:
 except Exception as e:
     print(f"Warning: Could not set up test tenant: {e}")
     print("Continuing with shared schema only...")
-PYTHON_SCRIPT
+EOF
+            python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed"
           else
             # django-tenants not configured - use regular migrations
             echo "django-tenants not configured, using regular migrations..."
