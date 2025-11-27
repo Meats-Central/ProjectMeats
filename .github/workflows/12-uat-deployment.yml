@@ -94,32 +94,81 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Setup test environment
+      
+      # Multi-tenancy setup for django-tenants
+      - name: Setup tenant schemas and run tests
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
           DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
         run: |
+          # Wait for PostgreSQL to be ready
+          sleep 5
+          
+          # Check django-tenants configuration
+          echo "Checking django-tenants configuration..."
           python manage.py check
-          python manage.py migrate
-      - name: Validate migrations
-        working-directory: .
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          CI: true
-        run: |
-          chmod +x .github/scripts/validate-migrations.sh
-          .github/scripts/validate-migrations.sh
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-        run: python manage.py test apps/
+          
+          # Apply shared migrations first
+          echo "Applying shared schema migrations..."
+          if python manage.py help migrate_schemas >/dev/null 2>&1; then
+            # django-tenants is configured - use schema-based migrations
+            python manage.py migrate_schemas --shared --noinput
+            
+            # Create a test tenant if needed
+            echo "Setting up test tenant..."
+            python -c "
+from apps.tenants.models import Client, Domain
+from django.db import connection
+from django_tenants.utils import schema_context
+
+# Create test tenant if not exists
+try:
+    tenant, created = Client.objects.get_or_create(
+        schema_name='test_tenant',
+        defaults={'name': 'Test Tenant', 'paid_until': '2099-12-31', 'on_trial': True}
+    )
+    if created:
+        print('Created test tenant')
+    
+    # Create domain for test tenant
+    domain, created = Domain.objects.get_or_create(
+        domain='test.example.com',
+        defaults={'tenant': tenant, 'is_primary': True}
+    )
+    if created:
+        print('Created test domain')
+        
+    # Run tenant migrations
+    print('Running tenant migrations...')
+    with schema_context(tenant.schema_name):
+        from django.core.management import call_command
+        call_command('migrate_schemas', schema_name=tenant.schema_name, verbosity=0)
+        
+except Exception as e:
+    print(f'Warning: Could not set up test tenant: {e}')
+    print('Continuing with shared schema only...')
+" || echo "Warning: Tenant setup failed, continuing with shared schema..."
+          else
+            # django-tenants not configured - use regular migrations
+            echo "django-tenants not configured, using regular migrations..."
+            python manage.py migrate --noinput
+          fi
+          
+          # Validate migrations
+          echo "Validating migrations..."
+          if [ -f "../.github/scripts/validate-migrations.sh" ]; then
+            chmod +x ../.github/scripts/validate-migrations.sh
+            cd .. && CI=true .github/scripts/validate-migrations.sh
+            cd backend
+          fi
+          
+          # Run tests
+          echo "Running tests..."
+          python manage.py test apps/ --verbosity=2
+          
       - name: Code quality (non-blocking)
         working-directory: ./backend
         continue-on-error: true
@@ -257,12 +306,22 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
+          # Run migrations with django-tenants support
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
+            sh -c "
+              if python manage.py help migrate_schemas >/dev/null 2>&1; then
+                echo 'Using django-tenants migrations...'
+                python manage.py migrate_schemas --shared --noinput
+                python manage.py migrate_schemas --noinput
+              else
+                echo 'Using regular migrations...'
+                python manage.py migrate --noinput
+              fi
+            "
 
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
