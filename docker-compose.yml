@@ -25,7 +25,7 @@ services:
     restart: always
     environment:
       POSTGRES_DB: defaultdb
-      POSTGRES_USER: postgres
+      POSTGRES_USER: doadmin
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
