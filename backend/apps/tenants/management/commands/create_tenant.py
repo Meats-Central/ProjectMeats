@@ -148,44 +148,61 @@ class Command(BaseCommand):
         
         try:
             with transaction.atomic():
-                # Create tenant
+                # Create tenant (idempotent with get_or_create)
                 if verbosity >= 1:
                     self.stdout.write(f'Creating tenant: {name} ({schema_name})...')
                 
-                tenant = Tenant.objects.create(
+                # Use get_or_create for idempotency
+                tenant, created = Tenant.objects.get_or_create(
                     schema_name=schema_name,
-                    name=name,
-                    slug=slug,
-                    contact_email=contact_email,
-                    contact_phone=contact_phone,
-                    is_active=True,
-                    is_trial=on_trial,
-                    trial_ends_at=paid_until if on_trial else None,
+                    defaults={
+                        'name': name,
+                        'slug': slug,
+                        'contact_email': contact_email,
+                        'contact_phone': contact_phone,
+                        'is_active': True,
+                        'is_trial': on_trial,
+                        'trial_ends_at': paid_until if on_trial else None,
+                    }
                 )
                 
                 if verbosity >= 1:
-                    self.stdout.write(
-                        self.style.SUCCESS(f'✅ Tenant created: {tenant.name} (ID: {tenant.id})')
-                    )
+                    if created:
+                        self.stdout.write(
+                            self.style.SUCCESS(f'✅ Tenant created: {tenant.name} (ID: {tenant.id})')
+                        )
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(f'⚠️  Tenant already exists: {tenant.name} (ID: {tenant.id})')
+                        )
                 
-                # Create domain if provided
+                # Create domain if provided (idempotent with get_or_create)
                 if domain_name:
                     if verbosity >= 1:
                         self.stdout.write(f'Creating domain: {domain_name}...')
                     
-                    domain = TenantDomain.objects.create(
+                    domain, domain_created = TenantDomain.objects.get_or_create(
                         domain=domain_name.lower(),
-                        tenant=tenant,
-                        is_primary=is_primary,
+                        defaults={
+                            'tenant': tenant,
+                            'is_primary': is_primary,
+                        }
                     )
                     
                     if verbosity >= 1:
-                        self.stdout.write(
-                            self.style.SUCCESS(
-                                f'✅ Domain created: {domain.domain} '
-                                f'{"(primary)" if domain.is_primary else ""}'
+                        if domain_created:
+                            self.stdout.write(
+                                self.style.SUCCESS(
+                                    f'✅ Domain created: {domain.domain} '
+                                    f'{"(primary)" if domain.is_primary else ""}'
+                                )
                             )
-                        )
+                        else:
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    f'⚠️  Domain already exists: {domain.domain}'
+                                )
+                            )
                 
                 # Run migrations if requested
                 if run_migrations:
