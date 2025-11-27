@@ -25,10 +25,12 @@ services:
     restart: always
     environment:
       POSTGRES_DB: defaultdb
-      POSTGRES_USER: doadmin
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Mount init scripts directory for database initialization
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
 
