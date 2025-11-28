@@ -17,28 +17,39 @@ jobs:
       packages: read
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Set up Docker
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
-      # Pull backend and frontend images from GHCR
+      # Step 3: Log in to GHCR (GitHub Container Registry)
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 4: Pull Backend Image from GHCR
       - name: Pull Backend Image
         run: |
           docker pull ghcr.io/meats-central/projectmeats-backend:dev-latest
 
+      # Step 5: Pull Frontend Image from GHCR
       - name: Pull Frontend Image
         run: |
           docker pull ghcr.io/meats-central/projectmeats-frontend:dev-latest
 
-      # Run commands inside the backend container for Copilot
+      # Step 6: Run Backend Container for Copilot
       - name: Run Backend Container for Copilot
         run: |
           docker run --rm ghcr.io/meats-central/projectmeats-backend:dev-latest \
             bash -c "echo 'Running backend container for Copilot'; python --version; django-admin --version"
 
-      # Run commands inside the frontend container for Copilot
+      # Step 7: Run Frontend Container for Copilot
       - name: Run Frontend Container for Copilot
         run: |
           docker run --rm ghcr.io/meats-central/projectmeats-frontend:dev-latest \
