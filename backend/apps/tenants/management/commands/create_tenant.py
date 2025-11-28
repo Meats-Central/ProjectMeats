@@ -148,33 +148,33 @@ class Command(BaseCommand):
         
         try:
             with transaction.atomic():
-                # Create tenant (idempotent with get_or_create)
+                # Create tenant (raises IntegrityError on duplicate schema_name)
                 if verbosity >= 1:
                     self.stdout.write(f'Creating tenant: {name} ({schema_name})...')
                 
-                # Use get_or_create for idempotency
-                tenant, created = Tenant.objects.get_or_create(
+                # Check for duplicate schema_name first
+                if Tenant.objects.filter(schema_name=schema_name).exists():
+                    raise CommandError(
+                        f'Tenant with schema_name "{schema_name}" already exists. '
+                        f'Use a unique schema_name.'
+                    )
+                
+                # Create new tenant
+                tenant = Tenant.objects.create(
                     schema_name=schema_name,
-                    defaults={
-                        'name': name,
-                        'slug': slug,
-                        'contact_email': contact_email,
-                        'contact_phone': contact_phone,
-                        'is_active': True,
-                        'is_trial': on_trial,
-                        'trial_ends_at': paid_until if on_trial else None,
-                    }
+                    name=name,
+                    slug=slug,
+                    contact_email=contact_email,
+                    contact_phone=contact_phone,
+                    is_active=True,
+                    is_trial=on_trial,
+                    trial_ends_at=paid_until if on_trial else None,
                 )
                 
                 if verbosity >= 1:
-                    if created:
-                        self.stdout.write(
-                            self.style.SUCCESS(f'✅ Tenant created: {tenant.name} (ID: {tenant.id})')
-                        )
-                    else:
-                        self.stdout.write(
-                            self.style.WARNING(f'⚠️  Tenant already exists: {tenant.name} (ID: {tenant.id})')
-                        )
+                    self.stdout.write(
+                        self.style.SUCCESS(f'✅ Tenant created: {tenant.name} (ID: {tenant.id})')
+                    )
                 
                 # Create domain if provided (idempotent with get_or_create)
                 if domain_name:
