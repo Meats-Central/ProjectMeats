@@ -484,8 +484,8 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      # Run django-tenants shared migrations (idempotent)
-      - name: Run django-tenants shared migrations (idempotent)
+      # Apply database migrations (standard Django migrations)
+      - name: Apply database migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -494,34 +494,8 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Applying shared schema migrations..."
-          python manage.py migrate_schemas --shared --noinput || true
-      
-      # Create test tenant (idempotent using get_or_create)
-      - name: Create test tenant (idempotent)
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Creating test tenant (idempotent)..."
-          python manage.py setup_test_tenant --tenant-name test_tenant --domain test.example.com || true
-      
-      # Run tenant-specific migrations (idempotent)
-      - name: Run tenant-specific migrations (idempotent)
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Running tenant-specific migrations..."
-          python manage.py migrate_schemas --tenant test_tenant --noinput || true
+          echo "Applying database migrations..."
+          python manage.py migrate --noinput
       
       # Optional: DB flush for CI (safe for ephemeral CI DB; commented out by default)
       # Uncomment if duplicates from prior runs persist despite idempotent operations above
@@ -677,7 +651,7 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations with django-tenants support
+          # Run standard Django migrations
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$ENV_FILE:/app/.env:ro" \
@@ -685,18 +659,8 @@ jobs:
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             sh -c "
-              if python manage.py help migrate_schemas >/dev/null 2>&1; then
-                echo 'Using django-tenants migrations...'
-                echo 'Step 1: Running shared schema migrations...'
-                python manage.py migrate_schemas --shared --noinput
-                echo 'Step 2: Ensuring public tenant exists...'
-                python manage.py ensure_public_tenant --domain=localhost
-                echo 'Step 3: Running tenant-specific migrations...'
-                python manage.py migrate_schemas --noinput
-              else
-                echo 'Using regular migrations...'
-                python manage.py migrate --noinput
-              fi
+              echo 'Running standard Django migrations...'
+              python manage.py migrate --noinput
             "
 
           sudo docker run --rm \
