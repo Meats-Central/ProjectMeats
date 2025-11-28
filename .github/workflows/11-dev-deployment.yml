@@ -613,8 +613,8 @@ jobs:
           EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}
           EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}
           ENV
-          sudo chown root:root "$ENV_FILE"
-          sudo chmod 600 "$ENV_FILE"
+          sudo chown 1000:1000 "$ENV_FILE"
+          sudo chmod 644 "$ENV_FILE"
 
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
