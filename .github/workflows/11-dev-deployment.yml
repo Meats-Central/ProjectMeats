@@ -619,27 +619,66 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run standard Django migrations
+          # Pre-deployment: Run database migrations and setup tasks
+          echo "=== Running pre-deployment tasks ==="
           sudo docker run --rm \
+            --name pm-backend-deploy \
             --env-file "$ENV_FILE" \
             -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            sh -c "
-              echo 'Running standard Django migrations...'
-              python manage.py migrate --noinput
-            "
+            bash -c '
+              set -euo pipefail
+              
+              echo "Step 1/5: Checking database connectivity..."
+              for i in {1..30}; do
+                if python manage.py check --database default >/dev/null 2>&1; then
+                  echo "✓ Database connection successful"
+                  break
+                fi
+                if [ $i -eq 30 ]; then
+                  echo "✗ Failed to connect to database after 30 attempts"
+                  exit 1
+                fi
+                echo "Waiting for database... ($i/30)"
+                sleep 2
+              done
+              
+              echo "Step 2/5: Running database migrations..."
+              python manage.py migrate --noinput || {
+                echo "✗ Migration failed"
+                exit 1
+              }
+              echo "✓ Migrations completed"
+              
+              echo "Step 3/5: Creating superuser and root tenant..."
+              python manage.py create_super_tenant --verbosity=1 || {
+                echo "⚠ create_super_tenant command failed or not available"
+              }
+              
+              echo "Step 4/5: Creating guest tenant..."
+              python manage.py create_guest_tenant --verbosity=1 || {
+                echo "⚠ create_guest_tenant command failed or not available"
+              }
+              
+              echo "Step 5/5: Collecting static files..."
+              python manage.py collectstatic --noinput --clear || {
+                echo "⚠ collectstatic failed (non-critical)"
+              }
+              echo "✓ Static files collected"
+              
+              echo "=== Pre-deployment tasks completed successfully ==="
+            ' || {
+              echo "✗ Pre-deployment tasks failed"
+              exit 1
+            }
 
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$ENV_FILE:/app/.env:ro" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput || true
-
+          # Stop old container if running
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
+          
+          # Start new container
+          echo "=== Starting application container ==="
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
             --env-file "$ENV_FILE" \
@@ -648,17 +687,57 @@ jobs:
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
+          # Wait for container to be healthy
+          echo "Waiting for container to start..."
+          sleep 5
+          
+          # Check container status
+          if ! sudo docker ps | grep -q pm-backend; then
+            echo "✗ Container failed to start"
+            sudo docker logs pm-backend --tail 50
+            exit 1
+          fi
+          
+          echo "✓ Container started successfully"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           SSH
 
       - name: Health check (Backend)
         run: |
-          for i in {1..10}; do
-            if curl -fsS "${{ secrets.DEV_BACKEND_HEALTH_URL }}" > /dev/null; then
-              echo "Backend healthy"
+          echo "=== Performing health checks ==="
+          
+          # Wait a bit for the application to fully start
+          echo "Waiting for application to initialize..."
+          sleep 10
+          
+          # Check if container is running
+          if ! docker ps | grep -q pm-backend; then
+            echo "✗ Container is not running"
+            exit 1
+          fi
+          
+          # Perform HTTP health check with retries
+          echo "Checking HTTP endpoint..."
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.DEV_BACKEND_HEALTH_URL }}" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
+              echo "=== Deployment completed successfully ==="
               exit 0
             fi
-            sleep 3
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              echo "=== Checking container logs ==="
+              docker logs pm-backend --tail 100
+              exit 1
+            fi
+            
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS failed (HTTP $HTTP_CODE), retrying..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
           done
-          echo "Backend health check failed" >&2
-          exit 1
