@@ -53,4 +53,4 @@ jobs:
       - name: Run Frontend Container for Copilot
         run: |
           docker run --rm ghcr.io/meats-central/projectmeats-frontend:dev-latest \
-            bash -c "echo 'Running frontend container for Copilot'; npm --version"
+            /bin/sh -c "echo 'Running frontend container for Copilot'; npm --version"
