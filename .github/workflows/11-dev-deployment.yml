@@ -409,12 +409,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     services:
+      # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       postgres:
-        image: postgres:15
+        image: postgres:15  # Latest stable compatible with Django 4.2.7, psycopg2-binary 2.9.9; aligns with 2024 best practices
         env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres  # Standardize to 'postgres' to fix role 'root' mismatch errors
+          POSTGRES_PASSWORD: postgres  # Use consistent password for CI; in production use secrets
+          POSTGRES_DB: test_db  # Match test database name for consistency
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -439,21 +440,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
-      # Ensures comprehensive migrations before data ops to avoid missing tables and duplicates
-      - name: Wait for PostgreSQL to be ready
+      # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
+      - name: Wait for DB readiness
+        env:
+          PGPASSWORD: postgres
         run: |
           echo "Waiting for PostgreSQL to be ready..."
-          for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U postgres; then
-              echo "PostgreSQL is ready!"
-              break
-            fi
-            echo "Waiting for PostgreSQL... ($i/30)"
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
             sleep 2
           done
+          echo "PostgreSQL is ready!"
       
       # Execute DB init scripts manually (GitHub Actions services don't auto-run /docker-entrypoint-initdb.d/)
-      - name: Execute DB init scripts
+      - name: Execute DB init scripts (roles, extensions, permissions)
         env:
           PGPASSWORD: postgres
         run: |
@@ -470,23 +470,8 @@ jobs:
             echo "No init scripts directory found at ./docker-entrypoint-initdb.d/"
           fi
       
-      # Make migrations for key apps (idempotent)
-      - name: Make migrations for key apps (idempotent)
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Running makemigrations for key apps (idempotent)..."
-          # makemigrations exits with 0 even when no migrations are generated
-          # || true ensures idempotency - command succeeds whether or not migrations are created
-          python manage.py makemigrations carriers suppliers customers plants contacts --noinput || true
-          python manage.py makemigrations --noinput || true
-      
-      # Run full Django migrations
+      # Note: makemigrations should be done locally and committed. Focus on migrate only in CI.
+      # Run full Django migrations (idempotent)
       - name: Run full Django migrations
         working-directory: ./backend
         env:
@@ -499,8 +484,8 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      # Run django-tenants shared migrations
-      - name: Run django-tenants shared migrations
+      # Run django-tenants shared migrations (idempotent)
+      - name: Run django-tenants shared migrations (idempotent)
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -510,9 +495,9 @@ jobs:
           POSTGRES_USER: postgres
         run: |
           echo "Applying shared schema migrations..."
-          python manage.py migrate_schemas --shared --noinput || echo "Shared migrations completed or not applicable"
+          python manage.py migrate_schemas --shared --noinput || true
       
-      # Create test tenant (idempotent)
+      # Create test tenant (idempotent using get_or_create)
       - name: Create test tenant (idempotent)
         working-directory: ./backend
         env:
@@ -525,8 +510,8 @@ jobs:
           echo "Creating test tenant (idempotent)..."
           python manage.py setup_test_tenant --tenant-name test_tenant --domain test.example.com || true
       
-      # Run tenant-specific migrations
-      - name: Run tenant-specific migrations
+      # Run tenant-specific migrations (idempotent)
+      - name: Run tenant-specific migrations (idempotent)
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
@@ -536,17 +521,21 @@ jobs:
           POSTGRES_USER: postgres
         run: |
           echo "Running tenant-specific migrations..."
-          python manage.py migrate_schemas --tenant test_tenant --noinput || echo "Tenant migrations completed or not applicable"
+          python manage.py migrate_schemas --tenant test_tenant --noinput || true
       
-      # Optional: Clean test DB to prevent duplicate key errors (safe for CI test DB)
-      # Commented out by default - uncomment if persistent duplicates occur
-      # - name: Optional flush for clean test DB (if duplicates persist)
+      # Optional: DB flush for CI (safe for ephemeral CI DB; commented out by default)
+      # Uncomment if duplicates from prior runs persist despite idempotent operations above
+      # - name: Optional DB flush for CI (if duplicates persist)
       #   working-directory: ./backend
       #   env:
       #     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
       #     SECRET_KEY: test-secret-key-for-testing-only
       #     DEBUG: True
       #     DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+      #     POSTGRES_USER: postgres
+      #   run: |
+      #     echo "Flushing test database (safe for ephemeral CI DB)..."
+      #     python manage.py flush --noinput || true
       #     POSTGRES_USER: postgres
       #   run: |
       #     echo "Flushing test database (safe for CI)..."
