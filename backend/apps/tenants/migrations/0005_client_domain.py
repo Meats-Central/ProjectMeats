@@ -51,18 +51,33 @@ def create_tables_if_not_exist(apps, schema_editor):
         """)
         
         # Add foreign key constraint if it doesn't exist
+        # First, check if both tables exist and clean up any orphaned records
         cursor.execute("""
             DO $$
             BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint 
-                    WHERE conname = 'tenants_domain_tenant_id_fk'
+                -- Check if both tables exist
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = 'tenants_client'
+                ) AND EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = 'tenants_domain'
                 ) THEN
-                    ALTER TABLE tenants_domain 
-                    ADD CONSTRAINT tenants_domain_tenant_id_fk 
-                    FOREIGN KEY (tenant_id) 
-                    REFERENCES tenants_client(id) 
-                    ON DELETE CASCADE;
+                    -- Clean up any orphaned records in tenants_domain
+                    DELETE FROM tenants_domain 
+                    WHERE tenant_id NOT IN (SELECT id FROM tenants_client);
+                    
+                    -- Add constraint if it doesn't exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'tenants_domain_tenant_id_fk'
+                    ) THEN
+                        ALTER TABLE tenants_domain 
+                        ADD CONSTRAINT tenants_domain_tenant_id_fk 
+                        FOREIGN KEY (tenant_id) 
+                        REFERENCES tenants_client(id) 
+                        ON DELETE CASCADE;
+                    END IF;
                 END IF;
             END $$;
         """)
