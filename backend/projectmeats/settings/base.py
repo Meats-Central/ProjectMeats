@@ -50,7 +50,8 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
-    "django_tenants.middleware.TenantMainMiddleware",  # Must be first for schema-based multi-tenancy
+    # Note: django_tenants.middleware.TenantMainMiddleware removed
+    # ProjectMeats uses custom shared-schema multi-tenancy (not schema-based isolation)
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files middleware
@@ -58,8 +59,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # Custom tenant middleware for shared-schema approach (backward compatibility)
-    # Provides additional tenant resolution via headers and user associations
+    # Custom tenant middleware for shared-schema approach
+    # Provides tenant resolution via headers and user associations
     "apps.tenants.middleware.TenantMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
