@@ -484,39 +484,7 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      # Apply database migrations (standard Django migrations)
-      - name: Apply database migrations
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Applying database migrations..."
-          python manage.py migrate --noinput
-      
-      # Optional: DB flush for CI (safe for ephemeral CI DB; commented out by default)
-      # Uncomment if duplicates from prior runs persist despite idempotent operations above
-      # - name: Optional DB flush for CI (if duplicates persist)
-      #   working-directory: ./backend
-      #   env:
-      #     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-      #     SECRET_KEY: test-secret-key-for-testing-only
-      #     DEBUG: True
-      #     DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-      #     POSTGRES_USER: postgres
-      #   run: |
-      #     echo "Flushing test database (safe for ephemeral CI DB)..."
-      #     python manage.py flush --noinput || true
-      #     POSTGRES_USER: postgres
-      #   run: |
-      #     echo "Flushing test database (safe for CI)..."
-      #     python manage.py flush --noinput || true
-      
-      # Multi-tenancy setup for django-tenants
-      # Fixed unclosed here-document for bash syntax error
+      # Run tests directly - custom shared-schema multi-tenancy (no django-tenants schema isolation)
       - name: Run tests
         working-directory: ./backend
         env:
@@ -526,7 +494,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Running tests..."
+          echo "Running tests with custom shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
   deploy-frontend:
