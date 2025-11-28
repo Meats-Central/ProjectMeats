@@ -25,6 +25,11 @@ if database_url:
     if _db_config.get("ENGINE") == "django.db.backends.postgresql":
         # Keep standard backend - do NOT switch to django_tenants.postgresql_backend
         pass  # Explicitly keep django.db.backends.postgresql
+        
+        # Add connection timeout for database reliability
+        if "OPTIONS" not in _db_config:
+            _db_config["OPTIONS"] = {}
+        _db_config["OPTIONS"]["connect_timeout"] = 10
 
     DATABASES = {"default": _db_config}
     
