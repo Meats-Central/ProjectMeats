@@ -1,4 +1,315 @@
-name: Deploy Dev (Frontend + Backend via DOCR)
+# name: Deploy Dev (Frontend + Backend via DOCR)
+
+# on:
+#   push:
+#     branches: [ development ]
+#   workflow_dispatch:
+
+# env:
+#   REGISTRY: ${{ vars.DOCR_REGISTRY }}            
+#   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} 
+#   BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND  }} 
+
+# jobs:
+#   # Job to build and push both frontend and backend Docker images
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         app: [ frontend, backend ]
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Login to DOCR
+#         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
+
+#       - name: Build & Push Frontend
+#         if: matrix.app == 'frontend'
+#         run: |
+#           docker build -f frontend/Dockerfile \
+#             -t $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7} \
+#             -t $REGISTRY/$FRONTEND_IMAGE:dev-latest \
+#             .
+#           docker push $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7}
+#           docker push $REGISTRY/$FRONTEND_IMAGE:dev-latest
+
+#       - name: Build & Push Backend (Django)
+#         if: matrix.app == 'backend'
+#         run: |
+#           docker build -f backend/Dockerfile \
+#             -t $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7} \
+#             -t $REGISTRY/$BACKEND_IMAGE:dev-latest \
+#             .
+#           docker push $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7}
+#           docker push $REGISTRY/$BACKEND_IMAGE:dev-latest
+
+#   # Job to test the frontend code
+#   test-frontend:
+#     runs-on: ubuntu-latest
+#     needs: build-and-push
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: '18'
+#           cache: 'npm'
+#           cache-dependency-path: 'frontend/package-lock.json'
+#       - working-directory: ./frontend
+#         run: npm ci
+#       - working-directory: ./frontend
+#         run: npm run test:ci
+#       - working-directory: ./frontend
+#         run: npm run type-check
+
+#   # Job to test the backend code
+#   test-backend:
+#     runs-on: ubuntu-latest
+#     needs: build-and-push
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_USER: postgres
+#           POSTGRES_DB: test_db
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 5432:5432
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.12'
+#       - uses: actions/cache@v3
+#         with:
+#           path: ~/.cache/pip
+#           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+#           restore-keys: |
+#             ${{ runner.os }}-pip-
+#       - name: Install dependencies
+#         working-directory: ./backend
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+#       - name: Setup test environment
+#         working-directory: ./backend
+#         env:
+#           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+#           SECRET_KEY: test-secret-key-for-testing-only
+#           DEBUG: True
+#         run: |
+#           python manage.py check
+#           python manage.py migrate
+#       - name: Validate migrations
+#         working-directory: .
+#         env:
+#           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+#           SECRET_KEY: test-secret-key-for-testing-only
+#           DEBUG: True
+#           CI: true
+#         run: |
+#           chmod +x .github/scripts/validate-migrations.sh
+#           .github/scripts/validate-migrations.sh
+#       - name: Run tests
+#         working-directory: ./backend
+#         env:
+#           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+#           SECRET_KEY: test-secret-key-for-testing-only
+#           DEBUG: True
+#         run: python manage.py test apps/
+#       - name: Code quality (non-blocking)
+#         working-directory: ./backend
+#         continue-on-error: true
+#         run: |
+#           if pip show flake8 >/dev/null 2>&1; then
+#             flake8 . --exclude=migrations --max-line-length=120 || true
+#           fi
+#           if pip show black >/dev/null 2>&1; then
+#             black --check . --exclude=migrations || true
+#           fi
+
+
+#   # Job to deploy the frontend
+#   deploy-frontend:
+#     runs-on: ubuntu-latest
+#     needs: [build-and-push, test-frontend]
+#     environment: dev-frontend
+#     steps:
+#       - name: Setup SSH with password authentication
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y sshpass
+#           mkdir -p ~/.ssh
+#           ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+
+#       - name: Deploy frontend container (8080 behind Nginx)
+#         env:
+#           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+#         run: |
+#           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
+#           set -e
+
+#           # 1) Runtime env for frontend
+#           sudo mkdir -p /opt/pm/frontend/env
+#           sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
+#           window.ENV = {
+#             API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
+#             ENVIRONMENT: "development"
+#           };
+#           JS'
+
+#           # 2) Pull image
+#           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
+#           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+
+#           # 3) Recreate container on 8080
+#           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
+#           sudo docker run -d --name pm-frontend --restart unless-stopped \
+#             -p 8080:80 \
+#             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+#             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+
+#           # 4) If host Nginx exists, proxy port 80 -> 127.0.0.1:8080
+#           if command -v nginx >/dev/null 2>&1; then
+#             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+#             server {
+#               listen 80;
+#               server_name _;
+#               location / {
+#                 proxy_pass http://127.0.0.1:8080;
+#                 proxy_set_header Host \$host;
+#                 proxy_set_header X-Real-IP \$remote_addr;
+#                 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+#                 proxy_set_header X-Forwarded-Proto \$scheme;
+#               }
+#             }
+#             NGINX'
+#             sudo nginx -t && sudo systemctl reload nginx || true
+#           fi
+
+#           # 5) Show status
+#           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+#           DEPLOY_SCRIPT
+
+#       - name: Health check (Frontend)
+#         run: |
+#           sleep 5
+#           curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+
+#   # Job to deploy the backend
+#   deploy-backend:
+#     runs-on: ubuntu-latest
+#     needs: [build-and-push, test-backend]
+#     environment: dev-backend
+#     steps:
+#       - name: Setup SSH with password authentication
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y sshpass
+#           mkdir -p ~/.ssh
+#           ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+
+#       - name: Deploy backend container (env at /home/django/ProjectMeats/backend/.env)
+#         env:
+#           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+#         run: |
+#           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
+#           set -euo pipefail
+
+#           REG="${{ env.REGISTRY }}"
+#           IMG="${{ env.BACKEND_IMAGE }}"
+#           TAG="dev-latest"
+
+#           APP_DIR="/home/django/ProjectMeats/backend"
+#           MEDIA_DIR="/home/django/ProjectMeats/media"
+#           STATIC_DIR="/home/django/ProjectMeats/staticfiles"
+#           ENV_FILE="${APP_DIR}/.env"
+
+#           # 0) Ensure dirs exist
+#           sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
+          
+#           # Set permissions for mounted volumes (appuser in container has UID 1000)
+#           sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
+
+#           # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
+#           sudo tee "$ENV_FILE" > /dev/null <<ENV
+#           DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+#           SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}
+#           CORS_ALLOWED_ORIGINS=${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}
+#           DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+#           ALLOWED_HOSTS=${{ secrets.DEV_ALLOWED_HOSTS }}
+#           LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+#           DB_ENGINE=${{ secrets.DEV_DB_ENGINE }}
+#           DB_NAME=${{ secrets.DEV_DB_NAME }}
+#           DB_USER=${{ secrets.DEV_DB_USER }}
+#           DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}
+#           DB_HOST=${{ secrets.DEV_DB_HOST }}
+#           DB_PORT=${{ secrets.DEV_DB_PORT }}
+#           CORS_ALLOW_ALL_ORIGINS=${{ secrets.CORS_ALLOW_ALL_ORIGINS }}
+#           SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}
+#           CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}
+#           OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}
+#           #STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
+#           #MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
+#           EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}
+#           EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}
+#           EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}
+#           EMAIL_USE_TLS=${{ secrets.DEV_EMAIL_USE_TLS }}
+#           EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}
+#           EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}
+#           ENV
+#           sudo chown root:root "$ENV_FILE"
+#           sudo chmod 600 "$ENV_FILE"
+
+#           # 2) Pull image
+#           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
+#           sudo docker pull "$REG/$IMG:$TAG"
+
+#           # 3) Migrate and collectstatic using the same .env
+#           sudo docker run --rm \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             -v "$STATIC_DIR:/app/staticfiles" \
+#             "$REG/$IMG:$TAG" \
+#             python manage.py migrate --noinput
+
+#           sudo docker run --rm \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             -v "$STATIC_DIR:/app/staticfiles" \
+#             "$REG/$IMG:$TAG" \
+#             python manage.py collectstatic --noinput || true
+
+#           # 4) Recreate app container
+#           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
+#           sudo docker run -d --name pm-backend --restart unless-stopped \
+#             -p 8000:8000 \
+#             --env-file "$ENV_FILE" \
+#             -v "$MEDIA_DIR:/app/media" \
+#             -v "$STATIC_DIR:/app/staticfiles" \
+#             "$REG/$IMG:$TAG"
+
+#           # 5) Status
+#           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+#           SSH
+
+#       - name: Health check (Backend)
+#         run: |
+#           for i in {1..10}; do
+#             if curl -fsS "${{ secrets.DEV_BACKEND_HEALTH_URL }}" > /dev/null; then
+#               echo "Backend healthy"
+#               exit 0
+#             fi
+#             sleep 3
+#           done
+#           echo "Backend health check failed" >&2
+#           exit 1
+
+name: Deploy Dev (Frontend + Backend via DOCR and GHCR)
 
 on:
   push:
@@ -6,14 +317,33 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ vars.DOCR_REGISTRY }}            
-  FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} 
-  BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND  }} 
+  REGISTRY: ${{ vars.DOCR_REGISTRY }}
+  FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }}
+  BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND }}
+  GHCR_REGISTRY: ghcr.io/meats-central
 
 jobs:
-  # Job to build and push both frontend and backend Docker images
+  # Lint YAML files to prevent syntax errors
+  lint-yaml:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run yamllint
+        uses: reviewdog/action-yamllint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          yamllint_flags: '.github/workflows/'
+  
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [lint-yaml]
     strategy:
       matrix:
         app: [ frontend, backend ]
@@ -23,27 +353,41 @@ jobs:
       - name: Login to DOCR
         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
 
-      - name: Build & Push Frontend
+      - name: Login to GHCR
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # Build & Push Frontend to DOCR and GHCR
+      - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
         run: |
+          FRONTEND_IMAGE_LC="${FRONTEND_IMAGE,,}"
           docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE:dev-latest \
+            -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
+            -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
+            -t $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
+            -t $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
             .
-          docker push $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7}
-          docker push $REGISTRY/$FRONTEND_IMAGE:dev-latest
+          docker push $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7}
+          docker push $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest
+          docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7}
+          docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-latest
 
-      - name: Build & Push Backend (Django)
+      # Build & Push Backend to DOCR and GHCR
+      - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
         run: |
+          BACKEND_IMAGE_LC="${BACKEND_IMAGE,,}"
           docker build -f backend/Dockerfile \
-            -t $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$BACKEND_IMAGE:dev-latest \
+            -t $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
+            -t $REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
+            -t $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
+            -t $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
             .
-          docker push $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7}
-          docker push $REGISTRY/$BACKEND_IMAGE:dev-latest
+          docker push $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7}
+          docker push $REGISTRY/$BACKEND_IMAGE_LC:dev-latest
+          docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7}
+          docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-latest
 
-  # Job to test the frontend code
   test-frontend:
     runs-on: ubuntu-latest
     needs: build-and-push
@@ -61,17 +405,17 @@ jobs:
       - working-directory: ./frontend
         run: npm run type-check
 
-  # Job to test the backend code
   test-backend:
     runs-on: ubuntu-latest
     needs: build-and-push
     services:
+      # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       postgres:
-        image: postgres:15
+        image: postgres:15  # Latest stable compatible with Django 4.2.7, psycopg2-binary 2.9.9; aligns with 2024 best practices
         env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres  # Standardize to 'postgres' to fix role 'root' mismatch errors
+          POSTGRES_PASSWORD: postgres  # Use consistent password for CI; in production use secrets
+          POSTGRES_DB: test_db  # Match test database name for consistency
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -95,37 +439,67 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Setup test environment
+      
+      # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
+      - name: Wait for DB readiness
+        env:
+          PGPASSWORD: postgres
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+      
+      # Execute DB init scripts manually (GitHub Actions services don't auto-run /docker-entrypoint-initdb.d/)
+      - name: Execute DB init scripts (roles, extensions, permissions)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          echo "Executing database initialization scripts..."
+          if [ -d "./docker-entrypoint-initdb.d" ]; then
+            for script in ./docker-entrypoint-initdb.d/*.sql; do
+              if [ -f "$script" ]; then
+                echo "Running: $(basename $script)"
+                psql -h localhost -p 5432 -U postgres -d test_db -f "$script" || echo "Warning: Script $(basename $script) had errors (may be idempotent)"
+              fi
+            done
+            echo "Database initialization scripts completed"
+          else
+            echo "No init scripts directory found at ./docker-entrypoint-initdb.d/"
+          fi
+      
+      # Note: makemigrations should be done locally and committed. Focus on migrate only in CI.
+      # Run full Django migrations (idempotent)
+      - name: Run full Django migrations
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
           DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+          POSTGRES_USER: postgres
         run: |
-          python manage.py check
-          python manage.py migrate
+          echo "Applying full database migrations..."
+          python manage.py migrate --noinput
+      
+      # Run tests directly - custom shared-schema multi-tenancy (no django-tenants schema isolation)
       - name: Run tests
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-testing-only
           DEBUG: True
-        run: python manage.py test apps/
-      - name: Code quality (non-blocking)
-        working-directory: ./backend
-        continue-on-error: true
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+          POSTGRES_USER: postgres
         run: |
-          if pip show flake8 >/dev/null 2>&1; then
-            flake8 . --exclude=migrations --max-line-length=120 || true
-          fi
-          if pip show black >/dev/null 2>&1; then
-            black --check . --exclude=migrations || true
-          fi
+          echo "Running tests with custom shared-schema multi-tenancy..."
+          python manage.py test apps/ --verbosity=2
 
-  # Job to deploy the frontend
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [test-frontend]
     environment: dev-frontend
     steps:
       - name: Setup SSH with password authentication
@@ -142,7 +516,6 @@ jobs:
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
           set -e
 
-          # 1) Runtime env for frontend
           sudo mkdir -p /opt/pm/frontend/env
           sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
           window.ENV = {
@@ -151,18 +524,15 @@ jobs:
           };
           JS'
 
-          # 2) Pull image
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 3) Recreate container on 8080
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
 
-          # 4) If host Nginx exists, proxy port 80 -> 127.0.0.1:8080
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
             server {
@@ -180,7 +550,6 @@ jobs:
             sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
-          # 5) Show status
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           DEPLOY_SCRIPT
 
@@ -189,10 +558,9 @@ jobs:
           sleep 5
           curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
 
-  # Job to deploy the backend
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [test-backend]
     environment: dev-backend
     steps:
       - name: Setup SSH with password authentication
@@ -206,6 +574,12 @@ jobs:
         env:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
+          # IMPORTANT: Heredoc escaping rules for <<'SSH' (quoted heredoc)
+          # - Variables: \$VAR (with backslash) → remote bash expands to variable value
+          # - Command substitution: $(cmd) (NO backslash) → remote bash executes command
+          # - Arithmetic: $((\$VAR + 1)) (NO backslash before $((, but yes on inner vars)
+          # - NEVER use \$(cmd) or \$((expr)) - causes "syntax error near unexpected token '('"
+          # See: docs/DEPLOYMENT_STABILITY_GUIDE.md and SDLC_LOOP_DEPLOYMENT_FIX.md
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
           set -euo pipefail
 
@@ -215,12 +589,12 @@ jobs:
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
+          STATIC_DIR="/home/django/ProjectMeats/staticfiles"
           ENV_FILE="${APP_DIR}/.env"
 
-          # 0) Ensure dirs exist
-          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR"
+          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
+          sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
-          # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
           DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
           SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}
@@ -238,8 +612,6 @@ jobs:
           SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}
           CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}
           OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}
-          #STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
-          #MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
           EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}
           EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}
           EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}
@@ -247,46 +619,146 @@ jobs:
           EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}
           EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}
           ENV
-          sudo chown root:root "$ENV_FILE"
-          sudo chmod 600 "$ENV_FILE"
+          sudo chown 1000:1000 "$ENV_FILE"
+          sudo chmod 644 "$ENV_FILE"
 
-          # 2) Pull image
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # 3) Migrate and collectstatic using the same .env
+          # Pre-deployment: Run database migrations and setup tasks
+          echo "=== Running pre-deployment tasks ==="
           sudo docker run --rm \
+            --name pm-backend-deploy \
             --env-file "$ENV_FILE" \
+            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
+            bash -c '
+              set -euo pipefail
+              
+              echo "Step 1/5: Checking database connectivity..."
+              for i in {1..30}; do
+                if python manage.py check --database default >/dev/null 2>&1; then
+                  echo "✓ Database connection successful"
+                  break
+                fi
+                if [ $i -eq 30 ]; then
+                  echo "✗ Failed to connect to database after 30 attempts"
+                  exit 1
+                fi
+                echo "Waiting for database... ($i/30)"
+                sleep 2
+              done
+              
+              echo "Step 2/5: Running database migrations..."
+              python manage.py migrate --noinput || {
+                echo "✗ Migration failed"
+                exit 1
+              }
+              echo "✓ Migrations completed"
+              
+              echo "Step 3/5: Creating superuser and root tenant..."
+              python manage.py create_super_tenant --verbosity=1 || {
+                echo "⚠ create_super_tenant command failed or not available"
+              }
+              
+              echo "Step 4/5: Creating guest tenant..."
+              python manage.py create_guest_tenant --verbosity=1 || {
+                echo "⚠ create_guest_tenant command failed or not available"
+              }
+              
+              echo "Step 5/5: Collecting static files..."
+              python manage.py collectstatic --noinput --clear || {
+                echo "⚠ collectstatic failed (non-critical)"
+              }
+              echo "✓ Static files collected"
+              
+              echo "=== Pre-deployment tasks completed successfully ==="
+            ' || {
+              echo "✗ Pre-deployment tasks failed"
+              exit 1
+            }
 
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput || true
-
-          # 4) Recreate app container
+          # Stop old container if running
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
-          sudo docker run -d --name pm-backend --restart unless-stopped \
+          
+          # Start new container
+          echo "=== Starting application container ==="
+          CONTAINER_ID=$(sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
             --env-file "$ENV_FILE" \
+            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
-            "$REG/$IMG:$TAG"
-
-          # 5) Status
+            -v "$STATIC_DIR:/app/staticfiles" \
+            "$REG/$IMG:$TAG")
+          
+          echo "Container ID: $CONTAINER_ID"
+          
+          # Wait briefly and capture initial logs
+          echo "Waiting 3 seconds for initial startup..."
+          sleep 3
+          
+          # Capture logs immediately to see what's happening
+          echo "=== Initial container logs ==="
+          sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
+          
+          # Check container status using ID
+          echo "Checking container with ID: $CONTAINER_ID"
+          sudo docker ps -a | grep "$CONTAINER_ID" || echo "Container not found in ps -a!"
+          sudo docker inspect "$CONTAINER_ID" --format='{{.State.Status}} - {{.State.ExitCode}} - {{.State.Error}}' 2>&1 || echo "Could not inspect"
+          
+          # Check container status
+          if ! sudo docker ps | grep -q pm-backend; then
+            echo "✗ Container failed to start or exited"
+            echo "=== Full container logs ==="
+            sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
+            exit 1
+          fi
+          
+          echo "✓ Container is running"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          SSH
-
-      - name: Health check (Backend)
-        run: |
-          for i in {1..10}; do
-            if curl -fsS "${{ secrets.DEV_BACKEND_HEALTH_URL }}" > /dev/null; then
-              echo "Backend healthy"
+          
+          # Perform health checks on the remote server
+          echo "=== Performing health checks ==="
+          
+          # Wait for application to initialize
+          echo "Waiting for application to initialize..."
+          sleep 10
+          
+          # Verify container is still running
+          if ! sudo docker ps | grep -q pm-backend; then
+            echo "✗ Container stopped unexpectedly"
+            echo "=== Container logs ==="
+            sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
+            exit 1
+          fi
+          
+          # Perform HTTP health check with retries
+          echo "Checking HTTP endpoint..."
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+          
+          while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
+            # Use localhost since we're on the remote server  
+            # Get HTTP status using -I (HEAD request) and grep
+            HTTP_CODE=$(curl -s -I http://localhost:8000/api/v1/health/ 2>/dev/null | grep "^HTTP" | awk '{print \$2}' || echo "000")
+            
+            if [ "\$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP \$HTTP_CODE)"
+              echo "=== Deployment completed successfully ==="
               exit 0
             fi
-            sleep 3
+            
+            if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed after \$MAX_ATTEMPTS attempts (HTTP \$HTTP_CODE)"
+              echo "=== Container logs ==="
+              sudo docker logs pm-backend --tail 100 2>&1
+              exit 1
+            fi
+            
+            echo "Health check attempt \$ATTEMPT/\$MAX_ATTEMPTS failed (HTTP \$HTTP_CODE), retrying..."
+            sleep 5
+            ATTEMPT=$((\$ATTEMPT + 1))
           done
-          echo "Backend health check failed" >&2
-          exit 1
+          SSH

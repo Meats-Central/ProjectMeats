@@ -2,12 +2,13 @@
 Django admin configuration for Suppliers app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Supplier
 
 
 @admin.register(Supplier)
-class SupplierAdmin(admin.ModelAdmin):
-    """Admin interface for Supplier model."""
+class SupplierAdmin(TenantFilteredAdmin):
+    """Admin interface for Supplier model with tenant filtering."""
 
     list_display = (
         "name",

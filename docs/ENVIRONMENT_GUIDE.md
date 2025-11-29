@@ -70,6 +70,9 @@ config/
 **Note**: Development temporarily uses SQLite instead of PostgreSQL due to Postgres server setup issues. This will be reverted to PostgreSQL for environment parity once resolved.
 
 #### Staging (config/environments/staging.env)  
+**IMPORTANT:** This configuration is for UAT environment (uat.meatscentral.com).  
+**DEPRECATED:** staging.meatscentral.com is deprecated. UAT is the active middle environment per pipeline configuration.
+
 - **Database**: PostgreSQL with environment variables
 - **Debug**: Disabled  
 - **CORS**: Restricted to staging domains
@@ -152,6 +155,9 @@ config/
 6. **Run**: `make dev`
 
 ### Staging Deployment
+**IMPORTANT NOTE:** "Staging" refers to the UAT environment (uat.meatscentral.com).  
+**DEPRECATED:** staging.meatscentral.com is no longer used. UAT is the active middle environment per our pipeline configuration.
+
 1. **Configure GitHub Secrets**: Before deployment, ensure all required secrets are configured in GitHub repository settings (see "Required GitHub Secrets for Staging" section below)
 2. **Environment Variables**: Set staging environment variables on the staging server's environment configuration
 3. **Setup**: `python config/manage_env.py setup staging`
@@ -160,6 +166,9 @@ config/
 6. **Superuser**: Automatically created during deployment via `python manage.py create_super_tenant`
 
 #### Required GitHub Secrets for Staging
+
+**IMPORTANT:** Staging refers to UAT environment (uat.meatscentral.com).  
+**DEPRECATED:** staging.meatscentral.com is no longer used. Use uat.meatscentral.com as the primary middle environment.
 
 The following secrets must be configured in GitHub for staging deployment:
 
@@ -228,8 +237,11 @@ SUPERUSER_PASSWORD=DevAdmin123!SecurePass
 **Staging/Production Environments:**
 ```bash
 # Set as deployment secrets in GitHub or your platform
+# NOTE: "Staging" refers to UAT (uat.meatscentral.com)
+# DEPRECATED: staging.meatscentral.com - use uat.meatscentral.com instead
+
 STAGING_SUPERUSER_USERNAME=admin
-STAGING_SUPERUSER_EMAIL=admin@staging.meatscentral.com
+STAGING_SUPERUSER_EMAIL=admin@uat.meatscentral.com
 STAGING_SUPERUSER_PASSWORD=<secure-password>
 
 PRODUCTION_SUPERUSER_USERNAME=admin

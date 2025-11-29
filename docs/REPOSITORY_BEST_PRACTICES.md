@@ -48,16 +48,30 @@ ProjectMeats/
 
 ### Branch Strategy
 
+For a comprehensive guide to our branch workflow, naming conventions, and promotion process, see **[Branch Workflow Checklist](../branch-workflow-checklist.md)**.
+
+**Branch Structure:**
 - **main**: Production-ready code
-- **develop**: Development branch (if using GitFlow)
+- **uat**: UAT/staging environment
+- **development**: Active development branch
 - **feature/**: Feature branches (`feature/add-customer-portal`)
 - **fix/**: Bug fixes (`fix/login-validation`)
 - **hotfix/**: Critical production fixes (`hotfix/security-patch`)
+- **chore/**: Maintenance tasks (`chore/update-dependencies`)
+- **refactor/**: Code refactoring (`refactor/payment-service`)
+- **docs/**: Documentation changes (`docs/update-api-guide`)
+- **test/**: Test-related changes (`test/add-integration-tests`)
 - **copilot/**: GitHub Copilot automated changes
+
+**Naming Requirements:**
+- Use `<type>/<description>` format
+- Description must be lowercase with hyphens
+- Be concise but descriptive (3-5 words ideal)
+- Automated validation enforces these conventions
 
 ### Commit Messages
 
-Follow the Conventional Commits specification:
+Follow the Conventional Commits specification (also required for PR titles):
 
 ```
 <type>(<scope>): <subject>
@@ -77,6 +91,15 @@ Follow the Conventional Commits specification:
 - `chore`: Maintenance tasks
 - `perf`: Performance improvements
 - `ci`: CI/CD changes
+- `build`: Build system changes
+- `revert`: Revert previous changes
+- `hotfix`: Emergency quick fixes
+
+**PR Title Requirements:**
+- Must follow same format as commit messages
+- Format: `<type>(<scope>): <description>` or `<type>: <description>`
+- Description must be lowercase (after colon)
+- Automated validation enforces these conventions
 
 **Examples:**
 ```

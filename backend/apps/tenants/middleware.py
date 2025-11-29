@@ -3,8 +3,9 @@ Middleware for multi-tenancy support in ProjectMeats.
 
 This middleware sets the current tenant in the request context based on:
 1. X-Tenant-ID header (for API requests) - HIGHEST PRIORITY
-2. Subdomain (if configured)
-3. Authenticated user's default tenant association - FALLBACK
+2. Full domain name match (via TenantDomain model) - NEW
+3. Subdomain (if configured)
+4. Authenticated user's default tenant association - FALLBACK
 
 Tenant Resolution Order:
 -----------------------
@@ -13,12 +14,16 @@ Tenant Resolution Order:
    - Validates user has access to requested tenant
    - Returns 403 Forbidden if user lacks permission
    
-2. **Subdomain**: For multi-tenant web applications
+2. **Domain Match**: For multi-tenant domain routing (shared-schema pattern)
+   - Matches full domain against TenantDomain model entries
+   - Example: tenant.example.com → TenantDomain.objects.get(domain="tenant.example.com")
+   
+3. **Subdomain**: For multi-tenant web applications
    - Extracts subdomain from request host
    - Matches against tenant.slug field
    - Example: acme.meatscentral.com → tenant with slug="acme"
    
-3. **User's Default Tenant**: Automatic fallback for authenticated users
+4. **User's Default Tenant**: Automatic fallback for authenticated users
    - Queries TenantUser association
    - Prioritizes owner/admin roles
    - Returns first active tenant for user
@@ -28,7 +33,7 @@ ViewSets should handle None tenant by returning empty querysets or raising valid
 """
 
 from django.http import HttpRequest, HttpResponseForbidden
-from .models import Tenant, TenantUser
+from .models import Tenant, TenantUser, TenantDomain
 import logging
 
 logger = logging.getLogger(__name__)
@@ -55,6 +60,18 @@ class TenantMiddleware:
         """Process the request and set tenant context."""
         tenant = None
         resolution_method = None  # Track how tenant was resolved for logging
+        
+        # Temporary debugging for staging.meatscentral.com and uat.meatscentral.com
+        host = request.get_host().split(":")[0]
+        is_debug_host = host in ["staging.meatscentral.com", "uat.meatscentral.com"]
+        debug_prefix = "[STAGING DEBUG]" if host == "staging.meatscentral.com" else "[UAT DEBUG]"
+        if is_debug_host:
+            logger.info(
+                f"{debug_prefix} Request received - "
+                f"host={host}, path={request.path}, "
+                f"method={request.method}, "
+                f"user={request.user.username if request.user.is_authenticated else 'Anonymous'}"
+            )
 
         # 1. Try to get tenant from X-Tenant-ID header (for API requests)
         tenant_id = request.headers.get("X-Tenant-ID")
@@ -88,23 +105,71 @@ class TenantMiddleware:
                     f"path={request.path}"
                 )
 
-        # 2. Try to get tenant from subdomain
+        # 2. Try to get tenant from full domain match (via TenantDomain model)
+        if not tenant:
+            host = request.get_host().split(":")[0]  # Remove port if present
+            
+            if is_debug_host:
+                logger.info(f"{debug_prefix} Attempting domain lookup for: {host}")
+            
+            try:
+                domain_obj = TenantDomain.objects.select_related('tenant').get(
+                    domain=host
+                )
+                if domain_obj.tenant.is_active:
+                    tenant = domain_obj.tenant
+                    resolution_method = f"domain ({host})"
+                    if is_debug_host:
+                        logger.info(
+                            f"{debug_prefix} Tenant resolved via domain - "
+                            f"tenant={tenant.slug}, tenant_id={tenant.id}"
+                        )
+                else:
+                    if is_debug_host:
+                        logger.info(
+                            f"{debug_prefix} Domain found but tenant is inactive - "
+                            f"tenant={domain_obj.tenant.slug}"
+                        )
+            except TenantDomain.DoesNotExist:
+                if is_debug_host:
+                    logger.info(
+                        f"{debug_prefix} No TenantDomain entry found for: {host}"
+                    )
+                logger.debug(
+                    f"No TenantDomain entry found for: {host}, "
+                    f"path={request.path}"
+                )
+
+        # 3. Try to get tenant from subdomain
         if not tenant:
             host = request.get_host().split(":")[0]  # Remove port if present
             subdomain = host.split(".")[0] if "." in host else None
 
             if subdomain and subdomain != "www":
+                if is_debug_host:
+                    logger.info(f"{debug_prefix} Attempting subdomain lookup for: {subdomain}")
+                
                 try:
                     tenant = Tenant.objects.get(slug=subdomain, is_active=True)
                     resolution_method = f"subdomain ({subdomain})"
+                    if is_debug_host:
+                        logger.info(
+                            f"{debug_prefix} Tenant resolved via subdomain - "
+                            f"tenant={tenant.slug}, tenant_id={tenant.id}"
+                        )
                 except Tenant.DoesNotExist:
+                    if is_debug_host:
+                        logger.info(f"{debug_prefix} No tenant found for subdomain: {subdomain}")
                     logger.debug(
                         f"No tenant found for subdomain: {subdomain}, "
                         f"path={request.path}"
                     )
 
-        # 3. Get user's default tenant if authenticated
+        # 4. Get user's default tenant if authenticated
         if not tenant and request.user.is_authenticated:
+            if is_debug_host:
+                logger.info(f"{debug_prefix} Attempting default tenant lookup for user: {request.user.username}")
+            
             tenant_user = (
                 TenantUser.objects.filter(user=request.user, is_active=True)
                 .select_related("tenant")
@@ -114,6 +179,29 @@ class TenantMiddleware:
             if tenant_user:
                 tenant = tenant_user.tenant
                 resolution_method = f"user default tenant (role={tenant_user.role})"
+                if is_debug_host:
+                    logger.info(
+                        f"{debug_prefix} Tenant resolved via user default - "
+                        f"tenant={tenant.slug}, tenant_id={tenant.id}, role={tenant_user.role}"
+                    )
+            else:
+                if is_debug_host:
+                    logger.info(
+                        f"{debug_prefix} No default tenant found for user: {request.user.username}"
+                    )
+
+        # Final tenant resolution result for debug hosts
+        if is_debug_host:
+            if tenant:
+                logger.info(
+                    f"{debug_prefix} Final tenant resolution SUCCESS - "
+                    f"tenant={tenant.slug}, method={resolution_method}"
+                )
+            else:
+                logger.info(
+                    f"{debug_prefix} Final tenant resolution FAILED - "
+                    f"No tenant could be resolved for request"
+                )
 
         # Log tenant resolution for debugging (at DEBUG level to avoid noise)
         if tenant:
@@ -155,7 +243,18 @@ class TenantMiddleware:
 
         try:
             response = self.get_response(request)
+            
+            if is_debug_host:
+                logger.info(
+                    f"{debug_prefix} Response generated - "
+                    f"status_code={response.status_code if hasattr(response, 'status_code') else 'unknown'}"
+                )
         except Exception as e:
+            if is_debug_host:
+                logger.error(
+                    f"{debug_prefix} Exception during request processing - "
+                    f"error_type={type(e).__name__}, error={str(e)}"
+                )
             # Log session-related errors that may indicate readonly database
             if "readonly" in str(e).lower() or "read-only" in str(e).lower():
                 logger.error(

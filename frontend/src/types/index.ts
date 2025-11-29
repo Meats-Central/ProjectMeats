@@ -26,6 +26,13 @@ export interface ChatMessage {
 }
 
 // User Types
+export interface UserTenant {
+  tenant__id: string;
+  tenant__name: string;
+  tenant__slug: string;
+  role: string;
+}
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -35,6 +42,7 @@ export interface UserProfile {
   is_active: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
+  tenants?: UserTenant[];
 }
 
 // API Response Types

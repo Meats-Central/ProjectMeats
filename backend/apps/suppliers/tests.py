@@ -89,19 +89,31 @@ class SupplierAPITests(APITestCase):
         self.assertEqual(Supplier.objects.count(), 0)
 
     def test_create_supplier_without_tenant(self):
-        """Test that creating a supplier without X-Tenant-ID header uses user's default tenant."""
+        """
+        Test that creating a supplier without X-Tenant-ID header succeeds when user has TenantUser.
+        
+        With fallback tenant resolution, supplier creation should work via:
+        - X-Tenant-ID header (explicit), OR
+        - Request going through middleware which sets it from user's tenant association, OR
+        - Direct TenantUser query fallback in perform_create
+        
+        In API testing without middleware, the fallback will query TenantUser and auto-assign tenant.
+        This provides a better user experience while maintaining security.
+        """
         url = reverse("suppliers:supplier-list")
         data = {
             "name": "Test Supplier",
         }
 
-        # Don't send tenant header - should use user's default tenant from TenantUser
+        # Don't send tenant header - fallback should use user's TenantUser association
         response = self.client.post(url, data)
 
+        # Should succeed with fallback tenant resolution
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.count(), 1)
         supplier = Supplier.objects.first()
-        self.assertEqual(supplier.tenant, self.tenant)  # Should use user's default tenant
+        self.assertEqual(supplier.name, "Test Supplier")
+        self.assertEqual(supplier.tenant, self.tenant)  # Auto-assigned from user's TenantUser
         
     def test_create_supplier_without_tenant_and_no_tenant_user(self):
         """Test that creating a supplier fails when user has no TenantUser association."""

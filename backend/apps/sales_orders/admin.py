@@ -2,12 +2,13 @@
 Django admin configuration for Sales Orders app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import SalesOrder
 
 
 @admin.register(SalesOrder)
-class SalesOrderAdmin(admin.ModelAdmin):
-    """Admin interface for SalesOrder model."""
+class SalesOrderAdmin(TenantFilteredAdmin):
+    """Admin interface for SalesOrder model with tenant filtering."""
 
     list_display = (
         "our_sales_order_num",

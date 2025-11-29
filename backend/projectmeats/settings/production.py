@@ -53,14 +53,22 @@ for h in _ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS:
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
+# Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
+_db_config = dj_database_url.config(
+    default=config(
+        "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
+    ),  # noqa: F405
+    conn_max_age=600,
+    conn_health_checks=True,
+)
+
+# Use standard PostgreSQL backend (not django-tenants)
+# ProjectMeats uses custom shared-schema multi-tenancy
+# if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+#     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=config(
-            "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
-        ),  # noqa: F405
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    "default": _db_config
 }
 
 # -----------------------------------------------------------------------------
@@ -72,6 +80,26 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-tenant-id",
+]
+
+# CSRF trusted origins - required for cross-origin POST requests to admin
+# Should match CORS_ALLOWED_ORIGINS for consistency
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+    if origin.strip()
+]
 
 # -----------------------------------------------------------------------------
 # Security Headers

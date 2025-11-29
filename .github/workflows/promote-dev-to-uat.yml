@@ -1,0 +1,50 @@
+name: Promote Development to UAT
+# UAT (uat.meatscentral.com) is the active middle environment per pipeline.
+# DEPRECATED: staging.meatscentral.com - use uat.meatscentral.com instead.
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+jobs:
+  create-uat-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: development
+
+      - name: Check if PR already exists and close it
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          # Check for existing open PR
+          PR_NUMBER=$(gh pr list --base uat --head development --state open --json number --jq 'if length > 0 then .[0].number else empty end')
+          
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Found existing PR #${PR_NUMBER}. Closing it to create a new one with latest commits..."
+            gh pr close "${PR_NUMBER}" --comment "Closing this PR to create a new one with the latest commits from development branch." --delete-branch=false
+            echo "::notice::Closed existing PR #${PR_NUMBER}"
+          else
+            echo "No existing PR found."
+          fi
+          
+      - name: Create Pull Request to UAT
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          gh pr create \
+            --base uat \
+            --head development \
+            --title "Promote development to UAT" \
+            --body "Auto-created PR to promote tested changes from development to UAT environment. Only merges after CI/test checks and review." \
+            --reviewer Vacilator
