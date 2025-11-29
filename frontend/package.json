@@ -17,6 +17,7 @@
     "react": "^18.2.0",
     "react-autosuggest": "^10.1.0",
     "react-dom": "^18.2.0",
+
     "react-router-dom": "^6.30.1",
     "react-scripts": "5.0.1",
     "react-table": "^7.8.0",
@@ -26,12 +27,12 @@
     "typescript": "^4.9.5"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
     "build:production": "NODE_ENV=production npm run build",
-    "test": "react-app-rewired test",
-    "test:ci": "react-app-rewired test --coverage --passWithNoTests --watchAll=false",
-    "eject": "react-app-rewired eject",
+    "test": "react-scripts test",
+    "test:ci": "react-scripts test --coverage --passWithNoTests --watchAll=false",
+    "eject": "react-scripts eject",
     "type-check": "tsc --noEmit",
     "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}",
     "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
@@ -54,7 +55,6 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "@storybook/addon-docs": "^9.1.5",
     "@storybook/addon-onboarding": "^9.1.5",
     "@storybook/preset-create-react-app": "^9.1.5",
@@ -67,7 +67,6 @@
     "eslint": "^8.57.1",
     "prettier": "^3.6.2",
     "prop-types": "^15.8.1",
-    "react-app-rewired": "^2.2.1",
     "serve": "^14.2.0",
     "storybook": "^9.1.5",
     "webpack": "^5.101.3"
