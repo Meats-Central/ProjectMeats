@@ -256,7 +256,7 @@ jobs:
           sudo mkdir -p "$APP_DIR/env"
 
           # Create runtime env-config.js with production values
-          sudo bash -c "cat > '\$APP_DIR/env/env-config.js' <<'JS'
+          sudo bash -c "cat > \"$APP_DIR/env/env-config.js\" <<'JS'
           window.ENV = {
             API_BASE_URL: \"${{ secrets.REACT_APP_API_BASE_URL }}\",
             ENVIRONMENT: \"production\",
