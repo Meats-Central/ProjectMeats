@@ -735,7 +735,7 @@ jobs:
           
           while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
             # Use localhost since we're on the remote server
-            HTTP_CODE=\$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8000/api/v1/health/" 2>/dev/null || echo "000")
+            HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/api/v1/health/" 2>/dev/null || echo "000")
             
             if [ "\$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP \$HTTP_CODE)"
