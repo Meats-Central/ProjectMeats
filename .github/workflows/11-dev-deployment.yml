@@ -517,12 +517,15 @@ jobs:
           set -e
 
           sudo mkdir -p /opt/pm/frontend/env
-          sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
+          
+          cat > /tmp/env-config.js <<'ENVJS'
           window.ENV = {
             API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
             ENVIRONMENT: "development"
           };
-          JS'
+          ENVJS
+
+          sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
           sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
