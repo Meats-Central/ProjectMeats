@@ -713,6 +713,8 @@ jobs:
           # Check if container is running
           if ! docker ps | grep -q pm-backend; then
             echo "✗ Container is not running"
+            echo "=== Checking container logs ==="
+            docker logs pm-backend --tail 100 || echo "Failed to get logs"
             exit 1
           fi
           
