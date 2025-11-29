@@ -8,6 +8,10 @@ on:
       - uat
   workflow_dispatch:
 
+concurrency:
+  group: promote-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   create-main-pr:
     runs-on: ubuntu-latest
@@ -47,4 +51,9 @@ jobs:
             --head uat \
             --title "Promote UAT to Main (Production Release)" \
             --body "Auto-created PR to promote reviewed changes from UAT to main. CI must pass and approval is required before merging to production." \
+            --label "auto-promotion,production-release" \
             --reviewer Vacilator
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::warning::PR creation failed"
