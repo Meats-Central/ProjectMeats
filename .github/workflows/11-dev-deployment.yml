@@ -712,27 +712,19 @@ jobs:
           
           echo "✓ Container is running"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          SSH
-
-      - name: Health check (Backend)
-        run: |
+          
+          # Perform health checks on the remote server
           echo "=== Performing health checks ==="
           
-          # Check logs immediately to see if there are any startup errors
-          echo "=== Checking initial container logs ==="
-          sleep 2
-          sudo docker logs pm-backend --tail 50 2>&1 || echo "Could not get initial logs"
-          
-          # Wait a bit for the application to fully start
+          # Wait for application to initialize
           echo "Waiting for application to initialize..."
-          sleep 8
+          sleep 10
           
-          # Check if container is running
+          # Verify container is still running
           if ! sudo docker ps | grep -q pm-backend; then
-            echo "✗ Container is not running"
-            echo "=== Checking container logs (including stopped containers) ==="
-            sudo docker ps -a | grep pm-backend || echo "Container not found in docker ps -a"
-            sudo docker logs pm-backend --tail 100 2>&1 || sudo docker logs $(sudo docker ps -aq --filter name=pm-backend --latest) --tail 100 2>&1 || echo "Failed to get logs"
+            echo "✗ Container stopped unexpectedly"
+            echo "=== Container logs ==="
+            sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
             exit 1
           fi
           
@@ -741,23 +733,25 @@ jobs:
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.DEV_BACKEND_HEALTH_URL }}" || echo "000")
+          while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
+            # Use localhost since we're on the remote server
+            HTTP_CODE=\$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/api/v1/health/" 2>/dev/null || echo "000")
             
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
+            if [ "\$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP \$HTTP_CODE)"
               echo "=== Deployment completed successfully ==="
               exit 0
             fi
             
-            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
-              echo "=== Checking container logs ==="
-              sudo docker logs pm-backend --tail 100
+            if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed after \$MAX_ATTEMPTS attempts (HTTP \$HTTP_CODE)"
+              echo "=== Container logs ==="
+              sudo docker logs pm-backend --tail 100 2>&1
               exit 1
             fi
             
-            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS failed (HTTP $HTTP_CODE), retrying..."
+            echo "Health check attempt \$ATTEMPT/\$MAX_ATTEMPTS failed (HTTP \$HTTP_CODE), retrying..."
             sleep 5
-            ATTEMPT=$((ATTEMPT + 1))
+            ATTEMPT=\$((ATTEMPT + 1))
           done
+          SSH
