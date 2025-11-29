@@ -19,12 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to DOCR
-        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
-
       - name: Build & Push Frontend
         if: matrix.app == 'frontend'
         run: |
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
           docker build -f frontend/Dockerfile \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
@@ -35,6 +33,7 @@ jobs:
       - name: Build & Push Backend (Django)
         if: matrix.app == 'backend'
         run: |
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
           docker build -f backend/Dockerfile \
             -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
@@ -257,19 +256,20 @@ jobs:
           sudo mkdir -p "$APP_DIR/env"
 
           # Create runtime env-config.js with production values
-          sudo bash -c 'cat > "$APP_DIR/env/env-config.js" <<JS
+          sudo bash -c "cat > '\$APP_DIR/env/env-config.js' <<'JS'
           window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "production",
-            AI_ASSISTANT_ENABLED: "${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}",
-            ENABLE_DOCUMENT_UPLOAD: "${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}",
-            ENABLE_CHAT_EXPORT: "${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}",
-            MAX_FILE_SIZE: "${{ secrets.REACT_APP_MAX_FILE_SIZE }}",
-            SUPPORTED_FILE_TYPES: "${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}",
-            ENABLE_DEBUG: "false",
-            ENABLE_DEVTOOLS: "false"
+            API_BASE_URL: \"${{ secrets.REACT_APP_API_BASE_URL }}\",
+            ENVIRONMENT: \"production\",
+            AI_ASSISTANT_ENABLED: \"${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}\",
+            ENABLE_DOCUMENT_UPLOAD: \"${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}\",
+            ENABLE_CHAT_EXPORT: \"${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}\",
+            MAX_FILE_SIZE: \"${{ secrets.REACT_APP_MAX_FILE_SIZE }}\",
+            SUPPORTED_FILE_TYPES: \"${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}\",
+            ENABLE_DEBUG: \"false\",
+            ENABLE_DEVTOOLS: \"false\"
           };
-          JS'
+          JS
+          "
 
           sudo chown root:root "$APP_DIR/env/env-config.js"
           sudo chmod 644 "$APP_DIR/env/env-config.js"

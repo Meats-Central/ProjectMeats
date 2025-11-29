@@ -8,6 +8,10 @@ on:
       - development
   workflow_dispatch:
 
+concurrency:
+  group: promote-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   create-uat-pr:
     runs-on: ubuntu-latest
@@ -47,4 +51,9 @@ jobs:
             --head development \
             --title "Promote development to UAT" \
             --body "Auto-created PR to promote tested changes from development to UAT environment. Only merges after CI/test checks and review." \
+            --label "auto-promotion,uat-release" \
             --reviewer Vacilator
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::warning::PR creation failed"
