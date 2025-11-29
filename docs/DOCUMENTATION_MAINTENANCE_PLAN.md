@@ -22,7 +22,7 @@ This document outlines the ongoing maintenance plan for ProjectMeats documentati
 - **Core Documentation**: 15 essential files
 - **Implementation Summaries**: 15 total (6 in docs/, 9 in root)
 - **Fix/Issue Documentation**: 40+ files
-- **Last Core Docs Update**: 2025-11-03
+- **Last Core Docs Review**: 2025-11-29 (this audit)
 
 ### Documentation Health: 🟡 Good (Needs Organization)
 
@@ -132,10 +132,12 @@ This document outlines the ongoing maintenance plan for ProjectMeats documentati
    - Plan next year's improvements
 
 2. **Technology Updates** (2 hours)
-   - Update for new Django/React versions
+   - Update for new Django/React versions (check backend/requirements.txt and frontend/package.json for current versions)
+   - Monitor Django and React release notes for breaking changes
    - Revise deployment procedures if changed
    - Update security best practices
    - Refresh code examples with latest patterns
+   - Update technology stack section in README.md
 
 3. **Metrics & Planning** (2 hours)
    - Calculate documentation metrics
@@ -284,8 +286,9 @@ Main content here...
 
 ### Automated Checking
 
+**Option 1: Using markdown-link-check (Node.js)**
 ```bash
-# Install markdown-link-check
+# Install markdown-link-check (requires Node.js)
 npm install -g markdown-link-check
 
 # Check all markdown files
@@ -293,6 +296,40 @@ find . -name "*.md" ! -path "./node_modules/*" ! -path "./.git/*" -exec markdown
 
 # Check specific file
 markdown-link-check docs/DOCUMENTATION_INDEX.md
+```
+
+**Option 2: Manual checking with grep (No additional tools)**
+```bash
+# Find all markdown links
+grep -r "\[.*\](.*)" docs/ --include="*.md" -o
+
+# Check for broken relative links
+find docs/ -name "*.md" -exec grep -H "\](\.\./" {} \; | while read line; do
+    # Extract and validate each link
+    echo "Checking: $line"
+done
+```
+
+**Option 3: Use Python script (if available)**
+```python
+# Create docs/check_links.py
+import re
+import os
+from pathlib import Path
+
+def check_markdown_links(docs_dir):
+    for md_file in Path(docs_dir).rglob("*.md"):
+        with open(md_file) as f:
+            content = f.read()
+            links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', content)
+            for text, link in links:
+                if link.startswith(('http', '#')):
+                    continue  # Skip external and anchor links
+                target = (md_file.parent / link).resolve()
+                if not target.exists():
+                    print(f"Broken link in {md_file}: {link}")
+
+check_markdown_links("docs")
 ```
 
 ### Manual Verification
