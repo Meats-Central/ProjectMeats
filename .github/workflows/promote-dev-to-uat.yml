@@ -43,16 +43,27 @@ jobs:
           fi
           
       - name: Create Pull Request to UAT
+        id: create-pr
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base uat \
             --head development \
             --title "Promote development to UAT" \
             --body "Auto-created PR to promote tested changes from development to UAT environment. Only merges after CI/test checks and review." \
-            --label "auto-promotion,uat-release" \
-            --reviewer Vacilator
+            --reviewer Vacilator)
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "::notice::Created PR: $PR_URL"
+
+      - name: Add labels to PR
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          PR_NUMBER=$(echo "${{ steps.create-pr.outputs.pr_url }}" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "auto-promotion,uat-release" || echo "::warning::Could not add labels (they may not exist)"
 
       - name: Notify on failure
         if: failure()
