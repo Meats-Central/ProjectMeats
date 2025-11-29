@@ -753,6 +753,6 @@ jobs:
             
             echo "Health check attempt \$ATTEMPT/\$MAX_ATTEMPTS failed (HTTP \$HTTP_CODE), retrying..."
             sleep 5
-            ATTEMPT=\$((ATTEMPT + 1))
+            ATTEMPT=\$((\$ATTEMPT + 1))
           done
           SSH
