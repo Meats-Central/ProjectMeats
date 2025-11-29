@@ -734,9 +734,9 @@ jobs:
           ATTEMPT=1
           
           while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
-            # Use localhost since we're on the remote server
-            # Using --write-out with double %% to escape the percent sign in heredoc
-            HTTP_CODE=\$(curl -s -o /dev/null --write-out '%%{http_code}' http://localhost:8000/api/v1/health/ 2>/dev/null || echo "000")
+            # Use localhost since we're on the remote server  
+            # Get HTTP status using -I (HEAD request) and grep
+            HTTP_CODE=\$(curl -s -I http://localhost:8000/api/v1/health/ 2>/dev/null | grep "^HTTP" | awk '{print \$2}' || echo "000")
             
             if [ "\$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP \$HTTP_CODE)"
