@@ -12,7 +12,7 @@ django-filter==23.3
 django-tenants==3.5.0
 
 # Database
-psycopg[binary]==3.2.9  # PostgreSQL adapter (modern replacement for psycopg2-binary, better Python 3.13+ support)
+psycopg2-binary==2.9.9  # PostgreSQL adapter for django-tenants compatibility
 dj-database-url==2.1.0
 
 # API Documentation

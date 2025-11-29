@@ -1,6 +1,6 @@
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Tenant, TenantUser, TenantInvitation, Domain
+from .models import Tenant, TenantUser, TenantInvitation, TenantDomain
 
 
 @admin.register(Tenant)
@@ -123,12 +123,17 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
         return qs.select_related("tenant", "invited_by", "accepted_by")
 
 
-@admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
+# Note: Client and Domain admin classes have been removed as these models
+# are not currently defined in models.py. They were intended for django-tenants
+# schema-based multi-tenancy but are not implemented in the current shared-schema approach.
+
+
+@admin.register(TenantDomain)
+class TenantDomainAdmin(admin.ModelAdmin):
     """
-    Admin interface for Domain model.
+    Admin interface for TenantDomain model (shared-schema approach).
     
-    Manages domain-to-tenant mappings following django-tenants patterns.
+    Manages domain-to-tenant mappings for shared-schema multi-tenancy.
     """
 
     list_display = ["domain", "tenant", "is_primary", "created_at"]

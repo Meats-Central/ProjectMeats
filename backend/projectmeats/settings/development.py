@@ -1,10 +1,10 @@
 """
 Development settings for ProjectMeats.
 """
-import os
 import logging
-from decouple import config
+
 import dj_database_url
+from decouple import config
 
 from .base import *
 
@@ -27,6 +27,8 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "dev.meatscentral.com",
     "dev-backend.meatscentral.com",
+    "uat.meatscentral.com",
+    "uat-backend.meatscentral.com",
     "157.245.114.182",
 ]
 
@@ -34,53 +36,85 @@ ALLOWED_HOSTS = [
 # Database Configuration
 # Development now uses PostgreSQL for environment parity with staging/production
 # Falls back to SQLite if PostgreSQL environment variables are not configured
-# Get DB_ENGINE with fallback for empty values
-# Using config() to read from .env file for local development
-# The .strip() or pattern handles empty strings from GitHub Secrets
-DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
 
-if DB_ENGINE == "django.db.backends.postgresql":
-    # PostgreSQL configuration - requires all environment variables
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
-            "HOST": config("DB_HOST"),
-            "PORT": config("DB_PORT", default="5432"),
-            "CONN_MAX_AGE": 0,  # Close connections after each request in development
-            "OPTIONS": {
-                "connect_timeout": 10,
-            },
-        }
-    }
-elif DB_ENGINE == "django.db.backends.sqlite3":
-    # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
-    # This is maintained for backward compatibility during migration period
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# Priority 1: Use DATABASE_URL if provided (common in CI/CD)
+# Priority 2: Use DB_ENGINE with individual DB_* settings
+# Priority 3: Fall back to SQLite
+
+database_url = config("DATABASE_URL", default="").strip()
+
+if database_url:
+    # Parse DATABASE_URL
+    _db_config = dj_database_url.parse(database_url)
+
+    # Use standard PostgreSQL backend (not django-tenants)
+    # ProjectMeats uses custom shared-schema multi-tenancy
+    # If migrating to schema-based isolation in the future, uncomment:
+    # if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+    #     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+
+    # Set connection settings for development
+    _db_config.setdefault(
+        "CONN_MAX_AGE", 0
+    )  # Close connections after each request in development
+    
+    # Only add connect_timeout for PostgreSQL (not supported in SQLite)
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config.setdefault("OPTIONS", {})
+        _db_config["OPTIONS"].setdefault("connect_timeout", 10)
+
+    DATABASES = {"default": _db_config}
 else:
-    # Log invalid DB_ENGINE value for debugging
-    logger.error(
-        f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
-        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
-        f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
-    )
-    raise ValueError(
-        f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
-        f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
-        f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
-        f"or configure it in config/environments/development.env. "
-        f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
-    )
+    # Get DB_ENGINE with fallback for empty values
+    # Using config() to read from .env file for local development
+    # The .strip() or pattern handles empty strings from GitHub Secrets
+    DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
+
+    if DB_ENGINE == "django.db.backends.postgresql":
+        # PostgreSQL configuration - requires all environment variables
+        # Using standard PostgreSQL backend (not django-tenants)
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",  # Standard PostgreSQL backend
+                "NAME": config("DB_NAME"),
+                "USER": config("DB_USER"),
+                "PASSWORD": config("DB_PASSWORD"),
+                "HOST": config("DB_HOST"),
+                "PORT": config("DB_PORT", default="5432"),
+                "CONN_MAX_AGE": 0,  # Close connections after each request in development
+                "OPTIONS": {
+                    "connect_timeout": 10,
+                },
+            }
+        }
+    elif DB_ENGINE == "django.db.backends.sqlite3":
+        # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
+        # This is maintained for backward compatibility during migration period
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+    else:
+        # Log invalid DB_ENGINE value for debugging
+        logger.error(
+            f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
+            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
+        )
+        raise ValueError(
+            f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
+            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
+            f"or configure it in config/environments/development.env. "
+            f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
+        )
 
 # Log which database backend is being used
-logger.info(f"Development environment using database backend: {DB_ENGINE}")
+logger.info(
+    f"Development environment using database backend: {DATABASES['default']['ENGINE']}"
+)
 
 # CORS Settings for React development server
 CORS_ALLOWED_ORIGINS = [
@@ -88,6 +122,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://dev.meatscentral.com",
     "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",
+    "https://uat-backend.meatscentral.com",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:3003",
@@ -107,6 +143,7 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "x-tenant-id",
 ]
 CORS_ALLOW_METHODS = [
     "DELETE",
@@ -125,6 +162,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://dev.meatscentral.com",
     "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",          
+    "https://uat-backend.meatscentral.com",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:3003",

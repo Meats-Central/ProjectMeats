@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **[CRITICAL]** Fixed RecursionError in deployment pipeline caused by psycopg3 incompatibility with django-tenants
+  - Downgraded from `psycopg[binary]==3.2.9` (psycopg3) to `psycopg2-binary==2.9.9`
+  - Fixes deployment failures in PRs #235, #240, #237 related to django-tenants integration
+  - Root cause: django-tenants 3.5.0 has infinite recursion bug with psycopg3's cursor API
+  - See `PSYCOPG_FIX.md` for detailed technical analysis and references
+  - **Impact:** Enables successful database migrations in CI/CD with django-tenants
+  - **Compatibility:** psycopg2-binary 2.9.9 is stable with Django 4.2.7, Python 3.12, PostgreSQL 15
+  - **Future upgrade path:** django-tenants 3.7.0+ supports psycopg3 when we upgrade django-tenants
 - **[DEFINITIVE FIX]** Resolved root cause of migration dependency issues from PR #126 (2025-10-16)
   - Simplified `purchase_orders.0004` dependencies to only structurally required migrations
   - Changed dependencies from latest migrations (0002/0004/0005/0006) to initial migrations (0001)
