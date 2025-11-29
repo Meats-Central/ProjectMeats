@@ -345,29 +345,51 @@ make test-frontend
 
 ProjectMeats maintains comprehensive documentation in the `docs/` directory:
 
-- **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
+- **[Documentation Index](docs/DOCUMENTATION_INDEX.md)** - **START HERE** - Complete navigation guide for all 127+ docs
+- **[Copilot Instructions](.github/copilot-instructions.md)** - **ESSENTIAL** - Coding standards and best practices
 - **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
 - **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
 - **[Testing Strategy](docs/TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
 - **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Deployment procedures
+- **[Migration Best Practices](docs/MIGRATION_BEST_PRACTICES.md)** - Database migration guidelines
 
 ### Documentation Requirements
 
 When contributing:
-- **API Documentation**: Auto-generated with DRF Spectacular
-- **Code Documentation**: Docstrings for all public functions (Google-style)
-- **Architecture Documentation**: Keep ADRs (Architecture Decision Records)
+- **API Documentation**: Auto-generated with DRF Spectacular at `/api/schema/swagger-ui/`
+- **Code Documentation**: Docstrings for all public functions (Google-style for Python, JSDoc for TypeScript)
+- **Architecture Documentation**: Keep ADRs (Architecture Decision Records) in `docs/architecture/`
 - **User Documentation**: Maintain user guides and tutorials
-- **Update Docs**: Always update relevant documentation with code changes
+- **Update Docs**: Always update relevant documentation with code changes (same PR, not separate)
+- **Implementation Summaries**: Document significant features in `docs/implementation-summaries/`
+- **Last Updated Dates**: Add "Last Updated: YYYY-MM-DD" to all documentation files
+- **Cross-References**: Link related documentation files to improve discoverability
+- **Fix Documentation**: Create fix summaries in root for active bugs, move to `archived/docs/fixes/` after 3+ months of stability
+
+### Documentation Best Practices
+
+1. **Keep it current**: Update docs in the same PR as code changes
+2. **Use consistent formatting**: Follow existing markdown style and structure
+3. **Include code examples**: Real, working code snippets are more valuable than explanations alone
+4. **Add visual aids**: Diagrams, flowcharts, and screenshots enhance understanding  
+5. **Write for your audience**: Technical docs for developers, user guides for end-users
+6. **Test your links**: Verify all cross-references work before committing
+7. **Date your updates**: Always include "Last Updated" dates
+8. **Use the index**: Reference docs/DOCUMENTATION_INDEX.md for navigation and organization
+
+See [.github/copilot-instructions.md](.github/copilot-instructions.md) for complete documentation standards.
 
 ## Getting Help
 
+- **Documentation**: Check the [Documentation Index](docs/DOCUMENTATION_INDEX.md) first - comprehensive navigation for all 127+ docs
 - **Issues**: Create detailed issues using templates above
 - **Discussions**: Use GitHub Discussions for questions
-- **Documentation**: Check the [Documentation Hub](docs/README.md) first
+- **Deployment**: See [Deployment Troubleshooting](docs/DEPLOYMENT_TROUBLESHOOTING.md) for common issues
+- **Migrations**: See [Migration Best Practices](docs/MIGRATION_BEST_PRACTICES.md) for database migration help
 - **Code Review**: Tag appropriate reviewers
+- **Copilot Log**: Check [copilot-log.md](copilot-log.md) for similar past issues and solutions
 
 ## Labels for Issues
 

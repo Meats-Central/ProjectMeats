@@ -5,6 +5,23 @@
 
 ---
 
+## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
+
+**NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
+
+1. Create feature/fix branch from `development`
+2. Submit PR to `development` with review
+3. After merge to `development`, automated workflow creates PR to `UAT`
+4. Test and review in UAT environment
+5. After merge to `UAT`, automated workflow creates PR to `main`
+6. Final approval deploys to production
+
+**Violations of this workflow can break the deployment pipeline and production environment.**
+
+See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-promotion) for full details.
+
+---
+
 ## 📋 Table of Contents
 1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
 2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
@@ -43,8 +60,26 @@
   perf/<performance-topic>         # Performance optimizations
   ```
   - Use lowercase/hyphens; prefix by type for scanning.
-  - Never work or merge directly in `main` or `UAT`.
+  - **CRITICAL**: Never work or merge directly in `main` or `UAT`.
+  - **CRITICAL**: Never push changes directly to `uat` or `main` branches.
   - Keep branches focused and short-lived (< 2 weeks active).
+
+- **Deployment Protection Rules (MUST FOLLOW):**
+  1. **Always start with feature/fix branch** from `development`
+  2. **Merge to `development` first** via Pull Request with review
+  3. **Automated PR to `UAT`** triggers after merge to development (via `promote-dev-to-uat.yml`)
+  4. **Review and test in UAT** environment before approval
+  5. **Automated PR to `main`** triggers after merge to UAT (via `promote-uat-to-main.yml`)
+  6. **Final review and deploy to production** only after UAT sign-off
+  
+  **Workflow Enforcement**:
+  - ✅ feature/fix branch → development (via PR)
+  - ✅ development → UAT (automated PR after success)
+  - ✅ UAT → main (automated PR after success)
+  - ❌ NEVER: Direct push to UAT
+  - ❌ NEVER: Direct push to main
+  - ❌ NEVER: Skip development branch
+  - ❌ NEVER: Bypass automated promotion workflows
 
 - **Tagging & Releases:**  
   - Tag major/minor releases in `main` using semantic versioning: `vX.Y.Z`
@@ -734,14 +769,32 @@ Repeat similarly for `UAT` → `main`.
 
 ### Deployment Workflow
 
-> **Important**: Environment promotion PRs (development → UAT → production) are managed **exclusively** by automated workflows (`.github/workflows/promote-dev-to-uat.yml` and `.github/workflows/promote-uat-to-main.yml`). These workflows automatically close stale PRs and create fresh ones with the latest commits. Do not create manual PRs for environment promotion or use any other workflow files for this purpose.
+> **CRITICAL**: Environment promotion PRs (development → UAT → production) are managed **exclusively** by automated workflows (`.github/workflows/promote-dev-to-uat.yml` and `.github/workflows/promote-uat-to-main.yml`). These workflows automatically close stale PRs and create fresh ones with the latest commits. 
+
+**Deployment Protection Rules:**
+- ❌ **NEVER** push changes directly to `uat` or `main` branches
+- ❌ **NEVER** create manual PRs for environment promotion
+- ❌ **NEVER** bypass the automated promotion workflows
+- ✅ **ALWAYS** start with feature/fix branch from `development`
+- ✅ **ALWAYS** let automated workflows handle promotion PRs
+- ✅ **ALWAYS** wait for UAT testing before promoting to production
+
+**Correct Workflow:**
+1. Create feature/fix branch: `git checkout -b feature/my-feature development`
+2. Develop and test locally
+3. Push branch: `git push origin feature/my-feature`
+4. Create PR to `development` via GitHub UI
+5. After review and merge, `promote-dev-to-uat.yml` automatically creates PR to `UAT`
+6. Test in UAT environment, then merge PR
+7. After UAT merge, `promote-uat-to-main.yml` automatically creates PR to `main`
+8. Final review and merge to deploy to production
 
 - **Environment Progression:**
   ```
-  development → UAT → production
+  feature/fix branch → development → UAT → main (production)
   ```
   - Development: Auto-deploy on merge to `development`
-  - UAT: Auto-deploy on merge to `UAT` (requires approval)
+  - UAT: Auto-deploy on merge to `UAT` (requires approval and testing)
   - Production: Auto-deploy on merge to `main` (requires 2 approvals)
 
 - **Deployment Gates:**
