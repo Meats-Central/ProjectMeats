@@ -707,7 +707,7 @@ jobs:
           echo "=== Performing health checks ==="
           
           # Check logs immediately to see if there are any startup errors
-          echo "=== Checking initial container logs ===\"
+          echo "=== Checking initial container logs ==="
           sleep 2
           docker logs pm-backend --tail 50 2>&1 || echo "Could not get initial logs"
           
