@@ -53,7 +53,7 @@ This document outlines the ongoing maintenance plan for ProjectMeats documentati
 4. Check for broken links in README.md and CONTRIBUTING.md
 
 **Checklist**:
-- [ ] `find . -maxdepth 1 -name "*.md" -mtime -7` - Check new root docs
+- [ ] `find . -maxdepth 1 -name "*.md" -mtime -7` - Check new/modified root docs (Note: -mtime checks modification time; -ctime would check creation time but isn't available on all systems)
 - [ ] Review GitHub Issues tagged with `documentation`
 - [ ] Check PR descriptions for documentation changes
 - [ ] Quick scan of docs/DOCUMENTATION_INDEX.md for accuracy
@@ -132,7 +132,7 @@ This document outlines the ongoing maintenance plan for ProjectMeats documentati
    - Plan next year's improvements
 
 2. **Technology Updates** (2 hours)
-   - Update for new Django/React versions (check backend/requirements.txt and frontend/package.json for current versions)
+   - Update for new Django/React versions (check `backend/requirements.txt` and `frontend/package.json` for current versions - both files confirmed to exist at project root)
    - Monitor Django and React release notes for breaking changes
    - Revise deployment procedures if changed
    - Update security best practices

@@ -266,7 +266,7 @@ The following documents capture point-in-time fixes and may be candidates for mo
 
 ## 🔗 Quick Links
 
-- **GitHub Repository**: https://github.com/Meats-Central/ProjectMeats
+- **GitHub Repository**: https://github.com/Meats-Central/ProjectMeats (verified current repository)
 - **Deployment Environments**:
   - Development: dev.meatscentral.com
   - UAT: uat.meatscentral.com
