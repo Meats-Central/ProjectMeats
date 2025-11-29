@@ -689,23 +689,28 @@ jobs:
           
           echo "Container ID: $CONTAINER_ID"
           
-          # Wait for container to be healthy
-          echo "Waiting for container to start..."
-          sleep 5
+          # Wait briefly and capture initial logs
+          echo "Waiting 3 seconds for initial startup..."
+          sleep 3
+          
+          # Capture logs immediately to see what's happening
+          echo "=== Initial container logs ==="
+          sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
           
           # Check container status using ID
           echo "Checking container with ID: $CONTAINER_ID"
-          sudo docker ps -a | grep "$CONTAINER_ID" || echo "Container not found!"
+          sudo docker ps -a | grep "$CONTAINER_ID" || echo "Container not found in ps -a!"
+          sudo docker inspect "$CONTAINER_ID" --format='{{.State.Status}} - {{.State.ExitCode}} - {{.State.Error}}' 2>&1 || echo "Could not inspect"
           
           # Check container status
           if ! sudo docker ps | grep -q pm-backend; then
-            echo "✗ Container failed to start"
-            echo "Trying to get logs with container ID: $CONTAINER_ID"
-            sudo docker logs "$CONTAINER_ID" --tail 50 2>&1 || sudo docker logs pm-backend --tail 50 2>&1 || echo "Could not get logs"
+            echo "✗ Container failed to start or exited"
+            echo "=== Full container logs ==="
+            sudo docker logs "$CONTAINER_ID" 2>&1 || echo "Could not get logs"
             exit 1
           fi
           
-          echo "✓ Container started successfully"
+          echo "✓ Container is running"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           SSH
 
