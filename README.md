@@ -1,5 +1,7 @@
 # ProjectMeats
 
+<!-- End-to-End Deployment Pipeline Test - 2025-11-29 -->
+
 A business management application for meat sales brokers, migrated from PowerApps to Django REST Framework (backend) and React TypeScript (frontend). Manages suppliers, customers, purchase orders, accounts receivables, and related business entities with an AI Assistant featuring Copilot-style UI and document processing.
 
 ## 🚀 Quick Start (5 Minutes)
