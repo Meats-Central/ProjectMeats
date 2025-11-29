@@ -77,8 +77,12 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s \
   CMD curl -fsS http://127.0.0.1:8000/api/v1/health/ || exit 1
 
-# Start Gunicorn with debug logging and preload
-CMD exec gunicorn projectmeats.wsgi:application \
+# Start Gunicorn with debug logging, preload, and error handling
+CMD set -x && \
+    echo "Starting container at $(date)" && \
+    python manage.py check && \
+    echo "Django check passed" && \
+    exec gunicorn projectmeats.wsgi:application \
       --bind 0.0.0.0:8000 \
       --workers ${GUNICORN_WORKERS:-3} \
       --timeout ${GUNICORN_TIMEOUT:-120} \
