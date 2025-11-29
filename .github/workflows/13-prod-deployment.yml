@@ -19,12 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to DOCR
-        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
-
       - name: Build & Push Frontend
         if: matrix.app == 'frontend'
         run: |
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
           docker build -f frontend/Dockerfile \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
@@ -35,6 +33,7 @@ jobs:
       - name: Build & Push Backend (Django)
         if: matrix.app == 'backend'
         run: |
+          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
           docker build -f backend/Dockerfile \
             -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
             -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
