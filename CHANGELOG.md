@@ -7,12 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **[MAJOR]** Comprehensive documentation consolidation (November 2024)
+  - Created 4 new comprehensive guides consolidating 67 scattered documentation files:
+    - `docs/MIGRATION_GUIDE.md` - Complete database migration guide (consolidates 12 docs)
+    - `docs/AUTHENTICATION_GUIDE.md` - Authentication & permissions guide (consolidates 13 docs)
+    - `docs/TROUBLESHOOTING.md` - Common issues and solutions (consolidates 14 docs)
+    - `docs/lessons-learned/3-MONTH-RETROSPECTIVE.md` - 3-month development retrospective (consolidates 10 docs)
+  - Archived all redundant documentation to `docs/archived-2024-11/` with complete cross-references
+  - Updated `docs/README.md` with new structure and navigation
+  - Cleaned root directory from 67 to 6 essential markdown files
+  - **Impact:** Improved documentation discoverability, reduced duplication, single source of truth per topic
+  - **For developers:** All old documentation references updated; use new consolidated guides
+- Comprehensive final fix documentation in `MIGRATION_DEPENDENCIES_FIX_FINAL.md` (2025-10-16)
+- Migration history fix documentation in `docs/MIGRATION_HISTORY_FIX.md` with step-by-step manual fix procedures
+- CI/CD migration consistency validation using `makemigrations --check` and `migrate --plan`
+- Comprehensive migration fix documentation in `MIGRATION_FIX_PR135_CORRECTION.md`
+
 ### Fixed
 - **[CRITICAL]** Fixed RecursionError in deployment pipeline caused by psycopg3 incompatibility with django-tenants
   - Downgraded from `psycopg[binary]==3.2.9` (psycopg3) to `psycopg2-binary==2.9.9`
   - Fixes deployment failures in PRs #235, #240, #237 related to django-tenants integration
   - Root cause: django-tenants 3.5.0 has infinite recursion bug with psycopg3's cursor API
-  - See `PSYCOPG_FIX.md` for detailed technical analysis and references
+  - See `docs/archived-2024-11/troubleshooting/PSYCOPG_FIX.md` for detailed technical analysis
   - **Impact:** Enables successful database migrations in CI/CD with django-tenants
   - **Compatibility:** psycopg2-binary 2.9.9 is stable with Django 4.2.7, Python 3.12, PostgreSQL 15
   - **Future upgrade path:** django-tenants 3.7.0+ supports psycopg3 when we upgrade django-tenants
@@ -21,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed dependencies from latest migrations (0002/0004/0005/0006) to initial migrations (0001)
   - Eliminates all `InconsistentMigrationHistory` errors from deployment pipeline
   - Works for both fresh and existing database deployments
-  - See `MIGRATION_DEPENDENCIES_FIX_FINAL.md` for comprehensive analysis
+  - See `docs/archived-2024-11/migration/MIGRATION_DEPENDENCIES_FIX_FINAL.md` for comprehensive analysis
   - **Key insight:** Django auto-generates dependencies on latest migrations, but only structural dependencies should be declared
   - **Impact:** Prevents future migration ordering conflicts; safe for all environments
 - **[CRITICAL]** Corrected migration dependency issue that was incorrectly "fixed" in PR #135
@@ -39,11 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed corrupted migration file `0004_alter_purchaseorder_carrier_release_format_and_more.py` with duplicate model definitions
 - Fixed syntax error in `tests.py` with unclosed docstring
 
-### Added
-- Comprehensive final fix documentation in `MIGRATION_DEPENDENCIES_FIX_FINAL.md` (2025-10-16)
-- Migration history fix documentation in `docs/MIGRATION_HISTORY_FIX.md` with step-by-step manual fix procedures
-- CI/CD migration consistency validation using `makemigrations --check` and `migrate --plan`
-- Comprehensive migration fix documentation in `MIGRATION_FIX_PR135_CORRECTION.md`
+### Changed
+- **[DOCUMENTATION]** Reorganized documentation structure (November 2024)
+  - Moved 67 scattered root-level markdown files to organized archive
+  - Consolidated redundant documentation into comprehensive guides
+  - Updated all internal documentation references to new locations
+  - **Migration Path:** See `docs/archived-2024-11/README.md` for file mapping
 
 ## [Previous Versions]
 See git history for changes prior to this changelog.
