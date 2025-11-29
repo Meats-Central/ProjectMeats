@@ -4,7 +4,10 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 ## 🚀 Quick Start (5 Minutes)
 
-**📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
+**📖 Documentation Navigation:**
+- **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** - Complete documentation index and navigation guide
+- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment guide
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - Essential coding standards and best practices
 
 **Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+ (recommended) or SQLite (fallback)
 
