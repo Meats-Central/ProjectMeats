@@ -54,6 +54,8 @@ def create_tables_if_not_exist(apps, schema_editor):
         # First, check if both tables exist and clean up any orphaned records
         cursor.execute("""
             DO $$
+            DECLARE
+                tenant_id_type TEXT;
             BEGIN
                 -- Check if both tables exist
                 IF EXISTS (
@@ -63,7 +65,32 @@ def create_tables_if_not_exist(apps, schema_editor):
                     SELECT 1 FROM information_schema.tables 
                     WHERE table_schema = 'public' AND table_name = 'tenants_domain'
                 ) THEN
-                    -- Clean up any orphaned records in tenants_domain
+                    -- Check the data type of tenant_id column
+                    SELECT data_type INTO tenant_id_type
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'tenants_domain' 
+                    AND column_name = 'tenant_id';
+                    
+                    -- If tenant_id is UUID type (from old schema), drop and recreate column as BIGINT
+                    IF tenant_id_type = 'uuid' THEN
+                        -- Remove foreign key constraint if it exists
+                        IF EXISTS (
+                            SELECT 1 FROM pg_constraint 
+                            WHERE conname = 'tenants_domain_tenant_id_fk'
+                        ) THEN
+                            ALTER TABLE tenants_domain DROP CONSTRAINT tenants_domain_tenant_id_fk;
+                        END IF;
+                        
+                        -- Drop the UUID column and recreate as BIGINT
+                        ALTER TABLE tenants_domain DROP COLUMN tenant_id;
+                        ALTER TABLE tenants_domain ADD COLUMN tenant_id BIGINT NOT NULL DEFAULT 0;
+                        
+                        -- Clean up the default value (it was just for adding the column)
+                        ALTER TABLE tenants_domain ALTER COLUMN tenant_id DROP DEFAULT;
+                    END IF;
+                    
+                    -- Clean up any orphaned records in tenants_domain (now that types match)
                     DELETE FROM tenants_domain 
                     WHERE tenant_id NOT IN (SELECT id FROM tenants_client);
                     
