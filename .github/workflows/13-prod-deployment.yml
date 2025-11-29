@@ -257,19 +257,21 @@ jobs:
           sudo mkdir -p "$APP_DIR/env"
 
           # Create runtime env-config.js with production values
-          sudo bash -c 'cat > "$APP_DIR/env/env-config.js" <<JS
-          window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "production",
-            AI_ASSISTANT_ENABLED: "${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}",
-            ENABLE_DOCUMENT_UPLOAD: "${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}",
-            ENABLE_CHAT_EXPORT: "${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}",
-            MAX_FILE_SIZE: "${{ secrets.REACT_APP_MAX_FILE_SIZE }}",
-            SUPPORTED_FILE_TYPES: "${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}",
-            ENABLE_DEBUG: "false",
-            ENABLE_DEVTOOLS: "false"
-          };
-          JS'
+          cat > /tmp/env-config.js <<'ENVJS'
+window.ENV = {
+  API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
+  ENVIRONMENT: "production",
+  AI_ASSISTANT_ENABLED: "${{ secrets.REACT_APP_AI_ASSISTANT_ENABLED }}",
+  ENABLE_DOCUMENT_UPLOAD: "${{ secrets.REACT_APP_ENABLE_DOCUMENT_UPLOAD }}",
+  ENABLE_CHAT_EXPORT: "${{ secrets.REACT_APP_ENABLE_CHAT_EXPORT }}",
+  MAX_FILE_SIZE: "${{ secrets.REACT_APP_MAX_FILE_SIZE }}",
+  SUPPORTED_FILE_TYPES: "${{ secrets.REACT_APP_SUPPORTED_FILE_TYPES }}",
+  ENABLE_DEBUG: "false",
+  ENABLE_DEVTOOLS: "false"
+};
+ENVJS
+
+          sudo mv /tmp/env-config.js "$APP_DIR/env/env-config.js"
 
           sudo chown root:root "$APP_DIR/env/env-config.js"
           sudo chmod 644 "$APP_DIR/env/env-config.js"
