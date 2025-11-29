@@ -2,12 +2,13 @@
 Django admin configuration for Invoices app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Invoice
 
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
-    """Admin interface for Invoice model."""
+class InvoiceAdmin(TenantFilteredAdmin):
+    """Admin interface for Invoice model with tenant filtering."""
 
     list_display = (
         "invoice_number",

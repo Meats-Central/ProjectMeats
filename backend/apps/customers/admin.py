@@ -2,12 +2,13 @@
 Django admin configuration for Customers app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import Customer
 
 
 @admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
-    """Admin interface for Customer model."""
+class CustomerAdmin(TenantFilteredAdmin):
+    """Admin interface for Customer model with tenant filtering."""
 
     list_display = (
         "name",

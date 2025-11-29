@@ -2,12 +2,13 @@
 Django admin configuration for Accounts Receivables app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import AccountsReceivable
 
 
 @admin.register(AccountsReceivable)
-class AccountsReceivableAdmin(admin.ModelAdmin):
-    """Admin interface for AccountsReceivable model."""
+class AccountsReceivableAdmin(TenantFilteredAdmin):
+    """Admin interface for AccountsReceivable model with tenant filtering."""
 
     list_display = (
         "invoice_number",

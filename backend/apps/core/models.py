@@ -299,3 +299,69 @@ class OwnedModel(TimestampModel):
 
     class Meta:
         abstract = True
+
+
+class UserPreferences(models.Model):
+    """
+    User-specific preferences for UI customization.
+    
+    Stores theme preferences, layout configurations, widget arrangements,
+    and other user-specific UI settings.
+    """
+    
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='preferences',
+        help_text="User for these preferences"
+    )
+    
+    # Theme preferences
+    theme = models.CharField(
+        max_length=20,
+        choices=[
+            ('light', 'Light'),
+            ('dark', 'Dark'),
+            ('auto', 'Auto'),
+        ],
+        default='light',
+        help_text="UI theme preference"
+    )
+    
+    # Layout and widget configuration (JSON format)
+    dashboard_layout = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Dashboard widget layout configuration"
+    )
+    
+    sidebar_collapsed = models.BooleanField(
+        default=False,
+        help_text="Whether sidebar is collapsed by default"
+    )
+    
+    # Quick menu favorites (stored as list of route paths)
+    quick_menu_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="User's favorite quick menu items"
+    )
+    
+    # Custom widget settings
+    widget_preferences = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Widget-specific preferences and configurations"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "User Preference"
+        verbose_name_plural = "User Preferences"
+        ordering = ['-updated_at']
+    
+    def __str__(self):
+        return f"Preferences for {self.user.username}"

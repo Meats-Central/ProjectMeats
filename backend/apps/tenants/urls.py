@@ -15,7 +15,7 @@ router.register(r"invitations", TenantInvitationViewSet, basename='tenant-invita
 app_name = "tenants"
 
 urlpatterns = [
-    path("api/", include(router.urls)),
-    path("api/invitations/validate/", validate_invitation, name='validate-invitation'),
-    path("api/auth/signup-with-invitation/", signup_with_invitation, name='signup-with-invitation'),
+    path("", include(router.urls)),
+    path("invitations/validate/", validate_invitation, name='validate-invitation'),
+    path("auth/signup-with-invitation/", signup_with_invitation, name='signup-with-invitation'),
 ]

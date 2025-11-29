@@ -2,9 +2,10 @@
  * Authentication service for managing user authentication state.
  */
 import axios from 'axios';
+import { config } from '../config/runtime';
 import { UserProfile } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
+const API_BASE_URL = config.API_BASE_URL;
 
 export interface LoginCredentials {
   username: string;
@@ -46,7 +47,7 @@ export class AuthService {
   async login(credentials: LoginCredentials): Promise<UserProfile> {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login/`, credentials);
-      const { token, user } = response.data;
+      const { token, user, tenants } = response.data;
 
       this.token = token;
       this.user = user;
@@ -54,6 +55,14 @@ export class AuthService {
       // Store in localStorage
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
+      
+      // Store tenant information - use first tenant as active tenant
+      if (tenants && tenants.length > 0) {
+        const primaryTenant = tenants[0];
+        localStorage.setItem('tenantId', primaryTenant.tenant__id);
+        localStorage.setItem('tenantName', primaryTenant.tenant__name);
+        localStorage.setItem('tenantSlug', primaryTenant.tenant__slug);
+      }
 
       return user;
     } catch (error) {
@@ -111,6 +120,9 @@ export class AuthService {
       this.user = null;
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('tenantId');
+      localStorage.removeItem('tenantName');
+      localStorage.removeItem('tenantSlug');
     }
   }
 

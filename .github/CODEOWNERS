@@ -1,0 +1,80 @@
+# CODEOWNERS for ProjectMeats
+# This file defines who should review PRs for different parts of the codebase
+# 
+# Each line is a file pattern followed by one or more owners.
+# These owners will be automatically requested for review when someone 
+# opens a pull request that modifies files matching the pattern.
+#
+# More details: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# This is a catch-all - specific patterns below override this
+* @Meats-Central/core-team
+
+# Backend Python/Django code
+/backend/ @Meats-Central/backend-team
+/backend/apps/ @Meats-Central/backend-team
+/backend/config/ @Meats-Central/backend-team
+
+# Frontend React/TypeScript code  
+/frontend/ @Meats-Central/frontend-team
+/frontend/src/ @Meats-Central/frontend-team
+
+# Database migrations (require extra scrutiny)
+**/migrations/ @Meats-Central/backend-team @Meats-Central/database-reviewers
+
+# CI/CD and deployment workflows
+/.github/workflows/ @Meats-Central/devops-team
+/deploy/ @Meats-Central/devops-team
+/docker-compose.yml @Meats-Central/devops-team
+
+# Docker configurations
+**/Dockerfile @Meats-Central/devops-team
+**/.dockerignore @Meats-Central/devops-team
+
+# Infrastructure and configuration
+/config/ @Meats-Central/devops-team
+*.yml @Meats-Central/devops-team
+*.yaml @Meats-Central/devops-team
+
+# Security-sensitive files
+/backend/**/authentication/ @Meats-Central/security-team @Meats-Central/backend-team
+/backend/**/permissions/ @Meats-Central/security-team @Meats-Central/backend-team
+**/*auth*.py @Meats-Central/security-team
+**/*security*.py @Meats-Central/security-team
+
+# Documentation
+/docs/ @Meats-Central/documentation-team
+*.md @Meats-Central/documentation-team
+README.md @Meats-Central/core-team
+
+# Testing
+**/tests/ @Meats-Central/qa-team
+**/*test*.py @Meats-Central/qa-team
+**/*test*.ts @Meats-Central/qa-team
+**/*test*.tsx @Meats-Central/qa-team
+/frontend/src/**/*.test.* @Meats-Central/qa-team @Meats-Central/frontend-team
+
+# Package dependencies (require security review)
+/backend/requirements.txt @Meats-Central/backend-team @Meats-Central/security-team
+/frontend/package.json @Meats-Central/frontend-team @Meats-Central/security-team
+/frontend/package-lock.json @Meats-Central/frontend-team
+
+# Environment and secrets configuration
+.env.example @Meats-Central/devops-team @Meats-Central/security-team
+**/*secret*.* @Meats-Central/security-team
+
+# Git configuration
+.gitignore @Meats-Central/devops-team
+.gitattributes @Meats-Central/devops-team
+
+# Auto-promotion workflows (require senior approval)
+/.github/workflows/41-auto-promote-*.yml @Meats-Central/senior-team
+/.github/workflows/42-auto-promote-*.yml @Meats-Central/senior-team
+
+# Production deployment workflow (require senior approval)
+/.github/workflows/13-prod-deployment.yml @Meats-Central/senior-team @Meats-Central/devops-team
+
+# Critical configuration files
+/CODEOWNERS @Meats-Central/senior-team
+/.github/CODEOWNERS @Meats-Central/senior-team

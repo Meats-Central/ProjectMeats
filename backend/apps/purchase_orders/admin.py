@@ -2,12 +2,13 @@
 Django admin configuration for Purchase Orders app.
 """
 from django.contrib import admin
+from apps.core.admin import TenantFilteredAdmin
 from .models import PurchaseOrder, CarrierPurchaseOrder, ColdStorageEntry, PurchaseOrderHistory
 
 
 @admin.register(PurchaseOrder)
-class PurchaseOrderAdmin(admin.ModelAdmin):
-    """Admin interface for PurchaseOrder model."""
+class PurchaseOrderAdmin(TenantFilteredAdmin):
+    """Admin interface for PurchaseOrder model with tenant filtering."""
 
     list_display = (
         "order_number",
@@ -101,8 +102,8 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(CarrierPurchaseOrder)
-class CarrierPurchaseOrderAdmin(admin.ModelAdmin):
-    """Admin interface for CarrierPurchaseOrder model."""
+class CarrierPurchaseOrderAdmin(TenantFilteredAdmin):
+    """Admin interface for CarrierPurchaseOrder model with tenant filtering."""
 
     list_display = (
         "our_carrier_po_num",
@@ -207,8 +208,8 @@ class CarrierPurchaseOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(ColdStorageEntry)
-class ColdStorageEntryAdmin(admin.ModelAdmin):
-    """Admin interface for ColdStorageEntry model."""
+class ColdStorageEntryAdmin(TenantFilteredAdmin):
+    """Admin interface for ColdStorageEntry model with tenant filtering."""
 
     list_display = (
         "id",

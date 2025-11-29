@@ -2,6 +2,39 @@
 
 Welcome to ProjectMeats! This guide will help you contribute effectively to our multi-tenant SaaS platform using GitHub Copilot and following our development practices.
 
+## 📋 Quick Links
+
+- **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Complete guide to branch naming, PR conventions, and workflows
+- **[Issue Templates](.github/ISSUE_TEMPLATE/)** - Use standardized templates for issues
+- **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Detailed workflow and standards
+
+## 🌳 Branch & PR Standards (Required)
+
+**Before creating branches or PRs, please review the [Branch Workflow Checklist](branch-workflow-checklist.md).**
+
+### Branch Naming Convention
+
+All branches **must** follow this format: `<type>/<description>`
+
+Valid types: `feature/`, `fix/`, `chore/`, `refactor/`, `hotfix/`, `docs/`, `test/`, `perf/`
+
+Examples:
+- ✅ `feature/add-customer-export`
+- ✅ `fix/login-validation-error`
+- ❌ `add-customer-export` (missing type)
+- ❌ `Feature/AddExport` (wrong case)
+
+### PR Title Convention
+
+PR titles **must** follow Conventional Commits: `<type>(<scope>): <description>`
+
+Examples:
+- ✅ `feat(customers): add customer export functionality`
+- ✅ `fix(auth): resolve token expiration handling`
+- ❌ `Add customer export` (missing type and format)
+
+**Automated validation workflows will check these conventions on every PR.**
+
 ## GitHub Copilot Guidelines
 
 ### When to Use @copilot
