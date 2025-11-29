@@ -574,6 +574,12 @@ jobs:
         env:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
+          # IMPORTANT: Heredoc escaping rules for <<'SSH' (quoted heredoc)
+          # - Variables: \$VAR (with backslash) → remote bash expands to variable value
+          # - Command substitution: $(cmd) (NO backslash) → remote bash executes command
+          # - Arithmetic: $((\$VAR + 1)) (NO backslash before $((, but yes on inner vars)
+          # - NEVER use \$(cmd) or \$((expr)) - causes "syntax error near unexpected token '('"
+          # See: docs/DEPLOYMENT_STABILITY_GUIDE.md and SDLC_LOOP_DEPLOYMENT_FIX.md
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
           set -euo pipefail
 
