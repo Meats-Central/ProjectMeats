@@ -6,84 +6,71 @@ from django.db import migrations, models, connection
 
 
 def rename_index_if_exists(apps, schema_editor):
-    """Rename indexes only if they exist (idempotent)"""
+    """Rename indexes only if they exist (idempotent - truly silent)"""
     with connection.cursor() as cursor:
-        # Check if old indexes exist and rename them
-        # Index 1: domain field index
+        # Check and rename index 1
         cursor.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM pg_indexes 
-                    WHERE schemaname = 'public' 
-                    AND indexname = 'tenants_ten_domain_6df599_idx'
-                ) THEN
+            SELECT COUNT(*) FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = 'tenants_ten_domain_6df599_idx'
+        """)
+        if cursor.fetchone()[0] > 0:
+            try:
+                cursor.execute("""
                     ALTER INDEX tenants_ten_domain_6df599_idx 
-                    RENAME TO tenants_ten_domain_f3abe6_idx;
-                END IF;
-            EXCEPTION WHEN OTHERS THEN
-                -- Ignore any errors (index might not exist or already renamed)
-                RAISE NOTICE 'Skipping index rename for tenants_ten_domain_6df599_idx';
-            END $$;
-        """)
+                    RENAME TO tenants_ten_domain_f3abe6_idx
+                """)
+            except Exception:
+                pass  # Index might have been renamed concurrently
         
-        # Index 2: tenant_id field index
+        # Check and rename index 2
         cursor.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM pg_indexes 
-                    WHERE schemaname = 'public' 
-                    AND indexname = 'tenants_ten_tenant__3bd559_idx'
-                ) THEN
-                    ALTER INDEX tenants_ten_tenant__3bd559_idx 
-                    RENAME TO tenants_ten_tenant__f55360_idx;
-                END IF;
-            EXCEPTION WHEN OTHERS THEN
-                -- Ignore any errors (index might not exist or already renamed)
-                RAISE NOTICE 'Skipping index rename for tenants_ten_tenant__3bd559_idx';
-            END $$;
+            SELECT COUNT(*) FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = 'tenants_ten_tenant__3bd559_idx'
         """)
+        if cursor.fetchone()[0] > 0:
+            try:
+                cursor.execute("""
+                    ALTER INDEX tenants_ten_tenant__3bd559_idx 
+                    RENAME TO tenants_ten_tenant__f55360_idx
+                """)
+            except Exception:
+                pass  # Index might have been renamed concurrently
 
 
 def reverse_rename_index(apps, schema_editor):
     """Reverse operation - rename indexes back if they exist"""
     with connection.cursor() as cursor:
-        # Reverse Index 1
+        # Check and reverse rename index 1
         cursor.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM pg_indexes 
-                    WHERE schemaname = 'public' 
-                    AND indexname = 'tenants_ten_domain_f3abe6_idx'
-                ) THEN
+            SELECT COUNT(*) FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = 'tenants_ten_domain_f3abe6_idx'
+        """)
+        if cursor.fetchone()[0] > 0:
+            try:
+                cursor.execute("""
                     ALTER INDEX tenants_ten_domain_f3abe6_idx 
-                    RENAME TO tenants_ten_domain_6df599_idx;
-                END IF;
-            EXCEPTION WHEN OTHERS THEN
-                -- Ignore any errors (index might not exist or already renamed)
-                RAISE NOTICE 'Skipping reverse index rename for tenants_ten_domain_f3abe6_idx';
-            END $$;
-        """)
+                    RENAME TO tenants_ten_domain_6df599_idx
+                """)
+            except Exception:
+                pass
         
-        # Reverse Index 2
+        # Check and reverse rename index 2
         cursor.execute("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM pg_indexes 
-                    WHERE schemaname = 'public' 
-                    AND indexname = 'tenants_ten_tenant__f55360_idx'
-                ) THEN
-                    ALTER INDEX tenants_ten_tenant__f55360_idx 
-                    RENAME TO tenants_ten_tenant__3bd559_idx;
-                END IF;
-            EXCEPTION WHEN OTHERS THEN
-                -- Ignore any errors (index might not exist or already renamed)
-                RAISE NOTICE 'Skipping reverse index rename for tenants_ten_tenant__f55360_idx';
-            END $$;
+            SELECT COUNT(*) FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = 'tenants_ten_tenant__f55360_idx'
         """)
+        if cursor.fetchone()[0] > 0:
+            try:
+                cursor.execute("""
+                    ALTER INDEX tenants_ten_tenant__f55360_idx 
+                    RENAME TO tenants_ten_tenant__3bd559_idx
+                """)
+            except Exception:
+                pass
 
 
 class Migration(migrations.Migration):
