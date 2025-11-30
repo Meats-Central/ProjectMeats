@@ -539,16 +539,23 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 
 ## 📚 Documentation
 
-### Essential Documentation
+### Essential Documentation ⭐
 - **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
+- **[Migration Guide](docs/MIGRATION_GUIDE.md)** ⭐ NEW - Complete database migration guide
+- **[Authentication Guide](docs/AUTHENTICATION_GUIDE.md)** ⭐ NEW - Auth, permissions & superuser management
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** ⭐ NEW - Common issues and solutions
+- **[3-Month Retrospective](docs/lessons-learned/3-MONTH-RETROSPECTIVE.md)** ⭐ NEW - Lessons learned (Aug-Nov 2024)
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
+
+> **🎉 Documentation Refresh**: We've consolidated 67 scattered documentation files into comprehensive guides! See [archived-2024-11/](docs/archived-2024-11/) for historical reference.
 
 ### Architecture & Development
 - **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
 - **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
 - **[Testing Strategy](docs/TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
+- **[Multi-Tenancy Guide](docs/MULTI_TENANCY_GUIDE.md)** - Multi-tenancy architecture
 
 ### Deployment & Infrastructure
 - **[Environment Guide](docs/ENVIRONMENT_GUIDE.md)** - Environment configuration
@@ -560,11 +567,6 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 - **[CI/CD Infrastructure](docs/workflows/cicd-infrastructure.md)** - Infrastructure details
 - **[Database Backup](docs/workflows/database-backup.md)** - Backup workflow documentation
 - **[GitHub Actions Workflows](.github/workflows/README.md)** - Detailed workflow documentation
-
-### Implementation Summaries
-- **[Dashboard Enhancement](docs/implementation-summaries/dashboard-enhancement.md)** - Dashboard improvements
-- **[Deployment Optimization](docs/implementation-summaries/deployment-optimization.md)** - Deployment improvements
-- **[ALLOWED_HOSTS Fix](docs/implementation-summaries/allowed-hosts-fix.md)** - Configuration fix details
 
 ## 📚 Reference
 
