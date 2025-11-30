@@ -8,6 +8,10 @@ on:
       - uat
   workflow_dispatch:
 
+concurrency:
+  group: promote-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   create-main-pr:
     runs-on: ubuntu-latest
@@ -39,12 +43,28 @@ jobs:
           fi
           
       - name: Create Pull Request to Main
+        id: create-pr
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          gh pr create \
+          PR_URL=$(gh pr create \
             --base main \
             --head uat \
             --title "Promote UAT to Main (Production Release)" \
             --body "Auto-created PR to promote reviewed changes from UAT to main. CI must pass and approval is required before merging to production." \
-            --reviewer Vacilator
+            --reviewer Vacilator)
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "::notice::Created PR: $PR_URL"
+
+      - name: Add labels to PR
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          PR_NUMBER=$(echo "${{ steps.create-pr.outputs.pr_url }}" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "auto-promotion,production-release" || echo "::warning::Could not add labels (they may not exist)"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::warning::PR creation failed"
