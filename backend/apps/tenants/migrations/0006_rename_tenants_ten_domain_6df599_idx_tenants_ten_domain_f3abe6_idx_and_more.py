@@ -21,6 +21,9 @@ def rename_index_if_exists(apps, schema_editor):
                     ALTER INDEX tenants_ten_domain_6df599_idx 
                     RENAME TO tenants_ten_domain_f3abe6_idx;
                 END IF;
+            EXCEPTION WHEN OTHERS THEN
+                -- Ignore any errors (index might not exist or already renamed)
+                RAISE NOTICE 'Skipping index rename for tenants_ten_domain_6df599_idx';
             END $$;
         """)
         
@@ -36,6 +39,9 @@ def rename_index_if_exists(apps, schema_editor):
                     ALTER INDEX tenants_ten_tenant__3bd559_idx 
                     RENAME TO tenants_ten_tenant__f55360_idx;
                 END IF;
+            EXCEPTION WHEN OTHERS THEN
+                -- Ignore any errors (index might not exist or already renamed)
+                RAISE NOTICE 'Skipping index rename for tenants_ten_tenant__3bd559_idx';
             END $$;
         """)
 
@@ -55,6 +61,9 @@ def reverse_rename_index(apps, schema_editor):
                     ALTER INDEX tenants_ten_domain_f3abe6_idx 
                     RENAME TO tenants_ten_domain_6df599_idx;
                 END IF;
+            EXCEPTION WHEN OTHERS THEN
+                -- Ignore any errors (index might not exist or already renamed)
+                RAISE NOTICE 'Skipping reverse index rename for tenants_ten_domain_f3abe6_idx';
             END $$;
         """)
         
@@ -70,6 +79,9 @@ def reverse_rename_index(apps, schema_editor):
                     ALTER INDEX tenants_ten_tenant__f55360_idx 
                     RENAME TO tenants_ten_tenant__3bd559_idx;
                 END IF;
+            EXCEPTION WHEN OTHERS THEN
+                -- Ignore any errors (index might not exist or already renamed)
+                RAISE NOTICE 'Skipping reverse index rename for tenants_ten_tenant__f55360_idx';
             END $$;
         """)
 
