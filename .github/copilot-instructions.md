@@ -47,7 +47,7 @@ This project uses `django-tenants` for multi-tenant architecture. All database i
 python manage.py migrate_schemas --shared --noinput
 
 # 2. Create/update super tenant (idempotent - safe to run multiple times)
-python manage.py create_super_tenant --no-input
+python manage.py create_super_tenant --verbosity=1
 
 # 3. Apply tenant-specific migrations
 python manage.py migrate_schemas --noinput

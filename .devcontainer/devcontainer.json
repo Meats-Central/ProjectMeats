@@ -114,7 +114,7 @@
 
   // Commands to run after the container is created and ready
   // Runs idempotent multi-tenant migrations for local parity with deployment environments
-  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && pip install -r requirements.txt && (python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput) && (python manage.py create_super_tenant --no-input || echo 'create_super_tenant not available') && (python manage.py migrate_schemas --noinput || echo 'tenant migrations failed, continuing...') && echo '=== Local environment ready with multi-tenant setup ==='"
+  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && pip install -r requirements.txt && (python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput) && (python manage.py create_super_tenant --verbosity=1 || echo 'create_super_tenant not available') && (python manage.py migrate_schemas --noinput || echo 'tenant migrations failed, continuing...') && echo '=== Local environment ready with multi-tenant setup ==='"
 }
 
 
