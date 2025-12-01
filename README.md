@@ -9,9 +9,10 @@ A business management application for meat sales brokers, migrated from PowerApp
 ./start_dev.sh
 ```
 
-**📖 For detailed setup instructions, see [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)**
-
-**📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)**
+**📖 Essential Documentation:**
+- **[LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)** - Setup instructions
+- **[DEVELOPER_WORKFLOWS.md](DEVELOPER_WORKFLOWS.md)** - Builds, tests, debugging ⭐ NEW
+- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Deployment instructions
 
 **Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+
 

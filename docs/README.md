@@ -27,6 +27,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[CI/CD Workflows](workflows/)** - GitHub Actions workflows and automation
 
 #### 🔧 Development Guides
+- **[Developer Workflows](../DEVELOPER_WORKFLOWS.md)** ⭐ - Builds, tests, debugging workflows (NEW)
 - **[Backend Architecture](BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
 - **[Frontend Architecture](FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
 - **[Testing Strategy](TESTING_STRATEGY.md)** - Comprehensive testing guide
@@ -127,6 +128,12 @@ docs/
 - Follow [Main README Quick Setup](../README.md#-quick-setup)
 - Configure environment with [Environment Guide](ENVIRONMENT_GUIDE.md)
 - Check [Migration Guide](MIGRATION_GUIDE.md) for database setup
+- Reference [Developer Workflows](../DEVELOPER_WORKFLOWS.md) for builds, tests, and debugging
+
+**Run tests or debug code:**
+- Check [Developer Workflows](../DEVELOPER_WORKFLOWS.md) for testing and debugging commands
+- Read [Testing Strategy](TESTING_STRATEGY.md) for comprehensive testing guide
+- See [Troubleshooting Guide](TROUBLESHOOTING.md) for common issues
 
 **Understand multi-tenancy:**
 - Read [Multi-Tenancy Guide](MULTI_TENANCY_GUIDE.md) for architecture overview

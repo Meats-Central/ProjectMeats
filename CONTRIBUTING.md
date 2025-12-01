@@ -4,6 +4,7 @@ Welcome to ProjectMeats! This guide will help you contribute effectively to our 
 
 ## 📋 Quick Links
 
+- **[DEVELOPER_WORKFLOWS.md](DEVELOPER_WORKFLOWS.md)** - Builds, tests, debugging workflows ⭐ NEW
 - **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Complete guide to branch naming, PR conventions, and workflows
 - **[Issue Templates](.github/ISSUE_TEMPLATE/)** - Use standardized templates for issues
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Detailed workflow and standards
