@@ -47,13 +47,13 @@ Database configuration uses environment-specific variables to support different 
 
 | Variable | Description | Values | Default |
 |----------|-------------|--------|---------|
-| `DB_ENGINE` | Database backend engine | `django.db.backends.postgresql` | PostgreSQL (recommended) |
+| `DB_ENGINE` | Database backend engine | `django.db.backends.postgresql` | PostgreSQL (required) |
 
-> **Note**: SQLite (`django.db.backends.sqlite3`) is **deprecated**. Use PostgreSQL for all environments.
+> **Note**: PostgreSQL (`django.db.backends.postgresql`) is **required** for all environments. SQLite is no longer supported.
 
 ### PostgreSQL Configuration
 
-Required when `DB_ENGINE=django.db.backends.postgresql`:
+Required for all environments:
 
 | Variable | Description | Example | Required |
 |----------|-------------|---------|----------|
@@ -67,7 +67,7 @@ Required when `DB_ENGINE=django.db.backends.postgresql`:
 
 #### Development Environment
 
-**PostgreSQL (Recommended):**
+**PostgreSQL Configuration:**
 ```bash
 # config/environments/development.env
 DB_ENGINE=django.db.backends.postgresql
@@ -78,16 +78,10 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
-**⚠️ SQLite Fallback (DEPRECATED):**
-```bash
-# config/environments/development.env
-DB_ENGINE=django.db.backends.sqlite3
-```
-
 **GitHub Secrets (for deployment):**
 - Navigate to repository Settings → Environments → `dev-backend`
 - Add secrets:
-  - `DEVELOPMENT_DB_ENGINE` (e.g., `django.db.backends.postgresql`)
+  - `DEVELOPMENT_DB_ENGINE` (must be `django.db.backends.postgresql`)
   - `DEVELOPMENT_DB_NAME`
   - `DEVELOPMENT_DB_USER`
   - `DEVELOPMENT_DB_PASSWORD`

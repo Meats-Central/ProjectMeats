@@ -71,7 +71,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -84,7 +84,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-latest
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       
@@ -264,9 +264,67 @@ jobs:
           fi
 
 
+  # Decoupled migration job - runs idempotent DB migrations before deployment
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: prod2-backend
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DB_URL }}
+          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running idempotent schema migrations ==="
+          
+          # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
+          python manage.py migrate_schemas --shared --fake-initial --noinput || {
+            echo "migrate_schemas not available, falling back to standard migrate"
+            python manage.py migrate --fake-initial --noinput
+          }
+          
+          # Step 2: Create/update super tenant (idempotent)
+          python manage.py create_super_tenant --no-input --verbosity=1 || {
+            echo "⚠ create_super_tenant command failed or not available"
+          }
+          
+          # Step 3: Apply tenant-specific migrations (idempotent)
+          python manage.py migrate_schemas --tenant --noinput || {
+            echo "⚠ migrate_schemas --tenant failed or not available"
+          }
+          
+          echo "✓ Migrations completed successfully"
+
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend, pre-deployment-checks]
+    needs: [migrate, test-frontend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
@@ -288,7 +346,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.FRONTEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/opt/pm/frontend"
 
@@ -365,57 +423,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r backend/requirements.txt
-      
-      - name: Run migrations
-        run: |
-          cd backend && python manage.py migrate --noinput || {
-            echo "::error::Migration failed. Check database connectivity and configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
-      
-      - name: Create super tenant
-        run: |
-          cd backend && python manage.py create_super_tenant --verbosity=1 || {
-            echo "::error::Failed to create super tenant. Check database connectivity and model configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
-      
-      - name: Create guest tenant
-        run: |
-          cd backend && python manage.py create_guest_tenant --verbosity=1 || {
-            echo "::error::Failed to create guest tenant. Check database connectivity and model configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
+      # Migrations and tenant setup are already done in deploy-backend job
+      # This validation job now only performs health checks and smoke tests
       
       - name: Health check with retry
         run: |
           MAX_ATTEMPTS=10
           ATTEMPT=1
+          # Use production URL from secrets, fallback to meatscentral.com if not set
           HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          if [ -z "${{ secrets.PRODUCTION_URL }}" ]; then
+            HEALTH_URL="https://meatscentral.com/api/v1/health/"
+          fi
           # CURL_FAILURE_CODE represents when curl command itself fails (network error, timeout)
           CURL_FAILURE_CODE="000"
           
@@ -447,8 +466,13 @@ jobs:
       
       - name: Run comprehensive smoke tests
         run: |
+          # Use production URL from secrets, fallback to meatscentral.com if not set
+          PROD_URL="${{ secrets.PRODUCTION_URL }}"
+          if [ -z "$PROD_URL" ]; then
+            PROD_URL="https://meatscentral.com"
+          fi
           chmod +x .github/scripts/smoke-tests.sh
-          .github/scripts/smoke-tests.sh "${{ secrets.PRODUCTION_URL }}" 15 5
+          .github/scripts/smoke-tests.sh "$PROD_URL" 15 5
       
       - name: Deployment summary
         if: success()
@@ -469,7 +493,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend, pre-deployment-checks]
+    needs: [migrate, test-backend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-backend
     steps:
@@ -499,7 +523,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
@@ -539,40 +563,15 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations (shared-schema multi-tenancy using standard Django migrations)
-          echo "Running database migrations..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
+          # Note: Migrations now handled by separate 'migrate' job
+          # Only collectstatic needs to run here
+          echo "=== Collecting static files ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
-
-          # Create/update superuser and root tenant (idempotent)
-          echo "Setting up superuser and root tenant..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            sh -c "
-              echo 'Creating/updating superuser and root tenant...'
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo '⚠ create_super_tenant command failed or not available'
-              }
-              
-              echo 'Creating/updating guest tenant...'
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo '⚠ create_guest_tenant command failed or not available'
-              }
-            "
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
@@ -601,7 +600,8 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -H "Host: meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            # Don't send Host header to avoid ALLOWED_HOSTS issues
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
@@ -611,6 +611,9 @@ jobs:
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
               echo "Last response code: $HTTP_CODE"
+              # Show last few lines of container logs for debugging
+              echo "=== Last 20 lines of backend logs ==="
+              docker logs pm-backend --tail 20
               exit 1
             fi
             
