@@ -374,7 +374,11 @@ jobs:
         run: pip install -r backend/requirements.txt
       
       - name: Run migrations
-        run: cd backend && python manage.py migrate --noinput
+        run: |
+          cd backend && python manage.py migrate --noinput || {
+            echo "::error::Migration failed. Check database connectivity and configuration."
+            exit 1
+          }
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
@@ -382,7 +386,11 @@ jobs:
           ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
       
       - name: Create super tenant
-        run: cd backend && python manage.py create_super_tenant --verbosity=1
+        run: |
+          cd backend && python manage.py create_super_tenant --verbosity=1 || {
+            echo "::error::Failed to create super tenant. Check database connectivity and model configuration."
+            exit 1
+          }
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
@@ -390,7 +398,11 @@ jobs:
           ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
       
       - name: Create guest tenant
-        run: cd backend && python manage.py create_guest_tenant --verbosity=1
+        run: |
+          cd backend && python manage.py create_guest_tenant --verbosity=1 || {
+            echo "::error::Failed to create guest tenant. Check database connectivity and model configuration."
+            exit 1
+          }
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}

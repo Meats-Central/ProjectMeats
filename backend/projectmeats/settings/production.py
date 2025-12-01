@@ -54,7 +54,7 @@ for h in _ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS:
 # Database
 # -----------------------------------------------------------------------------
 # Enforce PostgreSQL in production - no SQLite fallback allowed
-# This ensures consistent behavior with django-tenants multi-tenancy
+# This ensures consistent behavior across all production environments
 
 # Check if DATABASE_URL is provided
 _database_url = config("DATABASE_URL", default="")
@@ -66,14 +66,11 @@ if _database_url:
         conn_max_age=600,
         conn_health_checks=True,
     )
-    # Use django-tenants PostgreSQL backend for multi-tenancy support
-    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 else:
     # Explicit PostgreSQL configuration from individual environment variables
     # No SQLite fallback - all DB vars are required in production
     _db_config = {
-        "ENGINE": "django_tenants.postgresql_backend",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("DB_NAME", ""),
         "USER": os.environ.get("DB_USER", ""),
         "PASSWORD": os.environ.get("DB_PASSWORD", ""),
@@ -86,12 +83,6 @@ else:
 DATABASES = {
     "default": _db_config
 }
-
-# Ensure TenantMainMiddleware is in MIDDLEWARE for django-tenants support
-_TENANT_MIDDLEWARE = "django_tenants.middleware.main.TenantMainMiddleware"
-if _TENANT_MIDDLEWARE not in MIDDLEWARE:  # noqa: F405
-    # Insert at the beginning for proper tenant context
-    MIDDLEWARE.insert(0, _TENANT_MIDDLEWARE)  # noqa: F405
 
 # -----------------------------------------------------------------------------
 # CORS
