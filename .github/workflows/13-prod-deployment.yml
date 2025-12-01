@@ -70,7 +70,7 @@ jobs:
           file: frontend/dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/projectmeats:${{ github.sha }}
+            ${{ env.REGISTRY }}/projectmeats-frontend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -84,7 +84,7 @@ jobs:
           file: backend/dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/projectmeats:${{ github.sha }}
+            ${{ env.REGISTRY }}/projectmeats-backend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-latest
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -289,7 +289,7 @@ jobs:
           set -euo pipefail
 
           REG="${{ env.REGISTRY }}"
-          IMG="projectmeats"
+          IMG="projectmeats-frontend"
           TAG="${{ github.sha }}"
 
           APP_DIR="/opt/pm/frontend"
@@ -466,7 +466,7 @@ jobs:
           set -euo pipefail
 
           REG="${{ env.REGISTRY }}"
-          IMG="projectmeats"
+          IMG="projectmeats-backend"
           TAG="${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"

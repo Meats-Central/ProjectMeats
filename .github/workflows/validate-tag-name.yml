@@ -1,13 +1,18 @@
 name: Validate Docker Tag Name
 
 # This workflow enforces that Docker images are tagged with the Git SHA
-# Tag format: projectmeats:${{ github.sha }}
+# Tag format: projectmeats-<component>:${{ github.sha }}
+# Where <component> is either 'frontend' or 'backend'
 
 on:
   workflow_call:
     inputs:
       tag:
-        description: 'The Docker image tag to validate'
+        description: 'The Docker image tag to validate (e.g., projectmeats-frontend:abc123...)'
+        required: true
+        type: string
+      component:
+        description: 'The component type: frontend or backend'
         required: true
         type: string
     outputs:
@@ -18,6 +23,10 @@ on:
     inputs:
       tag:
         description: 'The Docker image tag to validate'
+        required: true
+        type: string
+      component:
+        description: 'The component type: frontend or backend'
         required: true
         type: string
 
@@ -31,14 +40,24 @@ jobs:
         id: validate-tag
         run: |
           TAG="${{ inputs.tag }}"
+          COMPONENT="${{ inputs.component }}"
           EXPECTED_SHA="${{ github.sha }}"
           
           echo "=== Docker Tag Validation ==="
           echo "Provided tag: $TAG"
+          echo "Component: $COMPONENT"
           echo "Expected SHA: $EXPECTED_SHA"
           
-          # Tag format must be: projectmeats:<full-sha>
-          EXPECTED_TAG="projectmeats:${EXPECTED_SHA}"
+          # Validate component
+          if [ "$COMPONENT" != "frontend" ] && [ "$COMPONENT" != "backend" ]; then
+            echo "✗ Invalid component: $COMPONENT"
+            echo "Component must be 'frontend' or 'backend'"
+            echo "is_valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Tag format must be: projectmeats-<component>:<full-sha>
+          EXPECTED_TAG="projectmeats-${COMPONENT}:${EXPECTED_SHA}"
           
           if [ "$TAG" = "$EXPECTED_TAG" ]; then
             echo "✓ Tag format is valid: $TAG"
