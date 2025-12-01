@@ -1,42 +1,141 @@
-# Developer & Copilot Coding Agent Instructions  
-## ProjectMeats – Repository Maintenance, PR Automation, and Coding Standards
+# ProjectMeats - AI Coding Agent Instructions
 
-**Tech Stack**: Django 4.2.7 + DRF + PostgreSQL | React 18.2.0 + TypeScript | React Native | Multi-tenancy (django-tenants)
-
----
-
-## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
-
-**NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
-
-1. Create feature/fix branch from `development`
-2. Submit PR to `development` with review
-3. After merge to `development`, automated workflow creates PR to `UAT`
-4. Test and review in UAT environment
-5. After merge to `UAT`, automated workflow creates PR to `main`
-6. Final approval deploys to production
-
-**Violations of this workflow can break the deployment pipeline and production environment.**
-
-See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-promotion) for full details.
+**Tech Stack**: Django 4.2.7 + DRF + PostgreSQL | React 18.2.0 + TypeScript + Ant Design | React Native | Multi-tenancy
 
 ---
 
-## 📋 Table of Contents
-1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
-3. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
-4. [Code Quality & Security](#-code-quality--security-standards)
-5. [Testing Strategy](#-testing-strategy--coverage)
-6. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
-7. [Frontend Standards](#-frontend-standards-react--typescript)
-8. [Performance Optimization](#-performance-optimization)
-9. [Accessibility & Internationalization](#-accessibility--internationalization)
-10. [Requirements & Dependency Management](#-requirements--dependency-management)
-11. [CI/CD & Deployment](#-cicd--deployment-best-practices)
-12. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+## ⚠️ CRITICAL RULES (Read First)
+
+**Branch Workflow**: Never push directly to `uat` or `main`. Always:
+1. Create branch from `development` using pattern: `feature/<topic>`, `fix/<bug>`, `chore/<task>`
+2. PR to `development` → Auto-PR to `UAT` → Auto-PR to `main`
+
+**Multi-Tenancy**: All tenant-aware models must:
+- Include `tenant = models.ForeignKey(Tenant, ...)` field
+- Use `objects = TenantManager()` for queryset filtering
+- Filter in ViewSets: `Supplier.objects.for_tenant(self.request.tenant)`
+
+**Migrations**: Before any PR with model changes:
+- Run `python manage.py makemigrations` and commit resulting files
+- CharField with `blank=True` MUST have `default=''` (PostgreSQL requirement)
+- Never modify applied migrations—create new ones
 
 ---
+
+## Architecture Overview
+
+```
+backend/                          # Django 4.2.7 + DRF
+├── apps/                        # Business domain apps
+│   ├── tenants/                 # Multi-tenancy (Tenant, TenantUser, TenantDomain)
+│   ├── suppliers/               # Supplier management (example tenant-aware app)
+│   ├── customers/, contacts/, purchase_orders/, plants/, ...
+│   └── core/                    # Base models (TimestampModel, TenantManager, TextChoices)
+├── projectmeats/settings/       # Environment-specific settings (base, development, staging, production)
+└── requirements.txt
+
+frontend/                         # React 18.2.0 + TypeScript
+├── src/
+│   ├── config/tenantContext.ts  # Tenant detection from domain (acme.projectmeats.com → tenant='acme')
+│   ├── services/apiService.ts   # API client with tenant-aware config
+│   ├── components/, pages/, contexts/
+│   └── types/                   # TypeScript interfaces for API responses
+└── package.json
+
+shared/                           # Cross-platform utilities (frontend + mobile)
+```
+
+---
+
+## Essential Commands
+
+```bash
+# Development
+./start_dev.sh                    # Start PostgreSQL + Backend + Frontend
+make dev                          # Alternative: runs both servers
+make test                         # Run all tests (backend + frontend)
+make format && make lint          # Format (Black, isort) and lint (flake8)
+
+# Database
+cd backend && python manage.py makemigrations  # Create migrations (ALWAYS commit these)
+cd backend && python manage.py migrate         # Apply migrations
+
+# Pre-commit (REQUIRED after clone)
+pre-commit install                # Validates migrations on every commit
+```
+
+---
+
+## Key Patterns
+
+### Backend Model Pattern (see `backend/apps/suppliers/models.py`)
+```python
+from apps.core.models import TimestampModel, TenantManager
+from apps.tenants.models import Tenant
+
+class Supplier(TimestampModel):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="suppliers", null=True, blank=True)
+    name = models.CharField(max_length=255)
+    # CharField with blank=True MUST have default=''
+    street_address = models.CharField(max_length=255, blank=True, default='')
+    
+    objects = TenantManager()  # Provides .for_tenant(tenant) method
+```
+
+### Backend ViewSet Pattern (see `backend/apps/suppliers/views.py`)
+```python
+class SupplierViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            return Supplier.objects.for_tenant(self.request.tenant)
+        return Supplier.objects.none()  # Security: no tenant = no data
+    
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.tenant)  # Auto-assign tenant
+```
+
+### Frontend API Service Pattern (see `frontend/src/services/apiService.ts`)
+```typescript
+// Tenant context automatically detected from domain
+import { config } from '../config/runtime';
+const apiClient = axios.create({ baseURL: config.API_BASE_URL });
+```
+
+---
+
+## CI/CD Workflows (`.github/workflows/`)
+
+- `11-dev-deployment.yml`: Deploys on push to `development`
+- `12-uat-deployment.yml`: Deploys on push to `uat`
+- `13-prod-deployment.yml`: Deploys on push to `main`
+- `41-auto-promote-dev-to-uat.yml`: Creates PR after successful dev deployment
+- `42-auto-promote-uat-to-main.yml`: Creates PR after successful UAT deployment
+
+---
+
+## Common Pitfalls (from copilot-log.md)
+
+1. **Missing migration files**: Always run `makemigrations` and commit the files
+2. **CharField without default**: `blank=True` requires `default=''` for PostgreSQL
+3. **Missing tenant filtering**: All tenant-aware queries must use `.for_tenant()`
+4. **CSRF/CORS mismatch**: Keep `CSRF_TRUSTED_ORIGINS` and `CORS_ALLOWED_ORIGINS` synchronized
+
+---
+
+## Reference Documentation
+
+- [Migration Guide](../docs/MIGRATION_GUIDE.md) - Comprehensive migration patterns
+- [Authentication Guide](../docs/AUTHENTICATION_GUIDE.md) - Auth, permissions, superuser management
+- [Troubleshooting](../docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Branch Workflow](../branch-workflow-checklist.md) - Detailed git workflow
+
+---
+
+## Detailed Standards (Expanded Reference)
+
+The following sections provide comprehensive standards for development, testing, security, and maintenance.
 
 ## 🚩 Branch Organization, Naming, Tagging, and Promotion
 
@@ -1528,5 +1627,5 @@ Based on recurring issues, we've added:
 
 ---
 
-**Last Updated**: 2025-11-03  
-**Version**: 3.0 (Enhanced with Copilot efficiency improvements and lessons learned)
+**Last Updated**: 2025-12-01  
+**Version**: 4.0 (Restructured with concise quick-reference section and comprehensive detailed standards)
