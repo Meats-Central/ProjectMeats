@@ -510,10 +510,13 @@ jobs:
           SSH
       
       - name: Post-deployment health check
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           echo "Waiting for backend to stabilize..."
           sleep 10
           
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'HEALTH_CHECK'
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
@@ -522,7 +525,7 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
@@ -539,6 +542,7 @@ jobs:
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
+          HEALTH_CHECK
       
       - name: Notify deployment success
         if: success()
