@@ -13,6 +13,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
 
 ### Essential Guides (NEW - Consolidated)
+- **[Architecture Overview](ARCHITECTURE.md)** ⭐ NEW - Big picture architecture, components, and design decisions
 - **[Migration Guide](MIGRATION_GUIDE.md)** ⭐ - Complete database migration guide with django-tenants
 - **[Authentication Guide](AUTHENTICATION_GUIDE.md)** ⭐ - Authentication, permissions, and superuser management
 - **[Troubleshooting Guide](TROUBLESHOOTING.md)** ⭐ - Common issues and solutions
@@ -44,6 +45,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 docs/
 ├── README.md (this file)              # Documentation navigation hub
 │
+├── ARCHITECTURE.md ⭐                 # Big picture architecture overview (NEW)
 ├── MIGRATION_GUIDE.md ⭐              # Complete database migration guide (NEW)
 ├── AUTHENTICATION_GUIDE.md ⭐         # Auth & permissions guide (NEW)
 ├── TROUBLESHOOTING.md ⭐              # Common issues and solutions (NEW)
@@ -92,9 +94,12 @@ docs/
     └── other/                         # (3 archived misc docs)
 ```
 
-### What's New? (November 2024 Consolidation)
+### What's New? (December 2024 Update)
 
-✨ **4 New Comprehensive Guides**:
+✨ **New Architecture Documentation**:
+- `ARCHITECTURE.md` - Comprehensive big picture architecture covering system overview, major components, service boundaries, data flows, and key architectural decisions with their rationale
+
+✨ **November 2024 Consolidation - 4 Comprehensive Guides**:
 - `MIGRATION_GUIDE.md` - Consolidates 12 migration documents
 - `AUTHENTICATION_GUIDE.md` - Consolidates 13 auth documents
 - `TROUBLESHOOTING.md` - Consolidates 14 troubleshooting documents
@@ -105,6 +110,11 @@ docs/
 ## 🎯 Finding What You Need
 
 ### I want to...
+
+**Understand the overall system architecture:**
+- Read [Architecture Overview](ARCHITECTURE.md) for the big picture
+- Learn about major components, service boundaries, and data flows
+- Understand key architectural decisions and their rationale
 
 **Fix a database migration issue:**
 - Check [Migration Guide](MIGRATION_GUIDE.md) for comprehensive migration patterns
