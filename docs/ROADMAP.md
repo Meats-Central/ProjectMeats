@@ -304,6 +304,244 @@ ProjectMeats/
 
 ---
 
+## 🔧 CI/CD Pipeline Enhancements (December 2024 - Completed)
+
+### Overview
+Four-phase enhancement to improve deployment reliability, reproducibility, and developer experience.
+
+### ✅ Phase 1: Decoupled Schema Migrations
+
+**Status**: ✅ Completed (PR #844)
+
+**Implemented**:
+- Dedicated `migrate` job in all deployment workflows (dev, UAT, prod)
+- Idempotent migration sequence:
+  ```bash
+  python backend/manage.py migrate_schemas --shared --fake-initial
+  python backend/manage.py create_super_tenant --no-input
+  python backend/manage.py migrate_schemas --tenant
+  ```
+- Environment-scoped secrets (DEV_DB_URL, UAT_DB_URL, PROD_DB_URL)
+- Explicit permissions blocks for security
+- Pip dependency caching to reduce job time
+- Appropriate timeout-minutes per environment
+
+**Benefits**:
+- ✅ Better failure isolation
+- ✅ Cleaner pipeline stages
+- ✅ Consistent migration handling
+- ✅ No migration logic in deploy jobs
+
+**Files Changed**:
+- `.github/workflows/11-dev-deployment.yml`
+- `.github/workflows/12-uat-deployment.yml`
+- `.github/workflows/13-prod-deployment.yml`
+
+---
+
+### ✅ Phase 2: Immutable Image Tagging
+
+**Status**: ✅ Completed (PR #845)
+
+**Implemented**:
+- Deploy jobs use SHA-tagged images only: `{env}-${{ github.sha }}`
+- Removed all `-latest` tag usage from deploy steps
+- Build jobs still push both SHA and `-latest` tags (caching)
+- Added validation workflow (`validate-immutable-tags.yml`)
+
+**Tag Strategy**:
+| Stage | Tags | Purpose |
+|-------|------|---------|
+| Build | `dev-abc123f`, `dev-latest` | Immutable + caching |
+| Deploy | `dev-abc123f` only | Production safety |
+
+**Benefits**:
+- ✅ Exact tested artifact deployed
+- ✅ Reproducible deployments
+- ✅ Easy rollback to specific SHA
+- ✅ No accidental version mutation
+
+**Files Changed**:
+- `.github/workflows/11-dev-deployment.yml`
+- `.github/workflows/12-uat-deployment.yml`
+- `.github/workflows/13-prod-deployment.yml`
+- `.github/workflows/validate-immutable-tags.yml` (new)
+
+---
+
+### ✅ Phase 3: Orchestrated Health Checks
+
+**Status**: ✅ Completed (PR #846)
+
+**Implemented**:
+- Reusable health check script: `.github/scripts/health-check.sh`
+- Composite action: `.github/actions/health-check/action.yml`
+- Comprehensive documentation: `docs/ORCHESTRATED_HEALTH_CHECKS.md`
+
+**Health Check Script Features**:
+- Configurable retry attempts and delays
+- Detailed error diagnostics (HTTP codes, network failures)
+- Timeout handling
+- Clean exit codes
+
+**Composite Action Inputs**:
+| Input | Default | Description |
+|-------|---------|-------------|
+| `health-url` | (required) | Health endpoint URL |
+| `max-attempts` | 20 | Maximum retry attempts |
+| `delay-seconds` | 5 | Delay between retries |
+| `initial-wait` | 10 | Wait before first check |
+
+**Usage Example**:
+```yaml
+- name: Health check backend
+  uses: ./.github/actions/health-check
+  with:
+    health-url: 'http://localhost:8000/api/v1/health/'
+    max-attempts: '20'
+    delay-seconds: '5'
+```
+
+**Benefits**:
+- ✅ Standardized health checks
+- ✅ Centralized retry logic
+- ✅ Easy to maintain
+- ✅ SSH-compatible
+
+**Files Changed**:
+- `.github/scripts/health-check.sh` (new)
+- `.github/actions/health-check/action.yml` (new)
+- `docs/ORCHESTRATED_HEALTH_CHECKS.md` (new)
+
+---
+
+### ✅ Phase 4: Developer Experience
+
+**Status**: ✅ Completed (PR #847)
+
+**Implemented**:
+
+#### 1. Devcontainer Parity
+- Enhanced `.devcontainer/devcontainer.json` with Docker-in-Docker
+- Idempotent setup script: `.devcontainer/setup.sh`
+- Runs full multi-tenant migration sequence on create
+- Installs Python + Node dependencies
+- Creates super tenant and guest tenant
+- Ready for immediate development
+
+**Setup Script Steps**:
+1. Install Python dependencies
+2. Install Node dependencies
+3. Wait for PostgreSQL
+4. Run multi-tenant migrations (idempotent)
+5. Create super tenant
+6. Create guest tenant
+
+#### 2. Copilot Instructions
+- Added comprehensive multi-tenancy section to `.github/copilot-instructions.md`
+- Core rule: Always public and tenant schemas
+- Tenant-aware query patterns with code examples
+- Common pitfalls and correct patterns
+- Migration best practices
+- Debugging guide
+
+**Key Guidance Added**:
+- ✅ Tenant isolation in QuerySets
+- ✅ perform_create() overrides
+- ✅ migrate_schemas usage
+- ✅ Health endpoint tenant middleware bypass
+- ✅ Common debugging scenarios
+
+#### 3. ROADMAP Documentation
+- Added CI/CD Enhancements section (this section)
+- Documents all 4 phases with status
+- Includes pipeline diagram
+- Lists benefits and files changed
+- Provides future work items
+
+**Benefits**:
+- ✅ New developers onboard faster
+- ✅ Consistent multi-tenant development
+- ✅ AI agents understand architecture
+- ✅ Prevents common mistakes
+
+**Files Changed**:
+- `.devcontainer/devcontainer.json`
+- `.devcontainer/setup.sh` (new)
+- `.github/copilot-instructions.md`
+- `docs/ROADMAP.md` (this file)
+
+---
+
+### 📊 CI/CD Pipeline Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Feature Branch                        │
+│                        ↓                                 │
+│              Push to Development                        │
+└─────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────┐
+│               Deployment Pipeline                       │
+│                                                          │
+│  1. lint-yaml → Validate workflow syntax               │
+│  2. build-and-push → Docker images (SHA + latest tags) │
+│  3. test-frontend → Unit tests                         │
+│  4. test-backend → Unit + integration tests            │
+│  5. migrate → Idempotent schema migrations ⭐          │
+│  6. deploy-frontend → Deploy with SHA tag ⭐           │
+│  7. deploy-backend → Deploy with SHA tag ⭐            │
+│  8. health-check → Orchestrated health probes ⭐       │
+│  9. post-deployment → Smoke tests                      │
+│                                                          │
+│  ⭐ = Enhanced in 4-phase improvement                   │
+└─────────────────────────────────────────────────────────┘
+                         ↓
+               Automated PR to UAT
+                         ↓
+               (Repeat pipeline)
+                         ↓
+               Automated PR to Main
+                         ↓
+            Production Deployment
+```
+
+---
+
+### 🔮 Future CI/CD Enhancements
+
+#### Short-term (Q1 2025)
+- [ ] Integrate orchestrated health checks into deployment workflows
+- [ ] Add Slack/Teams notifications on deployment failures
+- [ ] Implement parallel test matrices (Django 4.2 + 5.0)
+- [ ] Add migration failure monitoring/alerting
+
+#### Medium-term (Q2 2025)
+- [ ] BuildKit caching for faster Docker builds
+- [ ] Artifact attestation with GitHub OIDC
+- [ ] Deployment rollback automation
+- [ ] Blue-green deployment strategy
+
+#### Long-term (Q3-Q4 2025)
+- [ ] Kubernetes/EKS migration for orchestration
+- [ ] Prometheus metrics integration
+- [ ] Distributed tracing (Jaeger/OpenTelemetry)
+- [ ] Automated performance regression detection
+
+---
+
+### 📚 CI/CD Documentation References
+
+- Orchestrated Health Checks: `docs/ORCHESTRATED_HEALTH_CHECKS.md`
+- Multi-Tenancy Guide: `.github/copilot-instructions.md` (Multi-Tenancy section)
+- Deployment Workflows: `.github/workflows/*deployment*.yml`
+- Validation Workflows: `.github/workflows/validate-*.yml`
+- Scripts: `.github/scripts/`
+- Actions: `.github/actions/`
+
+---
+
 ## 📅 Timeline
 
 ### Q1 2026

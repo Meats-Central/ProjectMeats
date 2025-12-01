@@ -437,6 +437,174 @@ Repeat similarly for `UAT` → `main`.
   - Document complex migrations with comments
   - Test rollback procedures for critical migrations
 
+### 🏢 Multi-Tenancy Database Schema Management
+
+**CRITICAL**: ProjectMeats uses custom shared-schema multi-tenancy (NOT django-tenants schema isolation).
+
+#### Core Principles
+
+1. **Always Public and Tenant Schemas**
+   - Every database operation must consider both public (shared) and tenant-specific data
+   - Public schema: User accounts, authentication, global settings
+   - Tenant schema: Business data (customers, orders, products, etc.)
+   - Models use `tenant_id` foreign key for isolation
+
+2. **Migration Command Sequence (Idempotent)**
+   ```bash
+   # Step 1: Shared schema (public tables)
+   python backend/manage.py migrate_schemas --shared --fake-initial --noinput
+   
+   # Step 2: Create/update super tenant
+   python backend/manage.py create_super_tenant --no-input
+   
+   # Step 3: Tenant-specific migrations
+   python backend/manage.py migrate_schemas --tenant --noinput
+   ```
+
+3. **Tenant-Aware Query Patterns**
+   ```python
+   # ✅ CORRECT: Filter by current tenant
+   def get_queryset(self):
+       return super().get_queryset().filter(tenant=self.request.tenant)
+   
+   # ❌ WRONG: Exposes all tenants' data
+   def get_queryset(self):
+       return super().get_queryset()
+   ```
+
+4. **Tenant Isolation in ViewSets**
+   ```python
+   from rest_framework import viewsets
+   
+   class CustomerViewSet(viewsets.ModelViewSet):
+       serializer_class = CustomerSerializer
+       permission_classes = [IsAuthenticated]
+       
+       def get_queryset(self):
+           # ALWAYS filter by tenant
+           return Customer.objects.filter(tenant=self.request.tenant)
+       
+       def perform_create(self, serializer):
+           # ALWAYS set tenant on creation
+           serializer.save(tenant=self.request.tenant)
+   ```
+
+#### Common Pitfalls
+
+❌ **NEVER do this**:
+```python
+# Exposes all tenants' data
+Customer.objects.all()
+
+# Bypasses tenant isolation
+Customer.objects.filter(name='ABC Corp')
+
+# Forgets to set tenant on create
+customer = Customer.objects.create(name='ABC Corp')
+```
+
+✅ **ALWAYS do this**:
+```python
+# Properly isolated
+Customer.objects.filter(tenant=request.tenant)
+
+# Safe create
+customer = Customer.objects.create(name='ABC Corp', tenant=request.tenant)
+
+# Safe update
+customer = Customer.objects.filter(tenant=request.tenant, id=customer_id).first()
+if customer:
+    customer.name = 'Updated'
+    customer.save()
+```
+
+#### Migration Best Practices
+
+1. **Use --fake-initial for Idempotency**
+   - Prevents duplicate migration errors
+   - Safe to re-run in CI/CD pipelines
+   - Assumes initial migrations already exist
+
+2. **Test Migrations Locally First**
+   ```bash
+   # Test shared schema
+   python backend/manage.py migrate_schemas --shared --fake-initial
+   
+   # Test tenant migrations
+   python backend/manage.py migrate_schemas --tenant
+   
+   # Verify
+   python backend/manage.py showmigrations
+   ```
+
+3. **Tenant Command Idempotency**
+   - `create_super_tenant`: Safe to re-run, checks if exists
+   - `create_guest_tenant`: Safe to re-run, checks if exists
+   - Both commands are used in deployment workflows
+
+#### Tenant Middleware Considerations
+
+1. **Health Check Endpoints**
+   - Must bypass tenant middleware
+   - Use @csrf_exempt decorator
+   - Return simple 200 response
+   
+   ```python
+   # backend/projectmeats/urls.py
+   from django.http import JsonResponse
+   from django.views.decorators.csrf import csrf_exempt
+   
+   @csrf_exempt
+   def health_check_view(request):
+       return JsonResponse({'status': 'healthy'}, status=200)
+   
+   urlpatterns = [
+       path('api/v1/health/', health_check_view, name='health-check'),
+       # ... other patterns
+   ]
+   ```
+
+2. **Admin Interface**
+   - Admin must handle multi-tenant data carefully
+   - Filter ModelAdmin querysets by tenant if applicable
+   - Superusers can see all tenants
+
+#### CI/CD Multi-Tenancy Integration
+
+1. **GitHub Actions Workflows**
+   - Use separate `migrate` job (Phase 1)
+   - Environment-scoped DB URLs (DEV_DB_URL, UAT_DB_URL, PROD_DB_URL)
+   - Run idempotent sequence before deployment
+   
+2. **Devcontainer Setup**
+   - postCreateCommand runs multi-tenant migrations
+   - Sets up super tenant and guest tenant
+   - Ready for immediate development
+
+#### Debugging Multi-Tenancy Issues
+
+**Symptom**: "Tenant not found" or "ALLOWED_HOSTS" error
+- **Cause**: Tenant middleware intercepting health check
+- **Fix**: Ensure health endpoint bypasses tenant middleware
+
+**Symptom**: User sees data from other tenants
+- **Cause**: Missing tenant filter in queryset
+- **Fix**: Always filter by `tenant=request.tenant`
+
+**Symptom**: Migration fails with "table already exists"
+- **Cause**: Not using --fake-initial
+- **Fix**: Use `migrate_schemas --shared --fake-initial`
+
+**Symptom**: Tests fail with "no such table"
+- **Cause**: Test database not migrated
+- **Fix**: Run migrations in test setup
+
+#### References
+
+- Multi-Tenancy Guide: `docs/MULTI_TENANCY_GUIDE.md` (if exists)
+- Migration Commands: `.github/workflows/*deployment*.yml` (migrate job)
+- Devcontainer Setup: `.devcontainer/setup.sh`
+
 ---
 
 ## ⚛️ Frontend Standards (React + TypeScript)
