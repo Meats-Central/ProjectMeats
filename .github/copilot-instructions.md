@@ -5,40 +5,65 @@
 
 ---
 
+## 🎯 Quick Reference (Start Here)
+
+**New to this repo?** Start with these 3 critical rules:
+
+1. **NEVER** push directly to `uat` or `main` - always work through `development` first
+2. **ALWAYS** run `python manage.py makemigrations` locally before any PR with model changes
+3. **ALWAYS** extend `TenantFilteredAdmin` for models with tenant fields
+
+**Most Common Tasks:**
+- Starting work: `git checkout development && git pull && git checkout -b feature/your-feature`
+- Before PR: `make lint && make test && .github/scripts/validate-migrations.sh`
+- See issues? Check [Troubleshooting Guide](#-common-issues--troubleshooting) or [Deployment Troubleshooting](../docs/DEPLOYMENT_TROUBLESHOOTING.md)
+
+---
+
 ## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
 
 **NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
 
-1. Create feature/fix branch from `development`
-2. Submit PR to `development` with review
-3. After merge to `development`, automated workflow creates PR to `UAT`
-4. Test and review in UAT environment
-5. After merge to `UAT`, automated workflow creates PR to `main`
-6. Final approval deploys to production
+1. ✅ Create feature/fix branch from `development`
+2. ✅ Submit PR to `development` with review
+3. ✅ After merge to `development`, automated workflow creates PR to `UAT`
+4. ✅ Test and review in UAT environment
+5. ✅ After merge to `UAT`, automated workflow creates PR to `main`
+6. ✅ Final approval deploys to production
 
 **Violations of this workflow can break the deployment pipeline and production environment.**
 
-See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-promotion) for full details.
+🔗 See [Section 1: Branch Organization & Workflow](#1-branch-organization-naming-tagging-and-promotion) for full details.
 
 ---
 
 ## 📋 Table of Contents
-1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
-3. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
-4. [Code Quality & Security](#-code-quality--security-standards)
-5. [Testing Strategy](#-testing-strategy--coverage)
-6. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
-7. [Frontend Standards](#-frontend-standards-react--typescript)
-8. [Performance Optimization](#-performance-optimization)
-9. [Accessibility & Internationalization](#-accessibility--internationalization)
-10. [Requirements & Dependency Management](#-requirements--dependency-management)
-11. [CI/CD & Deployment](#-cicd--deployment-best-practices)
-12. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+
+### Core Workflow & Standards
+1. [Branch Organization & Git Workflow](#1-branch-organization-naming-tagging-and-promotion)
+2. [Auto-PR Creation & Environment Promotion](#2-auto-pr-creation-for-environment-promotion-via-github-actions)
+3. [Documentation & Logging Standards](#3-documentation-file-placement-standards--logging)
+
+### Code Quality & Development
+4. [Code Quality & Security](#4-code-quality--security-standards)
+5. [Testing Strategy](#5-testing-strategy--coverage)
+6. [API Design & Backend Standards](#6-api-design--backend-standards-django--drf)
+7. [Frontend Standards](#7-frontend-standards-react--typescript)
+
+### Performance & Operations
+8. [Performance Optimization](#8-performance-optimization)
+9. [Accessibility & Internationalization](#9-accessibility--internationalization)
+10. [Requirements & Dependency Management](#10-requirements--dependency-management)
+11. [CI/CD & Deployment](#11-cicd--deployment-best-practices)
+
+### Maintenance & Best Practices
+12. [Clean-Ups & Maintenance](#12-clean-ups-refactoring--repository-health)
+13. [Common Issues & Troubleshooting](#13-common-issues--troubleshooting)
+14. [Copilot Agent Efficiency & Lessons Learned](#14-copilot-agent-efficiency--lessons-learned)
 
 ---
 
-## 🚩 Branch Organization, Naming, Tagging, and Promotion
+## 1. 🚩 Branch Organization, Naming, Tagging, and Promotion
 
 - **Branch Structure:**  
   Use three main branches following GitFlow-inspired workflow:
@@ -97,7 +122,7 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 
 ---
 
-## 💡 Auto-PR Creation for Environment Promotion (via GitHub Actions)
+## 2. 💡 Auto-PR Creation for Environment Promotion (via GitHub Actions)
 
 Auto-promotion between environments is implemented in `.github/workflows/` with workflows like below:
 
@@ -148,7 +173,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 📄 Documentation, File Placement, Standards & Logging
+## 3. 📄 Documentation, File Placement, Standards & Logging
 
 - **Documentation Structure:**  
   - Main guides: `/docs/` directory and root `README.md`
@@ -198,7 +223,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 🔒 Code Quality & Security Standards
+## 4. 🔒 Code Quality & Security Standards
 
 ### Security Best Practices (OWASP Top 10 Compliance)
 
@@ -273,7 +298,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## ✅ Testing Strategy & Coverage
+## 5. ✅ Testing Strategy & Coverage
 
 ### Testing Philosophy
 - **Test Pyramid**: 70% unit tests, 20% integration tests, 10% E2E tests
@@ -346,7 +371,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 🎯 API Design & Backend Standards (Django + DRF)
+## 6. 🎯 API Design & Backend Standards (Django + DRF)
 
 ### RESTful API Design Principles
 
@@ -439,7 +464,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## ⚛️ Frontend Standards (React + TypeScript)
+## 7. ⚛️ Frontend Standards (React + TypeScript)
 
 ### Component Architecture
 
@@ -521,7 +546,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## ⚡ Performance Optimization
+## 8. ⚡ Performance Optimization
 
 ### Backend Performance
 
@@ -592,7 +617,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## ♿ Accessibility & Internationalization
+## 9. ♿ Accessibility & Internationalization
 
 ### Accessibility (WCAG 2.1 AA Compliance)
 
@@ -656,24 +681,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-- **Regular Clean-Up:**  
-  - Remove unused deps, dead code, deprecated configs/scripts
-  - Archive inactive branches/tags (> 3 months old unless needed)
-  - Format/lint all code before merge (Black for Python, Prettier for JS/TS)
-
-- **Refactoring:**  
-  - Modularize/reduce tech debt, maintain/test coverage
-  - No breaking API/model changes without migration plan/docs/review
-  - Remove feature flags once stable
-
-- **Maintenance:**  
-  - Audit permissions, branches, tags, dependencies monthly
-  - Remove/Archive obsolete Terraform/HCL/infra unless strictly needed
-  - Sync CI/CD pipeline configs to current branch/env structure
-
----
-
-## ⚡ Requirements & Dependency Management
+## 10. ⚡ Requirements & Dependency Management
 
 ### Python/Django Backend
 
@@ -745,7 +753,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 🔄 CI/CD & Deployment Best Practices
+## 11. 🔄 CI/CD & Deployment Best Practices
 
 ### Continuous Integration
 
@@ -947,7 +955,7 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 🧹 Clean-Ups, Refactoring, & Repository Health
+## 12. 🧹 Clean-Ups, Refactoring, & Repository Health
 
 ### Regular Clean-Up Schedule
 
@@ -1291,7 +1299,79 @@ Repeat similarly for `UAT` → `main`.
 
 ---
 
-## 📊 Copilot Agent Efficiency & Lessons Learned
+## 13. 🔧 Common Issues & Troubleshooting
+
+### Quick Diagnosis Guide
+
+**Problem: CI/CD failing with "Unapplied migrations detected"**
+- **Solution**: Run `python manage.py makemigrations` locally, commit the new migration files, and push
+- **Prevention**: Always run `makemigrations` before creating PR with model changes
+- **Reference**: [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md)
+
+**Problem: Admin interface showing 403 Forbidden**
+- **Cause**: CSRF_TRUSTED_ORIGINS and CORS_ALLOWED_ORIGINS mismatch
+- **Solution**: Ensure both settings include all frontend and backend domains
+- **Check**: `backend/projectmeats/settings/base.py` and environment-specific settings
+
+**Problem: Static files (CSS/JS) not loading in admin**
+- **Cause**: `collectstatic` ran without persistent volume or permission issues
+- **Solution**: Ensure staticfiles volume is mounted with correct permissions (`chown -R 1000:1000`)
+- **Check**: Deployment configuration and volume mounts
+
+**Problem: Tenant isolation not working**
+- **Cause**: Admin class doesn't extend `TenantFilteredAdmin`
+- **Solution**: Change `class MyAdmin(admin.ModelAdmin)` to `class MyAdmin(TenantFilteredAdmin)`
+- **Test**: Login as non-superuser and verify you only see your tenant's data
+
+**Problem: N+1 query issues causing slow API responses**
+- **Diagnosis**: Use Django Debug Toolbar in development
+- **Solution**: Add `select_related()` for ForeignKeys, `prefetch_related()` for M2M
+- **Pattern**: `queryset.select_related('tenant', 'user').prefetch_related('items')`
+
+**Problem: Migration dependency errors**
+- **Cause**: Migration depends on future migrations or has circular dependencies
+- **Solution**: Use minimal dependencies - only depend on migrations that create models/fields you reference
+- **Fix**: Create new migration to correct dependencies (never edit applied migrations)
+
+**Problem: Tests passing locally but failing in CI**
+- **Cause**: Usually environment differences or missing test data setup
+- **Check**: Database engine differences (SQLite vs PostgreSQL), timezone settings, missing fixtures
+- **Solution**: Use same database engine locally as production, check `.env` configuration
+
+**Problem: Bundle size too large (> 500KB)**
+- **Diagnosis**: Run `webpack-bundle-analyzer` in frontend
+- **Solution**: Use code splitting with `React.lazy()`, avoid large dependencies
+- **Example**: Replace `moment.js` with `date-fns`, use individual lodash imports
+
+### Deployment-Specific Troubleshooting
+
+**For comprehensive deployment troubleshooting, see [Deployment Troubleshooting Guide](../docs/DEPLOYMENT_TROUBLESHOOTING.md)**
+
+**Common Deployment Issues:**
+1. **Database connection failures** → Check DATABASE_URL format and credentials
+2. **Environment variable missing** → Run `.github/scripts/validate-environment.sh`
+3. **Migration failures** → Check logs, ensure database backup exists, rollback if needed
+4. **Permission denials** → Verify user roles, check tenant assignment
+5. **CORS errors** → Synchronize CORS_ALLOWED_ORIGINS with frontend domains
+
+### Getting Help
+
+**Before asking for help:**
+- [ ] Check [Deployment Troubleshooting](../docs/DEPLOYMENT_TROUBLESHOOTING.md)
+- [ ] Review [copilot-log.md](../copilot-log.md) for similar past issues
+- [ ] Check GitHub Actions logs for specific error messages
+- [ ] Verify local environment matches CI environment
+- [ ] Run validation scripts (`.github/scripts/validate-*.sh`)
+
+**When opening an issue:**
+- Include: error message, steps to reproduce, environment (dev/UAT/prod)
+- Attach: relevant logs, screenshots, configuration (redact secrets!)
+- Tag: appropriate labels (`bug`, `deployment`, `migration`, etc.)
+- Reference: related PRs or issues
+
+---
+
+## 14. 📊 Copilot Agent Efficiency & Lessons Learned
 
 ### Overview
 This section consolidates key lessons from 50+ PR deployments (documented in [copilot-log.md](../copilot-log.md)) to improve Copilot agent efficiency and prevent recurring issues.
