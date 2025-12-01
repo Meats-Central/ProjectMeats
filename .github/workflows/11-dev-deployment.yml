@@ -314,7 +314,15 @@ name: Deploy Dev (Frontend + Backend via DOCR and GHCR)
 on:
   push:
     branches: [ development ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'archived/**'
   workflow_dispatch:
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
 
 env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}
@@ -332,6 +340,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       
       - name: Run yamllint
         uses: reviewdog/action-yamllint@v1
