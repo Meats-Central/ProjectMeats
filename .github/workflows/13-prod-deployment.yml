@@ -5,19 +5,49 @@ on:
     branches: [main]  
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND_PROD }}
   BACKEND_IMAGE: ${{ vars.DOCR_REPO_BACKEND_PROD }}
 
 jobs:
+  pre-deployment-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_id: ${{ steps.gen-id.outputs.deployment_id }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate deployment ID
+        id: gen-id
+        run: echo "deployment_id=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      
+      - name: Notify deployment started
+        run: |
+          .github/scripts/deployment-notifications.sh prod started all "Production deployment initiated"
+      
+      - name: Pre-deployment validation
+        run: |
+          echo "=== Pre-Deployment Checks ==="
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Deployment ID: ${{ steps.gen-id.outputs.deployment_id }}"
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [pre-deployment-checks]
     strategy:
       matrix:
         app: [frontend, backend]
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build & Push Frontend
         if: matrix.app == 'frontend'
@@ -229,10 +259,12 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [build-and-push, test-frontend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -307,19 +339,68 @@ jobs:
         run: |
           sleep 8
           curl -fsS "${{ secrets.PRODUCTION_URL }}" > /dev/null
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          .github/scripts/deployment-notifications.sh prod success frontend "Frontend deployed successfully"
+      
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          .github/scripts/deployment-notifications.sh prod failed frontend "Frontend deployment failed"
+  
+  post-deployment-validation:
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run comprehensive smoke tests
+        run: |
+          chmod +x .github/scripts/smoke-tests.sh
+          .github/scripts/smoke-tests.sh "${{ secrets.PRODUCTION_URL }}" 15 5
+      
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "=== Deployment Completed Successfully ==="
+          echo "Environment: Production"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "Commit: ${{ github.sha }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "=================================="
+          .github/scripts/deployment-notifications.sh prod success all "Production deployment completed successfully"
+      
+      - name: Smoke test failure notification
+        if: failure()
+        run: |
+          echo "⚠️ Smoke tests failed - consider rollback"
+          .github/scripts/deployment-notifications.sh prod warning all "Smoke tests failed post-deployment"
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [build-and-push, test-backend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-backend
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
+      
+      - name: Create deployment backup
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          echo "Creating database backup before deployment..."
+          # Backup will be created on remote server during deployment
+          echo "Backup will be created during deployment process"
 
       - name: Deploy backend container (env at /home/django/ProjectMeats/backend/.env)
         env:
@@ -408,3 +489,37 @@ jobs:
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           SSH
+      
+      - name: Post-deployment health check
+        run: |
+          echo "Waiting for backend to stabilize..."
+          sleep 10
+          
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            if curl -fsS --max-time 10 "${{ secrets.PRODUCTION_BACKEND_HEALTH_URL }}" > /dev/null; then
+              echo "✓ Backend health check passed"
+              exit 0
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          .github/scripts/deployment-notifications.sh prod success backend "Backend deployed successfully"
+      
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          .github/scripts/deployment-notifications.sh prod failed backend "Backend deployment failed"

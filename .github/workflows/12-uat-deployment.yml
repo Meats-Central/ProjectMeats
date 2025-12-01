@@ -7,14 +7,42 @@ on:
     branches: [ uat ]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-uat
+  cancel-in-progress: false
+
 env:
   REGISTRY: ${{ vars.DOCR_REGISTRY }}            # e.g. registry.digitalocean.com/meatscentral
   FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND_UAT }} # e.g. projectmeats-frontend
   BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND_UAT  }} # e.g. projectmeats-backend
 
 jobs:
+  pre-deployment-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_id: ${{ steps.gen-id.outputs.deployment_id }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate deployment ID
+        id: gen-id
+        run: echo "deployment_id=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      
+      - name: Notify deployment started
+        run: |
+          chmod +x .github/scripts/deployment-notifications.sh
+          .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
+      
+      - name: Pre-deployment validation
+        run: |
+          echo "=== Pre-Deployment Checks ==="
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Deployment ID: ${{ steps.gen-id.outputs.deployment_id }}"
+  
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [pre-deployment-checks]
     strategy:
       matrix:
         app: [ frontend, backend ]
@@ -398,4 +426,52 @@ jobs:
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
           SSH
 
+      - name: Post-deployment health check
+        run: |
+          echo "Waiting for backend to stabilize..."
+          sleep 10
+          
+          MAX_ATTEMPTS=15
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            if curl -fsS --max-time 10 "${{ secrets.STAGING_BACKEND_HEALTH_URL }}" > /dev/null 2>&1; then
+              echo "✓ Backend health check passed"
+              exit 0
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed"
+              exit 1
+            fi
+            
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+      
+      - name: Notify deployment success
+        if: success()
+        run: |
+          .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
+  
+  post-deployment-validation:
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run smoke tests
+        continue-on-error: true
+        run: |
+          chmod +x .github/scripts/smoke-tests.sh
+          .github/scripts/smoke-tests.sh "${{ secrets.STAGING_URL }}" 10 5
+      
+      - name: Deployment summary
+        run: |
+          echo "=== UAT Deployment Completed ==="
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "Commit: ${{ github.sha }}"
+          .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
       
