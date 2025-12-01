@@ -4,13 +4,13 @@ Welcome to ProjectMeats! This guide will help you contribute effectively to our 
 
 ## 📋 Quick Links
 
-- **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Complete guide to branch naming, PR conventions, and workflows
+- **[Branch Workflow Checklist](docs/workflows/branch-workflow-checklist.md)** - Complete guide to branch naming, PR conventions, and workflows
 - **[Issue Templates](.github/ISSUE_TEMPLATE/)** - Use standardized templates for issues
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Detailed workflow and standards
 
 ## 🌳 Branch & PR Standards (Required)
 
-**Before creating branches or PRs, please review the [Branch Workflow Checklist](branch-workflow-checklist.md).**
+**Before creating branches or PRs, please review the [Branch Workflow Checklist](docs/workflows/branch-workflow-checklist.md).**
 
 ### Branch Naming Convention
 
@@ -389,7 +389,7 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for compl
 - **Deployment**: See [Deployment Troubleshooting](docs/DEPLOYMENT_TROUBLESHOOTING.md) for common issues
 - **Migrations**: See [Migration Best Practices](docs/MIGRATION_BEST_PRACTICES.md) for database migration help
 - **Code Review**: Tag appropriate reviewers
-- **Copilot Log**: Check [copilot-log.md](copilot-log.md) for similar past issues and solutions
+- **Copilot Log**: Check [copilot-log.md](docs/lessons-learned/copilot-log.md) for similar past issues and solutions
 
 ## Labels for Issues
 

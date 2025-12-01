@@ -31,7 +31,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[Frontend Architecture](FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
 - **[Testing Strategy](TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
-- **[Branch Workflow](../branch-workflow-checklist.md)** - Branch naming and workflow guide
+- **[Branch Workflow](workflows/branch-workflow-checklist.md)** - Branch naming and workflow guide
 
 #### 📋 Repository Maintenance
 - **[Platform Core Components Audit](REPO_AUDIT_PLATFORM_CORE.md)** - Comprehensive repository audit report

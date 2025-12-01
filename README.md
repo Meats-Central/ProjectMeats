@@ -549,7 +549,7 @@ This repository includes comprehensive deployment tools:
 5. **Testing**: Add tests for new functionality
 6. **Code Quality**: Run `make format` and `make lint` before commits
 
-See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workflow guide and [Contributing Guide](CONTRIBUTING.md) for comprehensive contribution guidelines.
+See [Branch Workflow Checklist](docs/workflows/branch-workflow-checklist.md) for detailed workflow guide and [Contributing Guide](CONTRIBUTING.md) for comprehensive contribution guidelines.
 
 ## 📚 Documentation
 
@@ -576,7 +576,7 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
 
 ### CI/CD & Workflows
-- **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Branch naming conventions and workflow guide
+- **[Branch Workflow Checklist](docs/workflows/branch-workflow-checklist.md)** - Branch naming conventions and workflow guide
 - **[Unified Workflow](docs/workflows/unified-workflow.md)** - Main CI/CD workflow documentation
 - **[CI/CD Infrastructure](docs/workflows/cicd-infrastructure.md)** - Infrastructure details
 - **[Database Backup](docs/workflows/database-backup.md)** - Backup workflow documentation
