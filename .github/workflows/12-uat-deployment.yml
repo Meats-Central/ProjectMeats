@@ -434,8 +434,12 @@ jobs:
           MAX_ATTEMPTS=15
           ATTEMPT=1
           
+          # Construct health check URL from STAGING_URL
+          HEALTH_URL="${{ secrets.STAGING_URL }}/api/v1/health/"
+          echo "Health check URL: $HEALTH_URL"
+          
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            if curl -fsS --max-time 10 "${{ secrets.STAGING_BACKEND_HEALTH_URL }}" > /dev/null 2>&1; then
+            if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null 2>&1; then
               echo "✓ Backend health check passed"
               exit 0
             fi
