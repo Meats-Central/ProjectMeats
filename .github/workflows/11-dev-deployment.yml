@@ -359,6 +359,19 @@ jobs:
         app: [ frontend, backend ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-dev-${{ matrix.app }}-${{ hashFiles(matrix.app == 'frontend' && 'frontend/package-lock.json' || 'backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-dev-${{ matrix.app }}-
 
       - name: Login to DOCR
         run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
@@ -369,64 +382,41 @@ jobs:
       # Build & Push Frontend to DOCR and GHCR
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
-        run: |
-          FRONTEND_IMAGE_LC="${FRONTEND_IMAGE,,}"
-          docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
-            -t $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
-            -t $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-latest \
-            .
-          
-          # Push with retry logic for transient registry errors
-          for i in {1..3}; do
-            if docker push $REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} && \
-               docker push $REGISTRY/$FRONTEND_IMAGE_LC:dev-latest && \
-               docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-${GITHUB_SHA::7} && \
-               docker push $GHCR_REGISTRY/$FRONTEND_IMAGE_LC:dev-latest; then
-              echo "✓ Push succeeded on attempt $i"
-              break
-            else
-              if [ $i -lt 3 ]; then
-                echo "Push failed on attempt $i, retrying in 10s..."
-                sleep 10
-              else
-                echo "Push failed after 3 attempts"
-                exit 1
-              fi
-            fi
-          done
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: frontend/dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+            ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       # Build & Push Backend to DOCR and GHCR
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
+            ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+      
+      # Move cache to prevent unlimited growth
+      - name: Move cache
         run: |
-          BACKEND_IMAGE_LC="${BACKEND_IMAGE,,}"
-          docker build -f backend/Dockerfile \
-            -t $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
-            -t $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} \
-            -t $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-latest \
-            .
-          
-          # Push with retry logic for transient registry errors
-          for i in {1..3}; do
-            if docker push $REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} && \
-               docker push $REGISTRY/$BACKEND_IMAGE_LC:dev-latest && \
-               docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-${GITHUB_SHA::7} && \
-               docker push $GHCR_REGISTRY/$BACKEND_IMAGE_LC:dev-latest; then
-              echo "✓ Push succeeded on attempt $i"
-              break
-            else
-              if [ $i -lt 3 ]; then
-                echo "Push failed on attempt $i, retrying in 10s..."
-                sleep 10
-              else
-                echo "Push failed after 3 attempts"
-                exit 1
-              fi
-            fi
-          done
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
+
 
   test-frontend:
     runs-on: ubuntu-latest
