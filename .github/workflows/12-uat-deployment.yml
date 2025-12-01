@@ -31,7 +31,7 @@ jobs:
       - name: Notify deployment started
         run: |
           chmod +x .github/scripts/deployment-notifications.sh
-          bash .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
+          .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
       
       - name: Pre-deployment validation
         run: |
@@ -446,13 +446,10 @@ jobs:
           SSH
 
       - name: Post-deployment health check
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           echo "Waiting for backend to stabilize..."
           sleep 10
           
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} <<'HEALTH_CHECK'
           MAX_ATTEMPTS=15
           ATTEMPT=1
           
@@ -461,7 +458,7 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -H "Host: uat.meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
@@ -478,16 +475,11 @@ jobs:
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
-          HEALTH_CHECK
       
       - name: Notify deployment success
         if: success()
         run: |
-          echo "====================================="
-          echo "✅ Backend deployment successful"
-          echo "====================================="
-          # Note: Notification script disabled - checkout not available in this job context
-          # bash .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
+          .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
   
   post-deployment-validation:
     runs-on: ubuntu-latest
@@ -507,5 +499,5 @@ jobs:
           echo "=== UAT Deployment Completed ==="
           echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo "Commit: ${{ github.sha }}"
-          bash .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
+          .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
       
