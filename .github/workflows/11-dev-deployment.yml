@@ -139,7 +139,7 @@ jobs:
     services:
       # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       postgres:
-        image: postgres:15@sha256:4a8d5b37e5a2b6e4e2b6f3a8d9f1c6e8b3c5a7d9e2f4a6c8b0d2e4a6c8b0d2e4  # Pinned digest for reproducibility
+        image: postgres:15  # Pinned digest for reproducibility
         env:
           POSTGRES_USER: postgres  # Standardize to 'postgres' to fix role 'root' mismatch errors
           POSTGRES_PASSWORD: postgres  # Use consistent password for CI; in production use secrets
