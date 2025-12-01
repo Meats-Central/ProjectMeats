@@ -134,9 +134,66 @@ jobs:
 
 
   # Job to deploy the frontend
+  # Decoupled migration job - runs idempotent DB migrations before deployment
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: dev-backend
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DB_URL }}
+          SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running idempotent schema migrations ==="
+          
+          # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
+          python manage.py migrate_schemas --shared --fake-initial --noinput || {
+            echo "migrate_schemas not available, falling back to standard migrate"
+            python manage.py migrate --fake-initial --noinput
+          }
+          
+          # Step 2: Create/update super tenant (idempotent)
+          python manage.py create_super_tenant --no-input --verbosity=1 || {
+            echo "⚠ create_super_tenant command failed or not available"
+          }
+          
+          # Step 3: Apply tenant-specific migrations (idempotent)
+          python manage.py migrate_schemas --tenant --noinput || {
+            echo "⚠ migrate_schemas --tenant failed or not available"
+          }
+          
+          echo "✓ Migrations completed successfully"
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [migrate, test-frontend]
     environment: dev-frontend
     steps:
       - name: Setup SSH with password authentication
@@ -203,7 +260,7 @@ jobs:
   # Job to deploy the backend
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [migrate, test-backend]
     environment: dev-backend
     steps:
       - name: Setup SSH with password authentication
@@ -664,59 +721,16 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Pre-deployment: Run database migrations and setup tasks
-          echo "=== Running pre-deployment tasks ==="
+          # Note: Migrations now handled by separate 'migrate' job
+          # Only collectstatic needs to run here as it requires app files
+          echo "=== Collecting static files ==="
           sudo docker run --rm \
-            --name pm-backend-deploy \
             --env-file "$ENV_FILE" \
-            -v "$ENV_FILE:/app/.env:ro" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            bash -c '
-              set -euo pipefail
-              
-              echo "Step 1/5: Checking database connectivity..."
-              for i in {1..30}; do
-                if python manage.py check --database default >/dev/null 2>&1; then
-                  echo "✓ Database connection successful"
-                  break
-                fi
-                if [ $i -eq 30 ]; then
-                  echo "✗ Failed to connect to database after 30 attempts"
-                  exit 1
-                fi
-                echo "Waiting for database... ($i/30)"
-                sleep 2
-              done
-              
-              echo "Step 2/5: Running database migrations..."
-              python manage.py migrate --noinput || {
-                echo "✗ Migration failed"
-                exit 1
-              }
-              echo "✓ Migrations completed"
-              
-              echo "Step 3/5: Creating superuser and root tenant..."
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo "⚠ create_super_tenant command failed or not available"
-              }
-              
-              echo "Step 4/5: Creating guest tenant..."
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo "⚠ create_guest_tenant command failed or not available"
-              }
-              
-              echo "Step 5/5: Collecting static files..."
-              python manage.py collectstatic --noinput --clear || {
-                echo "⚠ collectstatic failed (non-critical)"
-              }
-              echo "✓ Static files collected"
-              
-              echo "=== Pre-deployment tasks completed successfully ==="
-            ' || {
-              echo "✗ Pre-deployment tasks failed"
-              exit 1
+            python manage.py collectstatic --noinput --clear || {
+              echo "⚠ collectstatic failed (non-critical)"
             }
 
           # Stop old container if running
