@@ -479,6 +479,25 @@ jobs:
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
 
+          # Create/update superuser and root tenant (idempotent)
+          echo "Setting up superuser and root tenant..."
+          sudo docker run --rm \
+            --env-file "$ENV_FILE" \
+            -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
+            "$REG/$IMG:$TAG" \
+            sh -c "
+              echo 'Creating/updating superuser and root tenant...'
+              python manage.py create_super_tenant --verbosity=1 || {
+                echo '⚠ create_super_tenant command failed or not available'
+              }
+              
+              echo 'Creating/updating guest tenant...'
+              python manage.py create_guest_tenant --verbosity=1 || {
+                echo '⚠ create_guest_tenant command failed or not available'
+              }
+            "
+
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
@@ -498,22 +517,43 @@ jobs:
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
+<<<<<<< HEAD
           # Construct health check URL from PRODUCTION_URL
           HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+=======
+<<<<<<< HEAD
+          # Health check using localhost since we're on the deployment server
+          HEALTH_URL="http://localhost:8000/api/v1/health/"
+          echo "Health check URL: $HEALTH_URL"
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
+=======
+          # Construct health check URL from PRODUCTION_URL
+          HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          echo "Health check URL: $HEALTH_URL"
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+>>>>>>> a181e8e5d01ce2bf6cee238a3553ffb413c77762
             if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null; then
               echo "✓ Backend health check passed"
+>>>>>>> origin/uat
               exit 0
             fi
             
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts"
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              echo "Last response code: $HTTP_CODE"
               exit 1
             fi
             
-            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE)..."
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
