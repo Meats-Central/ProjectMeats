@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
-import { ChatMessage } from '../../types';
+import { ChatMessage, MessageStatus } from '../../types';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -50,7 +50,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, onRetry }) => {
     }
   };
 
-  const getStatusIcon = (status?: string): string | null => {
+  const getStatusIcon = (status?: MessageStatus): string | null => {
     switch (status) {
       case 'sending':
         return '⏳';

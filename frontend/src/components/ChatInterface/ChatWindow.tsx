@@ -23,6 +23,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Ref to hold the latest sendMessage function for use in callbacks
+  const sendMessageRef = useRef<(content: string, tempId?: string) => Promise<void>>();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,15 +136,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
       setLoading(false);
     }
   };
+  
+  // Keep the ref updated with the latest sendMessage function
+  sendMessageRef.current = sendMessage;
 
   // Handle retry for failed messages
   const handleRetry = useCallback(
     (message: ChatMessage) => {
       // Retry sending the message with the same temp ID
-      sendMessage(message.content, message.id);
+      sendMessageRef.current?.(message.content, message.id);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [session]
+    []
   );
 
   const uploadDocument = async (file: File): Promise<{ id: string; status: string }> => {
