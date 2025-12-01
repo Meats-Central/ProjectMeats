@@ -446,10 +446,13 @@ jobs:
           SSH
 
       - name: Post-deployment health check
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           echo "Waiting for backend to stabilize..."
           sleep 10
           
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} <<'HEALTH_CHECK'
           MAX_ATTEMPTS=15
           ATTEMPT=1
           
@@ -475,6 +478,7 @@ jobs:
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
+          HEALTH_CHECK
       
       - name: Notify deployment success
         if: success()
