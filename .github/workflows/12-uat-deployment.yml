@@ -31,7 +31,7 @@ jobs:
       - name: Notify deployment started
         run: |
           chmod +x .github/scripts/deployment-notifications.sh
-          .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
+          bash .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
       
       - name: Pre-deployment validation
         run: |
@@ -398,26 +398,14 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations with django-tenants support
+          # Run migrations (shared-schema multi-tenancy using standard Django migrations)
+          echo "Running database migrations..."
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            sh -c "
-              if python manage.py help migrate_schemas >/dev/null 2>&1; then
-                echo 'Using django-tenants migrations...'
-                echo 'Step 1: Running shared schema migrations...'
-                python manage.py migrate_schemas --shared --noinput
-                echo 'Step 2: Ensuring public tenant exists...'
-                python manage.py ensure_public_tenant --domain=uat.meatscentral.com
-                echo 'Step 3: Running tenant-specific migrations...'
-                python manage.py migrate_schemas --noinput
-              else
-                echo 'Using regular migrations...'
-                python manage.py migrate --noinput
-              fi
-            "
+            python manage.py migrate --noinput
 
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
@@ -494,7 +482,11 @@ jobs:
       - name: Notify deployment success
         if: success()
         run: |
-          .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
+          echo "====================================="
+          echo "✅ Backend deployment successful"
+          echo "====================================="
+          # Note: Notification script disabled - checkout not available in this job context
+          # bash .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
   
   post-deployment-validation:
     runs-on: ubuntu-latest
@@ -514,5 +506,5 @@ jobs:
           echo "=== UAT Deployment Completed ==="
           echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo "Commit: ${{ github.sha }}"
-          .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
+          bash .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
       
