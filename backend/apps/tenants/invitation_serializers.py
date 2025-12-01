@@ -80,7 +80,12 @@ class TenantInvitationListSerializer(serializers.ModelSerializer):
             'tenant_name', 'invited_by_username',
             'is_expired_status', 'is_valid_status'
         ]
-        read_only_fields = fields
+        read_only_fields = (
+            'id', 'email', 'role', 'status', 'message',
+            'created_at', 'expires_at', 'accepted_at',
+            'tenant_name', 'invited_by_username',
+            'is_expired_status', 'is_valid_status'
+        )
 
 
 class InvitationSignupSerializer(serializers.Serializer):
@@ -197,4 +202,8 @@ class TenantInvitationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantInvitation
         fields = '__all__'
-        read_only_fields = fields
+        read_only_fields = (
+            'id', 'token', 'tenant', 'email', 'role', 'invited_by', 
+            'status', 'created_at', 'expires_at', 'accepted_at', 
+            'accepted_by', 'message'
+        )
