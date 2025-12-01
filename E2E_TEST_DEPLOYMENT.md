@@ -21,8 +21,3 @@ This file is a test addition to validate the deployment workflow.
 
 ## Test ID
 Run: E2E-TEST-$(date +%Y%m%d-%H%M%S)
-## E2E Test - Complete Cycle
-
-Testing full deployment pipeline with dev deployment enabled.
-
-Test timestamp: 2025-12-01 17:08:21 UTC
