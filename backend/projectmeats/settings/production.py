@@ -53,23 +53,45 @@ for h in _ext_hosts + _int_hosts + _COMMON_INTERNAL_HOSTS:
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
-# Parse DATABASE_URL and update to use django-tenants backend if PostgreSQL
-_db_config = dj_database_url.config(
-    default=config(
-        "DATABASE_URL", default=f"sqlite:///{BASE_DIR}/build_temp.db"
-    ),  # noqa: F405
-    conn_max_age=600,
-    conn_health_checks=True,
-)
+# Enforce PostgreSQL in production - no SQLite fallback allowed
+# This ensures consistent behavior with django-tenants multi-tenancy
 
-# Use standard PostgreSQL backend (not django-tenants)
-# ProjectMeats uses custom shared-schema multi-tenancy
-# if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-#     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+# Check if DATABASE_URL is provided
+_database_url = config("DATABASE_URL", default="")
+
+if _database_url:
+    # Parse DATABASE_URL if provided
+    _db_config = dj_database_url.config(
+        default=_database_url,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+    # Use django-tenants PostgreSQL backend for multi-tenancy support
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+else:
+    # Explicit PostgreSQL configuration from individual environment variables
+    # No SQLite fallback - all DB vars are required in production
+    _db_config = {
+        "ENGINE": "django_tenants.postgresql_backend",
+        "NAME": os.environ.get("DB_NAME", ""),
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": os.environ.get("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
+    }
 
 DATABASES = {
     "default": _db_config
 }
+
+# Ensure TenantMainMiddleware is in MIDDLEWARE for django-tenants support
+_TENANT_MIDDLEWARE = "django_tenants.middleware.main.TenantMainMiddleware"
+if _TENANT_MIDDLEWARE not in MIDDLEWARE:  # noqa: F405
+    # Insert at the beginning for proper tenant context
+    MIDDLEWARE.insert(0, _TENANT_MIDDLEWARE)  # noqa: F405
 
 # -----------------------------------------------------------------------------
 # CORS

@@ -362,7 +362,66 @@ jobs:
     needs: [deploy-backend, deploy-frontend]
     if: success()
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      
+      - name: Run migrations
+        run: cd backend && python manage.py migrate --noinput
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
+      
+      - name: Create super tenant
+        run: cd backend && python manage.py create_super_tenant --verbosity=1
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
+      
+      - name: Create guest tenant
+        run: cd backend && python manage.py create_guest_tenant --verbosity=1
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
+      
+      - name: Health check with retry
+        run: |
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+          HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          
+          echo "Health check URL: $HEALTH_URL"
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$HEALTH_URL" 2>/dev/null || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Health check passed (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              exit 1
+            fi
+            
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE)..."
+            sleep 5
+            ATTEMPT=$((ATTEMPT + 1))
+          done
       
       - name: Run comprehensive smoke tests
         run: |
