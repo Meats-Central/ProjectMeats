@@ -30,6 +30,10 @@ on:
         required: true
         type: string
 
+# Minimal permissions for validation workflow
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
