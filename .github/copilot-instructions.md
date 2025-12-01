@@ -200,38 +200,35 @@ Repeat similarly for `UAT` → `main`.
 
 ## 🔒 Code Quality & Security Standards
 
-### Security Best Practices (OWASP Top 10 Compliance)
+### Security Best Practices (Project-Specific Implementation)
 
 - **Authentication & Authorization:**
-  - Never store passwords in plain text; use Django's built-in password hashing
-  - Implement proper session management; set secure cookie flags (HttpOnly, Secure, SameSite)
-  - Use CSRF protection on all state-changing operations
-  - Implement rate limiting on authentication endpoints (use django-ratelimit)
-  - Enforce strong password policies (min 12 chars, complexity requirements)
-  - Use multi-factor authentication (MFA) for admin accounts
+  - Use Django's built-in password hashing (already configured in settings)
+  - Session management configured in `backend/projectmeats/settings/base.py`
+  - CSRF protection enabled globally - ensure CSRF_TRUSTED_ORIGINS matches CORS_ALLOWED_ORIGINS
+  - See [Authentication Guide](../docs/AUTHENTICATION_GUIDE.md) for complete patterns
+  - Tenant isolation: Use `TenantFilteredAdmin` base class for all admin classes (see examples in codebase)
 
 - **Data Protection:**
-  - Encrypt sensitive data at rest (use Django's encrypted fields or database-level encryption)
-  - Use HTTPS/TLS for all data in transit (enforce in production via middleware)
-  - Implement proper tenant isolation in multi-tenant architecture (django-tenants)
-  - Sanitize all user inputs to prevent XSS, SQL injection, command injection
-  - Use parameterized queries exclusively (ORM handles this, never use raw SQL with string interpolation)
-  - Implement Content Security Policy (CSP) headers
+  - Tenant isolation via django-tenants and `TenantMiddleware` (see `backend/apps/tenants/middleware.py`)
+  - All inputs validated through DRF serializers with field-level validation
+  - Use Django ORM exclusively (never raw SQL) - parameterized queries automatic
+  - Test tenant isolation with patterns from `backend/apps/tenants/test_isolation.py`
+  - Validate tenant-aware querysets: Override `get_queryset()` to filter by tenant
 
-- **Secrets Management:**
-  - Never commit secrets to version control (use `.env` files, exclude in `.gitignore`)
-  - Use django-environ or python-decouple for environment variables
-  - Rotate secrets regularly (API keys, database passwords, JWT secrets)
-  - Use GitHub Secrets for CI/CD credentials
-  - Scan for exposed secrets using git-secrets or truffleHog
-  - Use different secrets for each environment (dev/UAT/prod)
+- **Secrets Management (Project-Specific):**
+  - **NEVER commit secrets** - they go in `config/environments/*.env` files (gitignored)
+  - Use `config/manage_env.py` for environment setup (standardized approach)
+  - **Validate secrets before deployment:** Run `.github/scripts/validate-environment.sh`
+  - GitHub Secrets used in workflows for CI/CD (see `.github/workflows/*.yml`)
+  - Different secrets per environment (development.env, staging.env, production.env)
 
-- **Dependency Security:**
-  - Run `pip-audit` (Python) and `npm audit` (Node) regularly
-  - Enable Dependabot for automated vulnerability alerts
-  - Pin exact versions in requirements.txt and package-lock.json
-  - Review security advisories before updating major dependencies
-  - Remove unused dependencies monthly
+- **Dependency Security (Project-Specific):**
+  - **Run before every PR:** `cd backend && pip-audit` and `cd frontend && npm audit`
+  - Dependabot enabled in repository settings (check GitHub Security tab)
+  - Exact versions pinned in `backend/requirements.txt` (e.g., `Django==4.2.7`)
+  - **Remove unused deps:** `cd frontend && npx depcheck` to find unused packages
+  - Review and update dependencies quarterly (documented in `docs/CLEANUP_CHECKLIST.md`)
 
 - **Code Security Practices:**
   - Validate and sanitize all external inputs (API requests, file uploads, user input)
@@ -263,23 +260,32 @@ Repeat similarly for `UAT` → `main`.
   - Use SonarQube or CodeClimate for code quality metrics
   - Maintain code quality scores above 'B' grade
 
-- **Error Handling & Logging:**
-  - Use structured logging with appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  - Never log sensitive data (passwords, tokens, PII)
-  - Implement centralized error tracking (Sentry or similar)
+- **Error Handling & Logging (Project-Specific):**
+  - Use Django's logging configuration in `backend/projectmeats/settings/base.py`
+  - Follow error handling pattern from ViewSets in codebase:
+    ```python
+    try:
+        # operation
+    except Exception as e:
+        logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
+        return Response({"error": str(e)}, status=500)
+    ```
+  - Never log sensitive data (passwords, tokens, PII) - use `[REDACTED]` placeholders
   - Return appropriate HTTP status codes with descriptive error messages
-  - Include correlation IDs for request tracing
-  - Use Django's logging configuration with rotating file handlers
+  - Validate environment logging config with `.github/scripts/validate-environment.sh`
 
 ---
 
 ## ✅ Testing Strategy & Coverage
 
 ### Testing Philosophy
-- **Test Pyramid**: 70% unit tests, 20% integration tests, 10% E2E tests
-- **Coverage Target**: Minimum 80% overall, 90%+ for critical business logic
+**See [Testing Strategy](../docs/TESTING_STRATEGY.md) for comprehensive guide**
+
+- **Test Pyramid**: Follow project pattern - more unit tests, fewer integration tests, minimal E2E tests
+- **Coverage Target**: Minimum 80% overall, 90%+ for critical business logic (measured with `coverage run --source='.' manage.py test`)
 - **TDD Approach**: Write tests before or alongside code when possible
 - **Fast Feedback**: Unit tests should run in < 1 minute
+- **Project-Specific Patterns**: Use patterns from `backend/apps/core/tests/test_*.py` as templates
 
 ### Backend Testing (Django + DRF)
 
@@ -301,13 +307,14 @@ Repeat similarly for `UAT` → `main`.
   - **Coverage**: Run `pytest --cov=apps --cov-report=html`
   - **Fixtures**: Use Factory Boy for test data generation (reduces boilerplate)
 
-- **Testing Best Practices:**
-  - Test one thing per test method (single responsibility)
-  - Use descriptive test names: `test_<method>_<scenario>_<expected_result>`
-  - Mock external dependencies (APIs, file system, email)
-  - Test edge cases, error conditions, and boundary values
-  - Test tenant isolation in multi-tenant features
-  - Avoid test interdependencies (each test should be independent)
+- **Testing Best Practices (Project-Specific):**
+  - Follow patterns in `backend/apps/core/tests/test_validators.py` for validation tests
+  - Use descriptive test names: `test_<method>_<scenario>_<expected_result>` (see examples in `test_api_endpoints.py`)
+  - Use Django's `TestCase` for database tests (auto transaction rollback)
+  - Use DRF's `APITestCase` and `APIClient` for API endpoint tests
+  - Test tenant isolation patterns from `backend/apps/tenants/test_isolation.py`
+  - Mock external dependencies (APIs, file system, email) - see existing test patterns
+  - Run tests with: `cd backend && python manage.py test` or `make test-backend`
 
 ### Frontend Testing (React + TypeScript)
 
@@ -335,107 +342,99 @@ Repeat similarly for `UAT` → `main`.
   - Maintain > 70% coverage for components
 
 ### Testing Checklist (Required for PRs)
-- [ ] Unit tests for new functions/methods
-- [ ] Integration tests for API endpoints
+**Run these actual commands:**
+- [ ] Unit tests for new functions/methods (follow patterns in `backend/apps/*/tests/`)
+- [ ] API tests for endpoints (use `APITestCase` like in `test_api_endpoints.py`)
 - [ ] Update existing tests for modified code
-- [ ] All tests pass locally: `make test`
-- [ ] Coverage doesn't decrease
-- [ ] Test edge cases and error scenarios
-- [ ] Mock external dependencies
+- [ ] All tests pass: `cd backend && python manage.py test` or `make test-backend`
+- [ ] Check coverage: `coverage run --source='.' manage.py test && coverage report`
+- [ ] Test tenant isolation (use patterns from `backend/apps/tenants/test_isolation.py`)
+- [ ] Pre-commit hooks pass: `pre-commit run --all-files`
 - [ ] Tests are independent and repeatable
 
 ---
 
 ## 🎯 API Design & Backend Standards (Django + DRF)
 
-### RESTful API Design Principles
+### RESTful API Design Principles (Project-Specific Implementation)
 
-- **URL Structure:**
-  - Use nouns for resources: `/api/v1/customers/`, `/api/v1/orders/`
-  - Use HTTP verbs for actions: GET (read), POST (create), PUT/PATCH (update), DELETE (delete)
-  - Nest related resources: `/api/v1/customers/{id}/orders/`
-  - Version APIs in URL: `/api/v1/`, `/api/v2/`
-  - Use plural nouns: `/customers/` not `/customer/`
+**See actual API patterns in `backend/apps/*/views.py` and `backend/apps/*/serializers.py`**
 
-- **HTTP Status Codes:**
-  - 200 OK: Successful GET, PUT, PATCH
-  - 201 Created: Successful POST with resource creation
-  - 204 No Content: Successful DELETE
-  - 400 Bad Request: Invalid input, validation errors
-  - 401 Unauthorized: Missing or invalid authentication
-  - 403 Forbidden: Authenticated but no permission
-  - 404 Not Found: Resource doesn't exist
-  - 409 Conflict: Duplicate resource or conflict
-  - 500 Internal Server Error: Unexpected server error
+- **URL Structure (Used in ProjectMeats):**
+  - Resources use nouns: `/api/v1/customers/`, `/api/v1/purchase-orders/`
+  - HTTP verbs: GET (read), POST (create), PUT/PATCH (update), DELETE (delete)
+  - Nested resources: `/api/v1/customers/{id}/orders/`
+  - API versioned at `/api/v1/` (configured in `backend/projectmeats/urls.py`)
+  - Use plural nouns consistently
 
-- **Response Format:**
-  ```json
-  {
-    "data": { ... },           // Actual response data
-    "meta": {                   // Metadata
-      "page": 1,
-      "per_page": 20,
-      "total": 100
-    },
-    "errors": [ ... ]           // Validation/error details
-  }
-  ```
+- **HTTP Status Codes (Follow DRF defaults):**
+  - 200 OK, 201 Created, 204 No Content
+  - 400 Bad Request (validation errors), 401 Unauthorized, 403 Forbidden, 404 Not Found
+  - 500 Internal Server Error (logged via error handler)
 
-- **Pagination:**
-  - Use cursor-based pagination for large datasets
-  - Default page size: 20-50 items
-  - Include pagination metadata in response
-  - Support `?page=N&page_size=M` query parameters
+- **Pagination (Configured in settings):**
+  - Default page size: 20 items (see `backend/projectmeats/settings/base.py`)
+  - Supports `?page=N&page_size=M` query parameters
+  - DRF PageNumberPagination used throughout
 
 - **Filtering & Searching:**
-  - Use query parameters: `?status=active&created_after=2024-01-01`
-  - Support common filters: date ranges, status, search terms
-  - Use django-filter for consistent filtering
-  - Document all supported filters in API docs
+  - Use django-filter (installed in requirements.txt)
+  - Query parameters: `?status=active&created_after=2024-01-01`
+  - Document filters in ViewSet docstrings and OpenAPI schema
 
-### Django Best Practices
+### Django Best Practices (Project-Specific Patterns)
+
+**Reference actual implementations in `backend/apps/*/models.py`**
 
 - **Models:**
-  - Use explicit field names (avoid abbreviations)
-  - Add `verbose_name` and `help_text` for admin interface
+  - Follow patterns from existing models (e.g., `apps/customers/models.py`)
+  - Use explicit field names, add `verbose_name` and `help_text`
   - Implement `__str__` method for readable representations
-  - Use `Meta.ordering` for consistent default ordering
-  - Add database indexes on frequently queried fields
-  - Use `unique=True` or `unique_together` for data integrity
-  - Implement model validation in `clean()` method
+  - Use `Meta.ordering` for default ordering
+  - Add `db_index=True` on frequently queried fields
+  - **PostgreSQL: CharField with `blank=True` MUST have `default=''`**
 
-- **QuerySet Optimization:**
-  - Use `select_related()` for foreign keys (SQL JOIN)
-  - Use `prefetch_related()` for reverse foreign keys and M2M
-  - Use `only()` or `defer()` to limit fetched fields
-  - Avoid N+1 queries (use Django Debug Toolbar to detect)
-  - Use `annotate()` and `aggregate()` for complex queries
-  - Cache expensive queries with Django's cache framework
+- **QuerySet Optimization (Critical for Performance):**
+  - **Use `select_related()` for ForeignKeys:** `queryset.select_related('tenant', 'user')`
+  - **Use `prefetch_related()` for reverse FKs/M2M:** `queryset.prefetch_related('items')`
+  - **Detect N+1 queries:** Install `django-debug-toolbar` and check query count in dev
+  - **Example from codebase:**
+    ```python
+    def get_queryset(self):
+        return super().get_queryset().select_related('tenant', 'created_by')
+    ```
 
 - **Serializers:**
-  - Use `ModelSerializer` for model-based serializers
-  - Implement field-level validation: `validate_<field_name>()`
-  - Implement object-level validation: `validate()`
-  - Use nested serializers for related objects
-  - Use `read_only_fields` for computed/auto-generated fields
-  - Document all fields in docstrings
+  - Use `ModelSerializer` (see examples in `backend/apps/*/serializers.py`)
+  - Field-level validation: `validate_<field_name>()`
+  - Object-level validation: `validate()`
+  - Use `read_only_fields` for computed fields
+  - Document in docstrings
 
-- **ViewSets & Permissions:**
-  - Use `ModelViewSet` for standard CRUD operations
-  - Implement custom actions with `@action` decorator
-  - Use DRF permissions: IsAuthenticated, IsAdminUser, custom permissions
-  - Implement tenant-based permissions for multi-tenancy
-  - Override `get_queryset()` to filter by tenant
-  - Use throttling for rate limiting
+- **ViewSets & Permissions (Project-Specific Patterns):**
+  - Use `ModelViewSet` for CRUD operations (see `backend/apps/*/views.py` for examples)
+  - **Tenant-aware querysets (CRITICAL for multi-tenancy):**
+    ```python
+    def get_queryset(self):
+        user = self.request.user
+        tenant = getattr(user, 'tenant', None) or user.tenantuser_set.first()?.tenant
+        return super().get_queryset().filter(tenant=tenant)
+    ```
+  - Use `TenantFilteredAdmin` base class for admin classes (from `apps.core.admin`)
+  - Test tenant isolation with patterns from `backend/apps/tenants/test_isolation.py`
+  - Custom actions: Use `@action` decorator
+  - Permissions: IsAuthenticated, IsAdminUser, custom tenant-based permissions
 
-- **Migrations:**
-  - Always run `makemigrations` before committing model changes
-  - Review migration files before committing
-  - Test migrations in development before UAT/production
-  - Use `RunPython` for data migrations
-  - Never edit applied migrations (create new ones)
-  - Document complex migrations with comments
-  - Test rollback procedures for critical migrations
+- **Migrations (Project-Specific - CRITICAL):**
+  - **ALWAYS validate migrations:** Run `.github/scripts/validate-migrations.sh` before PR
+  - **See [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md)** for complete guide
+  - Run `python manage.py makemigrations --check` (automated in pre-commit hook)
+  - Test on fresh database: `dropdb test_db && createdb test_db && python manage.py migrate`
+  - **NEVER edit applied migrations** (create new ones) - this is the #1 cause of deployment failures
+  - **CharField with `blank=True` MUST have `default=''`** for PostgreSQL compatibility
+  - Use minimal dependencies (only migrations that create models/fields you reference)
+  - For TENANT_APPS, use `python manage.py migrate_schemas` not `migrate`
+  - Document complex migrations with docstrings explaining "why"
 
 ---
 
@@ -523,23 +522,23 @@ Repeat similarly for `UAT` → `main`.
 
 ## ⚡ Performance Optimization
 
-### Backend Performance
+### Backend Performance (Project-Specific)
 
 - **Database Optimization:**
-  - Add indexes on frequently queried fields (foreign keys, search fields)
-  - Use database-level constraints for data integrity
-  - Implement database connection pooling
-  - Use read replicas for read-heavy workloads (future)
-  - Monitor slow queries with Django Debug Toolbar
-  - Optimize query performance with `EXPLAIN ANALYZE`
+  - **Add indexes in models:** Use `db_index=True` or `Meta.indexes` in model definitions
+  - **Prevent N+1 queries:** Use `select_related()` for ForeignKeys, `prefetch_related()` for reverse FKs and M2M
+  - **Example pattern from codebase:**
+    ```python
+    queryset.select_related('tenant', 'user').prefetch_related('items')
+    ```
+  - **Detect issues:** Install `django-debug-toolbar` (in dev requirements) and check query count
+  - **Validate queries:** Use `python manage.py shell` and `.query` on QuerySets
 
 - **Caching Strategy:**
-  - Cache expensive computations and queries
-  - Use Redis for session storage and caching (production)
-  - Implement API response caching (django-cache-memoize)
-  - Use template fragment caching for repeated content
-  - Set appropriate cache TTL values
-  - Implement cache invalidation strategy
+  - Django caching configured in `backend/projectmeats/settings/` (per environment)
+  - Redis available for production (see deployment configuration)
+  - Cache expensive queries in ViewSets with appropriate TTL
+  - Monitor performance with tools configured in deployment
 
 - **API Performance:**
   - Implement pagination for list endpoints (max 100 items per page)
@@ -903,11 +902,19 @@ Repeat similarly for `UAT` → `main`.
   - Test migration rollback procedures (`migrate <app> <previous_migration>`)
   - Document complex migrations with docstrings explaining "why"
 
-- **API Development:**
-  - Follow RESTful conventions
-  - Use ModelSerializer for consistency
-  - Implement proper error handling and validation
-  - Add comprehensive API documentation
+- **API Development (Project-Specific):**
+  - Follow RESTful conventions used in existing ViewSets
+  - Use ModelSerializer for consistency (see examples in `backend/apps/*/serializers.py`)
+  - **Error handling pattern:**
+    ```python
+    try:
+        # operation
+    except Exception as e:
+        logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
+        return Response({"error": str(e)}, status=500)
+    ```
+  - Add API documentation with drf-spectacular (OpenAPI/Swagger at `/api/schema/swagger-ui/`)
+  - Test endpoints with patterns from `backend/apps/purchase_orders/test_api_endpoints.py`
   - Test all endpoints with APIClient
   - Implement tenant isolation for multi-tenant features
 
@@ -1076,21 +1083,23 @@ Repeat similarly for `UAT` → `main`.
 
 ## ⚡ Checklist Summaries
 
-### Migration Verification Checklist
+### Migration Verification Checklist (Project-Specific Commands)
 
-- [ ] Run `python manage.py makemigrations` locally
-- [ ] Run `python manage.py migrate` locally
-- [ ] Test model changes in Django admin interface
-- [ ] Update admin.py for new fields (display, filters, search)
-- [ ] Update serializers for API exposure
-- [ ] Update forms for frontend compatibility
-- [ ] Update templates if using Django templates
-- [ ] Add/update unit tests for model changes
-- [ ] Add/update API endpoint tests
-- [ ] Test migration in development environment
-- [ ] Document migration dependencies and prerequisites
-- [ ] Test migration rollback procedure
-- [ ] Update API documentation (OpenAPI schema)
+**Run these actual validation scripts:**
+- [ ] **Validate migrations:** `.github/scripts/validate-migrations.sh` (REQUIRED before PR)
+- [ ] Run `python manage.py makemigrations` locally (commit any new files)
+- [ ] For TENANT_APPS: Use `python manage.py migrate_schemas` not `migrate`
+- [ ] For SHARED_APPS: Use `python manage.py migrate`
+- [ ] **Test on fresh database:** `dropdb projectmeats_test && createdb projectmeats_test && python manage.py migrate`
+- [ ] Test model changes in Django admin at `http://localhost:8000/admin/`
+- [ ] **Update admin.py:** Extend `TenantFilteredAdmin` for tenant models (see examples in `backend/apps/*/admin.py`)
+- [ ] Update serializers in `backend/apps/*/serializers.py`
+- [ ] Add tests following patterns in `backend/apps/*/tests/test_models.py`
+- [ ] Add API tests following `backend/apps/purchase_orders/test_api_endpoints.py`
+- [ ] **Verify pre-commit hook passes:** `pre-commit run validate-django-migrations`
+- [ ] Test rollback: `python manage.py migrate <app> <previous_migration_name>`
+- [ ] Update API docs (auto-generated at `/api/schema/swagger-ui/`)
+- [ ] Verify tenant isolation (test with non-superuser account)
 - [ ] Check for N+1 query issues
 - [ ] Add database indexes if needed
 - [ ] Verify tenant isolation (multi-tenancy)
@@ -1155,23 +1164,24 @@ Repeat similarly for `UAT` → `main`.
   - [ ] No security alerts
   - [ ] Customer communication sent (if user-facing)
 
-### Security Checklist
+### Security Checklist (Project-Specific Validation)
 
-- [ ] Input validation on all user inputs
-- [ ] Output encoding to prevent XSS
-- [ ] CSRF protection enabled
-- [ ] Authentication required on protected endpoints
-- [ ] Authorization checks implemented
-- [ ] Secrets not hardcoded or committed
-- [ ] Dependencies scanned for vulnerabilities
-- [ ] SQL injection prevented (use ORM)
-- [ ] Rate limiting implemented on APIs
-- [ ] HTTPS enforced in production
-- [ ] Security headers configured (CSP, HSTS, etc.)
-- [ ] Sensitive data encrypted at rest
-- [ ] Logging doesn't expose sensitive data
-- [ ] Error messages don't leak implementation details
-- [ ] Tenant isolation verified (multi-tenancy)
+**Run actual validation scripts:**
+- [ ] **Validate environment:** `.github/scripts/validate-environment.sh`
+- [ ] Input validation: Use DRF serializers with field-level validation (see existing serializers)
+- [ ] Output encoding: DRF handles JSON encoding automatically
+- [ ] CSRF protection: Enabled in `backend/projectmeats/settings/base.py`
+- [ ] Authentication: Use DRF's IsAuthenticated permission (configured in settings)
+- [ ] Authorization: Tenant-based filtering in `get_queryset()` (see ViewSet examples)
+- [ ] **Secrets validated:** No secrets in code, only in `config/environments/*.env` (gitignored)
+- [ ] **Dependency scan:** Run `cd backend && pip-audit` and `cd frontend && npm audit`
+- [ ] SQL injection: Use Django ORM (never raw SQL with string interpolation)
+- [ ] Rate limiting: Configured in DRF settings (see `backend/projectmeats/settings/base.py`)
+- [ ] HTTPS: Enforced in production via `SECURE_SSL_REDIRECT = True`
+- [ ] Security headers: Configured in `backend/projectmeats/settings/production.py`
+- [ ] **Tenant isolation:** Test with patterns from `backend/apps/tenants/test_isolation.py`
+- [ ] Logging: No sensitive data (check with `grep -r "password\|token\|secret" backend/`)
+- [ ] Error messages: Use generic messages in production (see error handler in ViewSets)
 
 ---
 
