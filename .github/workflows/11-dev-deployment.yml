@@ -252,13 +252,13 @@ jobs:
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -313,7 +313,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="dev-latest"
+          TAG="dev-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
