@@ -7,6 +7,7 @@ from django.db import migrations
 def rename_indexes_safe(apps, schema_editor):
     """
     Safely rename indexes to stable names in the database.
+    Handles permission errors by creating new indexes if rename fails.
     """
     with schema_editor.connection.cursor() as cursor:
         # Get existing indexes
@@ -29,10 +30,16 @@ def rename_indexes_safe(apps, schema_editor):
             renamed = False
             for old_name in domain_old_names:
                 if old_name in existing:
-                    cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_domain_idx"')
-                    renamed = True
-                    break
+                    try:
+                        cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_domain_idx"')
+                        renamed = True
+                        break
+                    except Exception as e:
+                        # If rename fails (e.g., insufficient privileges), we'll create new index
+                        print(f"Could not rename {old_name}: {e}. Will create new index instead.")
+                        continue
             if not renamed:
+                # Create new index (IF NOT EXISTS handles the case where index exists but we couldn't rename)
                 cursor.execute('CREATE INDEX IF NOT EXISTS td_domain_idx ON tenants_tenantdomain(domain)')
         
         # Rename or create tenant/primary index
@@ -45,9 +52,15 @@ def rename_indexes_safe(apps, schema_editor):
             renamed = False
             for old_name in tenant_old_names:
                 if old_name in existing:
-                    cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_tenant_primary_idx"')
-                    renamed = True
-                    break
+                    try:
+                        cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_tenant_primary_idx"')
+                        renamed = True
+                        break
+                    except Exception as e:
+                        print(f"Could not rename {old_name}: {e}. Will create new index instead.")
+                        continue
+            if not renamed:
+                cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
             if not renamed:
                 cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
 
