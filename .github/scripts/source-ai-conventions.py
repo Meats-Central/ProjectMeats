@@ -25,6 +25,47 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 
 
+def should_skip_file(path: Path) -> bool:
+    """
+    Check if a file should be skipped (e.g., archived files).
+    
+    Args:
+        path: Path object to check
+        
+    Returns:
+        True if file should be skipped, False otherwise
+    """
+    # Check if 'archived' appears in any directory component (case-insensitive)
+    parts = [p.lower() for p in path.parts]
+    return any('archived' in part for part in parts)
+
+
+def get_file_type(path: Path) -> str:
+    """
+    Determine the file type based on path.
+    
+    Args:
+        path: Path object
+        
+    Returns:
+        String describing the file type
+    """
+    # Check if file is in a rules directory
+    parts = path.parts
+    if 'rules' in parts:
+        # Find the AI tool directory (e.g., .cursor, .windsurf)
+        try:
+            rules_idx = parts.index('rules')
+            if rules_idx > 0:
+                tool_dir = parts[rules_idx - 1]
+                return f"{tool_dir}/rules/{path.name}"
+        except (ValueError, IndexError):
+            pass
+    
+    # Default to just the filename
+    return path.name
+
+
 def find_ai_convention_files(root_dir: str = ".") -> List[Tuple[str, str]]:
     """
     Find all AI convention files matching the specified patterns.
@@ -36,6 +77,7 @@ def find_ai_convention_files(root_dir: str = ".") -> List[Tuple[str, str]]:
         List of tuples (file_path, file_type)
     """
     files_found = []
+    seen_paths = set()  # Track seen paths to avoid duplicates
     root_path = Path(root_dir).resolve()
     
     # Define patterns to search for
@@ -66,21 +108,25 @@ def find_ai_convention_files(root_dir: str = ".") -> List[Tuple[str, str]]:
                 continue
                 
             # Skip archived files
-            if "archived" in str(path):
+            if should_skip_file(path):
                 continue
-                
-            # Determine file type
-            file_type = path.name
-            if path.parent.name == "rules":
-                file_type = f"{path.parent.parent.name}/rules/{path.name}"
             
             # Get relative path for cleaner output
             try:
                 rel_path = path.relative_to(root_path)
             except ValueError:
                 rel_path = path
+            
+            # Skip if we've already seen this path
+            rel_path_str = str(rel_path)
+            if rel_path_str in seen_paths:
+                continue
+            seen_paths.add(rel_path_str)
                 
-            files_found.append((str(rel_path), file_type))
+            # Determine file type
+            file_type = get_file_type(path)
+                
+            files_found.append((rel_path_str, file_type))
     
     # Search in rules directories
     for rules_dir in rules_dirs:
@@ -89,21 +135,27 @@ def find_ai_convention_files(root_dir: str = ".") -> List[Tuple[str, str]]:
             for path in rules_path.rglob("*"):
                 if path.is_file():
                     # Skip archived files
-                    if "archived" in str(path):
+                    if should_skip_file(path):
                         continue
-                    
-                    file_type = f"{path.parent.parent.name}/rules/{path.name}"
                     
                     # Get relative path for cleaner output
                     try:
                         rel_path = path.relative_to(root_path)
                     except ValueError:
                         rel_path = path
+                    
+                    # Skip if we've already seen this path
+                    rel_path_str = str(rel_path)
+                    if rel_path_str in seen_paths:
+                        continue
+                    seen_paths.add(rel_path_str)
+                    
+                    file_type = get_file_type(path)
                         
-                    files_found.append((str(rel_path), file_type))
+                    files_found.append((rel_path_str, file_type))
     
-    # Remove duplicates and sort
-    files_found = sorted(list(set(files_found)))
+    # Sort for consistent output
+    files_found.sort()
     
     return files_found
 
