@@ -31,7 +31,7 @@ jobs:
       - name: Notify deployment started
         run: |
           chmod +x .github/scripts/deployment-notifications.sh
-          .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
+          bash .github/scripts/deployment-notifications.sh uat started all "UAT deployment initiated"
       
       - name: Pre-deployment validation
         run: |
@@ -483,7 +483,7 @@ jobs:
       - name: Notify deployment success
         if: success()
         run: |
-          .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
+          bash .github/scripts/deployment-notifications.sh uat success backend "Backend deployed successfully"
   
   post-deployment-validation:
     runs-on: ubuntu-latest
@@ -503,5 +503,5 @@ jobs:
           echo "=== UAT Deployment Completed ==="
           echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo "Commit: ${{ github.sha }}"
-          .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
+          bash .github/scripts/deployment-notifications.sh uat success all "UAT deployment completed"
       
