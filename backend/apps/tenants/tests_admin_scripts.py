@@ -21,6 +21,9 @@ from apps.tenants.utils import (
     validate_invitation,
 )
 
+# Test constants
+TIMESTAMP_TOLERANCE_SECONDS = 60  # Tolerance for timestamp comparisons in tests
+
 
 class InitTenantCommandTests(TestCase):
     """Tests for the init_tenant management command."""
@@ -88,7 +91,7 @@ class InitTenantCommandTests(TestCase):
         self.assertAlmostEqual(
             tenant.trial_ends_at.timestamp(),
             expected_end.timestamp(),
-            delta=60,  # Within 60 seconds
+            delta=TIMESTAMP_TOLERANCE_SECONDS,
         )
 
     def test_init_tenant_skip_invitation(self):
@@ -202,7 +205,7 @@ class GenerateInvitationLinkTests(TestCase):
         self.assertAlmostEqual(
             invitation.expires_at.timestamp(),
             expected_expiry.timestamp(),
-            delta=60,
+            delta=TIMESTAMP_TOLERANCE_SECONDS,
         )
 
     def test_generate_invitation_link_with_message(self):

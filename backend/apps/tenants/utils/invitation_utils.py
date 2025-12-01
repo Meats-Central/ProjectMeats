@@ -69,8 +69,8 @@ def generate_invitation_link(
     if not message:
         message = f"You have been invited to join {tenant.name}."
 
-    # Validate role
-    valid_roles = ["owner", "admin", "manager", "user", "readonly"]
+    # Validate role against model choices
+    valid_roles = [choice[0] for choice in TenantInvitation.ROLE_CHOICES]
     if role not in valid_roles:
         raise ValueError(f"Invalid role '{role}'. Must be one of: {valid_roles}")
 
