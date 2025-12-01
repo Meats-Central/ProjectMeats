@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive migration fix documentation in `MIGRATION_FIX_PR135_CORRECTION.md`
 
 ### Fixed
+- **[BUILD FIX]** Restored yaml dependency in package-lock.json for Docker build (PR #647, November 2024)
+  - Fixed Docker build failures caused by missing `js-yaml` dependency in frontend package-lock.json
+  - Issue affected containerized builds using `npm ci` which requires exact lockfile dependencies
+  - Root cause: `js-yaml` dependency was accidentally removed from package-lock.json
+  - **Impact:** Enables successful Docker builds for frontend containers
+  - **Affected files:** frontend/package-lock.json
+  - **Solution:** Restored js-yaml dependency entry to ensure npm ci completes successfully
 - **[CRITICAL]** Fixed RecursionError in deployment pipeline caused by psycopg3 incompatibility with django-tenants
   - Downgraded from `psycopg[binary]==3.2.9` (psycopg3) to `psycopg2-binary==2.9.9`
   - Fixes deployment failures in PRs #235, #240, #237 related to django-tenants integration

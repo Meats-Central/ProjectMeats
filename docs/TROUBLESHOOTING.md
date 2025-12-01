@@ -324,6 +324,48 @@ gunicorn projectmeats.wsgi:application --bind 0.0.0.0:8000
     docker build -f backend/Dockerfile . -t test --progress=plain
 ```
 
+**Docker Build Issues - Missing Dependencies**:
+
+**Symptom**: Frontend Docker build fails with npm errors
+```
+npm ERR! Cannot read properties of undefined (reading 'dev')
+npm ERR! peer dep missing: js-yaml@^4.1.0, required by @istanbuljs/load-nyc-config
+```
+
+**Root Cause**: 
+- Missing or corrupted dependencies in `package-lock.json`
+- `npm ci` requires exact lockfile match (unlike `npm install`)
+- Docker builds use `npm ci` for reproducible builds
+
+**Solution**:
+```bash
+# 1. Regenerate package-lock.json if corrupted
+cd frontend
+rm package-lock.json
+npm install
+
+# 2. Verify all dependencies are in lockfile
+npm ls js-yaml  # Should show dependency tree
+npm ls          # Check for missing peer dependencies
+
+# 3. For CI/CD builds, ensure package-lock.json is committed
+git add frontend/package-lock.json
+git commit -m "fix: restore missing dependencies in package-lock.json"
+
+# 4. Test Docker build locally
+docker build -f archived/docker/Dockerfile.frontend -t test-frontend .
+```
+
+**Prevention**:
+- Always commit `package-lock.json` changes with dependency updates
+- Use `npm ci` in CI/CD instead of `npm install` for consistency
+- Run `npm audit` to check for issues: `cd frontend && npm audit`
+- Test Docker builds locally before pushing
+
+**Fixed in**: PR #647 (November 2024) - Restored yaml dependency
+
+---
+
 **Test Failures**:
 ```yaml
 # Run tests locally with same configuration
