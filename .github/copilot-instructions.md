@@ -23,18 +23,274 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 ---
 
 ## 📋 Table of Contents
-1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
-3. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
-4. [Code Quality & Security](#-code-quality--security-standards)
-5. [Testing Strategy](#-testing-strategy--coverage)
-6. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
-7. [Frontend Standards](#-frontend-standards-react--typescript)
-8. [Performance Optimization](#-performance-optimization)
-9. [Accessibility & Internationalization](#-accessibility--internationalization)
-10. [Requirements & Dependency Management](#-requirements--dependency-management)
-11. [CI/CD & Deployment](#-cicd--deployment-best-practices)
-12. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+1. [Project Structure Overview](#-project-structure-overview)
+2. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
+3. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
+4. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
+5. [Code Quality & Security](#-code-quality--security-standards)
+6. [Testing Strategy](#-testing-strategy--coverage)
+7. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
+8. [Frontend Standards](#-frontend-standards-react--typescript)
+9. [Performance Optimization](#-performance-optimization)
+10. [Accessibility & Internationalization](#-accessibility--internationalization)
+11. [Requirements & Dependency Management](#-requirements--dependency-management)
+12. [CI/CD & Deployment](#-cicd--deployment-best-practices)
+13. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+
+---
+
+## 📁 Project Structure Overview
+
+### High-Level Architecture
+
+ProjectMeats is a full-stack monorepo with three main application layers:
+
+```
+ProjectMeats/
+├── backend/          # Django 4.2.7 + DRF + PostgreSQL (15 Django apps)
+├── frontend/         # React 18.2.0 + TypeScript + Ant Design
+├── mobile/           # React Native mobile app
+├── shared/           # Cross-platform TypeScript utilities
+├── .github/          # CI/CD workflows (11 files) + scripts
+├── docs/             # Comprehensive documentation
+├── config/           # Centralized environment configuration
+└── archived/         # Legacy code and documentation
+```
+
+### Backend Structure (Django + DRF)
+
+```
+backend/
+├── apps/                           # 15 Django applications
+│   ├── core/                      # SHARED_APP: Base classes, validators, utilities
+│   │   ├── admin.py              # Contains TenantFilteredAdmin base class
+│   │   ├── models.py             # Protein, UserPreferences
+│   │   ├── serializers.py        # UserPreferencesSerializer
+│   │   ├── views.py              # UserPreferencesViewSet
+│   │   └── tests/                # Core functionality tests
+│   ├── tenants/                   # SHARED_APP: Multi-tenancy management
+│   │   ├── models.py             # Tenant, Domain, TenantUser models
+│   │   ├── middleware.py         # Tenant resolution middleware
+│   │   └── tests/                # Tenant isolation tests
+│   ├── accounts_receivables/      # TENANT_APP: AR/payments
+│   ├── ai_assistant/              # TENANT_APP: OpenAI GPT-4 integration
+│   │   ├── models.py             # ChatSession, ChatMessage, AIConfiguration
+│   │   ├── views.py              # ChatViewSet with streaming support
+│   │   └── services.py           # OpenAI API integration
+│   ├── bug_reports/               # TENANT_APP: Bug tracking with GitHub API
+│   ├── carriers/                  # TENANT_APP: Carrier management
+│   ├── contacts/                  # TENANT_APP: Contact management
+│   ├── customers/                 # TENANT_APP: Customer relationships
+│   ├── invoices/                  # TENANT_APP: Invoice processing
+│   ├── plants/                    # TENANT_APP: Processing facilities
+│   ├── products/                  # TENANT_APP: Product catalog (NAMP codes)
+│   ├── purchase_orders/           # TENANT_APP: PO workflow
+│   ├── sales_orders/              # TENANT_APP: Sales order management
+│   └── suppliers/                 # TENANT_APP: Supplier management
+├── projectmeats/                   # Django project configuration
+│   ├── settings/
+│   │   ├── base.py               # Base settings (TENANT_APPS/SHARED_APPS defined here)
+│   │   ├── development.py        # Dev settings (SQLite fallback, debug=True)
+│   │   ├── staging.py            # UAT settings
+│   │   ├── production.py         # Prod settings (secure, PostgreSQL only)
+│   │   └── test.py               # Test settings
+│   ├── urls.py                   # Root URL configuration
+│   ├── health.py                 # Health check endpoint
+│   └── wsgi.py
+├── requirements.txt                # Pinned dependencies
+└── manage.py
+
+**CRITICAL TENANT_APPS vs SHARED_APPS:**
+- **TENANT_APPS** (13 apps): Use `python manage.py migrate_schemas` for migrations
+  - All business entity apps (accounts_receivables, suppliers, customers, contacts, 
+    purchase_orders, plants, carriers, bug_reports, ai_assistant, products, 
+    sales_orders, invoices)
+  - Admin classes MUST extend `TenantFilteredAdmin` for multi-tenant data isolation
+  - ViewSets MUST filter by tenant in `get_queryset()`
+
+- **SHARED_APPS** (2 apps): Use standard `python manage.py migrate`
+  - core: Base classes, validators, shared utilities
+  - tenants: Tenant models and middleware
+  - No tenant filtering needed
+```
+
+### Frontend Structure (React + TypeScript)
+
+```
+frontend/
+├── src/
+│   ├── components/                 # Reusable UI components
+│   │   ├── AIAssistant/           # AI chat UI components
+│   │   │   ├── ChatWindow.tsx
+│   │   │   └── MessageBubble.tsx
+│   │   ├── ChatInterface/         # Generic chat components
+│   │   ├── Layout/                # Application layout
+│   │   │   ├── Layout.tsx        # Main layout wrapper
+│   │   │   ├── Header.tsx        # Top navigation bar with quick menu
+│   │   │   └── Sidebar.tsx       # Collapsible sidebar with auto-close
+│   │   ├── Modal/                 # Modal dialogs (generic)
+│   │   ├── Navigation/            # Navigation components
+│   │   ├── ProfileDropdown/       # User profile menu
+│   │   ├── Visualization/         # Charts using Recharts
+│   │   │   └── SupplierPerformanceChart.tsx
+│   │   └── Workflow/              # Business workflow visualizations
+│   │       └── PurchaseOrderWorkflow.tsx (ReactFlow)
+│   ├── pages/                     # Page-level components (routes)
+│   │   ├── AIAssistant.tsx       # AI chat page
+│   │   ├── Carriers.tsx
+│   │   ├── Contacts.tsx
+│   │   ├── Customers.tsx
+│   │   ├── Login.tsx             # Authentication page
+│   │   ├── Plants.tsx
+│   │   ├── PurchaseOrders.tsx
+│   │   ├── Settings.tsx          # User preferences (theme, layout)
+│   │   └── Suppliers.tsx
+│   ├── contexts/                  # React Context API
+│   │   ├── AuthContext.tsx       # Authentication state
+│   │   ├── ThemeContext.tsx      # Theme (light/dark mode)
+│   │   └── TenantContext.tsx     # Multi-tenancy state
+│   ├── services/                  # API communication
+│   │   ├── apiService.ts         # Base Axios instance with interceptors
+│   │   ├── authService.ts        # Login, logout, token management
+│   │   ├── businessApi.ts        # CRUD operations for business entities
+│   │   ├── aiService.ts          # AI assistant API calls
+│   │   └── tenantService.ts      # Tenant-related operations
+│   ├── config/                    # Configuration
+│   │   ├── runtime.ts            # Runtime config (API URLs from env)
+│   │   └── theme.ts              # Theme configuration (colors, spacing)
+│   ├── types/                     # TypeScript type definitions
+│   │   └── index.ts              # Shared types (Customer, Supplier, etc.)
+│   ├── stories/                   # Storybook stories for component docs
+│   │   ├── Breadcrumb.stories.tsx
+│   │   ├── PurchaseOrderWorkflow.stories.tsx
+│   │   └── SupplierPerformanceChart.stories.tsx
+│   ├── shared/                    # Re-exports from /shared (cross-platform utils)
+│   ├── App.tsx                    # Root component
+│   └── index.tsx                  # Entry point
+├── .storybook/                    # Storybook configuration
+│   ├── main.ts
+│   └── preview.ts
+├── public/                        # Static assets
+├── package.json                   # Dependencies (React, TypeScript, Ant Design)
+└── tsconfig.json                  # TypeScript configuration
+
+**Frontend Architecture Notes:**
+- **Ant Design**: Primary UI component library (v5.27+)
+- **Styled Components**: CSS-in-JS for custom styling
+- **React Router v6**: Client-side routing
+- **Axios**: HTTP client with request/response interceptors
+- **Storybook**: Component development and documentation (port 6006)
+- **Theme System**: Light/dark mode with user preferences (stored in backend)
+```
+
+### Mobile Structure (React Native)
+
+```
+mobile/
+├── src/
+│   ├── components/        # Mobile-specific components
+│   ├── screens/          # Mobile screens (navigation)
+│   └── shared/           # Re-exports from /shared
+├── assets/               # Images, fonts
+├── App.tsx               # Root component
+├── index.js              # Entry point
+└── package.json          # React Native dependencies
+```
+
+### Shared Utilities
+
+```
+shared/
+└── utils.ts              # Cross-platform TypeScript utilities
+                          # Used by frontend and mobile via re-exports
+```
+
+### GitHub Configuration & CI/CD
+
+```
+.github/
+├── workflows/                          # 11 GitHub Actions workflows
+│   ├── 11-dev-deployment.yml          # Auto-deploy to dev
+│   ├── 12-uat-deployment.yml          # Auto-deploy to UAT
+│   ├── 13-prod-deployment.yml         # Auto-deploy to production
+│   ├── 21-db-backup-restore-do.yml    # Database backups
+│   ├── 31-planner-auto-add-issue.yml  # Issue automation
+│   ├── 32-planner-Auto-Assign-to-Copilot.yml
+│   ├── 34-planner-sprint-gen.yml      # Sprint planning
+│   ├── 51-cleanup-branches-tags.yml   # Repository maintenance
+│   ├── promote-dev-to-uat.yml         # Auto-PR: dev → UAT
+│   ├── promote-uat-to-main.yml        # Auto-PR: UAT → main
+│   └── copilot-setup-steps.yml        # Copilot onboarding
+├── scripts/                            # Bash scripts for CI/CD
+│   ├── backup-database.sh             # Database backup utility
+│   ├── validate-environment.sh        # Env var validation
+│   └── validate-migrations.sh         # Migration validation
+├── copilot-instructions.md             # This file
+├── PULL_REQUEST_TEMPLATE.md
+└── CODEOWNERS
+```
+
+### Documentation Structure
+
+```
+docs/
+├── architecture/                       # Architecture Decision Records
+├── implementation-summaries/           # PR summaries
+│   ├── allowed-hosts-fix.md
+│   ├── backend-audit-cleanup.md
+│   ├── dashboard-enhancement.md
+│   └── deployment-optimization.md
+├── lessons-learned/
+│   └── 3-MONTH-RETROSPECTIVE.md       # Project retrospective
+├── BACKEND_ARCHITECTURE.md             # Backend design patterns
+├── FRONTEND_ARCHITECTURE.md            # Frontend design patterns
+├── DEPLOYMENT_GUIDE.md                 # Deployment instructions
+├── DEPLOYMENT_TROUBLESHOOTING.md       # Common deployment issues
+├── MIGRATION_BEST_PRACTICES.md         # **Essential reading for backend work**
+└── UI_ENHANCEMENTS.md                  # UI/UX improvements guide
+```
+
+### Key Files at Root
+
+```
+/
+├── copilot-log.md                  # 5000+ lines of Copilot agent activity log
+├── branch-workflow-checklist.md    # Git workflow reference with diagrams
+├── Makefile                        # Development commands (make help)
+├── start_dev.sh                    # Quick start: PostgreSQL + Django + React
+├── stop_dev.sh                     # Stop all development servers
+├── setup_env.py                    # Environment setup script
+├── docker-compose.yml              # Docker configuration (development)
+├── pyproject.toml                  # Python project metadata
+├── .gitignore                      # Ignore patterns (node_modules, .env, etc.)
+├── .pre-commit-config.yaml         # Pre-commit hooks (Black, isort, flake8)
+└── README.md                       # Main project documentation
+```
+
+### Important Patterns to Follow
+
+1. **Backend Apps**:
+   - Each app follows Django conventions: `models.py`, `views.py`, `serializers.py`, `admin.py`, `urls.py`, `tests.py`
+   - TENANT_APPS require `TenantFilteredAdmin` in admin.py
+   - ViewSets filter by tenant in `get_queryset()`
+
+2. **Frontend Components**:
+   - Functional components with hooks (no class components)
+   - TypeScript interfaces for all props
+   - Styled Components for styling
+   - Storybook stories for documentation
+
+3. **Multi-Tenancy**:
+   - Shared-schema approach (not separate schemas per tenant)
+   - Tenant filtering at application level
+   - `TenantFilteredAdmin` for admin interface
+   - Tenant-aware ViewSets
+
+4. **Development Tools**:
+   - Use `./start_dev.sh` for quick setup
+   - Use `make` commands for common tasks
+   - Pre-commit hooks enforce formatting
+   - Storybook for component development (frontend only)
 
 ---
 
@@ -334,6 +590,32 @@ Repeat similarly for `UAT` → `main`.
   - Test accessibility (aria labels, keyboard navigation)
   - Maintain > 70% coverage for components
 
+- **Storybook Usage:**
+  - Create stories for all reusable components
+  - Document component props and variants
+  - Show different states (loading, error, success)
+  - Include accessibility checks in stories
+  - Run Storybook: `cd frontend && npm run storybook` (port 6006)
+  - Build Storybook: `npm run build-storybook`
+  - Stories location: `frontend/src/stories/`
+  - Examples: PurchaseOrderWorkflow, SupplierPerformanceChart, Breadcrumb
+
+### AI Assistant Testing
+
+- **Backend Testing (AI Assistant):**
+  - Test ChatSession and ChatMessage CRUD operations
+  - Mock OpenAI API calls (don't make real API calls in tests)
+  - Test streaming response handling
+  - Test error handling and rate limiting
+  - Verify tenant isolation for chat sessions
+
+- **Frontend Testing (AI Assistant):**
+  - Test ChatWindow component rendering
+  - Test message sending and receiving
+  - Test streaming message display
+  - Test error handling and retry logic
+  - Mock API responses with MSW
+
 ### Testing Checklist (Required for PRs)
 - [ ] Unit tests for new functions/methods
 - [ ] Integration tests for API endpoints
@@ -441,6 +723,48 @@ Repeat similarly for `UAT` → `main`.
 
 ## ⚛️ Frontend Standards (React + TypeScript)
 
+### AI Assistant Feature
+
+ProjectMeats includes an integrated AI Assistant powered by OpenAI GPT-4 with a modern Copilot-style interface.
+
+**Backend Implementation (`backend/apps/ai_assistant/`):**
+- **Models:**
+  - `ChatSession`: Tracks user chat sessions with title, created_at
+  - `ChatMessage`: Individual messages with role (user/assistant/system), content, timestamp
+  - `AIConfiguration`: Stores OpenAI API configuration (model, temperature, max_tokens)
+- **Views:**
+  - `ChatViewSet`: CRUD operations for chat sessions and messages
+  - Streaming response support for real-time AI responses
+  - Tenant isolation for chat history
+- **Services:**
+  - OpenAI API integration with streaming support
+  - Error handling and rate limiting
+  - Context management for chat history
+
+**Frontend Implementation (`frontend/src/`):**
+- **Components:**
+  - `components/AIAssistant/`: Chat window components
+  - `components/ChatInterface/`: Generic chat UI components
+  - `pages/AIAssistant.tsx`: Main AI assistant page
+- **Services:**
+  - `services/aiService.ts`: API calls to backend
+  - Streaming message handling
+  - Error handling and retry logic
+- **Features:**
+  - Real-time streaming responses
+  - Chat history with sessions
+  - Markdown support in messages
+  - Copy code blocks
+  - Modern Copilot-style UI
+
+**Development Guidelines:**
+- Always mock OpenAI API calls in tests (use environment variable to disable in test mode)
+- Implement proper error handling for API failures
+- Use streaming responses for better UX
+- Ensure tenant isolation for chat history
+- Rate limit API calls to prevent abuse
+- Log AI interactions for debugging (without sensitive data)
+
 ### Component Architecture
 
 - **Component Organization:**
@@ -462,12 +786,40 @@ Repeat similarly for `UAT` → `main`.
   - Avoid inline function definitions in render
 
 - **State Management:**
-  - Use React Context for global state (auth, theme)
+  - Use React Context for global state (auth, theme, tenant)
+    - `contexts/AuthContext.tsx`: Authentication state and methods
+    - `contexts/ThemeContext.tsx`: Theme preferences (light/dark mode)
+    - `contexts/TenantContext.tsx`: Multi-tenant state
   - Use local state (useState) for component-specific state
   - Consider Redux/Zustand for complex state (future)
   - Lift state to common ancestor when sharing between components
   - Use useReducer for complex state logic
   - Avoid prop drilling (use context or composition)
+
+- **Context Best Practices:**
+  - Create separate contexts for different concerns (don't mix auth + theme + tenant in one)
+  - Use Context.Provider at appropriate level (App.tsx for global, local for feature-specific)
+  - Memoize context values with useMemo to prevent unnecessary re-renders
+  - Create custom hooks for context consumption: `useAuth()`, `useTheme()`, `useTenant()`
+  - Example pattern:
+    ```typescript
+    // ThemeContext.tsx
+    const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+    
+    export const useTheme = () => {
+      const context = useContext(ThemeContext);
+      if (!context) throw new Error('useTheme must be used within ThemeProvider');
+      return context;
+    };
+    
+    export const ThemeProvider: React.FC<{children: ReactNode}> = ({children}) => {
+      const [theme, setTheme] = useState<'light' | 'dark'>('light');
+      // Load theme from user preferences API
+      // ...
+      const value = useMemo(() => ({theme, setTheme}), [theme]);
+      return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+    };
+    ```
 
 - **Hooks Best Practices:**
   - Follow Rules of Hooks (only call at top level, only in React functions)
@@ -944,6 +1296,113 @@ Repeat similarly for `UAT` → `main`.
 - Conduct code reviews to share knowledge
 - Refactor technical debt regularly
 - Update this document with new learnings
+
+### Quick Development Commands
+
+**Start Development Environment:**
+```bash
+# Quickest way - starts everything (PostgreSQL + Django + React)
+./start_dev.sh
+
+# Or using Make
+make start
+
+# Stop all servers
+./stop_dev.sh
+# Or
+make stop
+```
+
+**Backend Commands:**
+```bash
+cd backend
+
+# Run Django server only
+python manage.py runserver
+# Or
+make backend
+
+# Create migrations (ALWAYS run before committing model changes)
+python manage.py makemigrations
+make migrations
+
+# Apply migrations
+# For SHARED_APPS (core, tenants):
+python manage.py migrate
+# For TENANT_APPS (all business apps):
+python manage.py migrate_schemas
+
+# Django shell
+python manage.py shell
+make shell
+
+# Create/update superuser
+make superuser
+
+# Run tests
+pytest
+make test-backend
+
+# Code formatting
+black .
+isort .
+make format
+
+# Linting
+flake8
+make lint
+```
+
+**Frontend Commands:**
+```bash
+cd frontend
+
+# Run React server
+npm start
+# Or
+make frontend
+
+# Run tests
+npm test
+make test-frontend
+
+# Type checking
+npm run type-check
+
+# Build production bundle
+npm run build
+
+# Analyze bundle size
+npm run analyze
+
+# Run Storybook (component development)
+npm run storybook  # Opens on http://localhost:6006
+```
+
+**Environment Management:**
+```bash
+# Set up development environment
+python config/manage_env.py setup development
+
+# Validate environment configuration
+python config/manage_env.py validate
+
+# Or using Make
+make env-dev
+make env-validate
+```
+
+**Validation Scripts:**
+```bash
+# Validate migrations before PR
+./.github/scripts/validate-migrations.sh
+
+# Validate environment variables
+./.github/scripts/validate-environment.sh
+
+# Backup database
+./.github/scripts/backup-database.sh
+```
 
 ---
 
@@ -1452,26 +1911,66 @@ Based on recurring issues, we've added:
    - Checks syntax, dependencies, conflicts
    - Tests on fresh database in CI
    - Prevents 90% of migration-related deployment failures
+   - Usage: `./.github/scripts/validate-migrations.sh`
+   - Run before every PR with backend changes
 
 2. **Environment Validation Script** (`.github/scripts/validate-environment.sh`)
    - Validates required environment variables
    - Checks CORS/CSRF consistency
    - Warns about insecure configurations
+   - Validates database connection settings
+   - Usage: `./.github/scripts/validate-environment.sh`
+   - Run before deployment to catch configuration issues
 
 3. **Database Backup Script** (`.github/scripts/backup-database.sh`)
    - Automatic backups before migrations
    - Keeps last 7 backups
    - Compresses to save space
+   - Usage: `./.github/scripts/backup-database.sh`
+   - Integrated into deployment workflows
 
 4. **Enhanced Pre-commit Hooks** (`.pre-commit-config.yaml`)
    - Migration syntax validation
-   - Unapplied migration detection
-   - Python formatting and linting
+   - Unapplied migration detection (CRITICAL: catches missing migrations before CI)
+   - Python formatting (Black) and linting (flake8, isort)
+   - Frontend formatting (Prettier) in `.pre-commit-config-frontend.yaml`
+   - Installation: `pip install pre-commit && pre-commit install`
+   - Runs automatically on `git commit`
 
 5. **Migration Validation in CI/CD**
    - All deployment workflows include migration validation
    - Runs on every PR before deployment
    - Fails fast to prevent deployment issues
+   - Validates: syntax, dependencies, conflicts, idempotency
+
+### Development Tools & Scripts
+
+**Root-level Helper Scripts:**
+- `start_dev.sh`: One-command development environment setup
+- `stop_dev.sh`: Clean shutdown of all services
+- `setup_env.py`: Interactive environment configuration
+- `health_check.py`: Health check endpoint tester
+- `test_deployment.py`: Deployment simulation and validation
+- `simulate_deployment.py`: Test deployment configuration locally
+- `verify_staging_config.py`: Verify staging environment configuration
+- `monitor_branch_health.sh`: Monitor branch merge health
+
+**Makefile Commands:**
+- `make help`: Show all available commands
+- `make start/stop`: Start/stop development servers
+- `make test`: Run all tests (backend + frontend)
+- `make format`: Format code (Black, isort, Prettier)
+- `make lint`: Lint code (flake8, ESLint)
+- `make migrate/migrations`: Database operations
+- `make superuser`: Create/update superuser
+- `make env-validate`: Validate environment configuration
+- `make deploy-test`: Test deployment configuration
+
+**Validation & Testing:**
+- Pre-commit hooks prevent common mistakes
+- CI/CD validation scripts catch issues early
+- Health check scripts verify deployment
+- Deployment simulation for testing without affecting production
 
 ### Efficiency Metrics
 
