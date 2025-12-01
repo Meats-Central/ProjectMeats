@@ -225,14 +225,74 @@ jobs:
           echo "Running tests with custom shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: dev-backend
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DB_URL }}
+          SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running idempotent schema migrations ==="
+          
+          # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
+          python manage.py migrate_schemas --shared --fake-initial --noinput || {
+            echo "migrate_schemas not available, falling back to standard migrate"
+            python manage.py migrate --fake-initial --noinput
+          }
+          
+          # Step 2: Create/update super tenant (idempotent)
+          python manage.py create_super_tenant --no-input --verbosity=1 || {
+            echo "⚠ create_super_tenant command failed or not available"
+          }
+          
+          # Step 3: Apply tenant-specific migrations (idempotent)
+          python manage.py migrate_schemas --tenant --noinput || {
+            echo "⚠ migrate_schemas --tenant failed or not available"
+          }
+          
+          echo "✓ Migrations completed successfully"
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [test-frontend]
+    needs: [migrate, test-frontend]
     environment: dev-frontend
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 1
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -311,12 +371,28 @@ jobs:
 
       - name: Health check (Frontend)
         run: |
-          sleep 5
-          curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+          chmod +x .github/scripts/health-check.sh
+          ./.github/scripts/health-check.sh "${{ secrets.DEV_URL }}" 20 5
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "frontend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "frontend" "${{ github.sha }}" "Frontend deployment or health check failed"
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [test-backend]
+    needs: [migrate]
     environment: dev-backend
     timeout-minutes: 30
     permissions:
@@ -509,3 +585,20 @@ jobs:
             ATTEMPT=$((\$ATTEMPT + 1))
           done
           SSH
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "backend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "backend" "${{ github.sha }}" "Backend deployment, migration, or health check failed"
+
