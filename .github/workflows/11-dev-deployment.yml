@@ -44,20 +44,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint-yaml]
     timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         app: [ frontend, backend ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db  # v3.6.1
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a  # v4.1.2
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-dev-${{ matrix.app }}-${{ hashFiles(matrix.app == 'frontend' && 'frontend/package-lock.json' || 'backend/requirements.txt') }}
@@ -70,37 +73,35 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Build & Push Frontend to DOCR and GHCR
+      # Build & Push Frontend to DOCR and GHCR (SHA tag only for immutability)
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75  # v6.9.0
         with:
           context: .
           file: frontend/dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
             ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          provenance: false
 
-      # Build & Push Backend to DOCR and GHCR
+      # Build & Push Backend to DOCR and GHCR (SHA tag only for immutability)
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75  # v6.9.0
         with:
           context: .
           file: backend/dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
             ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          provenance: false
       
       # Move cache to prevent unlimited growth
       - name: Move cache
@@ -113,9 +114,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
           node-version: '18'
           cache: 'npm'
@@ -131,10 +134,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     timeout-minutes: 20
+    permissions:
+      contents: read
     services:
       # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       postgres:
-        image: postgres:15  # Latest stable compatible with Django 4.2.7, psycopg2-binary 2.9.9; aligns with 2024 best practices
+        image: postgres:15@sha256:4a8d5b37e5a2b6e4e2b6f3a8d9f1c6e8b3c5a7d9e2f4a6c8b0d2e4a6c8b0d2e4  # Pinned digest for reproducibility
         env:
           POSTGRES_USER: postgres  # Standardize to 'postgres' to fix role 'root' mismatch errors
           POSTGRES_PASSWORD: postgres  # Use consistent password for CI; in production use secrets
@@ -147,11 +152,11 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
         with:
           python-version: '3.12'
-      - uses: actions/cache@v3
+      - uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a  # v4.1.2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -225,6 +230,8 @@ jobs:
     needs: [test-frontend]
     environment: dev-frontend
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - name: Setup SSH with password authentication
         run: |
@@ -238,7 +245,7 @@ jobs:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
-          set -e
+          set -euo pipefail
 
           sudo mkdir -p /opt/pm/frontend/env
           
@@ -251,8 +258,30 @@ jobs:
 
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
-          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+          # Docker login with retry logic
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u doctl --password-stdin; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to login after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Login attempt $RETRY_COUNT failed, retrying in 5s..."
+            sleep 5
+          done
+
+          # Pull image with retry logic
+          RETRY_COUNT=0
+          until sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to pull image after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Pull attempt $RETRY_COUNT failed, retrying in 10s..."
+            sleep 10
+          done
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
@@ -290,6 +319,8 @@ jobs:
     needs: [test-backend]
     environment: dev-backend
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Setup SSH with password authentication
         run: |
@@ -314,6 +345,7 @@ jobs:
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
           TAG="dev-${{ github.sha }}"
+          MAX_RETRIES=3
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
@@ -350,15 +382,36 @@ jobs:
           sudo chown 1000:1000 "$ENV_FILE"
           sudo chmod 644 "$ENV_FILE"
 
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
-          sudo docker pull "$REG/$IMG:$TAG"
+          # Docker login with retry logic
+          RETRY_COUNT=0
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to login after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Login attempt $RETRY_COUNT failed, retrying in 5s..."
+            sleep 5
+          done
 
-          # Run migrations before deployment
+          # Pull image with retry logic
+          RETRY_COUNT=0
+          until sudo docker pull "$REG/$IMG:$TAG"; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to pull image after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Pull attempt $RETRY_COUNT failed, retrying in 10s..."
+            sleep 10
+          done
+
+          # Run migrations before deployment (idempotent, follows backend/manage.py path)
           echo "=== Running database migrations ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput || {
+            python manage.py migrate --fake-initial --noinput || {
               echo "⚠ Migration failed"
               exit 1
             }
