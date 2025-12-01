@@ -1,0 +1,110 @@
+# Pre-commit hooks for deployment pipeline hardening
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']
+        files: \.github/workflows/.*\.yml$
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: ['-x', '-e', 'SC1091']
+        files: \.sh$
+
+  # Python formatting and linting
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        language_version: python3.12
+        files: ^backend/
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--exclude=migrations']
+        files: ^backend/
+
+  # Check for secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # Django migrations check
+  - repo: local
+    hooks:
+      - id: check-migrations
+        name: Check for uncommitted Django migrations
+        entry: bash -c 'cd backend && python manage.py makemigrations --check --dry-run'
+        language: system
+        pass_filenames: false
+        files: 'backend/.*\.py$'
+        
+  # Workflow validation
+  - repo: local
+    hooks:
+      - id: validate-workflows
+        name: Validate GitHub Actions workflows
+        entry: bash .github/scripts/validate-workflows.sh
+        language: system
+        pass_filenames: false
+        files: '\.github/workflows/.*\.yml$'
+        
+  # Check for TODO/FIXME in workflows
+  - repo: local
+    hooks:
+      - id: check-workflow-todos
+        name: Check for TODO/FIXME in workflows
+        entry: bash -c 'if grep -r "TODO\\|FIXME" .github/workflows/*.yml; then echo "Found TODO/FIXME in workflows"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        files: '\.github/workflows/.*\.yml$'
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        files: dockerfile$
+
+  # Trailing whitespace
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom tags in GitHub Actions
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+      
+  # Security checks for Python dependencies
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-r', 'backend/', '-x', 'backend/*/tests/*,backend/*/migrations/*']
+        
+  # Check for missing Dockerfile instructions
+  - repo: local
+    hooks:
+      - id: dockerfile-healthcheck
+        name: Check Dockerfile has HEALTHCHECK
+        entry: bash -c 'for f in */dockerfile; do if [ -f "$f" ] && ! grep -q "HEALTHCHECK" "$f"; then echo "Missing HEALTHCHECK in $f"; exit 1; fi; done'
+        language: system
+        pass_filenames: false
+        files: dockerfile$
