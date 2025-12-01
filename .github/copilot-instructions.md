@@ -22,6 +22,54 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 
 ---
 
+## 🔐 CRITICAL: Multi-Tenant Schema Isolation (READ BEFORE DATABASE WORK)
+
+**Assume two distinct database schemas are always present: `public` and `tenant`.**
+
+This project uses `django-tenants` for multi-tenant architecture. All database interactions must be isolated or correctly routed to the appropriate schema.
+
+### Schema Types
+
+1. **Public Schema (`public`)**: Contains shared data across all tenants
+   - `SHARED_APPS`: core, tenants, Django core apps (auth, contenttypes, sessions)
+   - Uses standard `migrate` command
+   
+2. **Tenant Schemas**: Contain tenant-specific data
+   - `TENANT_APPS`: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
+   - Requires `migrate_schemas` command
+
+### Required Migration Commands
+
+**Never use plain `migrate` for tenant-aware models.** Use the idempotent multi-tenant sequence:
+
+```bash
+# 1. Apply shared schema migrations (public schema)
+python manage.py migrate_schemas --shared --noinput
+
+# 2. Create/update super tenant (idempotent - safe to run multiple times)
+python manage.py create_super_tenant --no-input
+
+# 3. Apply tenant-specific migrations
+python manage.py migrate_schemas --noinput
+```
+
+### Code Requirements
+
+- **ViewSets**: Always override `get_queryset()` to filter by tenant
+- **Admin Classes**: Extend `TenantFilteredAdmin` for tenant models
+- **Model Serializers**: Never expose tenant ID to frontend
+- **Signals/Hooks**: Auto-assign tenant on object creation
+
+### Common Pitfalls to Avoid
+
+- ❌ Using `manage.py migrate` instead of `migrate_schemas`
+- ❌ Missing tenant isolation in query filters
+- ❌ Hardcoding tenant IDs in tests or fixtures
+- ❌ Creating migrations without testing on fresh database
+- ❌ Modifying applied migrations instead of creating new ones
+
+---
+
 ## 📋 Table of Contents
 1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
 2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)

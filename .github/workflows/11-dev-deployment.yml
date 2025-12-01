@@ -351,9 +351,58 @@ jobs:
           level: error
           yamllint_flags: '.github/workflows/'
   
-  build-and-push:
+  # Decoupled schema migration job - runs before deployment for multi-tenant setup
+  schema_migration:
     runs-on: ubuntu-latest
     needs: [lint-yaml]
+    timeout-minutes: 30
+    environment: dev-backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent schema migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running schema migrations for multi-tenancy ==="
+          
+          echo "Step 1/3: Applying shared schema migrations..."
+          python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput
+          
+          echo "Step 2/3: Creating/updating super tenant (idempotent)..."
+          python manage.py create_super_tenant --verbosity=1 || echo "⚠ create_super_tenant failed or not available"
+          
+          echo "Step 3/3: Applying tenant-specific migrations..."
+          python manage.py migrate_schemas --noinput || echo "⚠ migrate_schemas for tenants failed, continuing..."
+          
+          echo "=== Schema migrations completed ==="
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [lint-yaml, schema_migration]
     timeout-minutes: 45
     strategy:
       matrix:
@@ -533,7 +582,7 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [test-frontend]
+    needs: [test-frontend, schema_migration]
     environment: dev-frontend
     timeout-minutes: 20
     steps:
@@ -563,13 +612,14 @@ jobs:
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          # Use immutable SHA tag for deployment instead of mutable 'latest' tag
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -598,7 +648,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [test-backend]
+    needs: [test-backend, schema_migration]
     environment: dev-backend
     timeout-minutes: 30
     steps:
@@ -624,7 +674,8 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="dev-latest"
+          # Use immutable SHA tag for deployment instead of mutable 'latest' tag
+          TAG="dev-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"

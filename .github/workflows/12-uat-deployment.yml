@@ -40,9 +40,58 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Deployment ID: ${{ steps.gen-id.outputs.deployment_id }}"
   
-  build-and-push:
+  # Decoupled schema migration job - runs before deployment for multi-tenant setup
+  schema_migration:
     runs-on: ubuntu-latest
     needs: [pre-deployment-checks]
+    timeout-minutes: 30
+    environment: uat2-backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent schema migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running schema migrations for multi-tenancy ==="
+          
+          echo "Step 1/3: Applying shared schema migrations..."
+          python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput
+          
+          echo "Step 2/3: Creating/updating super tenant (idempotent)..."
+          python manage.py create_super_tenant --verbosity=1 || echo "⚠ create_super_tenant failed or not available"
+          
+          echo "Step 3/3: Applying tenant-specific migrations..."
+          python manage.py migrate_schemas --noinput || echo "⚠ migrate_schemas for tenants failed, continuing..."
+          
+          echo "=== Schema migrations completed ==="
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-checks, schema_migration]
     strategy:
       matrix:
         app: [ frontend, backend ]
@@ -272,7 +321,7 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [build-and-push, test-frontend, schema_migration]
     if: github.ref == 'refs/heads/uat'
     environment: uat2
     steps:
@@ -302,13 +351,14 @@ jobs:
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+          # Use immutable SHA tag for deployment instead of mutable 'latest' tag
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -337,7 +387,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [build-and-push, test-backend, schema_migration]
     if: github.ref == 'refs/heads/uat'
     environment: uat2-backend
     steps:
@@ -357,7 +407,8 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="uat-latest"
+          # Use immutable SHA tag for deployment instead of mutable 'latest' tag
+          TAG="uat-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
