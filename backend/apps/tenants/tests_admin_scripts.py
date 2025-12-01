@@ -462,8 +462,8 @@ class TenantQueryTests(TestCase):
     def test_list_staff_users(self):
         """Test listing staff users."""
         staff = User.objects.filter(is_staff=True)
-        # owner and superadmin are staff
-        self.assertEqual(staff.count(), 2)
+        # owner (explicit), admin (via tenant role), and superadmin are staff
+        self.assertEqual(staff.count(), 3)
 
     def test_tenant_owners_query(self):
         """Test finding tenant owners."""
