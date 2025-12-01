@@ -498,22 +498,25 @@ jobs:
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
-          # Construct health check URL from PRODUCTION_URL
-          HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          # Health check using localhost since we're on the deployment server
+          HEALTH_URL="http://localhost:8000/api/v1/health/"
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null; then
-              echo "✓ Backend health check passed"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
               exit 0
             fi
             
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts"
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              echo "Last response code: $HTTP_CODE"
               exit 1
             fi
             
-            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE)..."
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
