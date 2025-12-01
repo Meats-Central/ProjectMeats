@@ -2,6 +2,13 @@
 
 This directory contains validation and automation scripts used by GitHub Actions workflows for deployment and CI/CD.
 
+## Scripts Overview
+
+- [validate-migrations.sh](#validate-migrationssh) - Django migration validation
+- [validate-environment.sh](#validate-environmentsh) - Environment variable validation
+- [backup-database.sh](#backup-databasesh) - Database backup creation
+- [source-ai-conventions.py](#source-ai-conventionspy) - AI convention file aggregation
+
 ## Scripts
 
 ### validate-migrations.sh
@@ -82,6 +89,60 @@ export CORS_ALLOWED_ORIGINS=...
 - Prevents CORS/CSRF mismatch errors
 - Validates security settings
 - Provides clear error messages for missing variables
+
+---
+
+### source-ai-conventions.py
+**Purpose:** Source and aggregate AI convention files from multiple locations across the repository
+
+**When it runs:**
+- Can be run manually or as part of CI/CD workflows
+- Useful for consolidating AI instructions from various tools (Copilot, Cursor, Windsurf, Cline, etc.)
+
+**What it does:**
+1. Searches for AI convention files using glob patterns
+2. Finds files in hidden directories like `.github`, `.cursor`, `.windsurf`, etc.
+3. Aggregates content from multiple sources:
+   - `copilot-instructions.md` (GitHub Copilot)
+   - `AGENT.md`, `AGENTS.md`, `CLAUDE.md` (AI agent instructions)
+   - `.cursorrules`, `.windsurfrules`, `.clinerules` (IDE rules)
+   - `.cursor/rules/**`, `.windsurf/rules/**`, `.clinerules/**` (Rules directories)
+   - `README.md` (Project documentation)
+4. Outputs in markdown or JSON format
+5. Excludes archived files automatically
+
+**Exit codes:**
+- 0: Successfully found and aggregated conventions
+- Non-zero: Error during execution
+
+**Usage:**
+```bash
+# Output to stdout (default: markdown format)
+python3 .github/scripts/source-ai-conventions.py
+
+# Output to file with verbose logging
+python3 .github/scripts/source-ai-conventions.py --verbose --output ai-conventions.md
+
+# JSON format output
+python3 .github/scripts/source-ai-conventions.py --format json --output ai-conventions.json
+
+# Search from specific root directory
+python3 .github/scripts/source-ai-conventions.py --root /path/to/project
+
+# Get help
+python3 .github/scripts/source-ai-conventions.py --help
+```
+
+**Output formats:**
+- **Markdown**: Human-readable format with file sources and content blocks
+- **JSON**: Structured format with file paths, types, and content for programmatic use
+
+**Benefits:**
+- Consolidates AI instructions from multiple sources in one place
+- Supports various AI coding assistants (Copilot, Cursor, Windsurf, Cline, Claude)
+- Makes it easy to review and maintain AI conventions across the project
+- Can be integrated into CI/CD for validation or documentation generation
+- Excludes archived/legacy files automatically
 
 ---
 
