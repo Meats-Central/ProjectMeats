@@ -65,10 +65,9 @@ if database_url:
 
     DATABASES = {"default": _db_config}
 else:
-    # Get DB_ENGINE with fallback for empty values
+    # Get DB_ENGINE - PostgreSQL is required for all environments
     # Using config() to read from .env file for local development
-    # The .strip() or pattern handles empty strings from GitHub Secrets
-    DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.sqlite3"
+    DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.postgresql"
 
     if DB_ENGINE == "django.db.backends.postgresql":
         # PostgreSQL configuration - requires all environment variables
@@ -87,25 +86,16 @@ else:
                 },
             }
         }
-    elif DB_ENGINE == "django.db.backends.sqlite3":
-        # SQLite fallback - DEPRECATED: Use PostgreSQL for environment parity
-        # This is maintained for backward compatibility during migration period
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "db.sqlite3",
-            }
-        }
     else:
         # Log invalid DB_ENGINE value for debugging
         logger.error(
             f"Invalid DB_ENGINE value: '{DB_ENGINE}'. "
-            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"Only 'django.db.backends.postgresql' is supported. "
             f"See Django database settings docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
         )
         raise ValueError(
             f"Unsupported DB_ENGINE: '{DB_ENGINE}'. "
-            f"Supported values are 'django.db.backends.postgresql' or 'django.db.backends.sqlite3'. "
+            f"Only 'django.db.backends.postgresql' is supported. "
             f"Ensure DB_ENGINE is set in GitHub Secrets (Settings → Environments → dev-backend) "
             f"or configure it in config/environments/development.env. "
             f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
