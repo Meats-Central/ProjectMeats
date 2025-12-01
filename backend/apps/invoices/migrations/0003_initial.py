@@ -5,8 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    initial = True
-
     dependencies = [
         ("sales_orders", "0001_initial"),
         ("tenants", "0001_initial"),
