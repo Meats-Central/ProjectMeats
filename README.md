@@ -557,6 +557,7 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 - **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** ⭐ NEW - Complete database migration guide
 - **[Authentication Guide](docs/AUTHENTICATION_GUIDE.md)** ⭐ NEW - Auth, permissions & superuser management
+- **[Integration Guide](docs/INTEGRATION_GUIDE.md)** ⭐ NEW - Integration points, dependencies & communication patterns
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** ⭐ NEW - Common issues and solutions
 - **[3-Month Retrospective](docs/lessons-learned/3-MONTH-RETROSPECTIVE.md)** ⭐ NEW - Lessons learned (Aug-Nov 2024)
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
@@ -567,6 +568,7 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 ### Architecture & Development
 - **[Backend Architecture](docs/BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
 - **[Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
+- **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Integration points, external dependencies & communication patterns
 - **[Testing Strategy](docs/TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
 - **[Multi-Tenancy Guide](docs/MULTI_TENANCY_GUIDE.md)** - Multi-tenancy architecture

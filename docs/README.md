@@ -29,6 +29,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 #### 🔧 Development Guides
 - **[Backend Architecture](BACKEND_ARCHITECTURE.md)** - Django backend structure and patterns
 - **[Frontend Architecture](FRONTEND_ARCHITECTURE.md)** - React frontend structure and components
+- **[Integration Guide](INTEGRATION_GUIDE.md)** ⭐ - Integration points, dependencies, and communication patterns
 - **[Testing Strategy](TESTING_STRATEGY.md)** - Comprehensive testing guide
 - **[Repository Best Practices](REPOSITORY_BEST_PRACTICES.md)** - Development workflow and standards
 - **[Branch Workflow](../branch-workflow-checklist.md)** - Branch naming and workflow guide
@@ -47,6 +48,7 @@ docs/
 ├── MIGRATION_GUIDE.md ⭐              # Complete database migration guide (NEW)
 ├── AUTHENTICATION_GUIDE.md ⭐         # Auth & permissions guide (NEW)
 ├── TROUBLESHOOTING.md ⭐              # Common issues and solutions (NEW)
+├── INTEGRATION_GUIDE.md ⭐            # Integration points and dependencies (NEW)
 │
 ├── BACKEND_ARCHITECTURE.md            # Django backend architecture and patterns
 ├── FRONTEND_ARCHITECTURE.md           # React frontend architecture and components
@@ -94,10 +96,11 @@ docs/
 
 ### What's New? (November 2024 Consolidation)
 
-✨ **4 New Comprehensive Guides**:
+✨ **5 New Comprehensive Guides**:
 - `MIGRATION_GUIDE.md` - Consolidates 12 migration documents
 - `AUTHENTICATION_GUIDE.md` - Consolidates 13 auth documents
 - `TROUBLESHOOTING.md` - Consolidates 14 troubleshooting documents
+- `INTEGRATION_GUIDE.md` - Integration points, dependencies, and communication patterns (NEW Dec 2024)
 - `lessons-learned/3-MONTH-RETROSPECTIVE.md` - 3-month development summary
 
 📦 **67 Files Archived**: All redundant documentation moved to `archived-2024-11/` with complete cross-references.
@@ -131,6 +134,12 @@ docs/
 **Understand multi-tenancy:**
 - Read [Multi-Tenancy Guide](MULTI_TENANCY_GUIDE.md) for architecture overview
 - See [Migration Guide](MIGRATION_GUIDE.md) for django-tenants migration patterns
+- Check [Integration Guide](INTEGRATION_GUIDE.md) for multi-tenant communication patterns
+
+**Understand how components integrate:**
+- Read [Integration Guide](INTEGRATION_GUIDE.md) for integration points and dependencies
+- See data flow diagrams and communication patterns
+- Review external service integrations
 
 **Debug an issue:**
 - Start with [Troubleshooting Guide](TROUBLESHOOTING.md) - covers most common issues
