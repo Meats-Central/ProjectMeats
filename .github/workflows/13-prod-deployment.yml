@@ -71,7 +71,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -84,7 +84,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-latest
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       
@@ -346,7 +346,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.FRONTEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/opt/pm/frontend"
 
@@ -523,7 +523,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
