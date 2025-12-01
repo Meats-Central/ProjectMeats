@@ -455,8 +455,8 @@ class TenantDomain(models.Model):
         db_table = "tenants_tenantdomain"
         ordering = ["domain"]
         indexes = [
-            models.Index(fields=["domain"]),
-            models.Index(fields=["tenant", "is_primary"]),
+            models.Index(fields=["domain"], name="td_domain_idx"),
+            models.Index(fields=["tenant", "is_primary"], name="td_tenant_primary_idx"),
         ]
 
     def __str__(self):

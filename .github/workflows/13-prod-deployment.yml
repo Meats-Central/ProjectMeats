@@ -365,57 +365,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r backend/requirements.txt
-      
-      - name: Run migrations
-        run: |
-          cd backend && python manage.py migrate --noinput || {
-            echo "::error::Migration failed. Check database connectivity and configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
-      
-      - name: Create super tenant
-        run: |
-          cd backend && python manage.py create_super_tenant --verbosity=1 || {
-            echo "::error::Failed to create super tenant. Check database connectivity and model configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
-      
-      - name: Create guest tenant
-        run: |
-          cd backend && python manage.py create_guest_tenant --verbosity=1 || {
-            echo "::error::Failed to create guest tenant. Check database connectivity and model configuration."
-            exit 1
-          }
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          ALLOWED_HOSTS: ${{ secrets.PROD_ALLOWED_HOSTS }}
+      # Migrations and tenant setup are already done in deploy-backend job
+      # This validation job now only performs health checks and smoke tests
       
       - name: Health check with retry
         run: |
           MAX_ATTEMPTS=10
           ATTEMPT=1
+          # Use production URL from secrets, fallback to meatscentral.com if not set
           HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          if [ -z "${{ secrets.PRODUCTION_URL }}" ]; then
+            HEALTH_URL="https://meatscentral.com/api/v1/health/"
+          fi
           # CURL_FAILURE_CODE represents when curl command itself fails (network error, timeout)
           CURL_FAILURE_CODE="000"
           
@@ -447,8 +408,13 @@ jobs:
       
       - name: Run comprehensive smoke tests
         run: |
+          # Use production URL from secrets, fallback to meatscentral.com if not set
+          PROD_URL="${{ secrets.PRODUCTION_URL }}"
+          if [ -z "$PROD_URL" ]; then
+            PROD_URL="https://meatscentral.com"
+          fi
           chmod +x .github/scripts/smoke-tests.sh
-          .github/scripts/smoke-tests.sh "${{ secrets.PRODUCTION_URL }}" 15 5
+          .github/scripts/smoke-tests.sh "$PROD_URL" 15 5
       
       - name: Deployment summary
         if: success()
@@ -601,7 +567,8 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -H "Host: meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            # Don't send Host header to avoid ALLOWED_HOSTS issues
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
@@ -611,6 +578,9 @@ jobs:
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
               echo "Last response code: $HTTP_CODE"
+              # Show last few lines of container logs for debugging
+              echo "=== Last 20 lines of backend logs ==="
+              docker logs pm-backend --tail 20
               exit 1
             fi
             
