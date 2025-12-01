@@ -45,31 +45,53 @@ jobs:
         app: [frontend, backend]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-prod-${{ matrix.app }}-${{ hashFiles(matrix.app == 'frontend' && 'frontend/package-lock.json' || 'backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-prod-${{ matrix.app }}-
+
+      - name: Login to DOCR
+        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
+
       - name: Build & Push Frontend
         if: matrix.app == 'frontend'
-        run: |
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
-          docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE:prod-latest \
-            .
-          docker push $REGISTRY/$FRONTEND_IMAGE:prod-${GITHUB_SHA::7}
-          docker push $REGISTRY/$FRONTEND_IMAGE:prod-latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: frontend/dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:prod-latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       - name: Build & Push Backend (Django)
         if: matrix.app == 'backend'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:prod-latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+      
+      - name: Move cache
         run: |
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
-          docker build -f backend/Dockerfile \
-            -t $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7} \
-            -t $REGISTRY/$BACKEND_IMAGE:prod-latest \
-            .
-          docker push $REGISTRY/$BACKEND_IMAGE:prod-${GITHUB_SHA::7}
-          docker push $REGISTRY/$BACKEND_IMAGE:prod-latest
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -134,23 +156,6 @@ jobs:
             echo "Waiting for PostgreSQL... ($i/30)"
             sleep 2
           done
-      
-      # Run makemigrations for all apps to ensure any dynamic changes are captured
-      # Note: || true allows command to succeed even if no migrations are generated (expected behavior)
-      - name: Run makemigrations for all apps
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Running makemigrations for all apps (idempotent)..."
-          # makemigrations exits with 0 even when no migrations are generated
-          # || true ensures idempotency - command succeeds whether or not migrations are created
-          python manage.py makemigrations carriers suppliers customers plants contacts --noinput || true
-          python manage.py makemigrations --noinput || true
       
       - name: Apply shared schema migrations
         working-directory: ./backend
