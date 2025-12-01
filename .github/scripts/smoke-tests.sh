@@ -149,7 +149,7 @@ if command -v docker &> /dev/null; then
     echo -e "\n${BLUE}Test $((TOTAL_TESTS + 1)): Container Health${NC}"
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
     
-    local unhealthy=0
+    unhealthy=0
     for container in pm-frontend pm-backend; do
         if docker ps --filter "name=$container" --format "{{.Status}}" | grep -q "Up"; then
             echo -e "${GREEN}✓ $container: Running${NC}"

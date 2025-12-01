@@ -504,10 +504,10 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Run smoke tests
-        continue-on-error: true
         run: |
+          echo "Running smoke tests against UAT environment..."
           chmod +x .github/scripts/smoke-tests.sh
-          .github/scripts/smoke-tests.sh "${{ secrets.STAGING_URL }}" 10 5
+          .github/scripts/smoke-tests.sh "https://uat.meatscentral.com" 10 5
       
       - name: Deployment summary
         run: |
