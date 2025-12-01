@@ -372,7 +372,11 @@ jobs:
         run: |
           MAX_ATTEMPTS=10
           ATTEMPT=1
+          # Use production URL from secrets, fallback to meatscentral.com if not set
           HEALTH_URL="${{ secrets.PRODUCTION_URL }}/api/v1/health/"
+          if [ -z "${{ secrets.PRODUCTION_URL }}" ]; then
+            HEALTH_URL="https://meatscentral.com/api/v1/health/"
+          fi
           # CURL_FAILURE_CODE represents when curl command itself fails (network error, timeout)
           CURL_FAILURE_CODE="000"
           
