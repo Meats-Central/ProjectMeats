@@ -479,6 +479,25 @@ jobs:
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
 
+          # Create/update superuser and root tenant (idempotent)
+          echo "Setting up superuser and root tenant..."
+          sudo docker run --rm \
+            --env-file "$ENV_FILE" \
+            -v "$MEDIA_DIR:/app/media" \
+            -v "$STATIC_DIR:/app/staticfiles" \
+            "$REG/$IMG:$TAG" \
+            sh -c "
+              echo 'Creating/updating superuser and root tenant...'
+              python manage.py create_super_tenant --verbosity=1 || {
+                echo '⚠ create_super_tenant command failed or not available'
+              }
+              
+              echo 'Creating/updating guest tenant...'
+              python manage.py create_guest_tenant --verbosity=1 || {
+                echo '⚠ create_guest_tenant command failed or not available'
+              }
+            "
+
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
             -p 8000:8000 \
