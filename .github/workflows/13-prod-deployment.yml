@@ -601,7 +601,8 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -H "Host: meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            # Don't send Host header to avoid ALLOWED_HOSTS issues
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
@@ -611,6 +612,9 @@ jobs:
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
               echo "Last response code: $HTTP_CODE"
+              # Show last few lines of container logs for debugging
+              echo "=== Last 20 lines of backend logs ==="
+              docker logs pm-backend --tail 20
               exit 1
             fi
             
