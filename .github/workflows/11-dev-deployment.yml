@@ -535,6 +535,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-push]
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
