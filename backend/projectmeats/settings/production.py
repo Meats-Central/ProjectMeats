@@ -69,12 +69,13 @@ if _database_url:
 else:
     # Explicit PostgreSQL configuration from individual environment variables
     # No SQLite fallback - all DB vars are required in production
+    # These will raise KeyError if not set, ensuring fail-fast behavior
     _db_config = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", ""),
-        "USER": os.environ.get("DB_USER", ""),
-        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-        "HOST": os.environ.get("DB_HOST", ""),
+        "NAME": os.environ["DB_NAME"],
+        "USER": os.environ["DB_USER"],
+        "PASSWORD": os.environ["DB_PASSWORD"],
+        "HOST": os.environ["DB_HOST"],
         "PORT": os.environ.get("DB_PORT", "5432"),
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,
