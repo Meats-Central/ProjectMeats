@@ -1,0 +1,75 @@
+name: 'Orchestrated Health Check'
+description: 'Performs standardized health checks with retry logic and detailed diagnostics'
+author: 'ProjectMeats DevOps Team'
+
+inputs:
+  health-url:
+    description: 'Health check endpoint URL (e.g., http://localhost:8000/api/v1/health/)'
+    required: true
+  max-attempts:
+    description: 'Maximum number of health check attempts'
+    required: false
+    default: '20'
+  delay-seconds:
+    description: 'Delay between retry attempts in seconds'
+    required: false
+    default: '5'
+  initial-wait:
+    description: 'Initial wait before first health check (seconds)'
+    required: false
+    default: '10'
+
+outputs:
+  success:
+    description: 'Whether health check passed (true/false)'
+    value: ${{ steps.health.outputs.success }}
+  http-code:
+    description: 'Final HTTP response code'
+    value: ${{ steps.health.outputs.http_code }}
+  attempts:
+    description: 'Number of attempts made'
+    value: ${{ steps.health.outputs.attempts }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout for health check script
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          .github/scripts/health-check.sh
+        sparse-checkout-cone-mode: false
+        fetch-depth: 1
+    
+    - name: Wait before health check
+      if: inputs.initial-wait != '0'
+      shell: bash
+      run: |
+        echo "⏳ Waiting ${{ inputs.initial-wait }}s for service initialization..."
+        sleep ${{ inputs.initial-wait }}
+    
+    - name: Run health check
+      id: health
+      shell: bash
+      run: |
+        echo "=== Starting Orchestrated Health Check ==="
+        
+        # Make script executable
+        chmod +x .github/scripts/health-check.sh
+        
+        # Run health check with error capture
+        if .github/scripts/health-check.sh \
+          "${{ inputs.health-url }}" \
+          "${{ inputs.max-attempts }}" \
+          "${{ inputs.delay-seconds }}"; then
+          echo "success=true" >> $GITHUB_OUTPUT
+          echo "http_code=200" >> $GITHUB_OUTPUT
+        else
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "http_code=000" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+branding:
+  icon: 'heart'
+  color: 'green'
