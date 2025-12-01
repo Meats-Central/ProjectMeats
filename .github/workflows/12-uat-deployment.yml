@@ -74,7 +74,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -87,7 +87,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:uat-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:uat-latest
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:uat-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       
@@ -360,13 +360,13 @@ jobs:
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -415,7 +415,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="uat-latest"
+          TAG="uat-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
