@@ -126,6 +126,8 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 SECURE_SSL_REDIRECT = True
+# Exempt health check endpoints from SSL redirect for internal monitoring
+SECURE_REDIRECT_EXEMPT = [r'^api/v1/health/$', r'^api/v1/ready/$']
 X_FRAME_OPTIONS = "DENY"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
