@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **[MAJOR]** Documentation reorganization and cleanup (December 2025)
+  - Moved 78 historical documentation files from root directory to `archived/docs/2025-fixes/`
+  - Organized archived files into 12 categories: migrations, deployments, authentication, suppliers-customers, workflows, branch-protection, github-issues, pr-docs, multi-tenancy, fixes, implementation-summaries, and reorganization
+  - Reduced root directory from 85 to 7 essential markdown files
+  - Created comprehensive archive index at `archived/docs/2025-fixes/README.md`
+  - Updated cross-references in CHANGELOG.md to point to archived locations
+  - **Impact:** Cleaner root directory, better organization, easier navigation for developers
+  - **Note:** All archived content remains accessible for historical reference
 - **[MAJOR]** Comprehensive documentation consolidation (November 2024)
   - Created 4 new comprehensive guides consolidating 67 scattered documentation files:
     - `docs/MIGRATION_GUIDE.md` - Complete database migration guide (consolidates 12 docs)
@@ -19,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaned root directory from 67 to 6 essential markdown files
   - **Impact:** Improved documentation discoverability, reduced duplication, single source of truth per topic
   - **For developers:** All old documentation references updated; use new consolidated guides
-- Comprehensive final fix documentation in `MIGRATION_DEPENDENCIES_FIX_FINAL.md` (2025-10-16)
+- Comprehensive final fix documentation (see `archived/docs/2025-fixes/migrations/`) (2025-10-16)
 - Migration history fix documentation in `docs/MIGRATION_HISTORY_FIX.md` with step-by-step manual fix procedures
 - CI/CD migration consistency validation using `makemigrations --check` and `migrate --plan`
-- Comprehensive migration fix documentation in `MIGRATION_FIX_PR135_CORRECTION.md`
+- Comprehensive migration fix documentation (see `archived/docs/2025-fixes/migrations/`)
 
 ### Fixed
 - **[CRITICAL]** Fixed RecursionError in deployment pipeline caused by psycopg3 incompatibility with django-tenants

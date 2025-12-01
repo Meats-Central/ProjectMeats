@@ -86,16 +86,17 @@ Detailed implementation notes for specific features and fixes:
 - [implementation-summaries/dev-auth-bypass-fix.md](./implementation-summaries/dev-auth-bypass-fix.md)
 - [implementation-summaries/repository-refactoring-phase-1.md](./implementation-summaries/repository-refactoring-phase-1.md)
 
-**Root-level implementation summaries** (should be reviewed for archival):
-- [../IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md)
-- [../IMPLEMENTATION_SUMMARY_AUTH_FIX.md](../IMPLEMENTATION_SUMMARY_AUTH_FIX.md)
-- [../IMPLEMENTATION_SUMMARY_GUEST_MODE.md](../IMPLEMENTATION_SUMMARY_GUEST_MODE.md)
-- [../IMPLEMENTATION_SUMMARY_INVITE_SYSTEM.md](../IMPLEMENTATION_SUMMARY_INVITE_SYSTEM.md)
-- [../IMPLEMENTATION_SUMMARY_MIGRATION_FIX.md](../IMPLEMENTATION_SUMMARY_MIGRATION_FIX.md)
-- [../IMPLEMENTATION_SUMMARY_NAMING_STANDARDS.md](../IMPLEMENTATION_SUMMARY_NAMING_STANDARDS.md)
-- [../IMPLEMENTATION_SUMMARY_PO_VERSION_HISTORY.md](../IMPLEMENTATION_SUMMARY_PO_VERSION_HISTORY.md)
-- [../IMPLEMENTATION_SUMMARY_STAGING_FIX.md](../IMPLEMENTATION_SUMMARY_STAGING_FIX.md)
-- [../IMPLEMENTATION_VERIFICATION.md](../IMPLEMENTATION_VERIFICATION.md)
+**Root-level implementation summaries** (archived as of December 2025):
+- See `archived/docs/2025-fixes/implementation-summaries/` for historical implementation summaries including:
+  - IMPLEMENTATION_SUMMARY.md
+  - IMPLEMENTATION_SUMMARY_AUTH_FIX.md  
+  - IMPLEMENTATION_SUMMARY_GUEST_MODE.md
+  - IMPLEMENTATION_SUMMARY_INVITE_SYSTEM.md
+  - IMPLEMENTATION_SUMMARY_MIGRATION_FIX.md
+  - IMPLEMENTATION_SUMMARY_NAMING_STANDARDS.md
+  - IMPLEMENTATION_SUMMARY_PO_VERSION_HISTORY.md
+  - IMPLEMENTATION_SUMMARY_STAGING_FIX.md (now in deployments category)
+  - IMPLEMENTATION_VERIFICATION.md
 
 ---
 
@@ -118,77 +119,33 @@ Detailed implementation notes for specific features and fixes:
 
 ---
 
-## 🗃️ Issue-Specific Fix Documentation
+## 🗃️ Archived Fix Documentation (December 2025)
 
-**Note**: These documents capture specific bug fixes and should eventually be archived after the fixes are stable.
+**Note**: These documents have been archived to `archived/docs/2025-fixes/` to keep the root directory clean. All content is preserved for historical reference.
 
-### Migration & Database Fixes
+For the most current troubleshooting guidance, see:
+- [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) - Database migration best practices
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Common issues and solutions
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Deployment procedures
 
-- [../CICD_DJANGO_TENANTS_FIX.md](../CICD_DJANGO_TENANTS_FIX.md)
-- [../DB_CONFIG_MIGRATION_IDEMPOTENCY_FIX.md](../DB_CONFIG_MIGRATION_IDEMPOTENCY_FIX.md)
-- [../DEV_WORKFLOW_MIGRATION_DOCKER_FIX.md](../DEV_WORKFLOW_MIGRATION_DOCKER_FIX.md)
-- [../DJANGO_TENANTS_ALIGNMENT.md](../DJANGO_TENANTS_ALIGNMENT.md)
-- [../DJANGO_TENANTS_CI_FIX_COMPREHENSIVE.md](../DJANGO_TENANTS_CI_FIX_COMPREHENSIVE.md)
-- [../GITHUB_ISSUE_DEV_DB_ENGINE_FIX.md](../GITHUB_ISSUE_DEV_DB_ENGINE_FIX.md)
-- [../GITHUB_ISSUE_MIGRATION_HISTORY_FIX.md](../GITHUB_ISSUE_MIGRATION_HISTORY_FIX.md)
-- [../GITHUB_ISSUE_MISSING_TABLES_FIX.md](../GITHUB_ISSUE_MISSING_TABLES_FIX.md)
-- [../MIGRATION_FIX_DUPLICATE_DOMAIN_TABLE.md](../MIGRATION_FIX_DUPLICATE_DOMAIN_TABLE.md)
-- [../MIGRATION_FIX_PR135_CORRECTION.md](../MIGRATION_FIX_PR135_CORRECTION.md)
-- [../MIGRATION_FIX_SUMMARY_QUICK.md](../MIGRATION_FIX_SUMMARY_QUICK.md)
-- [../MIGRATION_HISTORY_FIX.md](../MIGRATION_HISTORY_FIX.md)
-- [../MIGRATION_DEPENDENCY_FIX_2025-10-13.md](../MIGRATION_DEPENDENCY_FIX_2025-10-13.md)
-- [../MODEL_DEFAULTS_AUDIT_SUMMARY.md](../MODEL_DEFAULTS_AUDIT_SUMMARY.md)
-- [../MODEL_DEFAULTS_MIGRATION_GUIDE.md](../MODEL_DEFAULTS_MIGRATION_GUIDE.md)
+### Archived Categories
 
-### Deployment & Configuration Fixes
+All fix documentation has been organized into 12 categories in `archived/docs/2025-fixes/`:
 
-- [../DEPLOYMENT_FIX_SUMMARY.md](../DEPLOYMENT_FIX_SUMMARY.md)
-- [../GITHUB_ISSUE_STAGING_SECRETS.md](../GITHUB_ISSUE_STAGING_SECRETS.md)
-- [../STAGING_LOAD_FAILURE_FIX.md](../STAGING_LOAD_FAILURE_FIX.md)
-- [../README_STAGING_FIX.md](../README_STAGING_FIX.md)
-- [../SECURITY_SUMMARY_STAGING_FIX.md](../SECURITY_SUMMARY_STAGING_FIX.md)
-- [../UAT_SUPERUSER_FIX_SUMMARY.md](../UAT_SUPERUSER_FIX_SUMMARY.md)
+1. **Migrations** (17 files) - Database migration fixes and django-tenants issues
+2. **Deployments** (14 files) - Deployment configuration and staging environment fixes
+3. **Authentication** (20 files) - Superuser, guest mode, and permissions fixes
+4. **Suppliers/Customers** (6 files) - Supplier and customer management fixes
+5. **Workflows** (3 files) - CI/CD workflow and testing fixes
+6. **Branch Protection** (3 files) - Branch protection and divergence resolution
+7. **GitHub Issues** (2 files) - Specific GitHub issue resolutions
+8. **PR Docs** (1 file) - Pull request documentation
+9. **Multi-Tenancy** (3 files) - Multi-tenant architecture enhancements
+10. **Fixes** (2 files) - UI and tenant-specific fixes
+11. **Implementation Summaries** (6 files) - Feature implementation details
+12. **Reorganization** (1 file) - Previous reorganization documentation
 
-### Authentication & Permissions Fixes
-
-- [../DELETE_BUTTON_FIX_SUMMARY.md](../DELETE_BUTTON_FIX_SUMMARY.md)
-- [../DJANGO_ADMIN_PERMISSIONS_FIX_SUMMARY.md](../DJANGO_ADMIN_PERMISSIONS_FIX_SUMMARY.md)
-- [../DJANGO_STAFF_PERMISSIONS_EXPLAINED.md](../DJANGO_STAFF_PERMISSIONS_EXPLAINED.md)
-- [../GUEST_MODE_QUICK_REF.md](../GUEST_MODE_QUICK_REF.md)
-- [../GUEST_USER_PERMISSIONS_GUIDE.md](../GUEST_USER_PERMISSIONS_GUIDE.md)
-- [../MULTI_TENANCY_ENHANCEMENT_SUMMARY.md](../MULTI_TENANCY_ENHANCEMENT_SUMMARY.md)
-- [../TENANT_VALIDATION_FIX_SUMMARY.md](../TENANT_VALIDATION_FIX_SUMMARY.md)
-
-### Superuser & Environment Fixes
-
-- [../GITHUB_ISSUE_SUPERUSER_ENV_LOADING.md](../GITHUB_ISSUE_SUPERUSER_ENV_LOADING.md)
-- [../PR_SUMMARY_SUPERUSER_FIX.md](../PR_SUMMARY_SUPERUSER_FIX.md)
-- [../SUPERUSER_DUPLICATE_FIX_SUMMARY.md](../SUPERUSER_DUPLICATE_FIX_SUMMARY.md)
-- [../SUPERUSER_ENVIRONMENT_VARIABLES_FIX.md](../SUPERUSER_ENVIRONMENT_VARIABLES_FIX.md)
-- [../SUPERUSER_INTEGRATION_SUMMARY.md](../SUPERUSER_INTEGRATION_SUMMARY.md)
-- [../SUPERUSER_PASSWORD_SYNC_FIX.md](../SUPERUSER_PASSWORD_SYNC_FIX.md)
-- [../SUPERUSER_PASSWORD_SYNC_SUMMARY.md](../SUPERUSER_PASSWORD_SYNC_SUMMARY.md)
-- [../SUPER_TENANT_FIX_SUMMARY.md](../SUPER_TENANT_FIX_SUMMARY.md)
-
-### Supplier & Customer Fixes
-
-- [../SUPPLIER_ADMIN_UPDATE_VERIFICATION.md](../SUPPLIER_ADMIN_UPDATE_VERIFICATION.md)
-- [../SUPPLIER_CUSTOMER_500_ERROR_FIX.md](../SUPPLIER_CUSTOMER_500_ERROR_FIX.md)
-- [../SUPPLIER_CUSTOMER_TENANT_FALLBACK_FIX.md](../SUPPLIER_CUSTOMER_TENANT_FALLBACK_FIX.md)
-- [../SUPPLIER_FIX_VERIFICATION.md](../SUPPLIER_FIX_VERIFICATION.md)
-- [../SUPPLIER_NETWORK_ERROR_FIX_SUMMARY.md](../SUPPLIER_NETWORK_ERROR_FIX_SUMMARY.md)
-- [../NETWORK_ERROR_TROUBLESHOOTING.md](../NETWORK_ERROR_TROUBLESHOOTING.md)
-
-### Workflow & CI/CD Fixes
-
-- [../PR_SUMMARY_BASH_HEREDOC_FIX.md](../PR_SUMMARY_BASH_HEREDOC_FIX.md)
-- [../PSYCOPG_FIX.md](../PSYCOPG_FIX.md)
-- [../WORKFLOW_MIGRATIONS_FIX_SUMMARY.md](../WORKFLOW_MIGRATIONS_FIX_SUMMARY.md)
-- [../WORKFLOW_TRIGGER_FIX.md](../WORKFLOW_TRIGGER_FIX.md)
-
-### Pull Request Descriptions
-
-- [../PR_DESCRIPTION_INVITE_GUEST_MODE.md](../PR_DESCRIPTION_INVITE_GUEST_MODE.md)
+See [../archived/docs/2025-fixes/README.md](../archived/docs/2025-fixes/README.md) for complete archive index and file listings.
 
 ---
 
@@ -203,29 +160,46 @@ Detailed implementation notes for specific features and fixes:
 
 ---
 
-## 🗂️ Archive Candidates
+## 🗂️ Archival Status (Updated December 2025)
 
-**These documents are valuable historical records but may not be actively needed:**
+**✅ Major documentation archival completed!**
 
-### Suggested for Archival
+### What Was Archived
 
-The following documents capture point-in-time fixes and may be candidates for moving to `archived/docs/fixes/` once the fixes are verified stable in production:
+On December 1, 2025, **78 historical documentation files** were moved from the root directory to organized categories in `archived/docs/2025-fixes/`:
 
-1. All `*_FIX_SUMMARY.md` files (capture specific bug fixes)
-2. All `GITHUB_ISSUE_*.md` files (GitHub-specific issue resolutions)
-3. All `PR_SUMMARY_*.md` and `PR_DESCRIPTION_*.md` files (PR-specific documentation)
-4. Duplicate/overlapping implementation summaries in root vs docs/implementation-summaries/
+1. ✅ All `*_FIX_SUMMARY.md` files (specific bug fixes)
+2. ✅ All `GITHUB_ISSUE_*.md` files (GitHub-specific issue resolutions)
+3. ✅ All `PR_SUMMARY_*.md` and `PR_DESCRIPTION_*.md` files (PR-specific documentation)
+4. ✅ All implementation summaries from root directory
+5. ✅ Migration, deployment, authentication, and other fix documentation
 
-**Archival Benefits:**
-- Cleaner root directory
-- Easier navigation for active development
-- Historical record preserved for future reference
-- Reduced documentation maintenance burden
+**Results:**
+- Root directory reduced from **85 to 7 essential markdown files**
+- All content organized into **12 categories**
+- Complete archive index created at `archived/docs/2025-fixes/README.md`
+- All cross-references updated
 
-**Archival Process:**
-1. Move to `archived/docs/fixes/<year>-<month>/`
-2. Update any cross-references
-3. Add entry to `archived/docs/INDEX.md`
+### Current Status
+
+**Root directory now contains only essential files:**
+- README.md - Project overview
+- CONTRIBUTING.md - Contribution guidelines  
+- CHANGELOG.md - Version history
+- QUICK_START.md - Quick setup guide
+- LOCAL_DEVELOPMENT.md - Development setup
+- branch-workflow-checklist.md - Git workflow
+- copilot-log.md - Copilot task history
+
+**For historical documentation, see:**
+- [archived/docs/2025-fixes/README.md](../archived/docs/2025-fixes/README.md) - Complete archive index
+
+### Future Archival
+
+Going forward, any new fix or issue-specific documentation should:
+1. Be created in appropriate docs/ subdirectories
+2. Be archived after 3-6 months of stability
+3. Follow the established categorization pattern
 
 ---
 
@@ -274,7 +248,7 @@ The following documents capture point-in-time fixes and may be candidates for mo
 
 ---
 
-**Documentation Version**: 1.0.0  
-**Last Reviewed**: 2025-11-29  
-**Next Review Due**: 2026-02-28
+**Documentation Version**: 2.0.0 (Major reorganization)  
+**Last Reviewed**: 2025-12-01  
+**Next Review Due**: 2026-03-01
 
