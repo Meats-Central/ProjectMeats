@@ -35,6 +35,7 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 10. [Requirements & Dependency Management](#-requirements--dependency-management)
 11. [CI/CD & Deployment](#-cicd--deployment-best-practices)
 12. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+13. [Key Files & Directories (Implementation Examples)](#-key-files--directories-implementation-examples)
 
 ---
 
@@ -1238,6 +1239,349 @@ Repeat similarly for `UAT` → `main`.
   - Large bundle sizes (> 500KB gzipped)
   - Synchronous operations blocking request handling
   - Not implementing caching for expensive operations
+
+---
+
+## 📂 Key Files & Directories (Implementation Examples)
+
+This section provides concrete references to exemplary files in the codebase that demonstrate best practices and important patterns. Use these as templates when implementing similar functionality.
+
+### Backend Patterns (Django + DRF)
+
+#### Multi-Tenancy Implementation (⭐ Critical Pattern)
+
+**Base Admin Class - Tenant Filtering:**
+- **File:** `backend/apps/core/admin.py`
+- **Pattern:** `TenantFilteredAdmin` class
+- **What to learn:**
+  - Automatic tenant-based queryset filtering
+  - Permission checks based on tenant membership and roles
+  - Auto-assignment of tenant on object creation
+  - Superuser vs. staff user access control
+- **When to use:** ALL admin classes for models with a `tenant` field MUST extend `TenantFilteredAdmin`
+
+**Example Admin Implementation:**
+- **File:** `backend/apps/suppliers/admin.py`
+- **Pattern:** `SupplierAdmin(TenantFilteredAdmin)`
+- **What to learn:**
+  - Proper use of TenantFilteredAdmin
+  - Organized fieldsets with collapsible sections
+  - List display, filters, and search configuration
+  - Filter horizontal for many-to-many relationships
+
+**Tenant-Aware ViewSet:**
+- **File:** `backend/apps/suppliers/views.py`
+- **Pattern:** `SupplierViewSet` class
+- **What to learn:**
+  - Strict tenant isolation in `get_queryset()`
+  - Tenant resolution hierarchy (middleware → user association → fallback)
+  - Automatic tenant assignment in `perform_create()`
+  - Comprehensive security documentation in docstrings
+  - Proper logging for security events
+- **When to use:** ALL ViewSets that operate on tenant-specific data
+
+#### Model Design
+
+**Complete Model Example:**
+- **File:** `backend/apps/suppliers/models.py`
+- **Pattern:** `Supplier` model
+- **What to learn:**
+  - Multi-tenancy field setup (`tenant` ForeignKey)
+  - Use of `TimestampModel` base class
+  - Proper field definitions with `help_text`
+  - CharField with `blank=True, default=''` (PostgreSQL requirement)
+  - Custom manager usage (`TenantManager`)
+  - Many-to-many relationships
+  - Model validation and constraints
+
+**Base Models:**
+- **File:** `backend/apps/core/models.py`
+- **Pattern:** `TimestampModel` class
+- **What to learn:**
+  - Abstract base class pattern
+  - Auto-managed timestamp fields
+  - Reusable model components
+
+#### Serializers
+
+**Standard Serializer:**
+- **File:** `backend/apps/suppliers/serializers.py`
+- **Pattern:** `SupplierSerializer` class
+- **What to learn:**
+  - ModelSerializer usage
+  - Explicit field definitions
+  - Read-only fields configuration
+  - Field-level validation methods
+  - Input sanitization (stripping whitespace)
+
+#### Testing
+
+**API Test Suite:**
+- **File:** `backend/apps/suppliers/tests.py`
+- **Pattern:** `SupplierAPITests` class
+- **What to learn:**
+  - APITestCase setup with authentication
+  - Tenant context creation
+  - User-tenant association setup
+  - Testing with X-Tenant-ID header
+  - Success and failure case testing
+  - Validation error testing
+  - Comprehensive test naming: `test_<action>_<scenario>_<expected>`
+
+**Core Tests:**
+- **Directory:** `backend/apps/core/tests/`
+- **Files:** `test_validators.py`, `test_setup_superuser.py`, `test_database.py`
+- **What to learn:**
+  - Organized test directory structure
+  - Separation of concerns (validators, commands, database)
+  - Testing management commands
+
+#### Multi-Tenancy Management
+
+**Tenant Models:**
+- **File:** `backend/apps/tenants/models.py`
+- **What to learn:**
+  - Both schema-based (`Client`, `Domain`) and shared-schema (`Tenant`, `TenantUser`) models
+  - Custom managers for tenant isolation
+  - Role-based access control
+  - User-tenant associations
+
+**Tenant Middleware:**
+- **File:** `backend/apps/tenants/middleware.py`
+- **What to learn:**
+  - Request-level tenant context injection
+  - Tenant resolution from headers or user association
+  - Security logging
+
+### Frontend Patterns (React + TypeScript)
+
+#### Component Architecture
+
+**Layout Component:**
+- **File:** `frontend/src/components/Layout/Layout.tsx`
+- **What to learn:**
+  - React functional component with TypeScript
+  - Context usage (`useNavigation`, `useTheme`)
+  - Global keyboard shortcuts with useEffect
+  - Styled-components with theme props
+  - Component composition with Outlet
+
+**Sidebar Component:**
+- **File:** `frontend/src/components/Layout/Sidebar.tsx`
+- **What to learn:**
+  - Interactive component with hover/toggle states
+  - Navigation integration
+  - Conditional rendering
+  - Animation transitions
+
+#### Services & API Integration
+
+**API Service:**
+- **File:** `frontend/src/services/apiService.ts`
+- **Pattern:** Axios client with interceptors
+- **What to learn:**
+  - Centralized API configuration
+  - Request interceptor for authentication and tenant headers
+  - Response interceptor for error handling
+  - Token management
+  - Tenant context propagation (X-Tenant-ID header)
+  - TypeScript interfaces for error handling
+
+**Authentication Service:**
+- **File:** `frontend/src/services/authService.ts`
+- **What to learn:**
+  - Login/logout flow
+  - Token storage and management
+  - User state management
+
+**Tenant Service:**
+- **File:** `frontend/src/services/tenantService.ts`
+- **What to learn:**
+  - Multi-tenancy in frontend
+  - Tenant switching
+  - Tenant context storage
+
+### CI/CD & Automation
+
+#### Environment Promotion Workflows
+
+**Development to UAT Promotion:**
+- **File:** `.github/workflows/promote-dev-to-uat.yml`
+- **Pattern:** Auto-PR creation workflow
+- **What to learn:**
+  - Automatic PR creation on branch push
+  - Stale PR cleanup before creating new PR
+  - PR labeling and reviewer assignment
+  - Manual trigger support with `workflow_dispatch`
+  - Concurrency control
+
+**UAT to Production Promotion:**
+- **File:** `.github/workflows/promote-uat-to-main.yml`
+- **Pattern:** Production promotion workflow
+- **What to learn:**
+  - Same pattern as dev-to-uat
+  - Final deployment gate
+
+#### Deployment Workflows
+
+**Development Deployment:**
+- **File:** `.github/workflows/11-dev-deployment.yml`
+- **What to learn:**
+  - Multi-stage deployment (backend + frontend)
+  - Database migrations with backup
+  - Static file collection
+  - Health checks
+  - Rollback procedures
+
+**UAT Deployment:**
+- **File:** `.github/workflows/12-uat-deployment.yml`
+- **What to learn:**
+  - Similar to dev but with UAT-specific configuration
+  - Environment-specific secrets
+
+**Production Deployment:**
+- **File:** `.github/workflows/13-prod-deployment.yml`
+- **What to learn:**
+  - Production-grade deployment with safety checks
+  - Multiple approval gates
+  - Comprehensive validation
+
+#### Automation Scripts
+
+**Migration Validation:**
+- **File:** `.github/scripts/validate-migrations.sh`
+- **What to learn:**
+  - Pre-deployment migration validation
+  - Dependency checking
+  - Fresh database testing
+
+**Database Backup:**
+- **File:** `.github/scripts/backup-database.sh`
+- **What to learn:**
+  - Automated backup before migrations
+  - Backup rotation (keep last 7)
+  - Compression and storage
+
+### Documentation
+
+#### Essential Guides (Documentation Structure Reference)
+
+**Documentation Hub:**
+- **File:** `docs/README.md`
+- **What to learn:**
+  - Central navigation structure
+  - Documentation organization
+  - Cross-referencing
+
+**Migration Guide:**
+- **File:** `docs/MIGRATION_GUIDE.md`
+- **What to learn:**
+  - Step-by-step technical procedures
+  - Best practices with rationale
+  - Common pitfalls and solutions
+  - Examples and code snippets
+
+**Backend Architecture:**
+- **File:** `docs/BACKEND_ARCHITECTURE.md`
+- **What to learn:**
+  - High-level architecture documentation
+  - Design decisions and rationale
+  - Component relationships
+
+**Frontend Architecture:**
+- **File:** `docs/FRONTEND_ARCHITECTURE.md`
+- **What to learn:**
+  - Frontend structure and patterns
+  - State management approach
+  - Component organization
+
+#### Implementation Summaries
+
+**Guest Mode Implementation:**
+- **File:** `IMPLEMENTATION_SUMMARY_GUEST_MODE.md`
+- **What to learn:**
+  - How to document a complete feature implementation
+  - Changes across multiple layers
+  - Testing and verification steps
+
+**Invite System Implementation:**
+- **File:** `IMPLEMENTATION_SUMMARY_INVITE_SYSTEM.md`
+- **What to learn:**
+  - Complex feature documentation
+  - Database schema changes
+  - API endpoint documentation
+
+#### Workflow Documentation
+
+**Branch Workflow Checklist:**
+- **File:** `branch-workflow-checklist.md`
+- **What to learn:**
+  - Git workflow documentation
+  - Branch naming conventions
+  - Step-by-step procedures
+  - Visual diagrams (Mermaid)
+
+### Configuration & Setup
+
+#### Environment Configuration
+
+**Centralized Environment Management:**
+- **File:** `config/manage_env.py`
+- **What to learn:**
+  - Environment-specific configuration management
+  - Template-based setup
+  - Validation scripts
+
+**Development Setup:**
+- **File:** `setup_env.py`
+- **What to learn:**
+  - Automated development environment setup
+  - Dependency installation
+  - Database initialization
+
+**Startup Script:**
+- **File:** `start_dev.sh`
+- **What to learn:**
+  - Comprehensive development startup
+  - PostgreSQL setup
+  - Multi-service coordination
+
+#### Pre-commit Hooks
+
+**Pre-commit Configuration:**
+- **File:** `.pre-commit-config.yaml`
+- **What to learn:**
+  - Hook configuration for code quality
+  - Migration validation hooks
+  - Formatting and linting automation
+
+### Quick Reference Checklist
+
+When implementing new features, consult these key files:
+
+**Backend Feature (e.g., new business entity):**
+1. Model: Reference `backend/apps/suppliers/models.py`
+2. Serializer: Reference `backend/apps/suppliers/serializers.py`
+3. Views: Reference `backend/apps/suppliers/views.py`
+4. Admin: Reference `backend/apps/suppliers/admin.py` (with `TenantFilteredAdmin`)
+5. Tests: Reference `backend/apps/suppliers/tests.py`
+6. URLs: Reference `backend/apps/suppliers/urls.py`
+
+**Frontend Feature (e.g., new page):**
+1. Component: Reference `frontend/src/components/Layout/Layout.tsx`
+2. Service: Reference `frontend/src/services/apiService.ts`
+3. Context: Reference contexts in `frontend/src/contexts/`
+4. Styling: Reference styled-components usage in Layout components
+
+**CI/CD Enhancement:**
+1. Workflow: Reference `.github/workflows/promote-dev-to-uat.yml`
+2. Scripts: Reference `.github/scripts/` directory
+3. Documentation: Reference `.github/workflows/README.md`
+
+**Documentation:**
+1. Technical guide: Reference `docs/MIGRATION_GUIDE.md`
+2. Architecture: Reference `docs/BACKEND_ARCHITECTURE.md` or `docs/FRONTEND_ARCHITECTURE.md`
+3. Implementation summary: Reference `IMPLEMENTATION_SUMMARY_GUEST_MODE.md`
 
 ---
 
