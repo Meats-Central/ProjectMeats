@@ -408,8 +408,13 @@ jobs:
       
       - name: Run comprehensive smoke tests
         run: |
+          # Use production URL from secrets, fallback to meatscentral.com if not set
+          PROD_URL="${{ secrets.PRODUCTION_URL }}"
+          if [ -z "$PROD_URL" ]; then
+            PROD_URL="https://meatscentral.com"
+          fi
           chmod +x .github/scripts/smoke-tests.sh
-          .github/scripts/smoke-tests.sh "${{ secrets.PRODUCTION_URL }}" 15 5
+          .github/scripts/smoke-tests.sh "$PROD_URL" 15 5
       
       - name: Deployment summary
         if: success()
