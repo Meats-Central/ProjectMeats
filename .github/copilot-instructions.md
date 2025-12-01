@@ -22,19 +22,34 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 
 ---
 
+## 🏢 Multi-Tenancy Database Schema Requirement
+
+**Assume two distinct database schemas are always present: `public` and `tenant`. All database interactions must be isolated or correctly routed.**
+
+### Key Principles
+
+- **Schema Separation**: The `public` schema contains shared data (e.g., `Tenant`, `TenantUser`, and Django core tables). Tenant-specific data is isolated within tenant schemas.
+- **Tenant Context**: Use `TenantMiddleware` to automatically set `request.tenant` for each request. Always filter queries using the `for_tenant()` method on tenant-aware models.
+- **Data Isolation**: All business entity models (`Supplier`, `Customer`, `PurchaseOrder`, `Plant`, `Contact`, `Carrier`, `AccountsReceivable`) include a `tenant` ForeignKey and must be queried with tenant filtering.
+- **ViewSet Pattern**: All ViewSets managing tenant-scoped data must override `get_queryset()` to filter by tenant and `perform_create()` to assign the tenant on creation.
+- **Migrations**: Use `migrate_schemas` instead of `migrate` for `TENANT_APPS`. See [Multi-Tenancy Guide](../docs/MULTI_TENANCY_GUIDE.md) for details.
+
+---
+
 ## 📋 Table of Contents
 1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
-3. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
-4. [Code Quality & Security](#-code-quality--security-standards)
-5. [Testing Strategy](#-testing-strategy--coverage)
-6. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
-7. [Frontend Standards](#-frontend-standards-react--typescript)
-8. [Performance Optimization](#-performance-optimization)
-9. [Accessibility & Internationalization](#-accessibility--internationalization)
-10. [Requirements & Dependency Management](#-requirements--dependency-management)
-11. [CI/CD & Deployment](#-cicd--deployment-best-practices)
-12. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
+2. [Multi-Tenancy Database Schema](#-multi-tenancy-database-schema-requirement)
+3. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
+4. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
+5. [Code Quality & Security](#-code-quality--security-standards)
+6. [Testing Strategy](#-testing-strategy--coverage)
+7. [API Design & Backend Standards](#-api-design--backend-standards-django--drf)
+8. [Frontend Standards](#-frontend-standards-react--typescript)
+9. [Performance Optimization](#-performance-optimization)
+10. [Accessibility & Internationalization](#-accessibility--internationalization)
+11. [Requirements & Dependency Management](#-requirements--dependency-management)
+12. [CI/CD & Deployment](#-cicd--deployment-best-practices)
+13. [Clean-Ups & Maintenance](#-clean-ups-refactoring--repository-health)
 
 ---
 
