@@ -8,8 +8,11 @@ def rename_indexes_safe(apps, schema_editor):
     """
     Safely rename indexes to stable names in the database.
     Handles permission errors by creating new indexes if rename fails.
+    Uses savepoints to avoid transaction abort issues.
     """
-    with schema_editor.connection.cursor() as cursor:
+    connection = schema_editor.connection
+    
+    with connection.cursor() as cursor:
         # Get existing indexes
         cursor.execute("""
             SELECT indexname 
@@ -30,17 +33,28 @@ def rename_indexes_safe(apps, schema_editor):
             renamed = False
             for old_name in domain_old_names:
                 if old_name in existing:
+                    # Use savepoint to isolate potential failures
+                    sid = connection.savepoint()
                     try:
                         cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_domain_idx"')
+                        connection.savepoint_commit(sid)
                         renamed = True
                         break
                     except Exception as e:
-                        # If rename fails (e.g., insufficient privileges), we'll create new index
-                        print(f"Could not rename {old_name}: {e}. Will create new index instead.")
+                        # Rollback to savepoint on error
+                        connection.savepoint_rollback(sid)
+                        print(f"Could not rename {old_name}: {e}. Will try next or create new index.")
                         continue
+            
             if not renamed:
-                # Create new index (IF NOT EXISTS handles the case where index exists but we couldn't rename)
-                cursor.execute('CREATE INDEX IF NOT EXISTS td_domain_idx ON tenants_tenantdomain(domain)')
+                # Create new index if rename failed or no old index found
+                sid = connection.savepoint()
+                try:
+                    cursor.execute('CREATE INDEX IF NOT EXISTS td_domain_idx ON tenants_tenantdomain(domain)')
+                    connection.savepoint_commit(sid)
+                except Exception as e:
+                    connection.savepoint_rollback(sid)
+                    print(f"Could not create td_domain_idx: {e}")
         
         # Rename or create tenant/primary index
         tenant_old_names = [
@@ -52,15 +66,25 @@ def rename_indexes_safe(apps, schema_editor):
             renamed = False
             for old_name in tenant_old_names:
                 if old_name in existing:
+                    sid = connection.savepoint()
                     try:
                         cursor.execute(f'ALTER INDEX "{old_name}" RENAME TO "td_tenant_primary_idx"')
+                        connection.savepoint_commit(sid)
                         renamed = True
                         break
                     except Exception as e:
-                        print(f"Could not rename {old_name}: {e}. Will create new index instead.")
+                        connection.savepoint_rollback(sid)
+                        print(f"Could not rename {old_name}: {e}. Will try next or create new index.")
                         continue
+            
             if not renamed:
-                cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
+                sid = connection.savepoint()
+                try:
+                    cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
+                    connection.savepoint_commit(sid)
+                except Exception as e:
+                    connection.savepoint_rollback(sid)
+                    print(f"Could not create td_tenant_primary_idx: {e}")
             if not renamed:
                 cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
 
