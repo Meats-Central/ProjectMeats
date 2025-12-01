@@ -1,6 +1,6 @@
 # ProjectMeats Documentation Hub
 
-**Last Updated**: December 2025  
+**Last Updated**: November 2025  
 
 Welcome to the ProjectMeats documentation! This page serves as your **central navigation point** for all project documentation.
 

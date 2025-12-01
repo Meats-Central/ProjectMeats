@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-**Last Updated**: December 2025
+**Last Updated**: November 2025
 
 This document provides a comprehensive reference for all environment variables used in the ProjectMeats application.
 

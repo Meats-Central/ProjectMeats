@@ -1,6 +1,6 @@
 # Security Guidelines
 
-**Last Updated**: December 2025
+**Last Updated**: November 2025
 
 This document outlines security policies, vulnerability reporting procedures, and multi-tenant security best practices for ProjectMeats.
 
@@ -26,7 +26,7 @@ This document outlines security policies, vulnerability reporting procedures, an
 If you discover a security vulnerability in ProjectMeats, please report it responsibly:
 
 1. **DO NOT** create a public GitHub issue
-2. **Email**: security@meatscentral.com (or contact repository maintainers directly)
+2. **Email**: Contact repository maintainers directly via GitHub, or use a security-specific contact if configured
 3. **Include**:
    - Description of the vulnerability
    - Steps to reproduce
@@ -332,8 +332,8 @@ ProjectMeats follows these security standards:
 
 ## 📞 Security Contacts
 
-- **Security Team**: security@meatscentral.com
-- **Repository Maintainers**: Via GitHub issues (non-sensitive)
+- **Security Reports**: Contact repository maintainers directly via GitHub
+- **Repository Issues**: Via GitHub issues (non-sensitive only)
 - **Emergency**: Contact repository admins directly
 
 ---

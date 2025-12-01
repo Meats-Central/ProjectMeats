@@ -1,6 +1,6 @@
 # ProjectMeats Deployment Guide
 
-**Last Updated**: December 2025
+**Last Updated**: November 2025
 
 ## Overview
 

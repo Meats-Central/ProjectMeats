@@ -1,19 +1,17 @@
 # ProjectMeats Backend Requirements
 # Django REST Framework backend for PowerApps migration
 #
-# TODO: Planned version upgrades (see docs/ROADMAP.md):
-# - Django==5.1 (after django-tenants 3.6+ support is stable)
-# - Python 3.11+ recommended for performance improvements
+# For planned version upgrades, see docs/ROADMAP.md
 
 # Core Django and DRF
-Django==4.2.7  # TODO: Upgrade to Django==5.1 when django-tenants supports it
+Django==4.2.7
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-environ==0.11.2
 django-filter==23.3
 
 # Multi-tenancy
-django-tenants==3.5.0  # TODO: Upgrade to 3.6+ for Django 5.x support
+django-tenants==3.5.0
 
 # Database
 psycopg2-binary==2.9.9  # PostgreSQL adapter for django-tenants compatibility

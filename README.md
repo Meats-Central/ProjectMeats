@@ -204,4 +204,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 ---
 
-**Last Updated**: December 2025
+**Last Updated**: November 2025

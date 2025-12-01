@@ -1,6 +1,6 @@
 # ProjectMeats Roadmap
 
-**Last Updated**: December 2025
+**Last Updated**: November 2025
 
 This document outlines the future development plans, suggested upgrades, and enhancement recommendations for ProjectMeats.
 
