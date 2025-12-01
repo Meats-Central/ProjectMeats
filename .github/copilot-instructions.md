@@ -440,83 +440,92 @@ Repeat similarly for `UAT` → `main`.
 
 ## ⚛️ Frontend Standards (React + TypeScript)
 
-### Component Architecture
+**See actual implementations in `frontend/src/` for project-specific patterns**
 
-- **Component Organization:**
+### Component Architecture (Project-Specific)
+
+- **Component Organization (Used in ProjectMeats):**
   ```
-  src/components/
-  ├── common/              # Reusable UI components (Button, Input, Modal)
-  ├── layout/              # Layout components (Header, Footer, Sidebar)
-  ├── features/            # Feature-specific components
-  └── screens/             # Page-level components
+  frontend/src/
+  ├── components/          # Reusable UI components
+  ├── screens/             # Page-level components (Customers, Suppliers, Orders)
+  ├── services/            # API communication layer
+  ├── shared/              # Shared utilities (re-exports from /shared)
+  └── types/               # TypeScript type definitions
   ```
 
-- **Component Best Practices:**
-  - Use functional components with hooks (no class components)
-  - Keep components small and focused (< 300 lines)
+- **Component Best Practices (Follow Existing Patterns):**
+  - Use functional components with hooks (see examples in `frontend/src/screens/`)
+  - Keep components focused (< 300 lines)
   - Extract reusable logic into custom hooks
-  - Use TypeScript interfaces for props
-  - Implement proper prop validation
-  - Use React.memo() for expensive components
-  - Avoid inline function definitions in render
+  - Use TypeScript interfaces for props (see `frontend/src/types/`)
+  - Follow patterns from existing components like `frontend/src/screens/Customers/`
 
-- **State Management:**
-  - Use React Context for global state (auth, theme)
-  - Use local state (useState) for component-specific state
-  - Consider Redux/Zustand for complex state (future)
-  - Lift state to common ancestor when sharing between components
-  - Use useReducer for complex state logic
-  - Avoid prop drilling (use context or composition)
+- **State Management (Current Implementation):**
+  - React Context for auth and global state (see `frontend/src/` context providers)
+  - Local state (useState) for component-specific state
+  - API calls via services layer (`frontend/src/services/`)
+  - No Redux/Zustand currently (use Context API patterns)
 
-- **Hooks Best Practices:**
-  - Follow Rules of Hooks (only call at top level, only in React functions)
-  - Use `useEffect` for side effects (API calls, subscriptions)
+- **Hooks Best Practices (Project Patterns):**
+  - Follow Rules of Hooks
+  - Use `useEffect` for API calls (see examples in screen components)
   - Clean up effects with return function
-  - Use `useMemo` for expensive computations
-  - Use `useCallback` to memoize functions passed as props
   - Create custom hooks for reusable logic (prefix with `use`)
+  - See existing custom hooks in the codebase for patterns
 
-### TypeScript Best Practices
+### TypeScript Best Practices (Project-Specific)
 
-- **Type Safety:**
-  - Avoid `any` type (use `unknown` if type is truly unknown)
-  - Define interfaces for all props, state, API responses
-  - Use union types for explicit state values
-  - Use enums for fixed sets of values
-  - Enable strict mode in tsconfig.json
-  - Use type guards for runtime type checking
+- **Type Safety (Project Configuration):**
+  - TypeScript configured in `frontend/tsconfig.json` (strict mode enabled)
+  - Define interfaces in `frontend/src/types/` for props, state, API responses
+  - Avoid `any` type - use `unknown` if type is truly unknown
+  - Follow type patterns from existing code
 
-- **Type Organization:**
+- **Type Organization (Current Structure):**
   ```
-  src/types/
-  ├── api.ts               # API request/response types
+  frontend/src/types/
+  ├── api.ts               # API request/response types (synchronized with backend)
   ├── models.ts            # Domain model types
   └── components.ts        # Component prop types
   ```
 
-### Styling Best Practices
+### Styling Best Practices (Project Implementation)
 
-- **Styled Components:**
-  - Use styled-components for component-level styles
-  - Create reusable styled components in `src/styles/`
-  - Use theme for consistent colors, spacing, typography
-  - Avoid inline styles (use styled components)
-  - Use CSS variables for dynamic values
-  - Support dark mode via theme switching
+- **Styled Components (Used in ProjectMeats):**
+  - Project uses styled-components (see `frontend/package.json`)
+  - Component-level styles in component files
+  - Shared styles in theme configuration
+  - Avoid inline styles
 
-- **Performance Optimization:**
+- **Ant Design Usage (Primary UI Library):**
+  - Ant Design is the primary UI library (see `frontend/package.json`)
+  - Use Ant Design components consistently across the app
+  - Customize theme via ConfigProvider (see app configuration)
+  - Don't mix UI libraries - stick to Ant Design
+  - See existing screens for usage patterns
+
+### Frontend Performance (Project-Specific Commands)
+
+- **Bundle Analysis:**
+  ```bash
+  cd frontend
+  npm run build  # Creates production build
+  # Analyze bundle with webpack-bundle-analyzer if needed
+  ```
+
+- **Performance Optimization (Current Implementation):**
+  - Code splitting for routes (check if implemented in `frontend/src/`)
   - Use React.lazy() and Suspense for code splitting
-  - Implement virtualization for long lists (react-window)
-  - Optimize images (use WebP, lazy loading)
-  - Minimize bundle size (analyze with webpack-bundle-analyzer)
-  - Use production builds for deployment
-  - Implement service workers for PWA (future)
+  - Production builds for deployment
+  - Target: Keep bundle < 500KB gzipped
 
-- **Ant Design Usage:**
-  - Use Ant Design components consistently
-  - Customize theme via ConfigProvider
-  - Follow Ant Design best practices and patterns
-  - Don't mix UI libraries (stick to Ant Design)
+- **API Integration (Project Pattern):**
+  - API services in `frontend/src/services/`
+  - Backend API at `http://localhost:8000/api/v1/`
+  - Use TypeScript interfaces for API responses (in `frontend/src/types/api.ts`)
+  - Error handling and loading states in components
+  - Follow patterns from existing API service implementations
 
 ---
 
