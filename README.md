@@ -7,19 +7,36 @@ A business management application for meat sales brokers, migrated from PowerApp
 
 ## 🚀 Quick Start (5 Minutes)
 
-**📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide**
+**🎯 TL;DR - Start Everything Now:**
+```bash
+./start_dev.sh
+```
 
-**Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+ (recommended) or SQLite (fallback)
+**📖 For detailed setup instructions, see [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)**
+
+**📖 For deployment, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)**
+
+**Prerequisites**: Python 3.9+, Node.js 16+, PostgreSQL 12+
+
+### Quick Setup Options
 
 ```bash
-# Option 1: Automated Setup (Recommended)
+# Option 1: Automated Startup Script (Recommended)
+./start_dev.sh          # Starts PostgreSQL + Backend + Frontend
+./stop_dev.sh           # Stops all servers
+
+# Option 2: Using Make
+make start              # Uses start_dev.sh
+make stop               # Uses stop_dev.sh
+
+# Option 3: Automated Setup
 python setup_env.py
 
-# Option 2: Centralized Environment Configuration
+# Option 4: Centralized Environment Configuration
 python config/manage_env.py setup development
 ```
 
-The automated setup script configures everything needed including authentication, database, and AI features. For advanced environment management, use the centralized configuration system detailed below.
+The startup script (`start_dev.sh`) handles everything: PostgreSQL setup, dependencies, migrations, and server startup. See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for troubleshooting and advanced options.
 
 ## 🏗️ Technology Stack
 
