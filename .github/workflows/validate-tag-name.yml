@@ -1,0 +1,52 @@
+name: Validate Docker Tag Name
+
+# This workflow enforces that Docker images are tagged with the Git SHA
+# Tag format: projectmeats:${{ github.sha }}
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The Docker image tag to validate'
+        required: true
+        type: string
+    outputs:
+      is_valid:
+        description: 'Whether the tag is valid'
+        value: ${{ jobs.validate.outputs.is_valid }}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The Docker image tag to validate'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      is_valid: ${{ steps.validate-tag.outputs.is_valid }}
+    steps:
+      - name: Validate tag format
+        id: validate-tag
+        run: |
+          TAG="${{ inputs.tag }}"
+          EXPECTED_SHA="${{ github.sha }}"
+          
+          echo "=== Docker Tag Validation ==="
+          echo "Provided tag: $TAG"
+          echo "Expected SHA: $EXPECTED_SHA"
+          
+          # Tag format must be: projectmeats:<full-sha>
+          EXPECTED_TAG="projectmeats:${EXPECTED_SHA}"
+          
+          if [ "$TAG" = "$EXPECTED_TAG" ]; then
+            echo "✓ Tag format is valid: $TAG"
+            echo "is_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "✗ Tag format is invalid"
+            echo "Expected: $EXPECTED_TAG"
+            echo "Got: $TAG"
+            echo "is_valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
