@@ -270,9 +270,54 @@ jobs:
           fi
 
 
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run database migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.UAT_DB_URL }}
+          SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running idempotent database migrations ==="
+          echo "Step 1/3: Running shared schema migrations with fake-initial..."
+          python manage.py migrate_schemas --shared --fake-initial
+          
+          echo "Step 2/3: Creating super tenant..."
+          python manage.py create_super_tenant --no-input
+          
+          echo "Step 3/3: Running tenant migrations..."
+          python manage.py migrate_schemas --tenant
+          
+          echo "=== Database migrations completed ==="
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [build-and-push, test-frontend, migrate]
     if: github.ref == 'refs/heads/uat'
     environment: uat2
     steps:
@@ -337,7 +382,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [build-and-push, test-backend, migrate]
     if: github.ref == 'refs/heads/uat'
     environment: uat2-backend
     steps:
