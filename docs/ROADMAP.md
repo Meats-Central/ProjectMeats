@@ -1,6 +1,6 @@
 # ProjectMeats Roadmap
 
-**Last Updated**: November 2025
+**Last Updated**: December 2025
 
 This document outlines the future development plans, suggested upgrades, and enhancement recommendations for ProjectMeats.
 
@@ -9,6 +9,7 @@ This document outlines the future development plans, suggested upgrades, and enh
 ## 📋 Table of Contents
 
 - [Current State](#-current-state)
+- [CI/CD Improvements](#-cicd-improvements)
 - [Planned Upgrades](#-planned-upgrades)
 - [Enhancement Recommendations](#-enhancement-recommendations)
 - [Monorepo Improvements](#-monorepo-improvements)
@@ -31,6 +32,224 @@ This document outlines the future development plans, suggested upgrades, and enh
 | Node.js | 16+ | ⚠️ LTS ended, upgrade to 20+ |
 | PostgreSQL | 12+ | ⚠️ Consider 15+ for features |
 | Python | 3.9+ | ⚠️ Consider 3.11+ for performance |
+
+---
+
+## 🔄 CI/CD Improvements
+
+This section documents recent and planned improvements to our CI/CD pipeline, deployment infrastructure, and developer experience.
+
+### ✅ Completed Improvements
+
+#### 1. Decoupled Migration Strategy
+
+**Status**: ✅ Implemented
+
+Django migrations are now **decoupled from CI/CD execution**. Instead of auto-generating migrations during deployment, developers must:
+
+1. Run `python manage.py makemigrations` locally after model changes
+2. Review the generated migration files for correctness
+3. Commit migration files to version control
+4. Push changes – CI/CD will only **apply** migrations, never generate them
+
+**Benefits**:
+- **Deterministic deployments**: Same migration files across all environments
+- **Auditable schema changes**: All migrations are reviewed in PRs
+- **Easier rollbacks**: Committed migrations can be reverted cleanly
+- **No schema drift**: Prevents inconsistencies between dev/staging/production
+
+**Developer Workflow**:
+```bash
+# 1. Make model changes
+vim backend/apps/myapp/models.py
+
+# 2. Generate migrations locally
+cd backend && python manage.py makemigrations
+
+# 3. Review migration file
+cat apps/myapp/migrations/0XXX_auto_*.py
+
+# 4. Test migration
+python manage.py migrate
+
+# 5. Commit and push
+git add apps/myapp/migrations/
+git commit -m "feat(myapp): add new field"
+git push
+```
+
+**Related Documentation**:
+- [Migration Best Practices](./MIGRATION_BEST_PRACTICES.md)
+- [Deployment Guide - Migration Management](./DEPLOYMENT_GUIDE.md#migration-management)
+
+---
+
+#### 2. Immutable Image Tagging
+
+**Status**: ✅ Implemented
+
+All Docker images are now tagged with **immutable identifiers** based on the Git commit SHA:
+
+```yaml
+# Example: dev-abc1234 (first 7 chars of commit SHA)
+tags:
+  - $REGISTRY/$IMAGE:dev-${GITHUB_SHA::7}
+  - $REGISTRY/$IMAGE:dev-latest
+```
+
+**Tag Strategy**:
+
+| Environment | Immutable Tag | Mutable Tag |
+|-------------|---------------|-------------|
+| Development | `dev-{sha7}` | `dev-latest` |
+| UAT/Staging | `uat-{sha7}` | `uat-latest` |
+| Production | `prod-{sha7}` | `prod-latest` |
+
+**Benefits**:
+- **Full traceability**: Every deployment can be traced to exact source code
+- **Easy rollback**: Deploy specific version by SHA tag
+- **Audit compliance**: Immutable tags support regulatory requirements
+- **Cache optimization**: Unique tags enable proper layer caching
+
+**Rollback Example**:
+```bash
+# Rollback to specific version
+docker pull $REGISTRY/$IMAGE:dev-abc1234
+docker stop pm-backend
+docker run -d --name pm-backend $REGISTRY/$IMAGE:dev-abc1234
+```
+
+---
+
+#### 3. Orchestration-Based Deployments
+
+**Status**: ✅ Implemented
+
+Deployments are now fully orchestrated through GitHub Actions workflows with structured job dependencies:
+
+**Deployment Pipeline**:
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  build-and-push │────▶│   test-backend  │────▶│  deploy-backend │
+│   (Docker)      │     │   test-frontend │     │  deploy-frontend│
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                        │
+                                                        ▼
+                                                ┌─────────────────┐
+                                                │  health-checks  │
+                                                │  smoke-tests    │
+                                                └─────────────────┘
+```
+
+**Key Features**:
+- **Matrix builds**: Parallel frontend/backend image builds
+- **Test gates**: Deployments blocked until tests pass
+- **Health verification**: Post-deployment smoke tests
+- **Automated rollback**: Failed deployments trigger recovery
+- **Concurrency control**: Prevents parallel deployments to same environment
+
+**Workflow Files**:
+- `11-dev-deployment.yml` - Development environment
+- `12-uat-deployment.yml` - UAT/Staging environment
+- `13-prod-deployment.yml` - Production environment
+- `promote-dev-to-uat.yml` - Automated promotion PRs
+- `promote-uat-to-main.yml` - Production promotion PRs
+
+**Related Documentation**:
+- [Deployment Hardening Guide](./DEPLOYMENT_HARDENING.md)
+- [Deployment Stability Guide](./DEPLOYMENT_STABILITY_GUIDE.md)
+
+---
+
+#### 4. Devcontainer Parity
+
+**Status**: ✅ Implemented
+
+Development containers now use the same PostgreSQL version and configuration as production environments:
+
+**Devcontainer Stack**:
+```yaml
+# .devcontainer/docker-compose.yml
+services:
+  app:
+    build:
+      dockerfile: .devcontainer/Dockerfile.dev
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+
+  db:
+    image: postgres:15  # Same as production
+    environment:
+      POSTGRES_DB: projectmeats_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+```
+
+**Parity Features**:
+| Feature | Development | Production |
+|---------|-------------|------------|
+| Database | PostgreSQL 15 | PostgreSQL 15 |
+| Schema isolation | django-tenants | django-tenants |
+| Port mapping | 8000/3000/5432 | 8000/3000/5432 |
+| Environment vars | `.env` + compose | GitHub Secrets |
+
+**Benefits**:
+- **No "works on my machine" issues**: Same database engine everywhere
+- **Migration testing**: Developers test exact same migration behavior
+- **Feature parity**: Multi-tenancy works identically in dev
+- **Onboarding simplicity**: One command to start development
+
+**Quick Start**:
+```bash
+# Open in VS Code with Dev Containers extension
+code .
+
+# Or use command line
+devcontainer open .
+
+# Manual Docker Compose
+docker-compose -f .devcontainer/docker-compose.yml up
+```
+
+---
+
+### 🔄 In Progress
+
+#### Docker BuildKit Layer Caching
+
+**Status**: 🔄 Planned for Phase 3
+
+Implementing Docker BuildKit with layer caching to reduce build times by 50-70%:
+
+```yaml
+- name: Set up Docker Buildx
+  uses: docker/setup-buildx-action@v3
+
+- name: Cache Docker layers
+  uses: actions/cache@v3
+  with:
+    path: /tmp/.buildx-cache
+    key: ${{ runner.os }}-buildx-${{ env.ENVIRONMENT }}-${{ hashFiles('**/requirements.txt', '**/package-lock.json') }}
+```
+
+**Expected Impact**:
+- Build time: 8min → 2min (75% reduction)
+- Cache hit rate: 80-90% for typical workflows
+- Annual savings: ~100 hours of CI/CD runtime
+
+---
+
+### 📋 Future Improvements
+
+| Improvement | Priority | Complexity | Expected Savings |
+|-------------|----------|------------|------------------|
+| Parallel test execution | High | Medium | 5-10 min/deployment |
+| Self-hosted runners | Low | High | 2-3 min/deployment |
+| Registry consolidation (GHCR) | Medium | Low | Simpler auth |
+| Dependency caching (npm/pip) | Medium | Low | 30s-1min/deployment |
 
 ---
 
