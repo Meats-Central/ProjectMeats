@@ -58,6 +58,12 @@ class TenantMiddleware:
 
     def __call__(self, request: HttpRequest):
         """Process the request and set tenant context."""
+        # Skip tenant resolution for health check and readiness endpoints
+        if request.path.startswith('/api/v1/health/') or request.path.startswith('/api/v1/ready/'):
+            request.tenant = None
+            request.tenant_user = None
+            return self.get_response(request)
+        
         tenant = None
         resolution_method = None  # Track how tenant was resolved for logging
         
