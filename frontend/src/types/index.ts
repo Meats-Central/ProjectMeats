@@ -14,6 +14,9 @@ export interface ChatSession {
   message_count: number;
 }
 
+// Message status for tracking failed messages
+export type MessageStatus = 'sending' | 'sent' | 'failed';
+
 export interface ChatMessage {
   id: string;
   session: string;
@@ -23,6 +26,7 @@ export interface ChatMessage {
   is_processed: boolean;
   created_on: string;
   modified_on: string;
+  status?: MessageStatus; // Optional status for local tracking of message state
 }
 
 // User Types

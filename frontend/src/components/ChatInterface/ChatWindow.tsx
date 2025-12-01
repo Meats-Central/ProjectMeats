@@ -3,6 +3,7 @@
  *
  * Main chat interface for the AI assistant.
  * Enhanced from PR #63 to integrate file upload into MessageInput and remove separate DocumentUpload component.
+ * Enhanced to support retry functionality for failed messages.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
@@ -69,7 +70,35 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (messageContent: string) => {
+  // Generate a temporary ID for optimistic updates
+  const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  const sendMessage = async (messageContent: string, tempMessageId?: string) => {
+    // Create optimistic message for immediate UI feedback
+    const tempId = tempMessageId || generateTempId();
+    const optimisticMessage: ChatMessage = {
+      id: tempId,
+      session: session?.id || '',
+      message_type: 'user',
+      content: messageContent,
+      is_processed: false,
+      created_on: new Date().toISOString(),
+      modified_on: new Date().toISOString(),
+      status: 'sending',
+    };
+
+    // Add optimistic message to the list (or update existing failed message)
+    setMessages((prev) => {
+      const existingIndex = prev.findIndex((m) => m.id === tempId);
+      if (existingIndex >= 0) {
+        // Update existing message status to sending (for retry)
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], status: 'sending' };
+        return updated;
+      }
+      return [...prev, optimisticMessage];
+    });
+
     try {
       setLoading(true);
       setError(null);
@@ -87,7 +116,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
         onSessionChange?.(newSession);
       }
 
-      // Reload messages to get the latest
+      // Reload messages to get the latest (replaces optimistic messages with real ones)
       if (response.session_id) {
         const updatedMessages = await chatSessionsApi.getMessages(response.session_id);
         setMessages(updatedMessages);
@@ -95,10 +124,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message. Please try again.');
+      
+      // Mark the optimistic message as failed
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempId ? { ...m, status: 'failed' as const } : m))
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  // Handle retry for failed messages
+  const handleRetry = useCallback(
+    (message: ChatMessage) => {
+      // Retry sending the message with the same temp ID
+      sendMessage(message.content, message.id);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session]
+  );
 
   const uploadDocument = async (file: File): Promise<{ id: string; status: string }> => {
     try {
@@ -209,7 +253,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ sessionId, onSessionChange }) =
 
       {/* Messages Area */}
       <MessagesArea>
-        {messages.length === 0 ? renderWelcomeMessage() : <MessageList messages={messages} />}
+        {messages.length === 0 ? (
+          renderWelcomeMessage()
+        ) : (
+          <MessageList messages={messages} onRetry={handleRetry} />
+        )}
         <div ref={messagesEndRef} />
       </MessagesArea>
 
