@@ -453,36 +453,15 @@ jobs:
           MAX_ATTEMPTS=15
           ATTEMPT=1
           
-<<<<<<< HEAD
           # Health check using localhost since we're on the deployment server
           HEALTH_URL="http://localhost:8000/api/v1/health/"
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-=======
-<<<<<<< HEAD
-          # Construct health check URL from STAGING_URL
-          HEALTH_URL="${{ secrets.STAGING_URL }}/api/v1/health/"
-          echo "Health check URL: $HEALTH_URL"
-          
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null 2>&1; then
-              echo "✓ Backend health check passed"
-=======
-          # Health check using localhost since we're on the deployment server
-          HEALTH_URL="http://localhost:8000/api/v1/health/"
-          echo "Health check URL: $HEALTH_URL"
-          
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
->>>>>>> origin/uat
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
-<<<<<<< HEAD
-=======
->>>>>>> a181e8e5d01ce2bf6cee238a3553ffb413c77762
->>>>>>> origin/uat
               exit 0
             fi
             
