@@ -1,31 +1,78 @@
 # ProjectMeats Deployment Guide
 
+**Last Updated**: November 2025
+
 ## Overview
 
-ProjectMeats supports deployment across three environments using a centralized configuration system:
+ProjectMeats supports deployment across three environments using a centralized configuration system and automated CI/CD pipelines:
 
-- **Development** - Local development with PostgreSQL (recommended) or SQLite (fallback)
-- **Staging** - Pre-production testing with PostgreSQL and monitoring
-- **Production** - Full production deployment with high availability and monitoring
+| Environment | Purpose | Branch | Automation |
+|-------------|---------|--------|------------|
+| **Development** | Local development | `development` | Auto-deploy on merge |
+| **Staging (UAT)** | Pre-production testing | `uat` | Auto-PR from development |
+| **Production** | Live production | `main` | Auto-PR from UAT |
+
+## Quick Start
+
+```bash
+# One-liner for local development
+./start_dev.sh
+```
+
+For manual setup, see [Detailed Setup](#environment-configuration) below.
+
+---
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+ProjectMeats uses automated deployment workflows located in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `11-dev-deployment.yml` | Merge to `development` | Deploy to dev environment |
+| `12-uat-deployment.yml` | Merge to `uat` | Deploy to UAT/staging |
+| `13-prod-deployment.yml` | Merge to `main` | Deploy to production |
+| `promote-dev-to-uat.yml` | Auto on dev merge | Create PR to UAT |
+| `promote-uat-to-main.yml` | Auto on UAT merge | Create PR to main |
+
+### Deployment Flow
+
+```
+feature/branch → development → uat → main
+                     ↓           ↓       ↓
+                 dev-server  uat-server  prod-server
+```
+
+### Recommended CI/CD Practices
+
+1. **Never deploy directly to `main`** - Always go through UAT
+2. **Use environment-specific secrets** - Configure in GitHub Environments
+3. **Monitor deployments** - Check workflow runs for failures
+4. **Rollback plan** - Know how to revert (see [Rollback Procedures](#rollback-procedures))
+
+---
 
 ## Prerequisites
 
 ### General Requirements
-- Python 3.8+
-- Node.js 16+
+- Python 3.9+ (3.11+ recommended)
+- Node.js 18+ (20 LTS recommended)
 - Docker and Docker Compose (for containerized deployments)
 - Git
 
 ### Environment-Specific Requirements
 
 #### Development
-- **PostgreSQL 12+** (recommended for environment parity)
-  - macOS: `brew install postgresql`
+- **PostgreSQL 15+** (recommended for environment parity)
+  - macOS: `brew install postgresql@15`
   - Ubuntu: `sudo apt-get install postgresql postgresql-contrib`
   - Windows: Download from [PostgreSQL.org](https://www.postgresql.org/download/windows/)
   - Docker: `docker run --name projectmeats-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15`
-- **SQLite** (fallback option, built-in with Python)
 - Local development tools
+
+> **Note**: SQLite fallback is **deprecated**. Use PostgreSQL for environment parity.
 
 #### Staging/Production
 - PostgreSQL database server (managed instance recommended)
@@ -33,16 +80,28 @@ ProjectMeats supports deployment across three environments using a centralized c
 - HTTPS certificates
 - Monitoring infrastructure (recommended)
 
+---
+
 ## Environment Configuration
 
 ### 1. Set Up Environment Variables
 
 #### Development
 
-**Option A: PostgreSQL (Recommended)**
+**Using Automated Script (Recommended)**:
+```bash
+# Start everything with one command
+./start_dev.sh
+```
+
+**Using Make**:
+```bash
+make start
+```
+
+**Manual PostgreSQL Setup**:
 ```bash
 # 1. Set up PostgreSQL database
-# Create database and user
 createdb projectmeats_dev
 createuser -P projectmeats_dev  # Set password when prompted
 
@@ -61,14 +120,14 @@ python config/manage_env.py setup development
 # DB_PORT=5432
 ```
 
-**Option B: SQLite (Fallback)**
-```bash
-# 1. Configure environment
-python config/manage_env.py setup development
+**⚠️ SQLite (DEPRECATED)**:
 
-# 2. Edit config/environments/development.env
+> **Warning**: SQLite is deprecated and will be removed in future versions. Use PostgreSQL for consistency across environments.
+
+```bash
+# Only for emergency local testing - NOT recommended
+python config/manage_env.py setup development
 # DB_ENGINE=django.db.backends.sqlite3
-# (No other DB variables needed)
 ```
 
 #### Staging
@@ -177,21 +236,32 @@ cd backend && python manage.py create_super_tenant && cd ..
 make dev
 ```
 
-**Using SQLite (Fallback):**
+**⚠️ Using SQLite (DEPRECATED):**
+
+> **Deprecated**: SQLite is no longer recommended. Use PostgreSQL instead.
+
 ```bash
-# 1. Install Python dependencies
+# Only for emergency fallback
 pip install -r backend/requirements.txt
 cd frontend && npm install && cd ..
-
-# 2. Set up database migrations
 cd backend && python manage.py migrate && cd ..
-
-# 3. Create superuser and root tenant (uses environment variables)
 cd backend && python manage.py create_super_tenant && cd ..
-
-# 4. Start development servers
 make dev
 ```
+
+---
+
+## Deprecated Scripts
+
+The following scripts are **deprecated** and should not be used for new setups:
+
+| Script | Status | Replacement |
+|--------|--------|-------------|
+| `setup_env.py` | ⚠️ Deprecated | Use `./start_dev.sh` or `make start` |
+| `simulate_deployment.py` | ⚠️ Deprecated | Use CI/CD workflows |
+| `test_deployment.py` | Maintained | For local deployment validation |
+
+> **Note**: The `setup_env.py` script is maintained for backward compatibility but is no longer the recommended approach. Use the centralized configuration system with `config/manage_env.py` instead.
 
 #### Staging/Production
 ```bash
