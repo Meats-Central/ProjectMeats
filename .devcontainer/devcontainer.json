@@ -107,8 +107,13 @@
     }
   },
 
+  // Features to install in the container
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+
   // Commands to run after the container is created and ready
-  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && /venv/bin/python manage.py migrate"
+  "postCreateCommand": "python backend/manage.py migrate_schemas --shared --fake-initial; python backend/manage.py create_super_tenant --no-input; python backend/manage.py migrate_schemas --tenant"
 }
 
 
