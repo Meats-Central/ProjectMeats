@@ -289,6 +289,11 @@ Repeat similarly for `UAT` → `main`.
               return Supplier.objects.none()
       
       def perform_create(self, serializer):
+          # Get tenant (see full implementation in ViewSets & Permissions section)
+          tenant = None
+          if hasattr(self.request, 'tenant') and self.request.tenant:
+              tenant = self.request.tenant
+          
           # ERROR level with structured extra data
           if not tenant:
               logger.error(
@@ -495,6 +500,10 @@ Repeat similarly for `UAT` → `main`.
           help_text="Unique product code",
       )
       
+      description_of_product_item = models.TextField(
+          help_text="Detailed description of the product item"
+      )
+      
       # CharField with blank=True MUST have default='' for PostgreSQL
       type_of_protein = models.CharField(
           max_length=50,
@@ -676,6 +685,15 @@ Repeat similarly for `UAT` → `main`.
                           verbose_name="ID",
                       ),
                   ),
+                  # Product identification
+                  (
+                      "product_code",
+                      models.CharField(
+                          help_text="Unique product code",
+                          max_length=50,
+                          unique=True,
+                      ),
+                  ),
                   # CRITICAL: CharField with blank=True MUST have default='' for PostgreSQL
                   (
                       "type_of_protein",
@@ -748,6 +766,12 @@ Repeat similarly for `UAT` → `main`.
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);  // Typed state
     const [loading, setLoading] = useState(true);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+    const [formData, setFormData] = useState({
+      name: '',
+      contact_person: '',
+      email: '',
+      // ... other fields
+    });
     
     // Effect for data fetching
     useEffect(() => {
@@ -1878,7 +1902,9 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
      ```python
      def get_queryset(self):
          user = self.request.user
-         tenant = getattr(user, 'tenant', None) or user.tenantuser_set.first()?.tenant
+         # Get first tenant user association
+         tenant_user = user.tenantuser_set.first()
+         tenant = tenant_user.tenant if tenant_user else None
          return super().get_queryset().filter(tenant=tenant)
      ```
    
