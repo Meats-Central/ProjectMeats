@@ -1289,7 +1289,7 @@ This section provides concrete references to exemplary files in the codebase tha
   - Multi-tenancy field setup (`tenant` ForeignKey)
   - Use of `TimestampModel` base class
   - Proper field definitions with `help_text`
-  - CharField with `blank=True, default=''` (PostgreSQL requirement)
+  - CharField with `blank=True, default=''` (best practice to avoid NULL vs empty string ambiguity)
   - Custom manager usage (`TenantManager`)
   - Many-to-many relationships
   - Model validation and constraints
@@ -1326,7 +1326,7 @@ This section provides concrete references to exemplary files in the codebase tha
   - Testing with X-Tenant-ID header
   - Success and failure case testing
   - Validation error testing
-  - Comprehensive test naming: `test_<action>_<scenario>_<expected>`
+  - Comprehensive test naming: `test_<action>_<scenario>_<expected_outcome>` (e.g., `test_create_supplier_without_name_fails`)
 
 **Core Tests:**
 - **Directory:** `backend/apps/core/tests/`
