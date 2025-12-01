@@ -1,0 +1,116 @@
+name: 'Orchestrated Health Check'
+description: 'Performs health checks with retry logic and proper orchestration for deployment validation'
+author: 'Meats-Central'
+
+inputs:
+  health-url:
+    description: 'The health check URL to verify'
+    required: true
+  max-retries:
+    description: 'Maximum number of retry attempts'
+    required: false
+    default: '15'
+  retry-interval:
+    description: 'Interval in seconds between retries'
+    required: false
+    default: '5'
+  initial-delay:
+    description: 'Initial delay in seconds before starting health checks'
+    required: false
+    default: '10'
+  timeout:
+    description: 'Request timeout in seconds'
+    required: false
+    default: '10'
+  host-header:
+    description: 'Optional Host header for the request'
+    required: false
+    default: ''
+  service-name:
+    description: 'Name of the service being checked (for logging)'
+    required: false
+    default: 'service'
+
+outputs:
+  status:
+    description: 'Health check result status (healthy/unhealthy)'
+    value: ${{ steps.health-check.outputs.status }}
+  http-code:
+    description: 'Final HTTP response code'
+    value: ${{ steps.health-check.outputs.http_code }}
+  attempts:
+    description: 'Number of attempts made'
+    value: ${{ steps.health-check.outputs.attempts }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Perform orchestrated health check
+      id: health-check
+      shell: bash
+      run: |
+        set -euo pipefail
+        
+        HEALTH_URL="${{ inputs.health-url }}"
+        MAX_RETRIES="${{ inputs.max-retries }}"
+        RETRY_INTERVAL="${{ inputs.retry-interval }}"
+        INITIAL_DELAY="${{ inputs.initial-delay }}"
+        TIMEOUT="${{ inputs.timeout }}"
+        HOST_HEADER="${{ inputs.host-header }}"
+        SERVICE_NAME="${{ inputs.service-name }}"
+        
+        echo "=== Orchestrated Health Check ==="
+        echo "Service: $SERVICE_NAME"
+        echo "URL: $HEALTH_URL"
+        echo "Max retries: $MAX_RETRIES"
+        echo "Retry interval: ${RETRY_INTERVAL}s"
+        echo "Initial delay: ${INITIAL_DELAY}s"
+        echo "Request timeout: ${TIMEOUT}s"
+        
+        # Initial delay to allow service stabilization
+        if [ "$INITIAL_DELAY" -gt 0 ]; then
+          echo "Waiting ${INITIAL_DELAY}s for $SERVICE_NAME to stabilize..."
+          sleep "$INITIAL_DELAY"
+        fi
+        
+        ATTEMPT=1
+        CURL_FAILURE_CODE="000"
+        
+        while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
+          # Build curl command with optional Host header
+          if [ -n "$HOST_HEADER" ]; then
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" \
+              -H "Host: $HOST_HEADER" \
+              --max-time "$TIMEOUT" \
+              "$HEALTH_URL" 2>/dev/null || echo "$CURL_FAILURE_CODE")
+          else
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" \
+              --max-time "$TIMEOUT" \
+              "$HEALTH_URL" 2>/dev/null || echo "$CURL_FAILURE_CODE")
+          fi
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ $SERVICE_NAME health check passed (HTTP $HTTP_CODE) on attempt $ATTEMPT"
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+            echo "attempts=$ATTEMPT" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if [ "$ATTEMPT" -eq "$MAX_RETRIES" ]; then
+            echo "✗ $SERVICE_NAME health check failed after $MAX_RETRIES attempts (HTTP $HTTP_CODE)"
+            if [ "$HTTP_CODE" = "$CURL_FAILURE_CODE" ]; then
+              echo "::error::Health check failed - curl request failed (network error, DNS failure, or timeout)"
+            else
+              echo "::error::Health check failed - received HTTP $HTTP_CODE"
+            fi
+            echo "status=unhealthy" >> $GITHUB_OUTPUT
+            echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+            echo "attempts=$ATTEMPT" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "Health check attempt $ATTEMPT/$MAX_RETRIES (HTTP $HTTP_CODE), retrying in ${RETRY_INTERVAL}s..."
+          sleep "$RETRY_INTERVAL"
+          ATTEMPT=$((ATTEMPT + 1))
+        done

@@ -1,0 +1,217 @@
+name: 'SSH Orchestrated Health Check'
+description: 'Performs health checks over SSH for remote deployments with Docker container validation'
+author: 'Meats-Central'
+
+inputs:
+  ssh-host:
+    description: 'SSH host to connect to'
+    required: true
+  ssh-user:
+    description: 'SSH username'
+    required: true
+  ssh-password:
+    description: 'SSH password (use secrets)'
+    required: true
+  health-url:
+    description: 'The health check URL (localhost-based for server-side check)'
+    required: true
+  container-name:
+    description: 'Docker container name to verify'
+    required: false
+    default: ''
+  max-retries:
+    description: 'Maximum number of retry attempts'
+    required: false
+    default: '15'
+  retry-interval:
+    description: 'Interval in seconds between retries'
+    required: false
+    default: '5'
+  initial-delay:
+    description: 'Initial delay in seconds before starting health checks'
+    required: false
+    default: '10'
+  timeout:
+    description: 'Request timeout in seconds'
+    required: false
+    default: '10'
+  host-header:
+    description: 'Optional Host header for the request'
+    required: false
+    default: ''
+  service-name:
+    description: 'Name of the service being checked (for logging)'
+    required: false
+    default: 'service'
+
+outputs:
+  status:
+    description: 'Health check result status (healthy/unhealthy)'
+    value: ${{ steps.ssh-health-check.outputs.status }}
+  http-code:
+    description: 'Final HTTP response code'
+    value: ${{ steps.ssh-health-check.outputs.http_code }}
+  attempts:
+    description: 'Number of attempts made'
+    value: ${{ steps.ssh-health-check.outputs.attempts }}
+  container-status:
+    description: 'Docker container status'
+    value: ${{ steps.ssh-health-check.outputs.container_status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup SSH client
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq sshpass
+        mkdir -p ~/.ssh
+        ssh-keyscan -H "${{ inputs.ssh-host }}" >> ~/.ssh/known_hosts 2>/dev/null
+    
+    - name: Perform SSH orchestrated health check
+      id: ssh-health-check
+      shell: bash
+      env:
+        SSHPASS: ${{ inputs.ssh-password }}
+      run: |
+        set -euo pipefail
+        
+        SSH_HOST="${{ inputs.ssh-host }}"
+        SSH_USER="${{ inputs.ssh-user }}"
+        HEALTH_URL="${{ inputs.health-url }}"
+        CONTAINER_NAME="${{ inputs.container-name }}"
+        MAX_RETRIES="${{ inputs.max-retries }}"
+        RETRY_INTERVAL="${{ inputs.retry-interval }}"
+        INITIAL_DELAY="${{ inputs.initial-delay }}"
+        TIMEOUT="${{ inputs.timeout }}"
+        HOST_HEADER="${{ inputs.host-header }}"
+        SERVICE_NAME="${{ inputs.service-name }}"
+        
+        echo "=== SSH Orchestrated Health Check ==="
+        echo "Service: $SERVICE_NAME"
+        echo "Host: $SSH_HOST"
+        echo "Health URL: $HEALTH_URL"
+        echo "Container: ${CONTAINER_NAME:-N/A}"
+        echo "Max retries: $MAX_RETRIES"
+        
+        # Build SSH health check script
+        HEALTH_SCRIPT=$(cat <<'HEALTH_CHECK_SCRIPT'
+        set -euo pipefail
+        
+        HEALTH_URL="__HEALTH_URL__"
+        CONTAINER_NAME="__CONTAINER_NAME__"
+        MAX_RETRIES="__MAX_RETRIES__"
+        RETRY_INTERVAL="__RETRY_INTERVAL__"
+        INITIAL_DELAY="__INITIAL_DELAY__"
+        TIMEOUT="__TIMEOUT__"
+        HOST_HEADER="__HOST_HEADER__"
+        SERVICE_NAME="__SERVICE_NAME__"
+        
+        echo "=== Remote Health Check Starting ==="
+        
+        # Initial delay to allow service stabilization
+        if [ "$INITIAL_DELAY" -gt 0 ]; then
+          echo "Waiting ${INITIAL_DELAY}s for $SERVICE_NAME to stabilize..."
+          sleep "$INITIAL_DELAY"
+        fi
+        
+        # Check container is running (if specified)
+        if [ -n "$CONTAINER_NAME" ]; then
+          echo "Verifying container '$CONTAINER_NAME' is running..."
+          if ! sudo docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+            echo "✗ Container '$CONTAINER_NAME' is not running"
+            echo "=== Container logs (if available) ==="
+            sudo docker logs "$CONTAINER_NAME" --tail 50 2>&1 || echo "Could not retrieve container logs"
+            echo "CONTAINER_STATUS=stopped"
+            exit 1
+          fi
+          echo "✓ Container '$CONTAINER_NAME' is running"
+          echo "CONTAINER_STATUS=running"
+        fi
+        
+        # Perform HTTP health check with retries
+        ATTEMPT=1
+        CURL_FAILURE_CODE="000"
+        
+        while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
+          # Build curl command with optional Host header
+          if [ -n "$HOST_HEADER" ]; then
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" \
+              -H "Host: $HOST_HEADER" \
+              --max-time "$TIMEOUT" \
+              "$HEALTH_URL" 2>/dev/null || echo "$CURL_FAILURE_CODE")
+          else
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" \
+              --max-time "$TIMEOUT" \
+              "$HEALTH_URL" 2>/dev/null || echo "$CURL_FAILURE_CODE")
+          fi
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ $SERVICE_NAME health check passed (HTTP $HTTP_CODE) on attempt $ATTEMPT"
+            echo "HTTP_CODE=$HTTP_CODE"
+            echo "ATTEMPTS=$ATTEMPT"
+            echo "STATUS=healthy"
+            exit 0
+          fi
+          
+          if [ "$ATTEMPT" -eq "$MAX_RETRIES" ]; then
+            echo "✗ $SERVICE_NAME health check failed after $MAX_RETRIES attempts (HTTP $HTTP_CODE)"
+            if [ -n "$CONTAINER_NAME" ]; then
+              echo "=== Container logs ==="
+              sudo docker logs "$CONTAINER_NAME" --tail 50 2>&1 || echo "Could not retrieve container logs"
+            fi
+            echo "HTTP_CODE=$HTTP_CODE"
+            echo "ATTEMPTS=$ATTEMPT"
+            echo "STATUS=unhealthy"
+            exit 1
+          fi
+          
+          echo "Health check attempt $ATTEMPT/$MAX_RETRIES (HTTP $HTTP_CODE), retrying in ${RETRY_INTERVAL}s..."
+          sleep "$RETRY_INTERVAL"
+          ATTEMPT=$((ATTEMPT + 1))
+        done
+        HEALTH_CHECK_SCRIPT
+        )
+        
+        # Replace placeholders in the script
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__HEALTH_URL__/$HEALTH_URL}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__CONTAINER_NAME__/$CONTAINER_NAME}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__MAX_RETRIES__/$MAX_RETRIES}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__RETRY_INTERVAL__/$RETRY_INTERVAL}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__INITIAL_DELAY__/$INITIAL_DELAY}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__TIMEOUT__/$TIMEOUT}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__HOST_HEADER__/$HOST_HEADER}"
+        HEALTH_SCRIPT="${HEALTH_SCRIPT//__SERVICE_NAME__/$SERVICE_NAME}"
+        
+        # Execute health check over SSH and capture output
+        OUTPUT=$(sshpass -e ssh -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" bash -c "'$HEALTH_SCRIPT'" 2>&1) || {
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          
+          # Parse output for GitHub Actions outputs
+          HTTP_CODE=$(echo "$OUTPUT" | grep "^HTTP_CODE=" | cut -d= -f2 || echo "000")
+          ATTEMPTS=$(echo "$OUTPUT" | grep "^ATTEMPTS=" | cut -d= -f2 || echo "0")
+          STATUS=$(echo "$OUTPUT" | grep "^STATUS=" | cut -d= -f2 || echo "unhealthy")
+          CONTAINER_STATUS=$(echo "$OUTPUT" | grep "^CONTAINER_STATUS=" | cut -d= -f2 || echo "unknown")
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          echo "attempts=$ATTEMPTS" >> $GITHUB_OUTPUT
+          echo "container_status=$CONTAINER_STATUS" >> $GITHUB_OUTPUT
+          
+          exit $EXIT_CODE
+        }
+        
+        echo "$OUTPUT"
+        
+        # Parse output for GitHub Actions outputs
+        HTTP_CODE=$(echo "$OUTPUT" | grep "^HTTP_CODE=" | cut -d= -f2 || echo "200")
+        ATTEMPTS=$(echo "$OUTPUT" | grep "^ATTEMPTS=" | cut -d= -f2 || echo "1")
+        STATUS=$(echo "$OUTPUT" | grep "^STATUS=" | cut -d= -f2 || echo "healthy")
+        CONTAINER_STATUS=$(echo "$OUTPUT" | grep "^CONTAINER_STATUS=" | cut -d= -f2 || echo "running")
+        
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+        echo "attempts=$ATTEMPTS" >> $GITHUB_OUTPUT
+        echo "container_status=$CONTAINER_STATUS" >> $GITHUB_OUTPUT
