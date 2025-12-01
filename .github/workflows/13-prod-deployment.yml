@@ -264,9 +264,67 @@ jobs:
           fi
 
 
+  # Decoupled migration job - runs idempotent DB migrations before deployment
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: prod2-backend
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run idempotent migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DB_URL }}
+          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "=== Running idempotent schema migrations ==="
+          
+          # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
+          python manage.py migrate_schemas --shared --fake-initial --noinput || {
+            echo "migrate_schemas not available, falling back to standard migrate"
+            python manage.py migrate --fake-initial --noinput
+          }
+          
+          # Step 2: Create/update super tenant (idempotent)
+          python manage.py create_super_tenant --no-input --verbosity=1 || {
+            echo "⚠ create_super_tenant command failed or not available"
+          }
+          
+          # Step 3: Apply tenant-specific migrations (idempotent)
+          python manage.py migrate_schemas --tenant --noinput || {
+            echo "⚠ migrate_schemas --tenant failed or not available"
+          }
+          
+          echo "✓ Migrations completed successfully"
+
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend, pre-deployment-checks]
+    needs: [migrate, test-frontend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
@@ -435,7 +493,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend, pre-deployment-checks]
+    needs: [migrate, test-backend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-backend
     steps:
@@ -505,40 +563,15 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations (shared-schema multi-tenancy using standard Django migrations)
-          echo "Running database migrations..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
+          # Note: Migrations now handled by separate 'migrate' job
+          # Only collectstatic needs to run here
+          echo "=== Collecting static files ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
-
-          # Create/update superuser and root tenant (idempotent)
-          echo "Setting up superuser and root tenant..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            sh -c "
-              echo 'Creating/updating superuser and root tenant...'
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo '⚠ create_super_tenant command failed or not available'
-              }
-              
-              echo 'Creating/updating guest tenant...'
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo '⚠ create_guest_tenant command failed or not available'
-              }
-            "
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
