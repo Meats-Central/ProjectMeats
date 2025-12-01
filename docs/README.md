@@ -11,6 +11,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[Main README](../README.md)** - Project overview and quick setup
 - **[Quick Start Guide](../QUICK_START.md)** - 5-minute setup guide
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
+- **[Project-Specific Conventions](PROJECT_SPECIFIC_CONVENTIONS.md)** ⭐ **NEW** - Conventions that differ from standard Django/React practices
 
 ### Essential Guides (NEW - Consolidated)
 - **[Migration Guide](MIGRATION_GUIDE.md)** ⭐ - Complete database migration guide with django-tenants
@@ -44,6 +45,7 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 docs/
 ├── README.md (this file)              # Documentation navigation hub
 │
+├── PROJECT_SPECIFIC_CONVENTIONS.md ⭐ # Project conventions that differ from standard practices (NEW)
 ├── MIGRATION_GUIDE.md ⭐              # Complete database migration guide (NEW)
 ├── AUTHENTICATION_GUIDE.md ⭐         # Auth & permissions guide (NEW)
 ├── TROUBLESHOOTING.md ⭐              # Common issues and solutions (NEW)
@@ -105,6 +107,10 @@ docs/
 ## 🎯 Finding What You Need
 
 ### I want to...
+
+**Understand project-specific conventions:**
+- Read [Project-Specific Conventions](PROJECT_SPECIFIC_CONVENTIONS.md) to learn patterns that differ from standard Django/React practices
+- Essential for new contributors to understand ProjectMeats-specific approaches
 
 **Fix a database migration issue:**
 - Check [Migration Guide](MIGRATION_GUIDE.md) for comprehensive migration patterns

@@ -555,6 +555,7 @@ See [Branch Workflow Checklist](branch-workflow-checklist.md) for detailed workf
 
 ### Essential Documentation ⭐
 - **[Documentation Hub](docs/README.md)** - Central navigation for all documentation
+- **[Project-Specific Conventions](docs/PROJECT_SPECIFIC_CONVENTIONS.md)** ⭐ NEW - Conventions that differ from standard practices
 - **[Migration Guide](docs/MIGRATION_GUIDE.md)** ⭐ NEW - Complete database migration guide
 - **[Authentication Guide](docs/AUTHENTICATION_GUIDE.md)** ⭐ NEW - Auth, permissions & superuser management
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** ⭐ NEW - Common issues and solutions

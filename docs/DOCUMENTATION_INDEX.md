@@ -14,8 +14,9 @@ This document serves as the central navigation hub for all ProjectMeats document
 
 1. [README.md](../README.md) - Project overview and quick start
 2. [QUICK_START.md](../QUICK_START.md) - 5-minute setup guide
-3. [CONTRIBUTING.md](../CONTRIBUTING.md) - How to contribute
-4. [.github/copilot-instructions.md](../.github/copilot-instructions.md) - **Essential** - Coding standards and best practices
+3. [PROJECT_SPECIFIC_CONVENTIONS.md](./PROJECT_SPECIFIC_CONVENTIONS.md) - **⭐ ESSENTIAL** - Unique patterns that differ from standard Django/React
+4. [CONTRIBUTING.md](../CONTRIBUTING.md) - How to contribute
+5. [.github/copilot-instructions.md](../.github/copilot-instructions.md) - **Essential** - Coding standards and best practices
 
 ---
 

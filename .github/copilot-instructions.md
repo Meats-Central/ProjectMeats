@@ -3,6 +3,8 @@
 
 **Tech Stack**: Django 4.2.7 + DRF + PostgreSQL | React 18.2.0 + TypeScript | React Native | Multi-tenancy (django-tenants)
 
+> **⭐ New Contributors**: Before diving into this detailed guide, read [PROJECT_SPECIFIC_CONVENTIONS.md](../docs/PROJECT_SPECIFIC_CONVENTIONS.md) to understand conventions that differ from standard Django/React practices.
+
 ---
 
 ## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
