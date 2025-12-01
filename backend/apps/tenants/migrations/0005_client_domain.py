@@ -10,6 +10,11 @@ import django_tenants.postgresql_backend.base
 
 def create_tables_if_not_exist(apps, schema_editor):
     """Create tables only if they don't exist using raw SQL with IF NOT EXISTS"""
+    # Check if we're using PostgreSQL - skip for SQLite as Django will handle table creation
+    if connection.vendor != 'postgresql':
+        # For SQLite and other databases, let Django's state operations handle table creation
+        return
+    
     with connection.cursor() as cursor:
         # Create tenants_client table if it doesn't exist
         cursor.execute("""
@@ -117,51 +122,67 @@ def reverse_tables(apps, schema_editor):
         cursor.execute("DROP TABLE IF EXISTS tenants_client CASCADE;")
 
 
+def get_operations():
+    """
+    Conditionally generate migration operations based on database vendor.
+    For PostgreSQL: Use custom SQL with SeparateDatabaseAndState to handle existing tables.
+    For SQLite: Use standard CreateModel operations.
+    """
+    # Create the model definitions
+    client_model = migrations.CreateModel(
+        name='Client',
+        fields=[
+            ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('schema_name', models.CharField(db_index=True, max_length=63, unique=True, validators=[django_tenants.postgresql_backend.base._check_schema_name])),
+            ('name', models.CharField(help_text='Client organization name', max_length=255)),
+            ('description', models.TextField(blank=True, default='', help_text='Optional description of the client')),
+            ('created_at', models.DateTimeField(auto_now_add=True)),
+            ('updated_at', models.DateTimeField(auto_now=True)),
+        ],
+        options={
+            'db_table': 'tenants_client',
+            'abstract': False,
+        },
+    )
+    
+    domain_model = migrations.CreateModel(
+        name='Domain',
+        fields=[
+            ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('domain', models.CharField(db_index=True, max_length=253, unique=True)),
+            ('is_primary', models.BooleanField(db_index=True, default=True)),
+            ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='domains', to='tenants.client')),
+        ],
+        options={
+            'db_table': 'tenants_domain',
+            'abstract': False,
+        },
+    )
+    
+    # For PostgreSQL: use custom SQL with SeparateDatabaseAndState
+    # For other databases: use standard CreateModel operations
+    if connection.vendor == 'postgresql':
+        return [
+            # Use RunPython with raw SQL to create tables idempotently for PostgreSQL
+            migrations.RunPython(
+                code=create_tables_if_not_exist,
+                reverse_code=reverse_tables,
+            ),
+            # Add model state without database operations (already handled by RunPython)
+            migrations.SeparateDatabaseAndState(
+                state_operations=[client_model, domain_model],
+                database_operations=[],
+            ),
+        ]
+    else:
+        # For SQLite and other databases, use standard CreateModel operations
+        return [client_model, domain_model]
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
         ('tenants', '0004_add_schema_name_and_domain_model'),
     ]
 
-    operations = [
-        # Use RunPython with raw SQL to create tables idempotently
-        migrations.RunPython(
-            code=create_tables_if_not_exist,
-            reverse_code=reverse_tables,
-        ),
-        # Add model state without database operations
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.CreateModel(
-                    name='Client',
-                    fields=[
-                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('schema_name', models.CharField(db_index=True, max_length=63, unique=True, validators=[django_tenants.postgresql_backend.base._check_schema_name])),
-                        ('name', models.CharField(help_text='Client organization name', max_length=255)),
-                        ('description', models.TextField(blank=True, help_text='Optional description of the client')),
-                        ('created_at', models.DateTimeField(auto_now_add=True)),
-                        ('updated_at', models.DateTimeField(auto_now=True)),
-                    ],
-                    options={
-                        'db_table': 'tenants_client',
-                        'abstract': False,
-                    },
-                ),
-                migrations.CreateModel(
-                    name='Domain',
-                    fields=[
-                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('domain', models.CharField(db_index=True, max_length=253, unique=True)),
-                        ('is_primary', models.BooleanField(db_index=True, default=True)),
-                        ('tenant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='domains', to='tenants.client')),
-                    ],
-                    options={
-                        'db_table': 'tenants_domain',
-                        'abstract': False,
-                    },
-                ),
-            ],
-            # No database operations - already handled by RunPython above
-            database_operations=[],
-        ),
-    ]
+    operations = get_operations()
