@@ -1,5 +1,7 @@
 # ProjectMeats Environment Configuration Guide
 
+**Last Updated**: December 2025
+
 ## Overview
 
 ProjectMeats uses a centralized environment configuration system that provides:
@@ -8,6 +10,49 @@ ProjectMeats uses a centralized environment configuration system that provides:
 - **Validation and error checking** for required variables
 - **Security best practices** for each deployment environment
 - **Easy deployment** with standardized configurations
+
+---
+
+## 🔐 Security Best Practices for Environment Variables
+
+### Using GitHub Secrets (Recommended for CI/CD)
+
+All sensitive environment variables should be stored as GitHub Secrets:
+
+1. Navigate to: **Repository Settings → Secrets and variables → Actions**
+2. Create environment-specific secrets under **Environments** (e.g., `uat2-backend`, `prod2-backend`)
+3. Reference secrets in workflows: `${{ secrets.SECRET_NAME }}`
+
+### Secret Naming Convention
+
+| Environment | Prefix | Example |
+|-------------|--------|---------|
+| Development | `DEVELOPMENT_` | `DEVELOPMENT_DB_PASSWORD` |
+| Staging/UAT | `STAGING_` | `STAGING_SECRET_KEY` |
+| Production | `PRODUCTION_` | `PRODUCTION_DB_PASSWORD` |
+
+### Security Rules
+
+1. **Never commit secrets** to version control
+2. **Never log sensitive values** in application logs
+3. **Rotate secrets** every 90 days (production)
+4. **Use strong, unique secrets** for each environment
+5. **Encrypt backups** containing environment data
+
+### Generate Secure Secrets
+
+```bash
+# Generate Django SECRET_KEY
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+# Generate random password
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Using OpenSSL
+openssl rand -base64 32
+```
+
+---
 
 ## Quick Start
 

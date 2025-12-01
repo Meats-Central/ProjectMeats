@@ -1,6 +1,43 @@
 # Environment Variables Reference
 
+**Last Updated**: December 2025
+
 This document provides a comprehensive reference for all environment variables used in the ProjectMeats application.
+
+---
+
+## 🔐 Secure Handling with GitHub Secrets
+
+### Why Use GitHub Secrets?
+
+All sensitive environment variables for CI/CD should be stored in GitHub Secrets, not in code or configuration files:
+
+- **Security**: Encrypted at rest, only exposed during workflow runs
+- **Audit trail**: Access and changes are logged
+- **Separation**: Different secrets per environment (dev/uat/prod)
+
+### Setting Up GitHub Secrets
+
+1. **Repository Secrets** (shared across all workflows):
+   - Go to: Settings → Secrets and variables → Actions → Repository secrets
+   - Add: `SSH_PASSWORD`, `GIT_TOKEN`, etc.
+
+2. **Environment Secrets** (environment-specific):
+   - Go to: Settings → Environments → [environment name]
+   - Add secrets specific to that environment
+
+### Example Workflow Usage
+
+```yaml
+# In .github/workflows/deploy.yml
+- name: Deploy
+  env:
+    SECRET_KEY: ${{ secrets.STAGING_SECRET_KEY }}
+    DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+  run: ./deploy.sh
+```
+
+---
 
 ## Database Configuration
 
@@ -10,7 +47,9 @@ Database configuration uses environment-specific variables to support different 
 
 | Variable | Description | Values | Default |
 |----------|-------------|--------|---------|
-| `DB_ENGINE` | Database backend engine | `django.db.backends.postgresql`, `django.db.backends.sqlite3` | `django.db.backends.sqlite3` |
+| `DB_ENGINE` | Database backend engine | `django.db.backends.postgresql` | PostgreSQL (recommended) |
+
+> **Note**: SQLite (`django.db.backends.sqlite3`) is **deprecated**. Use PostgreSQL for all environments.
 
 ### PostgreSQL Configuration
 
@@ -23,12 +62,6 @@ Required when `DB_ENGINE=django.db.backends.postgresql`:
 | `DB_PASSWORD` | Database password | `secure_password` | Yes |
 | `DB_HOST` | Database host | `localhost` or `db.example.com` | Yes |
 | `DB_PORT` | Database port | `5432` | No (defaults to 5432) |
-
-### SQLite Configuration (DEPRECATED)
-
-SQLite is maintained for backward compatibility but is deprecated. Use PostgreSQL for environment parity.
-
-No additional variables required when `DB_ENGINE=django.db.backends.sqlite3`.
 
 ### Environment-Specific Database Configuration
 
@@ -45,7 +78,7 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
-**SQLite Fallback (DEPRECATED):**
+**⚠️ SQLite Fallback (DEPRECATED):**
 ```bash
 # config/environments/development.env
 DB_ENGINE=django.db.backends.sqlite3

@@ -1,12 +1,31 @@
 # Contributing to ProjectMeats
 
-Welcome to ProjectMeats! This guide will help you contribute effectively to our multi-tenant SaaS platform using GitHub Copilot and following our development practices.
+**Last Updated**: December 2025
+
+Welcome to ProjectMeats! This guide will help you contribute effectively to our multi-tenant SaaS platform following industry best practices.
+
+---
+
+## 📋 Table of Contents
+
+- [Quick Links](#-quick-links)
+- [Branch & PR Standards](#-branch--pr-standards-required)
+- [Code Style Guidelines](#-code-style-guidelines)
+- [Testing Requirements](#-testing-requirements)
+- [Development Workflow](#development-workflow)
+- [Pre-commit Hooks](#pre-commit-hooks)
+
+---
 
 ## 📋 Quick Links
 
 - **[Branch Workflow Checklist](branch-workflow-checklist.md)** - Complete guide to branch naming, PR conventions, and workflows
 - **[Issue Templates](.github/ISSUE_TEMPLATE/)** - Use standardized templates for issues
 - **[Repository Best Practices](docs/REPOSITORY_BEST_PRACTICES.md)** - Detailed workflow and standards
+- **[Security Guidelines](docs/SECURITY.md)** - Security policies and vulnerability reporting
+- **[Roadmap](docs/ROADMAP.md)** - Future plans and upgrade recommendations
+
+---
 
 ## 🌳 Branch & PR Standards (Required)
 
@@ -16,24 +35,206 @@ Welcome to ProjectMeats! This guide will help you contribute effectively to our 
 
 All branches **must** follow this format: `<type>/<description>`
 
-Valid types: `feature/`, `fix/`, `chore/`, `refactor/`, `hotfix/`, `docs/`, `test/`, `perf/`
+| Type | Purpose | Example |
+|------|---------|---------|
+| `feature/` | New features | `feature/add-customer-export` |
+| `fix/` | Bug fixes | `fix/login-validation-error` |
+| `chore/` | Maintenance tasks | `chore/update-dependencies` |
+| `refactor/` | Code refactoring | `refactor/payment-service` |
+| `hotfix/` | Emergency fixes | `hotfix/security-patch` |
+| `docs/` | Documentation | `docs/update-api-guide` |
+| `test/` | Test additions | `test/add-integration-tests` |
+| `perf/` | Performance | `perf/optimize-queries` |
+| `ci/` | CI/CD changes | `ci/update-workflow` |
 
-Examples:
+**Examples**:
 - ✅ `feature/add-customer-export`
 - ✅ `fix/login-validation-error`
 - ❌ `add-customer-export` (missing type)
-- ❌ `Feature/AddExport` (wrong case)
+- ❌ `Feature/AddExport` (wrong case - use lowercase)
 
 ### PR Title Convention
 
 PR titles **must** follow Conventional Commits: `<type>(<scope>): <description>`
 
-Examples:
+**Format**: `type(scope): description`
+
+| Type | When to Use |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, no code change |
+| `refactor` | Code change, no new feature |
+| `perf` | Performance improvement |
+| `test` | Adding tests |
+| `chore` | Maintenance |
+| `ci` | CI/CD changes |
+
+**Examples**:
 - ✅ `feat(customers): add customer export functionality`
 - ✅ `fix(auth): resolve token expiration handling`
+- ✅ `docs(readme): update installation instructions`
 - ❌ `Add customer export` (missing type and format)
 
 **Automated validation workflows will check these conventions on every PR.**
+
+---
+
+## 🎨 Code Style Guidelines
+
+### Backend (Python/Django)
+
+**Tools**:
+- **Black** - Code formatting (line length: 88)
+- **isort** - Import sorting
+- **flake8** - Linting
+- **Type hints** - Use for all public functions
+
+**Commands**:
+```bash
+# Format code
+cd backend && black . --exclude=migrations
+
+# Sort imports
+cd backend && isort . --skip=migrations
+
+# Lint
+cd backend && flake8 . --exclude=migrations
+
+# All at once
+make format && make lint
+```
+
+**Style Rules**:
+```python
+# ✅ Good: Type hints and docstrings
+def get_customer(customer_id: int) -> Customer:
+    """Retrieve a customer by ID.
+    
+    Args:
+        customer_id: The unique identifier of the customer.
+        
+    Returns:
+        The Customer object.
+        
+    Raises:
+        Customer.DoesNotExist: If customer is not found.
+    """
+    return Customer.objects.get(id=customer_id)
+
+# ❌ Bad: No type hints or documentation
+def get_customer(id):
+    return Customer.objects.get(id=id)
+```
+
+### Frontend (TypeScript/React)
+
+**Tools**:
+- **ESLint** - Linting
+- **Prettier** - Code formatting
+- **TypeScript** - Type safety (strict mode recommended)
+
+**Commands**:
+```bash
+# Lint
+cd frontend && npm run lint
+
+# Fix auto-fixable issues
+cd frontend && npm run lint:fix
+
+# Format
+cd frontend && npm run format
+
+# Type check
+cd frontend && npm run type-check
+```
+
+**Style Rules**:
+```typescript
+// ✅ Good: Typed props and explicit types
+interface CustomerCardProps {
+  customer: Customer;
+  onSelect: (id: number) => void;
+}
+
+const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onSelect }) => {
+  // ...
+};
+
+// ❌ Bad: Any types and implicit typing
+const CustomerCard = ({ customer, onSelect }: any) => {
+  // ...
+};
+```
+
+---
+
+## 🧪 Testing Requirements
+
+### Backend Testing
+
+**Coverage Target**: 80%+ (95%+ for critical paths)
+
+```bash
+# Run all tests
+cd backend && python manage.py test
+
+# Run with coverage
+cd backend && coverage run --source='.' manage.py test
+cd backend && coverage report
+
+# Test specific app
+cd backend && python manage.py test apps.customers
+
+# Using Makefile
+make test-backend
+```
+
+**Test Structure**:
+```python
+# tests/test_customers.py
+from django.test import TestCase
+from apps.customers.models import Customer
+
+class CustomerModelTests(TestCase):
+    def setUp(self):
+        self.customer = Customer.objects.create(
+            name="Test Customer",
+            email="test@example.com"
+        )
+    
+    def test_customer_creation(self):
+        """Test that a customer can be created with valid data."""
+        self.assertEqual(self.customer.name, "Test Customer")
+    
+    def test_customer_str_representation(self):
+        """Test the string representation of a customer."""
+        self.assertEqual(str(self.customer), "Test Customer")
+```
+
+### Frontend Testing
+
+```bash
+# Run unit tests
+cd frontend && npm test
+
+# Run in CI mode
+cd frontend && npm run test:ci
+
+# Using Makefile
+make test-frontend
+```
+
+### Multi-Tenant Testing
+
+When testing multi-tenant features:
+- Test with multiple tenants
+- Verify data isolation
+- Test tenant switching
+- Validate permissions across tenants
+
+---
 
 ## GitHub Copilot Guidelines
 

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "React frontend for ProjectMeats - migrated from PowerApps",
   "private": true,
+  "//TODO": "Planned upgrades - see docs/ROADMAP.md: React 19, TypeScript 5.x, Node.js 20 LTS",
   "dependencies": {
     "@ant-design/icons": "^6.0.2",
     "@types/node": "^16.18.0",

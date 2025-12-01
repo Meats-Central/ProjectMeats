@@ -1,22 +1,38 @@
 # ProjectMeats Documentation Hub
 
-**Last Updated**: November 29, 2024  
-Welcome to the ProjectMeats documentation! This page serves as your central navigation point for all project documentation.
+**Last Updated**: December 2025  
 
-> **Note**: We recently consolidated 67+ scattered documentation files into comprehensive guides. See [archived-2024-11/](archived-2024-11/) for historical reference.
+Welcome to the ProjectMeats documentation! This page serves as your **central navigation point** for all project documentation.
 
-## 📚 Quick Links
+---
+
+## 📋 Table of Contents
+
+| Section | Description |
+|---------|-------------|
+| [🚀 Quick Links](#-quick-links) | Essential links to get started |
+| [📖 Getting Started](#getting-started) | Setup and onboarding guides |
+| [🏗️ Architecture & Development](#-architecture--development) | Backend, frontend, and testing guides |
+| [🚀 Deployment & Infrastructure](#-deployment--infrastructure) | Deployment, CI/CD, and environment guides |
+| [🔐 Security & Best Practices](#-security--best-practices) | Security guidelines and multi-tenancy standards |
+| [📁 Documentation Structure](#-documentation-structure) | How documentation is organized |
+| [🎯 Finding What You Need](#-finding-what-you-need) | Topic-based navigation |
+
+---
+
+## 🚀 Quick Links
 
 ### Getting Started
 - **[Main README](../README.md)** - Project overview and quick setup
 - **[Quick Start Guide](../QUICK_START.md)** - 5-minute setup guide
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
 
-### Essential Guides (NEW - Consolidated)
+### Essential Guides
 - **[Migration Guide](MIGRATION_GUIDE.md)** ⭐ - Complete database migration guide with django-tenants
 - **[Authentication Guide](AUTHENTICATION_GUIDE.md)** ⭐ - Authentication, permissions, and superuser management
 - **[Troubleshooting Guide](TROUBLESHOOTING.md)** ⭐ - Common issues and solutions
-- **[3-Month Retrospective](lessons-learned/3-MONTH-RETROSPECTIVE.md)** ⭐ - Lessons learned and best practices
+- **[Security Guidelines](SECURITY.md)** ⭐ - Vulnerability reporting and security best practices
+- **[Roadmap](ROADMAP.md)** ⭐ - Future plans and upgrade recommendations
 
 ### Core Documentation
 
@@ -38,166 +54,214 @@ Welcome to the ProjectMeats documentation! This page serves as your central navi
 - **[Cleanup Checklist](CLEANUP_CHECKLIST.md)** - Actionable cleanup tasks from audit
 - **[Archived Documentation](archived-2024-11/)** - Historical documentation (Nov 2024 consolidation)
 
+---
+
+## 🏗️ Best Practices
+
+### Monorepo Structure Guidelines
+
+Following [GitHub's repository best practices](https://docs.github.com/en/repositories/creating-and-managing-repositories/best-practices-for-repositories):
+
+1. **Clear README**: Every project should have a comprehensive README with setup instructions
+2. **Topics and Tags**: Use repository topics for discoverability
+3. **Branch Protection**: Protect `main`, `uat`, and `development` branches
+4. **Issue Templates**: Use standardized issue and PR templates
+5. **CODEOWNERS**: Define code ownership for automated review assignment
+
+### Django/React Monorepo Standards
+
+| Component | Location | Technology |
+|-----------|----------|------------|
+| Backend API | `backend/` | Django 4.2.7 + DRF |
+| Frontend Web | `frontend/` | React 18.2.0 + TypeScript |
+| Mobile App | `mobile/` | React Native |
+| Shared Code | `shared/` | Cross-platform utilities |
+| Documentation | `docs/` | Markdown |
+| Configuration | `config/` | Environment configs |
+
+### Code Style Standards
+
+**Backend (Python):**
+- Follow PEP 8 style guide
+- Use `black` for formatting
+- Use `flake8` for linting
+- Use `isort` for import sorting
+- Add type hints where appropriate
+
+**Frontend (TypeScript/React):**
+- Use TypeScript for type safety
+- Use `eslint` for linting
+- Use `prettier` for formatting
+- Follow React hooks patterns
+
+---
+
+## 🔐 Security & Best Practices
+
+### SaaS Multi-Tenancy Standards
+
+ProjectMeats implements enterprise-grade multi-tenancy following industry best practices:
+
+#### Isolation Strategies
+
+| Strategy | Implementation | Use Case |
+|----------|----------------|----------|
+| Schema-based | django-tenants | Complete data isolation |
+| Row-level Security | Tenant FK filtering | Shared schema with isolation |
+| Application-level | Middleware + Views | Request-scoped tenant context |
+
+#### Security Standards (OWASP/GDPR Compliance)
+
+1. **Data Isolation**: Strict tenant data separation using PostgreSQL schemas
+2. **RBAC**: Role-Based Access Control with tenant-scoped permissions
+3. **Audit Logging**: Track all data access and modifications
+4. **Encryption**: Data encryption at rest and in transit
+5. **Minimal Privileges**: Database users have only necessary permissions
+
+For detailed security guidelines, see **[SECURITY.md](SECURITY.md)**.
+
+---
+
 ## 📁 Documentation Structure
 
 ```
 docs/
 ├── README.md (this file)              # Documentation navigation hub
 │
-├── MIGRATION_GUIDE.md ⭐              # Complete database migration guide (NEW)
-├── AUTHENTICATION_GUIDE.md ⭐         # Auth & permissions guide (NEW)
-├── TROUBLESHOOTING.md ⭐              # Common issues and solutions (NEW)
+├── SECURITY.md ⭐                      # Security guidelines and vulnerability reporting
+├── ROADMAP.md ⭐                       # Future plans and upgrades
+├── MIGRATION_GUIDE.md ⭐               # Complete database migration guide
+├── AUTHENTICATION_GUIDE.md ⭐          # Auth & permissions guide
+├── TROUBLESHOOTING.md ⭐               # Common issues and solutions
 │
-├── BACKEND_ARCHITECTURE.md            # Django backend architecture and patterns
-├── FRONTEND_ARCHITECTURE.md           # React frontend architecture and components
+├── BACKEND_ARCHITECTURE.md            # Django backend architecture
+├── FRONTEND_ARCHITECTURE.md           # React frontend architecture
 ├── TESTING_STRATEGY.md                # Comprehensive testing guide
-├── REPOSITORY_BEST_PRACTICES.md       # Development workflow and standards
+├── REPOSITORY_BEST_PRACTICES.md       # Development workflow standards
 ├── ENVIRONMENT_GUIDE.md               # Environment configuration
-├── DEPLOYMENT_GUIDE.md                # Comprehensive deployment guide
-├── MULTI_TENANCY_GUIDE.md            # Multi-tenancy architecture
-├── MIGRATION_BEST_PRACTICES.md       # Migration best practices
-├── DATA_GUIDE.md                      # Data model documentation
-├── UI_UX_ENHANCEMENTS.md             # UI/UX implementation
-├── TODO_LOG.md                        # Development progress tracking
-├── REPO_AUDIT_PLATFORM_CORE.md       # Repository audit report
-├── CLEANUP_CHECKLIST.md              # Repository cleanup tasks
+├── DEPLOYMENT_GUIDE.md                # Deployment procedures
+├── MULTI_TENANCY_GUIDE.md             # Multi-tenancy architecture
+├── MIGRATION_BEST_PRACTICES.md        # Migration best practices
 │
-├── lessons-learned/                   # Lessons learned and retrospectives
-│   └── 3-MONTH-RETROSPECTIVE.md ⭐   # Aug-Nov 2024 retrospective (NEW)
+├── environment-variables.md           # Environment variables reference
+│
+├── lessons-learned/                   # Retrospectives and lessons
+│   └── 3-MONTH-RETROSPECTIVE.md      # Aug-Nov 2024 retrospective
 │
 ├── workflows/                         # CI/CD workflow documentation
-│   ├── unified-workflow.md           # Main workflow documentation
-│   ├── cicd-infrastructure.md        # CI/CD infrastructure
-│   └── database-backup.md            # Database backup workflow
+│   ├── unified-workflow.md           # Main workflow docs
+│   ├── cicd-infrastructure.md        # Infrastructure details
+│   └── database-backup.md            # Backup workflow
 │
-├── implementation-summaries/          # Feature implementation summaries
-│   ├── dashboard-enhancement.md      # Dashboard enhancements
-│   ├── deployment-optimization.md    # Deployment improvements
-│   └── allowed-hosts-fix.md          # Configuration fixes
+├── implementation-summaries/          # Feature implementation docs
 │
 ├── reference/                         # Reference documentation
-│   └── environment-variables.md      # Environment variables reference
 │
-├── research/                          # Research and planning docs
-│
-└── archived-2024-11/ ⭐               # Archived documentation (NEW)
-    ├── README.md                      # Archive index and migration guide
-    ├── deployment/                    # (2 archived deployment docs)
-    ├── migration/                     # (12 archived migration docs)
-    ├── authentication/                # (13 archived auth docs)
-    ├── multi-tenancy/                 # (10 archived tenant docs)
-    ├── implementation/                # (10 archived implementation docs)
-    ├── troubleshooting/               # (14 archived fix docs)
-    ├── guest-mode/                    # (2 archived guest docs)
-    └── other/                         # (3 archived misc docs)
+└── archived-2024-11/                  # Archived documentation
 ```
 
-### What's New? (November 2024 Consolidation)
-
-✨ **4 New Comprehensive Guides**:
-- `MIGRATION_GUIDE.md` - Consolidates 12 migration documents
-- `AUTHENTICATION_GUIDE.md` - Consolidates 13 auth documents
-- `TROUBLESHOOTING.md` - Consolidates 14 troubleshooting documents
-- `lessons-learned/3-MONTH-RETROSPECTIVE.md` - 3-month development summary
-
-📦 **67 Files Archived**: All redundant documentation moved to `archived-2024-11/` with complete cross-references.
+---
 
 ## 🎯 Finding What You Need
 
 ### I want to...
-
-**Fix a database migration issue:**
-- Check [Migration Guide](MIGRATION_GUIDE.md) for comprehensive migration patterns
-- See [Troubleshooting Guide](TROUBLESHOOTING.md) for common migration problems
-
-**Set up authentication or manage users:**
-- Read [Authentication Guide](AUTHENTICATION_GUIDE.md) for complete auth system
-- Learn about superuser management and environment-specific credentials
-
-**Understand what happened in the last 3 months:**
-- Read [3-Month Retrospective](lessons-learned/3-MONTH-RETROSPECTIVE.md) for lessons learned
-- Review key improvements and recommendations
-
-**Deploy the application:**
-- Start with [Deployment Guide](DEPLOYMENT_GUIDE.md) for comprehensive deployment instructions
-- Reference [Environment Guide](ENVIRONMENT_GUIDE.md) for configuration details
-- Check [Troubleshooting Guide](TROUBLESHOOTING.md) for deployment issues
 
 **Set up my development environment:**
 - Follow [Main README Quick Setup](../README.md#-quick-setup)
 - Configure environment with [Environment Guide](ENVIRONMENT_GUIDE.md)
 - Check [Migration Guide](MIGRATION_GUIDE.md) for database setup
 
+**Deploy the application:**
+- Start with [Deployment Guide](DEPLOYMENT_GUIDE.md) for comprehensive instructions
+- Reference [Environment Guide](ENVIRONMENT_GUIDE.md) for configuration details
+- Check [Troubleshooting Guide](TROUBLESHOOTING.md) for deployment issues
+
+**Fix a database migration issue:**
+- Check [Migration Guide](MIGRATION_GUIDE.md) for comprehensive patterns
+- See [Troubleshooting Guide](TROUBLESHOOTING.md) for common problems
+
+**Set up authentication or manage users:**
+- Read [Authentication Guide](AUTHENTICATION_GUIDE.md) for complete auth system
+- Learn about superuser management and environment-specific credentials
+
 **Understand multi-tenancy:**
 - Read [Multi-Tenancy Guide](MULTI_TENANCY_GUIDE.md) for architecture overview
 - See [Migration Guide](MIGRATION_GUIDE.md) for django-tenants migration patterns
+- Review [Security Guidelines](SECURITY.md) for isolation best practices
 
-**Debug an issue:**
-- Start with [Troubleshooting Guide](TROUBLESHOOTING.md) - covers most common issues
-- Check [Migration Guide](MIGRATION_GUIDE.md) for database-specific issues
-- See [Authentication Guide](AUTHENTICATION_GUIDE.md) for auth-related problems
-
-**Understand CI/CD workflows:**
-- Read [Unified Workflow Documentation](workflows/unified-workflow.md)
-- Review [CI/CD Infrastructure](workflows/cicd-infrastructure.md)
-- Check [Database Backup Workflow](workflows/database-backup.md)
+**Report a security vulnerability:**
+- See [Security Guidelines](SECURITY.md) for responsible disclosure process
 
 **Contribute to the project:**
 - Read [Contributing Guide](../CONTRIBUTING.md)
 - Review [Branch Workflow Checklist](../branch-workflow-checklist.md)
 - Check [Repository Best Practices](REPOSITORY_BEST_PRACTICES.md)
 
+**Debug an issue:**
+- Start with [Troubleshooting Guide](TROUBLESHOOTING.md)
+- Check [Migration Guide](MIGRATION_GUIDE.md) for database issues
+- See [Authentication Guide](AUTHENTICATION_GUIDE.md) for auth problems
+
+**Understand CI/CD workflows:**
+- Read [Unified Workflow Documentation](workflows/unified-workflow.md)
+- Review [CI/CD Infrastructure](workflows/cicd-infrastructure.md)
+- Check [Database Backup Workflow](workflows/database-backup.md)
+
 **Find old documentation:**
-- Browse [Archived Documentation](archived-2024-11/) for historical reference
-- Read [Archive README](archived-2024-11/README.md) for migration guide
+- Browse [Archived Documentation](archived-2024-11/)
 
-**Troubleshoot issues:**
-- Check relevant guide's troubleshooting section
-- Review [archived deployment guide](../archived/docs/DEPLOYMENT_GUIDE.md#-troubleshooting) for detailed troubleshooting
-
-**Learn about implemented features:**
-- Browse [implementation summaries](implementation-summaries/)
-- Review [UI/UX Enhancements](UI_UX_ENHANCEMENTS.md)
+---
 
 ## 🔑 Documentation Principles
 
-### Sources of Truth (Most Recent Updates)
-Based on git history analysis (latest: 2025-10-05):
+### Sources of Truth
 
-- **Deployment**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Comprehensive deployment guide
-- **CI/CD**: [Unified Workflow](workflows/unified-workflow.md) - Most comprehensive workflow documentation
-- **Environment**: [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) - Centralized environment configuration
-- **Contributing**: [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- **Development Progress**: [TODO_LOG.md](TODO_LOG.md) - Current development status
+| Topic | Source Document |
+|-------|-----------------|
+| Deployment | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) |
+| CI/CD | [workflows/unified-workflow.md](workflows/unified-workflow.md) |
+| Environment | [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) |
+| Contributing | [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Security | [SECURITY.md](SECURITY.md) |
+| Development Progress | [TODO_LOG.md](TODO_LOG.md) |
 
 ### When Documentation Conflicts
+
 If you find conflicting information:
 1. Trust the source of truth listed above for each topic
 2. Recent documentation (in main docs/ folder) supersedes archived documentation
-3. [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) is the preferred deployment guide
-4. Archived documentation is preserved in `archived/docs/` for reference only
+3. Archived documentation is preserved in `archived-2024-11/` for reference only
+
+---
 
 ## 📝 Maintaining Documentation
 
 ### Documentation Location Guidelines
-- **Root directory** (max 5 files): README.md, CONTRIBUTING.md, and critical top-level docs
-- **docs/** directory: All detailed documentation
-- **docs/workflows/**: CI/CD and automation documentation
-- **docs/implementation-summaries/**: Feature implementation details
-- **archived/docs/**: Archived/outdated documentation (in root/archived/)
+
+| Location | Content |
+|----------|---------|
+| Root directory | README.md, CONTRIBUTING.md, critical top-level docs (max 5) |
+| `docs/` | All detailed documentation |
+| `docs/workflows/` | CI/CD and automation documentation |
+| `docs/implementation-summaries/` | Feature implementation details |
+| `archived/docs/` | Archived/outdated documentation |
 
 ### Naming Conventions
+
 - Use descriptive, kebab-case filenames (e.g., `deployment-guide.md`)
-- Keep implementation summaries in past tense (e.g., `dashboard-enhancement.md`)
+- Keep implementation summaries in past tense
 - Prefix test/example files clearly for temporary files
+
+---
 
 ## 🆘 Need Help?
 
 - **For deployment issues**: Check [Deployment Guide Troubleshooting](DEPLOYMENT_GUIDE.md#troubleshooting)
 - **For environment issues**: See [Environment Guide Troubleshooting](ENVIRONMENT_GUIDE.md#troubleshooting)
+- **For security concerns**: Review [Security Guidelines](SECURITY.md)
 - **For general questions**: Create an issue or check [Contributing Guide](../CONTRIBUTING.md)
 
 ---
 
-**Last Updated**: January 2025  
+**Last Updated**: December 2025  
 **Maintained By**: ProjectMeats Development Team

@@ -1,0 +1,37 @@
+name: Docs Lint
+
+on:
+  push:
+    paths:
+      - '**.md'
+      - '.github/workflows/docs-lint.yml'
+  pull_request:
+    paths:
+      - '**.md'
+      - '.github/workflows/docs-lint.yml'
+
+jobs:
+  lint:
+    name: Lint Markdown
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Run markdownlint
+        run: |
+          markdownlint '**/*.md' \
+            --ignore 'node_modules/**' \
+            --ignore 'archived/**' \
+            --ignore 'docs/archived-2024-11/**' \
+            --disable MD013 MD033 MD041 \
+            || echo "::warning::Markdown lint issues found. See above for details."
