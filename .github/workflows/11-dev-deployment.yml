@@ -289,6 +289,10 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 1
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -367,8 +371,24 @@ jobs:
 
       - name: Health check (Frontend)
         run: |
-          sleep 5
-          curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+          chmod +x .github/scripts/health-check.sh
+          ./.github/scripts/health-check.sh "${{ secrets.DEV_URL }}" 20 5
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "frontend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "frontend" "${{ github.sha }}" "Frontend deployment or health check failed"
 
   deploy-backend:
     runs-on: ubuntu-latest
@@ -565,3 +585,20 @@ jobs:
             ATTEMPT=$((\$ATTEMPT + 1))
           done
           SSH
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "backend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "backend" "${{ github.sha }}" "Backend deployment, migration, or health check failed"
+
