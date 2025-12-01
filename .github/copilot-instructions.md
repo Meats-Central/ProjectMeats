@@ -270,6 +270,60 @@ Repeat similarly for `UAT` → `main`.
   - Return appropriate HTTP status codes with descriptive error messages
   - Include correlation IDs for request tracing
   - Use Django's logging configuration with rotating file handlers
+  
+  **Example from codebase** (`backend/apps/suppliers/views.py`):
+  ```python
+  import logging
+  from django.utils import timezone
+  
+  logger = logging.getLogger(__name__)
+  
+  class SupplierViewSet(viewsets.ModelViewSet):
+      def get_queryset(self):
+          # WARNING level for security-related issues
+          if not hasattr(self.request, 'tenant'):
+              logger.warning(
+                  f'No tenant context for user {self.request.user.username} '
+                  f'accessing suppliers - returning empty queryset'
+              )
+              return Supplier.objects.none()
+      
+      def perform_create(self, serializer):
+          # ERROR level with structured extra data
+          if not tenant:
+              logger.error(
+                  'Supplier creation attempted without tenant context',
+                  extra={
+                      'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous',
+                      'has_request_tenant': hasattr(self.request, 'tenant'),
+                      'timestamp': timezone.now().isoformat(),
+                  }
+              )
+              raise ValidationError('Tenant context is required')
+          
+          # INFO level for successful operations
+          serializer.save(tenant=tenant)
+          logger.info(f'Created supplier: {serializer.data.get("name")} for tenant: {tenant.name}')
+      
+      def create(self, request, *args, **kwargs):
+          try:
+              return super().create(request, *args, **kwargs)
+          except Exception as e:
+              # ERROR level with traceback for unexpected errors
+              logger.error(
+                  f'Error creating supplier: {str(e)}',
+                  exc_info=True,  # Include full traceback
+                  extra={
+                      'request_data': request.data,
+                      'user': request.user.username if request.user else 'Anonymous',
+                      'timestamp': timezone.now().isoformat()
+                  }
+              )
+              return Response(
+                  {'error': 'Failed to create supplier', 'details': 'Internal server error'},
+                  status=status.HTTP_500_INTERNAL_SERVER_ERROR
+              )
+  ```
 
 ---
 
@@ -367,6 +421,21 @@ Repeat similarly for `UAT` → `main`.
   - 404 Not Found: Resource doesn't exist
   - 409 Conflict: Duplicate resource or conflict
   - 500 Internal Server Error: Unexpected server error
+  
+  **Example from codebase** (`backend/apps/suppliers/views.py`):
+  ```python
+  # 400 Bad Request - Validation errors
+  return Response(
+      {'error': 'Validation failed', 'details': str(e)},
+      status=status.HTTP_400_BAD_REQUEST
+  )
+  
+  # 500 Internal Server Error - Unexpected errors
+  return Response(
+      {'error': 'Failed to create supplier', 'details': 'Internal server error'},
+      status=status.HTTP_500_INTERNAL_SERVER_ERROR
+  )
+  ```
 
 - **Response Format:**
   ```json
@@ -403,6 +472,50 @@ Repeat similarly for `UAT` → `main`.
   - Add database indexes on frequently queried fields
   - Use `unique=True` or `unique_together` for data integrity
   - Implement model validation in `clean()` method
+  
+  **Example from codebase** (`backend/apps/products/models.py`):
+  ```python
+  class Product(TimestampModel):
+      """Product model for master product list."""
+      
+      # Multi-tenancy
+      tenant = models.ForeignKey(
+          Tenant,
+          on_delete=models.CASCADE,
+          related_name="products",
+          help_text="Tenant that owns this product",
+          null=True,
+          blank=True,
+      )
+      
+      # Product identification with explicit field names
+      product_code = models.CharField(
+          max_length=50,
+          unique=True,  # Data integrity
+          help_text="Unique product code",
+      )
+      
+      # CharField with blank=True MUST have default='' for PostgreSQL
+      type_of_protein = models.CharField(
+          max_length=50,
+          choices=ProteinTypeChoices.choices,
+          blank=True,
+          default="",  # CRITICAL: Always include for PostgreSQL
+          help_text="Type of protein (e.g., Beef, Chicken, Pork)",
+      )
+      
+      # Custom manager for tenant filtering
+      objects = TenantManager()
+      
+      class Meta:
+          ordering = ["product_code"]  # Consistent ordering
+          verbose_name = "Product"
+          verbose_name_plural = "Products"
+      
+      def __str__(self):
+          # Readable representation
+          return f"{self.product_code} - {self.description_of_product_item[:50]}"
+  ```
 
 - **QuerySet Optimization:**
   - Use `select_related()` for foreign keys (SQL JOIN)
@@ -411,6 +524,20 @@ Repeat similarly for `UAT` → `main`.
   - Avoid N+1 queries (use Django Debug Toolbar to detect)
   - Use `annotate()` and `aggregate()` for complex queries
   - Cache expensive queries with Django's cache framework
+  
+  **Example pattern** (from multi-tenant queries in codebase):
+  ```python
+  # Efficient tenant lookup with select_related
+  tenant_user = (
+      TenantUser.objects.filter(user=request.user, is_active=True)
+      .select_related('tenant')  # Avoid N+1 on tenant access
+      .order_by('-role')  # Prioritize owner/admin roles
+      .first()
+  )
+  
+  # Prefetch related items for list views
+  suppliers = Supplier.objects.filter(tenant=tenant).prefetch_related('products')
+  ```
 
 - **Serializers:**
   - Use `ModelSerializer` for model-based serializers
@@ -419,6 +546,27 @@ Repeat similarly for `UAT` → `main`.
   - Use nested serializers for related objects
   - Use `read_only_fields` for computed/auto-generated fields
   - Document all fields in docstrings
+  
+  **Example from codebase** (`backend/apps/products/serializers.py`):
+  ```python
+  class ProductSerializer(serializers.ModelSerializer):
+      """Serializer for Product model."""
+      
+      class Meta:
+          model = Product
+          fields = [
+              "id",
+              "tenant",
+              "product_code",
+              "description_of_product_item",
+              "type_of_protein",
+              # ... all model fields
+              "created_on",
+              "modified_on",
+          ]
+          # Mark auto-generated fields as read-only
+          read_only_fields = ["id", "created_on", "modified_on"]
+  ```
 
 - **ViewSets & Permissions:**
   - Use `ModelViewSet` for standard CRUD operations
@@ -427,6 +575,69 @@ Repeat similarly for `UAT` → `main`.
   - Implement tenant-based permissions for multi-tenancy
   - Override `get_queryset()` to filter by tenant
   - Use throttling for rate limiting
+  
+  **Example from codebase** (`backend/apps/suppliers/views.py`):
+  ```python
+  class SupplierViewSet(viewsets.ModelViewSet):
+      """
+      ViewSet for managing suppliers with strict tenant isolation.
+      """
+      queryset = Supplier.objects.all()
+      serializer_class = SupplierSerializer
+      permission_classes = [IsAuthenticated]  # Require authentication
+      
+      def get_queryset(self):
+          """
+          Filter suppliers by tenant - strict isolation enforced.
+          
+          Returns:
+              QuerySet: Suppliers for the current tenant only
+          """
+          # Use tenant from middleware
+          if hasattr(self.request, 'tenant') and self.request.tenant:
+              return Supplier.objects.for_tenant(self.request.tenant)
+          
+          # No tenant = no data (security)
+          logger.warning(
+              f'No tenant context for user {self.request.user.username} '
+              f'accessing suppliers - returning empty queryset'
+          )
+          return Supplier.objects.none()
+      
+      def perform_create(self, serializer):
+          """
+          Set the tenant when creating a new supplier.
+          
+          Raises:
+              ValidationError: If no tenant context is available
+          """
+          tenant = None
+          
+          # Get tenant from middleware (request.tenant)
+          if hasattr(self.request, 'tenant') and self.request.tenant:
+              tenant = self.request.tenant
+          
+          # Fallback: Query user's TenantUser association
+          elif self.request.user and self.request.user.is_authenticated:
+              tenant_user = (
+                  TenantUser.objects.filter(user=self.request.user, is_active=True)
+                  .select_related('tenant')
+                  .order_by('-role')
+                  .first()
+              )
+              if tenant_user:
+                  tenant = tenant_user.tenant
+          
+          # Require tenant - raise error if not found
+          if not tenant:
+              raise ValidationError(
+                  'Tenant context is required to create a supplier.'
+              )
+          
+          # Save with tenant association
+          serializer.save(tenant=tenant)
+          logger.info(f'Created supplier for tenant: {tenant.name}')
+  ```
 
 - **Migrations:**
   - Always run `makemigrations` before committing model changes
@@ -436,6 +647,71 @@ Repeat similarly for `UAT` → `main`.
   - Never edit applied migrations (create new ones)
   - Document complex migrations with comments
   - Test rollback procedures for critical migrations
+  
+  **Example from codebase** (`backend/apps/products/migrations/0001_initial.py`):
+  ```python
+  # Generated by Django 4.2.7 on 2025-10-08 23:04
+  from django.db import migrations, models
+  import django.db.models.deletion
+  
+  class Migration(migrations.Migration):
+      initial = True
+      
+      # CRITICAL: Minimal dependencies - only depend on what you actually need
+      # For ForeignKey to Tenant, only need the migration that creates the Tenant model
+      dependencies = [
+          ("tenants", "0001_initial"),  # Only the initial migration, not later ones
+      ]
+      
+      operations = [
+          migrations.CreateModel(
+              name="Product",
+              fields=[
+                  (
+                      "id",
+                      models.BigAutoField(
+                          auto_created=True,
+                          primary_key=True,
+                          serialize=False,
+                          verbose_name="ID",
+                      ),
+                  ),
+                  # CRITICAL: CharField with blank=True MUST have default='' for PostgreSQL
+                  (
+                      "type_of_protein",
+                      models.CharField(
+                          blank=True,
+                          default="",  # Always include for PostgreSQL
+                          choices=[
+                              ("Beef", "Beef"),
+                              ("Chicken", "Chicken"),
+                              ("Pork", "Pork"),
+                          ],
+                          help_text="Type of protein",
+                          max_length=50,
+                      ),
+                  ),
+                  # ForeignKey to Tenant model
+                  (
+                      "tenant",
+                      models.ForeignKey(
+                          blank=True,
+                          null=True,
+                          on_delete=django.db.models.deletion.CASCADE,
+                          related_name="products",
+                          to="tenants.tenant",
+                          help_text="Tenant that owns this product",
+                      ),
+                  ),
+              ],
+              options={
+                  "verbose_name": "Product",
+                  "verbose_name_plural": "Products",
+                  "ordering": ["product_code"],
+              },
+          ),
+      ]
+  ```
 
 ---
 
@@ -460,6 +736,61 @@ Repeat similarly for `UAT` → `main`.
   - Implement proper prop validation
   - Use React.memo() for expensive components
   - Avoid inline function definitions in render
+  
+  **Example from codebase** (`frontend/src/pages/Suppliers.tsx`):
+  ```typescript
+  import React, { useState, useEffect } from 'react';
+  import { apiService, Supplier } from '../services/apiService';
+  import { useTheme } from '../contexts/ThemeContext';
+  
+  const Suppliers: React.FC = () => {
+    const { theme } = useTheme();  // Custom hook for theme
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);  // Typed state
+    const [loading, setLoading] = useState(true);
+    const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+    
+    // Effect for data fetching
+    useEffect(() => {
+      fetchSuppliers();
+    }, []);
+    
+    const fetchSuppliers = async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getSuppliers();
+        setSuppliers(data);
+      } catch (error) {
+        console.error('Error fetching suppliers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        if (editingSupplier) {
+          await apiService.updateSupplier(editingSupplier.id, formData);
+        } else {
+          await apiService.createSupplier(formData);
+        }
+        fetchSuppliers();
+      } catch (error: unknown) {
+        // Type-safe error handling
+        const err = error as Error;
+        const errorMessage = err.message || 'An unexpected error occurred.';
+        console.error('[Suppliers] Error saving supplier:', {
+          message: errorMessage,
+          error: err,
+          action: editingSupplier ? 'update' : 'create',
+        });
+        alert(errorMessage);
+      }
+    };
+    
+    // ... rest of component
+  };
+  ```
 
 - **State Management:**
   - Use React Context for global state (auth, theme)
@@ -468,6 +799,71 @@ Repeat similarly for `UAT` → `main`.
   - Lift state to common ancestor when sharing between components
   - Use useReducer for complex state logic
   - Avoid prop drilling (use context or composition)
+  
+  **Example from codebase** (`frontend/src/contexts/ThemeContext.tsx`):
+  ```typescript
+  // Define context type with TypeScript
+  interface ThemeContextType {
+    theme: Theme;
+    themeName: ThemeName;
+    toggleTheme: () => void;
+    setTheme: (themeName: ThemeName) => void;
+    tenantBranding: TenantBranding | null;
+  }
+  
+  // Create context
+  const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+  
+  // Provider component
+  export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+    // Initialize from localStorage
+    const [themeName, setThemeName] = useState<ThemeName>(() => {
+      const stored = localStorage.getItem('theme');
+      return (stored === 'light' || stored === 'dark') ? stored : 'light';
+    });
+    
+    const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
+    const theme = customTheme || themes[themeName];
+    
+    // Sync to backend when theme changes
+    useEffect(() => {
+      const syncThemeToBackend = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        try {
+          await axios.patch(
+            `${apiBaseUrl}/preferences/me/`,
+            { theme: themeName },
+            { headers: { Authorization: `Token ${token}` } }
+          );
+        } catch (error) {
+          console.error('Failed to sync theme:', error);
+        }
+      };
+      syncThemeToBackend();
+    }, [themeName]);
+    
+    // Provide context value
+    return (
+      <ThemeContext.Provider value={{ theme, themeName, toggleTheme, setTheme, tenantBranding }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  };
+  
+  // Custom hook for consuming context
+  export const useTheme = () => {
+    const context = useContext(ThemeContext);
+    if (context === undefined) {
+      throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return context;
+  };
+  
+  // Usage in components (see Suppliers.tsx example above)
+  const { theme } = useTheme();
+  ```
 
 - **Hooks Best Practices:**
   - Follow Rules of Hooks (only call at top level, only in React functions)
@@ -486,6 +882,55 @@ Repeat similarly for `UAT` → `main`.
   - Use enums for fixed sets of values
   - Enable strict mode in tsconfig.json
   - Use type guards for runtime type checking
+  
+  **Example from codebase** (`frontend/src/types/index.ts`):
+  ```typescript
+  // Define interfaces for API responses
+  export interface UserProfile {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_active: boolean;
+    is_staff?: boolean;  // Optional fields use ?
+    is_superuser?: boolean;
+    tenants?: UserTenant[];
+  }
+  
+  // Union types for explicit state values
+  export interface ChatSession {
+    id: string;
+    title?: string;
+    session_status: 'active' | 'completed' | 'archived';  // Union type
+    context_data?: Record<string, unknown>;  // Use unknown for truly unknown types
+    last_activity: string;
+    created_on: string;
+    modified_on: string;
+    message_count: number;
+  }
+  
+  // Generic types for pagination
+  export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];  // Generic type for any resource
+  }
+  
+  // Component props with children
+  export interface BaseComponentProps {
+    className?: string;
+    children?: React.ReactNode;  // Proper typing for children
+  }
+  
+  // Type-safe error handling (from Suppliers.tsx)
+  catch (error: unknown) {  // Use unknown instead of any
+    const err = error as Error;  // Type assertion
+    const errorMessage = err.message || 'An unexpected error occurred.';
+    console.error('[Suppliers] Error:', errorMessage);
+  }
+  ```
 
 - **Type Organization:**
   ```
@@ -1352,17 +1797,92 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
    - All admin classes for models with `tenant` field must extend `TenantFilteredAdmin`
    - Ensures non-superuser staff only see their tenant's data
    - Pattern: `class MyAdmin(TenantFilteredAdmin)` instead of `admin.ModelAdmin`
+   
+   **Example from codebase** (`backend/apps/core/admin.py` and `backend/apps/products/admin.py`):
+   ```python
+   # Base class for tenant-aware admin (core/admin.py)
+   class TenantFilteredAdmin(admin.ModelAdmin):
+       """
+       Base admin class that filters all querysets by the current user's tenant.
+       
+       This ensures that staff users only see data for their own tenant,
+       even when accessing the Django admin interface.
+       
+       Superusers see all data across all tenants.
+       """
+       
+       def get_queryset(self, request):
+           """Filter queryset by user's tenant."""
+           qs = super().get_queryset(request)
+           
+           # Superusers see all data
+           if request.user.is_superuser:
+               return qs
+           
+           # Get user's tenant(s)
+           tenant_users = TenantUser.objects.filter(
+               user=request.user,
+               is_active=True
+           ).select_related('tenant')
+           
+           if not tenant_users.exists():
+               return qs.none()
+           
+           # Filter by user's tenant(s)
+           if hasattr(qs.model, 'tenant'):
+               tenant_ids = [tu.tenant_id for tu in tenant_users]
+               return qs.filter(tenant_id__in=tenant_ids)
+           
+           return qs
+   
+   # Usage in product admin (products/admin.py)
+   @admin.register(Product)
+   class ProductAdmin(TenantFilteredAdmin):  # Extends TenantFilteredAdmin
+       """Admin interface for Product model with tenant filtering."""
+       
+       list_display = (
+           "product_code",
+           "description_preview",
+           "supplier",
+           "type_of_protein",
+           "is_active",
+           "created_on",
+       )
+       list_filter = (
+           "type_of_protein",
+           "fresh_or_frozen",
+           "is_active",
+       )
+       search_fields = (
+           "product_code",
+           "description_of_product_item",
+           "supplier_item_number",
+       )
+       readonly_fields = ("created_on", "modified_on")
+       
+       # Custom method for list display
+       def description_preview(self, obj):
+           """Return truncated description for list display."""
+           return (
+               obj.description_of_product_item[:50] + "..."
+               if len(obj.description_of_product_item) > 50
+               else obj.description_of_product_item
+           )
+       description_preview.short_description = "Description"
+   ```
 
 2. **Tenant-Aware ViewSets**
    - Override `get_queryset()` to filter by tenant
    - Fall back to user's first tenant if needed
-   - Pattern:
+   - Pattern (see example above in ViewSets & Permissions section):
      ```python
      def get_queryset(self):
          user = self.request.user
          tenant = getattr(user, 'tenant', None) or user.tenantuser_set.first()?.tenant
          return super().get_queryset().filter(tenant=tenant)
      ```
+   
+   See full implementation example in **ViewSets & Permissions** section above.
 
 3. **Automatic Tenant Assignment**
    - Use signals or override `perform_create()` to auto-assign tenant
@@ -1394,6 +1914,54 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
          logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
          return Response({"error": str(e)}, status=500)
      ```
+   
+   **Example from codebase** (`backend/apps/suppliers/views.py`):
+   ```python
+   def create(self, request, *args, **kwargs):
+       """Create a new supplier with enhanced error handling."""
+       try:
+           return super().create(request, *args, **kwargs)
+       except DRFValidationError as e:
+           # DRF validation errors - return 400
+           logger.error(
+               f'Validation error creating supplier: {str(e.detail)}',
+               extra={
+                   'request_data': request.data,
+                   'user': request.user.username if request.user else 'Anonymous',
+                   'timestamp': timezone.now().isoformat()
+               }
+           )
+           raise  # Re-raise to return proper 400 response
+       except ValidationError as e:
+           # Django validation errors
+           logger.error(
+               f'Validation error creating supplier: {str(e)}',
+               extra={
+                   'request_data': request.data,
+                   'user': request.user.username if request.user else 'Anonymous',
+                   'timestamp': timezone.now().isoformat()
+               }
+           )
+           return Response(
+               {'error': 'Validation failed', 'details': str(e)},
+               status=status.HTTP_400_BAD_REQUEST
+           )
+       except Exception as e:
+           # Unexpected errors - return 500
+           logger.error(
+               f'Error creating supplier: {str(e)}',
+               exc_info=True,  # Include traceback
+               extra={
+                   'request_data': request.data,
+                   'user': request.user.username if request.user else 'Anonymous',
+                   'timestamp': timezone.now().isoformat()
+               }
+           )
+           return Response(
+               {'error': 'Failed to create supplier', 'details': 'Internal server error'},
+               status=status.HTTP_500_INTERNAL_SERVER_ERROR
+           )
+   ```
 
 ### Code Organization Lessons
 
