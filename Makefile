@@ -1,17 +1,20 @@
 # ProjectMeats Development Makefile
 # Provides essential development commands for Django + React application
 
-.PHONY: help setup dev test clean docs format lint env-dev env-staging env-prod env-validate env-secrets deploy-test deploy-check health-check deploy-simulate
+.PHONY: help setup dev start stop test clean docs format lint env-dev env-staging env-prod env-validate env-secrets deploy-test deploy-check health-check deploy-simulate
 
 # Default target
 help:
 	@echo "ProjectMeats Development Commands"
 	@echo ""
 	@echo "Quick Start:"
-	@echo "  python setup_env.py - Complete setup (recommended)"
-	@echo "  make dev        - Start development servers"
+	@echo "  ./start_dev.sh  - Start all servers (PostgreSQL + Django + React)"
+	@echo "  ./stop_dev.sh   - Stop all running servers"
+	@echo "  make dev        - Start development servers (manual)"
 	@echo ""
 	@echo "Development:"
+	@echo "  make start      - Start servers with PostgreSQL (uses start_dev.sh)"
+	@echo "  make stop       - Stop all servers (uses stop_dev.sh)"
 	@echo "  make backend    - Start Django server only"
 	@echo "  make frontend   - Start React server only"
 	@echo "  make migrate    - Apply database migrations"
@@ -68,6 +71,14 @@ setup-frontend:
 	@echo "✅ Frontend setup complete!"
 
 # Development commands
+start:
+	@echo "🚀 Starting all development servers (PostgreSQL + Backend + Frontend)..."
+	@./start_dev.sh
+
+stop:
+	@echo "🛑 Stopping all development servers..."
+	@./stop_dev.sh
+
 dev: validate-db-config
 	@echo "🚀 Starting development servers..."
 	@echo "Backend: http://localhost:8000"
