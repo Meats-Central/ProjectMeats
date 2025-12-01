@@ -461,7 +461,7 @@ jobs:
           echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: uat.meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -H "Host: uat.meatscentral.com" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
