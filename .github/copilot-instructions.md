@@ -206,7 +206,7 @@ Repeat similarly for `UAT` → `main`.
   - Never store passwords in plain text; use Django's built-in password hashing
   - Implement proper session management; set secure cookie flags (HttpOnly, Secure, SameSite)
   - Use CSRF protection on all state-changing operations
-  - Implement rate limiting on authentication endpoints (use django-ratelimit)
+  - Implement rate limiting on authentication endpoints
   - Enforce strong password policies (min 12 chars, complexity requirements)
   - Use multi-factor authentication (MFA) for admin accounts
 
@@ -258,17 +258,14 @@ Repeat similarly for `UAT` → `main`.
   - Use conventional commits for clear history
 
 - **Static Analysis:**
-  - Run type checking: `mypy` for Python (future), `tsc --noEmit` for TypeScript
-  - Use Pylint/Bandit for Python security scanning
-  - Use SonarQube or CodeClimate for code quality metrics
-  - Maintain code quality scores above 'B' grade
+  - Run type checking: `tsc --noEmit` for TypeScript
+  - Use flake8 for Python linting and code quality
+  - Maintain high code quality standards
 
 - **Error Handling & Logging:**
   - Use structured logging with appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   - Never log sensitive data (passwords, tokens, PII)
-  - Implement centralized error tracking (Sentry or similar)
   - Return appropriate HTTP status codes with descriptive error messages
-  - Include correlation IDs for request tracing
   - Use Django's logging configuration with rotating file handlers
 
 ---
@@ -290,16 +287,14 @@ Repeat similarly for `UAT` → `main`.
   ├── test_models.py          # Model validation, business logic
   ├── test_views.py           # View layer logic
   ├── test_serializers.py     # Serialization, validation
-  ├── test_api_endpoints.py   # API integration tests
-  └── factories.py            # Factory Boy fixtures (future)
+  └── test_api_endpoints.py   # API integration tests
   ```
 
 - **Test Types & Tools:**
-  - **Unit Tests**: Django TestCase, pytest-django
+  - **Unit Tests**: Django TestCase
   - **API Tests**: DRF's APIClient for endpoint testing
   - **Database Tests**: Use TestCase (transactions) for DB isolation
-  - **Coverage**: Run `pytest --cov=apps --cov-report=html`
-  - **Fixtures**: Use Factory Boy for test data generation (reduces boilerplate)
+  - **Coverage**: Run `coverage run --source='.' manage.py test && coverage report`
 
 - **Testing Best Practices:**
   - Test one thing per test method (single responsibility)
@@ -324,8 +319,7 @@ Repeat similarly for `UAT` → `main`.
   - **Unit Tests**: React Testing Library + Jest
   - **Component Tests**: Test user interactions, not implementation details
   - **Integration Tests**: Test component integration with APIs
-  - **E2E Tests**: Cypress or Playwright (future)
-  - **Visual Regression**: Storybook + Chromatic (future)
+  - **Visual Documentation**: Storybook for component documentation
 
 - **Testing Standards:**
   - Test user-facing behavior, not internal state
@@ -464,7 +458,6 @@ Repeat similarly for `UAT` → `main`.
 - **State Management:**
   - Use React Context for global state (auth, theme)
   - Use local state (useState) for component-specific state
-  - Consider Redux/Zustand for complex state (future)
   - Lift state to common ancestor when sharing between components
   - Use useReducer for complex state logic
   - Avoid prop drilling (use context or composition)
@@ -507,11 +500,10 @@ Repeat similarly for `UAT` → `main`.
 
 - **Performance Optimization:**
   - Use React.lazy() and Suspense for code splitting
-  - Implement virtualization for long lists (react-window)
+  - Implement virtualization for long lists when needed
   - Optimize images (use WebP, lazy loading)
-  - Minimize bundle size (analyze with webpack-bundle-analyzer)
+  - Monitor and minimize bundle size
   - Use production builds for deployment
-  - Implement service workers for PWA (future)
 
 - **Ant Design Usage:**
   - Use Ant Design components consistently
@@ -529,14 +521,13 @@ Repeat similarly for `UAT` → `main`.
   - Add indexes on frequently queried fields (foreign keys, search fields)
   - Use database-level constraints for data integrity
   - Implement database connection pooling
-  - Use read replicas for read-heavy workloads (future)
   - Monitor slow queries with Django Debug Toolbar
   - Optimize query performance with `EXPLAIN ANALYZE`
 
 - **Caching Strategy:**
   - Cache expensive computations and queries
   - Use Redis for session storage and caching (production)
-  - Implement API response caching (django-cache-memoize)
+  - Implement API response caching using Django's cache framework
   - Use template fragment caching for repeated content
   - Set appropriate cache TTL values
   - Implement cache invalidation strategy
@@ -561,7 +552,7 @@ Repeat similarly for `UAT` → `main`.
 
 - **Runtime Performance:**
   - Minimize re-renders with React.memo, useMemo, useCallback
-  - Virtualize long lists (react-window for > 100 items)
+  - Virtualize long lists when displaying > 100 items
   - Debounce search inputs and expensive operations
   - Use Web Workers for heavy computations
   - Optimize images (WebP, responsive images, lazy loading)
@@ -569,7 +560,6 @@ Repeat similarly for `UAT` → `main`.
 
 - **Network Optimization:**
   - Implement request deduplication
-  - Use SWR or React Query for data fetching (future)
   - Batch API requests where possible
   - Implement optimistic updates for better UX
   - Use HTTP/2 for multiplexing
@@ -586,9 +576,9 @@ Repeat similarly for `UAT` → `main`.
   - User-centric metrics (Core Web Vitals)
 
 - **Tools:**
-  - Backend: Django Debug Toolbar, New Relic, DataDog
-  - Frontend: Lighthouse, WebPageTest, Chrome DevTools
-  - Real User Monitoring (RUM) for production insights
+  - Backend: Django logging, database query analysis
+  - Frontend: Lighthouse, Chrome DevTools
+  - Monitor metrics through application logs and browser tools
 
 ---
 
@@ -633,21 +623,19 @@ Repeat similarly for `UAT` → `main`.
 
 ### Internationalization (i18n)
 
+Django's i18n framework is enabled and available for use when needed.
+
 - **Backend (Django):**
-  - Use Django's translation framework (gettext)
-  - Mark all user-facing strings for translation
-  - Use locale middleware for language detection
-  - Support multiple timezones
-  - Format dates, numbers, currency by locale
+  - Django's translation framework (gettext) is configured
+  - Locale middleware available for language detection
+  - Timezone support enabled
+  - Date, number, currency formatting available by locale
 
 - **Frontend (React):**
-  - Use react-i18next or react-intl
-  - Extract all user-facing strings
-  - Support RTL languages (Arabic, Hebrew)
-  - Implement language switcher
-  - Load translations dynamically
-
-- **Best Practices:**
+  - No i18n library currently configured
+  - When implementing i18n, consider react-i18next or react-intl
+  
+- **Best Practices (when implementing):**
   - Use ICU message format for pluralization
   - Avoid string concatenation (use placeholders)
   - Test all languages in UI
@@ -714,7 +702,7 @@ Repeat similarly for `UAT` → `main`.
   - Use `npm ci` in CI/CD (faster, uses lock file)
 
 - **Bundle Size Management:**
-  - Monitor bundle size with webpack-bundle-analyzer
+  - Monitor bundle size using build reports
   - Avoid large dependencies (moment.js → date-fns, lodash → individual imports)
   - Use tree shaking to eliminate dead code
   - Keep total bundle < 500KB gzipped
@@ -752,10 +740,10 @@ Repeat similarly for `UAT` → `main`.
 - **Automated Checks (Run on every PR):**
   - Linting: Python (flake8), TypeScript (eslint)
   - Formatting: Black, Prettier
-  - Type checking: mypy (future), tsc
-  - Unit tests: Backend (pytest), Frontend (Jest)
+  - Type checking: tsc for TypeScript
+  - Unit tests: Backend (Django test), Frontend (Jest)
   - Security scans: pip-audit, npm audit
-  - Code coverage: pytest-cov (min 80%)
+  - Code coverage: coverage.py (min 80%)
   - Build validation: Docker builds, frontend production build
 
 - **PR Requirements:**
