@@ -1,6 +1,6 @@
 # ProjectMeats - Big Picture Architecture
 
-**Last Updated**: December 1, 2024
+**Last Updated**: December 1, 2025
 
 ## Table of Contents
 
