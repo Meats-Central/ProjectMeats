@@ -306,11 +306,11 @@ jobs:
           DATABASE_URL: ${{ secrets.UAT_DB_URL }}
           SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
+          DB_ENGINE: django.db.backends.postgresql
         run: |
           echo "=== Running idempotent schema migrations ==="
           
-          # Parse DATABASE_URL to set individual DB environment variables
-          # Format: postgresql://user:password@host:port/dbname
+          # Parse DATABASE_URL to set individual DB environment variables if using production settings
           if [ -n "$DATABASE_URL" ]; then
             export DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
             export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
@@ -324,7 +324,6 @@ jobs:
             echo "  DB_NAME: $DB_NAME"
             echo "  DB_USER: $DB_USER"
           fi
-          
           
           # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
           python manage.py migrate_schemas --shared --fake-initial --noinput || {
