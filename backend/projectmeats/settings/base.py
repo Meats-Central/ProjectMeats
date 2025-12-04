@@ -71,6 +71,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "projectmeats.urls"
 
+# Public schema URL configuration (django-tenants)
+# These URLs are accessible without a tenant context  
+PUBLIC_SCHEMA_URLCONF = "projectmeats.public_urls"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
