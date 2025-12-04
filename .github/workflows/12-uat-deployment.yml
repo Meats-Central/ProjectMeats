@@ -460,14 +460,16 @@ jobs:
           # Note: Migrations now handled by separate 'migrate' job
           # Only collectstatic needs to run here
           echo "=== Collecting static files ==="
-          sudo docker run --rm \
+          if sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput --clear || {
-              echo "⚠️  collectstatic failed (non-critical, continuing...)"
-            }
+            python manage.py collectstatic --noinput --clear; then
+            echo "✓ collectstatic succeeded"
+          else
+            echo "⚠️  collectstatic failed (non-critical, continuing...)"
+          fi
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
