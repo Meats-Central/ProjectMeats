@@ -1,8 +1,6 @@
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
-from apps.tenants.models import Tenant
-from apps.core.models import TenantManager
 
 
 class AccountsReceivable(models.Model):
@@ -12,16 +10,6 @@ class AccountsReceivable(models.Model):
         ("overdue", "Overdue"),
         ("cancelled", "Cancelled"),
     ]
-
-    # Multi-tenancy
-    tenant = models.ForeignKey(
-        Tenant,
-        on_delete=models.CASCADE,
-        related_name="accounts_receivables",
-        help_text="Tenant that owns this accounts receivable",
-        null=True,
-        blank=True,
-    )
 
     customer = models.ForeignKey(
         "customers.Customer",
@@ -38,10 +26,6 @@ class AccountsReceivable(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
-
-    # Custom manager for tenant filtering
-    objects = TenantManager()
-
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Accounts Receivable"

@@ -47,11 +47,9 @@ if database_url:
     # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use standard PostgreSQL backend (not django-tenants)
-    # ProjectMeats uses custom shared-schema multi-tenancy
-    # If migrating to schema-based isolation in the future, uncomment:
-    # if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-    #     _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+    # Use django-tenants PostgreSQL backend for schema-based multi-tenancy
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 
     # Set connection settings for development
     _db_config.setdefault(
@@ -59,7 +57,7 @@ if database_url:
     )  # Close connections after each request in development
     
     # Only add connect_timeout for PostgreSQL (not supported in SQLite)
-    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+    if "postgresql" in _db_config.get("ENGINE", ""):
         _db_config.setdefault("OPTIONS", {})
         _db_config["OPTIONS"].setdefault("connect_timeout", 10)
 
@@ -70,11 +68,10 @@ else:
     DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.postgresql"
 
     if DB_ENGINE == "django.db.backends.postgresql":
-        # PostgreSQL configuration - requires all environment variables
-        # Using standard PostgreSQL backend (not django-tenants)
+        # PostgreSQL configuration with django-tenants backend for schema isolation
         DATABASES = {
             "default": {
-                "ENGINE": "django.db.backends.postgresql",  # Standard PostgreSQL backend
+                "ENGINE": "django_tenants.postgresql_backend",  # django-tenants backend
                 "NAME": config("DB_NAME"),
                 "USER": config("DB_USER"),
                 "PASSWORD": config("DB_PASSWORD"),
