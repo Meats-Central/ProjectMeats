@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile.dev
+    image: ghcr.io/meats-central/projectmeats/app:latest
     volumes:
       - ..:/workspaces/ProjectMeats:cached
     depends_on:
