@@ -30,7 +30,7 @@ WORKDIR /project
 
 # 1) Install deps
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci
+RUN cd frontend && npm install --legacy-peer-deps
 
 # 2) Copy sources
 COPY frontend ./frontend
