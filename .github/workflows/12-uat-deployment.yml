@@ -270,9 +270,68 @@ jobs:
           fi
 
 
+  # Decoupled migration job - runs idempotent DB migrations before deployment
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: uat2-backend
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+      
+      - name: Run migrations via SSH on deployment server
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'SSH_END'
+          set -euo pipefail
+          
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
+          }
+          
+          # Check for virtual environment
+          if [ -f "../venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source venv/bin/activate
+          else
+            echo "Warning: No virtual environment found, using system Python"
+          fi
+          
+          # Verify environment file exists
+          if [ ! -f ".env" ]; then
+            echo "Warning: .env file not found, using environment variables"
+          fi
+          
+          # Run migrations (idempotent with --fake-initial)
+          echo "Running database migrations..."
+          python manage.py migrate --fake-initial --noinput || {
+            echo "Error: Migrations failed"
+            exit 1
+          }
+          
+          echo "✓ Migrations completed successfully"
+          SSH_END
+
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [migrate, test-frontend]
     if: github.ref == 'refs/heads/uat'
     environment: uat2
     steps:
@@ -302,13 +361,13 @@ jobs:
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
           sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:uat-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -337,10 +396,13 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
+    needs: [migrate, test-backend]
     if: github.ref == 'refs/heads/uat'
     environment: uat2-backend
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -357,7 +419,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="uat-latest"
+          TAG="uat-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
@@ -369,69 +431,45 @@ jobs:
           # Set permissions for mounted volumes (appuser in container has UID 1000)
           sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
 
-          # Same env block as dev. Update values in UAT secrets later.
+          # Configure environment variables (using correct DJANGO_SETTINGS_MODULE for UAT/staging)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
-
-          DJANGO_SETTINGS_MODULE=${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY=${{ secrets.UAT_SECRET_KEY }}
-          CORS_ALLOWED_ORIGINS=${{ secrets.UAT_CORS_ALLOWED_ORIGINS }}
-          DATABASE_URL=${{ secrets.UAT_DATABASE_URL }}
-          ALLOWED_HOSTS=${{ secrets.UAT_ALLOWED_HOSTS }}
-          DEBUG=${{ secrets.DEBUG }}
-          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
-          CORS_ALLOW_ALL_ORIGINS=${{ secrets.UAT_CORS_ALLOW_ALL_ORIGINS }}
-          SESSION_COOKIE_SECURE=${{ secrets.UAT_SESSION_COOKIE_SECURE }}
-          CSRF_COOKIE_SECURE=${{ secrets.UAT_CSRF_COOKIE_SECURE }}
-          OPENAI_API_KEY=${{ secrets.UAT_OPENAI_API_KEY }}
-          STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
-          MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
-          EMAIL_BACKEND=${{ secrets.UAT_EMAIL_BACKEND }}
-          EMAIL_HOST=${{ secrets.UAT_EMAIL_HOST }}
-          EMAIL_PORT=${{ secrets.UAT_EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.UAT_EMAIL_USE_TLS }}
-          EMAIL_HOST_USER=${{ secrets.UAT_EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD=${{ secrets.UAT_EMAIL_HOST_PASSWORD }}
-          ENV
+DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
+SECRET_KEY=${{ secrets.UAT_SECRET_KEY }}
+CORS_ALLOWED_ORIGINS=${{ secrets.UAT_CORS_ALLOWED_ORIGINS }}
+DATABASE_URL=${{ secrets.UAT_DATABASE_URL }}
+ALLOWED_HOSTS=${{ secrets.UAT_ALLOWED_HOSTS }}
+DEBUG=${{ secrets.DEBUG }}
+LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+CORS_ALLOW_ALL_ORIGINS=${{ secrets.UAT_CORS_ALLOW_ALL_ORIGINS }}
+SESSION_COOKIE_SECURE=${{ secrets.UAT_SESSION_COOKIE_SECURE }}
+CSRF_COOKIE_SECURE=${{ secrets.UAT_CSRF_COOKIE_SECURE }}
+OPENAI_API_KEY=${{ secrets.UAT_OPENAI_API_KEY }}
+STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
+MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
+EMAIL_BACKEND=${{ secrets.UAT_EMAIL_BACKEND }}
+EMAIL_HOST=${{ secrets.UAT_EMAIL_HOST }}
+EMAIL_PORT=${{ secrets.UAT_EMAIL_PORT }}
+EMAIL_USE_TLS=${{ secrets.UAT_EMAIL_USE_TLS }}
+EMAIL_HOST_USER=${{ secrets.UAT_EMAIL_HOST_USER }}
+EMAIL_HOST_PASSWORD=${{ secrets.UAT_EMAIL_HOST_PASSWORD }}
+ENV
           sudo chown root:root "$ENV_FILE"
           sudo chmod 600 "$ENV_FILE"
 
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations (shared-schema multi-tenancy using standard Django migrations)
-          echo "Running database migrations..."
+          # Note: Migrations now handled by separate 'migrate' job
+          # Only collectstatic needs to run here
+          echo "=== Collecting static files ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput || true
-
-          # Create/update superuser and root tenant (idempotent)
-          echo "Setting up superuser and root tenant..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            sh -c "
-              echo 'Creating/updating superuser and root tenant...'
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo '⚠ create_super_tenant command failed or not available'
-              }
-              
-              echo 'Creating/updating guest tenant...'
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo '⚠ create_guest_tenant command failed or not available'
-              }
-            "
+            python manage.py collectstatic --noinput --clear || {
+              echo "⚠️  collectstatic failed (non-critical, continuing...)"
+            }
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \

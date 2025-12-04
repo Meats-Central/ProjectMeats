@@ -45,12 +45,19 @@ if database_url:
     DATABASE_ROUTERS = []
     
 else:
-    # Use SQLite for testing (faster and doesn't require PostgreSQL)
-    # Note: This is for local unit tests without multi-tenancy complexity
+    # Use PostgreSQL for testing to match production environment
+    # This ensures migrations and database features work consistently
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "test_db.sqlite3",  # noqa
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("TEST_DB_NAME", "test_projectmeats"),
+            "USER": os.environ.get("TEST_DB_USER", os.environ.get("DB_USER", "postgres")),
+            "PASSWORD": os.environ.get("TEST_DB_PASSWORD", os.environ.get("DB_PASSWORD", "postgres")),
+            "HOST": os.environ.get("TEST_DB_HOST", os.environ.get("DB_HOST", "db")),
+            "PORT": os.environ.get("TEST_DB_PORT", os.environ.get("DB_PORT", "5432")),
+            "TEST": {
+                "NAME": os.environ.get("TEST_DB_NAME", "test_projectmeats"),
+            },
         }
     }
 

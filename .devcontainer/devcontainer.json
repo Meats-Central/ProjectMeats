@@ -108,7 +108,8 @@
   },
 
   // Commands to run after the container is created and ready
-  "postCreateCommand": "cd /workspaces/ProjectMeats/frontend && npm ci && cd ../backend && /venv/bin/python manage.py migrate"
+  // Runs idempotent multi-tenant migrations via setup.sh
+  "postCreateCommand": "bash .devcontainer/setup.sh"
 }
 
 

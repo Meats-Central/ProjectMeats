@@ -89,13 +89,12 @@ dev: validate-db-config
 validate-db-config:
 	@echo "🔍 Validating database configuration..."
 	@if [ -z "$$DB_ENGINE" ]; then \
-		echo "⚠️  DB_ENGINE not set, will use SQLite fallback"; \
-		echo "💡 For environment parity, set DB_ENGINE=django.db.backends.postgresql"; \
-		echo "   and configure DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT"; \
+		echo "⚠️  DB_ENGINE not set, defaulting to PostgreSQL"; \
+		echo "💡 Configure DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT in config/environments/development.env"; \
 	elif [ "$$DB_ENGINE" = "django.db.backends.postgresql" ]; then \
 		echo "✅ Using PostgreSQL"; \
 		if [ -z "$$DB_NAME" ] || [ -z "$$DB_USER" ] || [ -z "$$DB_PASSWORD" ] || [ -z "$$DB_HOST" ]; then \
-			echo "❌ PostgreSQL selected but required variables are missing:"; \
+			echo "❌ PostgreSQL requires all connection variables:"; \
 			[ -z "$$DB_NAME" ] && echo "   - DB_NAME is not set"; \
 			[ -z "$$DB_USER" ] && echo "   - DB_USER is not set"; \
 			[ -z "$$DB_PASSWORD" ] && echo "   - DB_PASSWORD is not set"; \
@@ -105,11 +104,9 @@ validate-db-config:
 		else \
 			echo "✅ All PostgreSQL variables are set"; \
 		fi \
-	elif [ "$$DB_ENGINE" = "django.db.backends.sqlite3" ]; then \
-		echo "✅ Using SQLite (development fallback)"; \
 	else \
 		echo "❌ Invalid DB_ENGINE: $$DB_ENGINE"; \
-		echo "   Valid values: django.db.backends.postgresql or django.db.backends.sqlite3"; \
+		echo "   Only django.db.backends.postgresql is supported"; \
 		exit 1; \
 	fi
 

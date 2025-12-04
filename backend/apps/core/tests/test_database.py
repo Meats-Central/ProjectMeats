@@ -29,10 +29,10 @@ class DatabaseConnectivityTest(TestCase):
     def test_database_engine_configured(self):
         """Test that database engine is properly configured."""
         engine = connection.settings_dict['ENGINE']
-        self.assertIn(
+        self.assertEqual(
             engine,
-            ['django.db.backends.postgresql', 'django.db.backends.sqlite3'],
-            f"Database engine {engine} is not supported"
+            'django.db.backends.postgresql',
+            f"Database engine must be PostgreSQL, got: {engine}"
         )
 
     def test_database_write_operations(self):
