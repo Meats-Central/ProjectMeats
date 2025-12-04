@@ -9,48 +9,39 @@ on:
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
-    environment:
-      name: copilot
-
+    
     permissions:
       contents: read
-      packages: read
 
     steps:
       # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Docker
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      # Step 3: Log in to GHCR (GitHub Container Registry)
-      - name: Log in to GHCR
-        uses: docker/login-action@v2
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
-      # Step 4: Pull Backend Image from GHCR
-      - name: Pull Backend Image
-        run: |
-          docker pull ghcr.io/meats-central/projectmeats-backend:dev-latest
+      # Step 3: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
 
-      # Step 5: Pull Frontend Image from GHCR
-      - name: Pull Frontend Image
+      # Step 4: Install Python dependencies
+      - name: Install Python dependencies
+        working-directory: ./backend
         run: |
-          docker pull ghcr.io/meats-central/projectmeats-frontend:dev-latest
+          pip install -r requirements.txt
 
-      # Step 6: Run Backend Container for Copilot
-      - name: Run Backend Container for Copilot
+      # Step 5: Install Node.js dependencies
+      - name: Install Node.js dependencies
+        working-directory: ./frontend
         run: |
-          docker run --rm ghcr.io/meats-central/projectmeats-backend:dev-latest \
-            bash -c "echo 'Running backend container for Copilot'; python --version; django-admin --version"
-
-      # Step 7: Run Frontend Container for Copilot
-      - name: Run Frontend Container for Copilot
-        run: |
-          docker run --rm ghcr.io/meats-central/projectmeats-frontend:dev-latest \
-            /bin/sh -c "echo 'Running frontend container for Copilot'; npm --version"
+          npm ci

@@ -2,6 +2,7 @@
 Development settings for ProjectMeats.
 """
 import logging
+import os
 
 import dj_database_url
 from decouple import config
@@ -66,15 +67,20 @@ if database_url:
     DATABASES = {"default": _db_config}
 else:
     # Get DB_ENGINE - PostgreSQL is required for all environments
+    # Auto-detect Codespace environment and use django-tenants backend
     # Using config() to read from .env file for local development
     DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.postgresql"
+    
+    # Automatically switch to django-tenants backend in Codespaces
+    if os.getenv('CODESPACES') == 'true':
+        DB_ENGINE = 'django_tenants.postgresql_backend'
 
-    if DB_ENGINE == "django.db.backends.postgresql":
+    if DB_ENGINE in ("django.db.backends.postgresql", "django_tenants.postgresql_backend"):
         # PostgreSQL configuration - requires all environment variables
-        # Using standard PostgreSQL backend (not django-tenants)
+        # Auto-switch between standard and django-tenants backend based on environment
         DATABASES = {
             "default": {
-                "ENGINE": "django.db.backends.postgresql",  # Standard PostgreSQL backend
+                "ENGINE": DB_ENGINE,  # Auto-selected based on Codespace detection
                 "NAME": config("DB_NAME"),
                 "USER": config("DB_USER"),
                 "PASSWORD": config("DB_PASSWORD"),

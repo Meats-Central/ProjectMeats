@@ -265,10 +265,10 @@ jobs:
 
 
   # Decoupled migration job - runs idempotent DB migrations before deployment
-  migrate:
+  run-migrations:
     runs-on: ubuntu-latest
     needs: [build-and-push, test-backend]
-    environment: prod2-backend
+    environment: production
     timeout-minutes: 20
     permissions:
       contents: read
@@ -288,44 +288,34 @@ jobs:
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'SSH_END'
           set -euo pipefail
           
-          echo "=== Running migrations on deployment server ==="
+          echo "=== Running multi-tenant migrations (SCHEMAS_FIRST) ==="
           
-          # Navigate to project directory
-          cd /home/django/ProjectMeats/backend || {
-            echo "Error: Project directory not found"
+          # Step 1: Shared schema migrations (public schema)
+          echo "Step 1: Migrating shared schema..."
+          python manage.py migrate_schemas --shared --noinput --fake-initial || {
+            echo "Error: Shared schema migrations failed"
             exit 1
           }
           
-          # Check for virtual environment
-          if [ -f "../venv/bin/activate" ]; then
-            echo "Activating virtual environment..."
-            source ../venv/bin/activate
-          elif [ -f "venv/bin/activate" ]; then
-            echo "Activating virtual environment..."
-            source venv/bin/activate
-          else
-            echo "Warning: No virtual environment found, using system Python"
-          fi
+          # Step 2: Create super tenant if needed
+          echo "Step 2: Creating super tenant..."
+          python manage.py create_super_tenant --no-input || {
+            echo "Note: Super tenant may already exist"
+          }
           
-          # Verify environment file exists
-          if [ ! -f ".env" ]; then
-            echo "Warning: .env file not found, using environment variables"
-          fi
-          
-          # Run migrations (idempotent with --fake-initial)
-          echo "Running database migrations..."
-          python manage.py migrate --fake-initial --noinput || {
-            echo "Error: Migrations failed"
+          # Step 3: Tenant-specific migrations
+          echo "Step 3: Migrating tenant schemas..."
+          python manage.py migrate_schemas --tenant --noinput --fake-initial || {
+            echo "Error: Tenant schema migrations failed"
             exit 1
           }
           
-          echo "✓ Migrations completed successfully"
-          SSH_END
+          echo "✓ Multi-tenant migrations completed successfully"
 
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [migrate, test-frontend, pre-deployment-checks]
+    needs: [run-migrations, test-frontend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
@@ -494,7 +484,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [migrate, test-backend, pre-deployment-checks]
+    needs: [run-migrations, test-backend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-backend
     steps:

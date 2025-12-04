@@ -71,8 +71,7 @@
     "react-refresh": "^0.14.2",
     "serve": "^14.2.0",
     "storybook": "^9.1.5",
-    "webpack": "^5.101.3",
-    "yaml": "^2.8.2"
+    "webpack": "^5.101.3"
   },
   "overrides": {
     "@types/d3-dispatch": "^1.0.11"
