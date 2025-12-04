@@ -178,6 +178,7 @@ The AI Assistant provides:
 |----------|-------------|
 | [Documentation Hub](docs/README.md) | Central navigation for all docs |
 | [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Comprehensive deployment instructions |
+| [Database Migrations](DATABASE_MIGRATION_GUIDE.md) | Current migration setup via SSH |
 | [Environment Guide](docs/ENVIRONMENT_GUIDE.md) | Environment configuration |
 | [Security Guidelines](docs/SECURITY.md) | Security policies and best practices |
 | [Roadmap](docs/ROADMAP.md) | Future plans and upgrades |

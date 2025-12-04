@@ -1,13 +1,20 @@
 # Deployment Database Secrets Configuration Guide
 
 **Created:** 2025-12-04  
-**Issue:** Migration job failures due to missing DB credentials  
-**Related PRs:** #892, #894  
-**Related Workflow Run:** https://github.com/Meats-Central/ProjectMeats/actions/runs/19854751426
+**Status:** ⚠️ **SUPERSEDED** - See `DATABASE_MIGRATION_GUIDE.md` for current implementation  
+**Archived:** Historical reference only
 
 ---
 
-## Problem Summary
+## Current Implementation
+
+**This document is archived.** The actual implementation uses SSH tunnel approach.
+
+**See:** `DATABASE_MIGRATION_GUIDE.md` for current setup
+
+---
+
+## Historical Context
 
 The deployment workflows require database credentials to run migrations. These credentials can be provided either as:
 1. A single `DATABASE_URL` connection string (recommended)

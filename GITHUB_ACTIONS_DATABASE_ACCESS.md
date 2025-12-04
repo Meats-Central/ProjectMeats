@@ -1,12 +1,27 @@
 # GitHub Actions Database Access Setup for DigitalOcean
 
 **Created:** 2025-12-04  
-**Issue:** GitHub Actions cannot connect to DigitalOcean managed database  
-**Error:** `psycopg2.OperationalError: connection timeout expired`
+**Status:** ✅ **IMPLEMENTED** - SSH Tunnel Approach Active  
+**See:** `DATABASE_MIGRATION_GUIDE.md` for current operational guide
 
 ---
 
-## Problem
+## Current Implementation
+
+We use **SSH Tunnel approach (Option 2)** for all environments.
+
+**Active Configuration:**
+- Migrations run on deployment servers via SSH
+- No database firewall changes needed
+- Avoids managing 5,462 GitHub Actions IP ranges
+
+**For operational details, see:** `DATABASE_MIGRATION_GUIDE.md`
+
+---
+
+## Historical Context and Alternative Approaches
+
+This document provides background on the solution selection process.
 
 GitHub Actions runners need to connect to your DigitalOcean managed PostgreSQL database to run migrations during deployment. Currently, the connection times out because DigitalOcean databases restrict access to trusted sources only.
 
