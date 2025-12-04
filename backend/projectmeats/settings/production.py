@@ -89,11 +89,12 @@ DATABASES = {
 }
 
 # -----------------------------------------------------------------------------
-# CORS
+# CORS & CSRF Trusted Origins
 # -----------------------------------------------------------------------------
 # Default allowed origins for meatscentral.com domains
-# These are always allowed in addition to any configured via environment
-_DEFAULT_CORS_ORIGINS = [
+# These are used for both CORS and CSRF protection
+# The list is reused to ensure consistency between CORS and CSRF settings
+_DEFAULT_TRUSTED_ORIGINS = [
     "https://meatscentral.com",
     "https://www.meatscentral.com",
     "https://dev.meatscentral.com",
@@ -104,16 +105,23 @@ _DEFAULT_CORS_ORIGINS = [
     "https://prod-backend.meatscentral.com",
 ]
 
-# Parse CORS_ALLOWED_ORIGINS from environment and merge with defaults
-_env_cors_origins = [
-    origin.strip()
-    for origin in config("CORS_ALLOWED_ORIGINS", default="").split(",")
-    if origin.strip()
-]
 
-# Combine default origins with environment-configured origins (no duplicates)
-CORS_ALLOWED_ORIGINS = list(dict.fromkeys(_DEFAULT_CORS_ORIGINS + _env_cors_origins))
+def _merge_origins(default_origins: list, env_var_name: str) -> list:
+    """
+    Merge default origins with environment-configured origins, removing duplicates
+    while preserving order. Uses dict.fromkeys() which maintains insertion order
+    in Python 3.7+ and removes duplicates since dict keys must be unique.
+    """
+    env_origins = [
+        origin.strip()
+        for origin in config(env_var_name, default="").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys(default_origins + env_origins))
 
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = _merge_origins(_DEFAULT_TRUSTED_ORIGINS, "CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
 # Allow all origins if explicitly set via environment variable (useful for debugging)
 # In production, prefer setting CORS_ALLOWED_ORIGINS instead
@@ -140,26 +148,8 @@ CORS_ALLOW_METHODS = [
 ]
 
 # CSRF trusted origins - required for cross-origin POST requests to admin
-# Default CSRF trusted origins for meatscentral.com domains
-_DEFAULT_CSRF_ORIGINS = [
-    "https://meatscentral.com",
-    "https://www.meatscentral.com",
-    "https://dev.meatscentral.com",
-    "https://dev-backend.meatscentral.com",
-    "https://uat.meatscentral.com",
-    "https://uat-backend.meatscentral.com",
-    "https://prod.meatscentral.com",
-    "https://prod-backend.meatscentral.com",
-]
-
-_env_csrf_origins = [
-    origin.strip()
-    for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
-    if origin.strip()
-]
-
-# Combine default origins with environment-configured origins (no duplicates)
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_DEFAULT_CSRF_ORIGINS + _env_csrf_origins))
+# Uses the same default origins as CORS for consistency
+CSRF_TRUSTED_ORIGINS = _merge_origins(_DEFAULT_TRUSTED_ORIGINS, "CSRF_TRUSTED_ORIGINS")
 
 # -----------------------------------------------------------------------------
 # Security Headers
