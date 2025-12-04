@@ -4,6 +4,7 @@ Core models for ProjectMeats.
 Provides base models and common functionality used across all apps.
 """
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator
 from django.db import models
 
 
@@ -272,6 +273,53 @@ class TimestampModel(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        abstract = True
+
+
+class AbstractContact(models.Model):
+    """
+    Abstract base model for contact information (DRY principle).
+    
+    Provides common fields found across Customer, Supplier, and Carrier entities
+    based on CSV/spreadsheet requirements. Implements US phone validation.
+    """
+    
+    # US phone number validator (supports formats: (555) 123-4567, 555-123-4567, 5551234567)
+    phone_validator = RegexValidator(
+        regex=r'^\+?1?\d{9,15}$',
+        message="Phone number must be entered in a valid format (e.g., +15551234567 or 5551234567)"
+    )
+    
+    # Contact information fields
+    ap_contact_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Accounts Payable contact name",
+        verbose_name="AP Contact Name"
+    )
+    ap_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        validators=[phone_validator],
+        help_text="Accounts Payable phone number",
+        verbose_name="AP Phone"
+    )
+    ap_email = models.EmailField(
+        blank=True,
+        default='',
+        help_text="Accounts Payable email address",
+        verbose_name="AP Email"
+    )
+    corp_address = models.TextField(
+        blank=True,
+        default='',
+        help_text="Corporate address (full address including street, city, state, zip)",
+        verbose_name="Corporate Address"
+    )
+    
     class Meta:
         abstract = True
 

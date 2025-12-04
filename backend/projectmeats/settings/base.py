@@ -39,18 +39,18 @@ SHARED_APPS = [
 # Apps that will be created in each tenant schema
 # Include Django core apps for tenant-specific data (users, permissions, etc.)
 TENANT_APPS = _DJANGO_CORE_APPS + [
-    "apps.accounts_receivables",
-    "apps.suppliers",
-    "apps.customers",
-    "apps.contacts",
-    "apps.purchase_orders",
-    "apps.plants",
-    "apps.carriers",
-    "apps.bug_reports",
-    "apps.ai_assistant",
-    "apps.products",
-    "apps.sales_orders",
-    "apps.invoices",
+    "tenant_apps.accounts_receivables",
+    "tenant_apps.suppliers",
+    "tenant_apps.customers",
+    "tenant_apps.contacts",
+    "tenant_apps.purchase_orders",
+    "tenant_apps.plants",
+    "tenant_apps.carriers",
+    "tenant_apps.bug_reports",
+    "tenant_apps.ai_assistant",
+    "tenant_apps.products",
+    "tenant_apps.sales_orders",
+    "tenant_apps.invoices",
 ]
 
 # Schema-based multi-tenancy: django-tenants must be first in INSTALLED_APPS
