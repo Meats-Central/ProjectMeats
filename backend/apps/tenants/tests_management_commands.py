@@ -8,7 +8,8 @@ With django-tenants, tenants are created as Client instances with schemas.
 See SCHEMA_ISOLATION_MIGRATION_COMPLETE.md for new tenant creation approach.
 """
 
-from django.test import TestCase, skip
+from django.test import TestCase
+from unittest import skip
 
 
 @skip("Management command tests need refactoring for schema-based multi-tenancy")

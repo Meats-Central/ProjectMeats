@@ -3,7 +3,7 @@ Tests for Suppliers API endpoints.
 
 Validates supplier creation, validation, and error handling.
 """
-from django.test import skip
+from unittest import skip
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
