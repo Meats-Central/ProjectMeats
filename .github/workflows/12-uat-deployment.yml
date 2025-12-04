@@ -303,12 +303,12 @@ jobs:
       - name: Parse DATABASE_URL and set DB credentials
         id: parse_db
         run: |
-          if [ -n "${{ secrets.UAT_DB_URL }}" ]; then
-            DB_USER=$(echo "${{ secrets.UAT_DB_URL }}" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-            DB_PASSWORD=$(echo "${{ secrets.UAT_DB_URL }}" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-            DB_HOST=$(echo "${{ secrets.UAT_DB_URL }}" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            DB_PORT=$(echo "${{ secrets.UAT_DB_URL }}" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            DB_NAME=$(echo "${{ secrets.UAT_DB_URL }}" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          if [ -n "${{ secrets.UAT_DATABASE_URL }}" ]; then
+            DB_USER=$(echo "${{ secrets.UAT_DATABASE_URL }}" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+            DB_PASSWORD=$(echo "${{ secrets.UAT_DATABASE_URL }}" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+            DB_HOST=$(echo "${{ secrets.UAT_DATABASE_URL }}" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "${{ secrets.UAT_DATABASE_URL }}" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "${{ secrets.UAT_DATABASE_URL }}" | sed -n 's|.*/\([^?]*\).*|\1|p')
             
             echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
             echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
@@ -326,7 +326,7 @@ jobs:
       - name: Run idempotent migrations
         working-directory: ./backend
         env:
-          DATABASE_URL: ${{ secrets.UAT_DB_URL }}
+          DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
           SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
           DB_ENGINE: django.db.backends.postgresql
