@@ -201,16 +201,16 @@ class Command(BaseCommand):
         - Tenant management (tenants.Tenant, tenants.TenantUser)
         - System settings
         """
-        from apps.customers.models import Customer
-        from apps.suppliers.models import Supplier
-        from apps.contacts.models import Contact
-        from apps.products.models import Product
-        from apps.purchase_orders.models import PurchaseOrder
-        from apps.sales_orders.models import SalesOrder
-        from apps.invoices.models import Invoice
-        from apps.accounts_receivables.models import AccountsReceivable
-        from apps.carriers.models import Carrier
-        from apps.plants.models import Plant
+        from tenant_apps.customers.models import Customer
+        from tenant_apps.suppliers.models import Supplier
+        from tenant_apps.contacts.models import Contact
+        from tenant_apps.products.models import Product
+        from tenant_apps.purchase_orders.models import PurchaseOrder
+        from tenant_apps.sales_orders.models import SalesOrder
+        from tenant_apps.invoices.models import Invoice
+        from tenant_apps.accounts_receivables.models import AccountsReceivable
+        from tenant_apps.carriers.models import Carrier
+        from tenant_apps.plants.models import Plant
         
         # Models that guest user should have access to
         tenant_models = [
