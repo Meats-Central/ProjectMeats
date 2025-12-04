@@ -261,16 +261,30 @@ jobs:
           SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
           DB_ENGINE: django.db.backends.postgresql
+          DB_NAME: ${{ secrets.DEV_DB_NAME || 'defaultdb' }}
+          DB_USER: ${{ secrets.DEV_DB_USER }}
+          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DEV_DB_HOST }}
+          DB_PORT: ${{ secrets.DEV_DB_PORT }}
         run: |
           echo "=== Running idempotent schema migrations ==="
           
-          # Parse DATABASE_URL to set individual DB environment variables if using production settings
+          # Set default DB_NAME if not already set
+          if [ -z "$DB_NAME" ]; then
+            export DB_NAME="defaultdb"
+          fi
+          
+          # Parse DATABASE_URL to set individual DB environment variables if provided
           if [ -n "$DATABASE_URL" ]; then
             export DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
             export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
             export DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
             export DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            # Parse DB_NAME but keep default if parsing fails
+            PARSED_DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            if [ -n "$PARSED_DB_NAME" ]; then
+              export DB_NAME="$PARSED_DB_NAME"
+            fi
             
             echo "Parsed database configuration:"
             echo "  DB_HOST: $DB_HOST"
@@ -503,7 +517,7 @@ jobs:
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --fake-initial --noinput || {
+            sh -c "python manage.py migrate_schemas --shared --fake-initial --noinput && python manage.py create_super_tenant --no-input || true && python manage.py migrate_schemas --tenant --fake-initial --noinput" || {
               echo "⚠ Migration failed"
               exit 1
             }
