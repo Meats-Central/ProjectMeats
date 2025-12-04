@@ -465,7 +465,8 @@ jobs:
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput --clear; then
+            python manage.py collectstatic --noinput --clear
+          then
             echo "✓ collectstatic succeeded"
           else
             echo "⚠️  collectstatic failed (non-critical, continuing...)"
