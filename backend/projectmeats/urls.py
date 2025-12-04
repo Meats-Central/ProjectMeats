@@ -23,17 +23,17 @@ urlpatterns = [
     # Admin interface
     path("admin/", admin.site.urls),
     # API v1 endpoints
-    path("api/v1/", include("apps.tenants.urls")),  # Multi-tenancy endpoints
-    path("api/v1/", include("apps.accounts_receivables.urls")),
-    path("api/v1/", include("apps.suppliers.urls")),
-    path("api/v1/", include("apps.customers.urls")),
-    path("api/v1/", include("apps.contacts.urls")),
-    path("api/v1/", include("apps.purchase_orders.urls")),
-    path("api/v1/", include("apps.plants.urls")),
-    path("api/v1/", include("apps.carriers.urls")),
-    path("api/v1/ai-assistant/", include("apps.ai_assistant.urls")),
-    path("api/v1/", include("apps.core.urls")),
-    path("api/v1/bug-reports/", include("apps.bug_reports.urls")),
+    path("api/v1/", include("apps.tenants.urls")),  # Multi-tenancy endpoints (shared)
+    path("api/v1/", include("tenant_apps.accounts_receivables.urls")),
+    path("api/v1/", include("tenant_apps.suppliers.urls")),
+    path("api/v1/", include("tenant_apps.customers.urls")),
+    path("api/v1/", include("tenant_apps.contacts.urls")),
+    path("api/v1/", include("tenant_apps.purchase_orders.urls")),
+    path("api/v1/", include("tenant_apps.plants.urls")),
+    path("api/v1/", include("tenant_apps.carriers.urls")),
+    path("api/v1/ai-assistant/", include("tenant_apps.ai_assistant.urls")),
+    path("api/v1/", include("apps.core.urls")),  # Core shared utilities
+    path("api/v1/bug-reports/", include("tenant_apps.bug_reports.urls")),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

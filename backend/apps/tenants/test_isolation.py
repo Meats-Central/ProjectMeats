@@ -14,13 +14,13 @@ from unittest import skip
 from django_tenants.utils import schema_context
 from django.contrib.auth.models import User
 from apps.tenants.models import Client, Domain
-from apps.suppliers.models import Supplier
-from apps.customers.models import Customer
-from apps.purchase_orders.models import PurchaseOrder
-from apps.plants.models import Plant
-from apps.contacts.models import Contact
-from apps.carriers.models import Carrier
-from apps.accounts_receivables.models import AccountsReceivable
+from tenant_apps.suppliers.models import Supplier
+from tenant_apps.customers.models import Customer
+from tenant_apps.purchase_orders.models import PurchaseOrder
+from tenant_apps.plants.models import Plant
+from tenant_apps.contacts.models import Contact
+from tenant_apps.carriers.models import Carrier
+from tenant_apps.accounts_receivables.models import AccountsReceivable
 from decimal import Decimal
 from datetime import date
 
