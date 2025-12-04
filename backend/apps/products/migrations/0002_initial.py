@@ -9,20 +9,21 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("invoices", "0002_initial"),
-        ("sales_orders", "0001_initial"),
+        ("products", "0001_initial"),
+        ("suppliers", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="invoice",
-            name="sales_order",
+            model_name="product",
+            name="supplier",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Related sales order",
+                help_text="Supplier for this product",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                to="sales_orders.salesorder",
+                related_name="products",
+                to="suppliers.supplier",
             ),
         ),
     ]

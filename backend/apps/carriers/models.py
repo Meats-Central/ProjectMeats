@@ -1,12 +1,13 @@
+# Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
+# Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+
 from django.db import models
 from django.contrib.auth.models import User
-from apps.tenants.models import Tenant
 from apps.core.models import (
     AccountingPaymentTermsChoices,
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
     CreditLimitChoices,
-    TenantManager,
 )
 from apps.contacts.models import Contact
 
@@ -19,16 +20,6 @@ class Carrier(models.Model):
         ("sea", "Sea"),
         ("other", "Other"),
     ]
-
-    # Multi-tenancy
-    tenant = models.ForeignKey(
-        Tenant,
-        on_delete=models.CASCADE,
-        related_name="carriers",
-        help_text="Tenant that owns this carrier",
-        null=True,
-        blank=True,
-    )
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
@@ -142,9 +133,6 @@ class Carrier(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
-
-    # Custom manager for tenant filtering
-    objects = TenantManager()
 
     class Meta:
         ordering = ["name"]
