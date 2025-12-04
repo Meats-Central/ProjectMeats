@@ -7,11 +7,169 @@
 
 export interface NavigationItem {
   label: string;
-  path: string;
+  path?: string;
   icon?: string;
   children?: NavigationItem[];
   requiresAuth?: boolean;
   roles?: string[];
+  onClick?: () => void;
+  color?: string;
 }
 
-export const navigation: NavigationItem[] = [];
+export const navigation: NavigationItem[] = [
+  {
+    label: 'Cockpit',
+    icon: '🎯',
+    children: [
+      {
+        label: 'Call log/schedule',
+        icon: '📅',
+        children: [
+          {
+            label: 'Slots: Per combined Supplier / Customer',
+            icon: '🔗',
+            path: '/cockpit/slots',
+            // On click: Fetch recent data via API; Initialize PO/SO modals
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Workspace',
+    icon: '💼',
+    children: [
+      {
+        label: 'Dashboard',
+        icon: '📊',
+        path: '/',
+      },
+      {
+        label: 'Processes',
+        icon: '⚙️',
+        path: '/processes',
+      },
+      {
+        label: 'Reports',
+        icon: '📈',
+        path: '/reports',
+      },
+    ],
+  },
+  {
+    label: 'Suppliers',
+    icon: '🏭',
+    path: '/suppliers',
+    children: [
+      {
+        label: 'Plants',
+        icon: '🏢',
+        path: '/plants',
+      },
+      {
+        label: 'Contacts',
+        icon: '📞',
+        path: '/suppliers/contacts',
+      },
+    ],
+  },
+  {
+    label: 'Customers',
+    icon: '👥',
+    path: '/customers',
+    color: '#ADD8E6',
+    children: [
+      {
+        label: 'Contacts',
+        icon: '📞',
+        path: '/customers/contacts',
+      },
+    ],
+  },
+  {
+    label: 'Orders',
+    icon: '📋',
+    children: [
+      {
+        label: "P.O.'s",
+        icon: '📦',
+        path: '/purchase-orders',
+        children: [
+          {
+            label: 'Attachments',
+            icon: '📎',
+            path: '/purchase-orders/attachments',
+          },
+        ],
+      },
+      {
+        label: "S.O.'s",
+        icon: '🚚',
+        path: '/sales-orders',
+        children: [
+          {
+            label: 'Attachments',
+            icon: '📎',
+            path: '/sales-orders/attachments',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Accounting',
+    icon: '💰',
+    children: [
+      {
+        label: 'Payables',
+        icon: '💸',
+        path: '/accounting/payables',
+        children: [
+          {
+            label: 'Claims',
+            icon: '📋',
+            path: '/accounting/payables/claims',
+          },
+          {
+            label: "P.O.'s",
+            icon: '📦',
+            path: '/accounting/payables/pos',
+          },
+        ],
+      },
+      {
+        label: 'Receivables',
+        icon: '💵',
+        path: '/accounts-receivables',
+        children: [
+          {
+            label: 'Claims',
+            icon: '📋',
+            path: '/accounting/receivables/claims',
+          },
+          {
+            label: "S.O.'s",
+            icon: '🚚',
+            path: '/accounting/receivables/sos',
+          },
+          {
+            label: 'Invoices',
+            icon: '🧾',
+            path: '/accounting/receivables/invoices',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Cold Storage',
+    icon: '❄️',
+    path: '/cold-storage',
+  },
+  {
+    label: 'Logistics',
+    icon: '🚛',
+    path: '/carriers',
+  },
+];
+
