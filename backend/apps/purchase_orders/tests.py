@@ -2,7 +2,7 @@
 Tests for Purchase Orders app models.
 """
 from decimal import Decimal
-from django.test import skip, TestCase
+from unittest import skip, TestCase
 from django.utils import timezone
 from apps.purchase_orders.models import (
     PurchaseOrder,

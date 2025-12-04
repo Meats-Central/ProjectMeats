@@ -9,7 +9,8 @@ with django-tenants schema creation, which is not feasible in the standard test 
 They serve as documentation for the expected isolation behavior.
 """
 
-from django.test import TestCase, skip
+from django.test import TestCase
+from unittest import skip
 from django_tenants.utils import schema_context
 from django.contrib.auth.models import User
 from apps.tenants.models import Client, Domain

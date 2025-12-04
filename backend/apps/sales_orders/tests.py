@@ -1,7 +1,7 @@
 """
 Tests for Sales Orders app models.
 """
-from django.test import skip, TestCase
+from unittest import skip, TestCase
 from apps.sales_orders.models import SalesOrder, SalesOrderStatus
 from apps.suppliers.models import Supplier
 from apps.customers.models import Customer

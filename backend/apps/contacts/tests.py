@@ -3,7 +3,7 @@ Tests for Contacts API endpoints.
 
 Validates contact creation, validation, and error handling.
 """
-from django.test import skip
+from unittest import skip
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
