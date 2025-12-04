@@ -108,8 +108,8 @@
   },
 
   // Commands to run after the container is created and ready
-  // Install dependencies and run migrations for multi-tenant setup
-  "postCreateCommand": "pip install -r backend/requirements.txt && npm ci --prefix frontend && bash .devcontainer/setup.sh"
+  // Runs idempotent multi-tenant migrations via setup.sh
+  "postCreateCommand": "bash .devcontainer/setup.sh"
 }
 
 

@@ -271,7 +271,7 @@ jobs:
 
 
   # Decoupled migration job - runs idempotent DB migrations before deployment
-  run-migrations:
+  migrate:
     runs-on: ubuntu-latest
     needs: [build-and-push, test-backend]
     environment: uat2-backend
@@ -279,67 +279,59 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'backend/requirements.txt'
-      
-      - name: Install dependencies
-        working-directory: ./backend
+      - name: Setup SSH
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
       
-      - name: Run idempotent multi-tenant migrations
-        working-directory: ./backend
+      - name: Run migrations via SSH on deployment server
         env:
-          DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
-          DB_ENGINE: django_tenants.postgresql_backend
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          # Parse DATABASE_URL for production settings compatibility
-          if [ -n "$DATABASE_URL" ]; then
-            export DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-            export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-            export DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            export DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'SSH_END'
+          set -euo pipefail
+          
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
+          }
+          
+          # Check for virtual environment
+          if [ -f "../venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source venv/bin/activate
+          else
+            echo "Warning: No virtual environment found, using system Python"
           fi
           
-          echo "=== Running multi-tenant migrations (SCHEMAS_FIRST) ==="
+          # Verify environment file exists
+          if [ ! -f ".env" ]; then
+            echo "Warning: .env file not found, using environment variables"
+          fi
           
-          # Step 1: Shared schema migrations (public schema)
-          echo "Step 1: Migrating shared schema..."
-          python manage.py migrate_schemas --shared --noinput --fake-initial || {
-            echo "Error: Shared schema migrations failed"
+          # Run migrations (idempotent with --fake-initial)
+          echo "Running database migrations..."
+          python manage.py migrate --fake-initial --noinput || {
+            echo "Error: Migrations failed"
             exit 1
           }
           
-          # Step 2: Create super tenant if needed
-          echo "Step 2: Creating super tenant..."
-          python manage.py create_super_tenant --no-input || {
-            echo "Note: Super tenant may already exist"
-          }
-          
-          # Step 3: Tenant-specific migrations
-          echo "Step 3: Migrating tenant schemas..."
-          python manage.py migrate_schemas --tenant --noinput --fake-initial || {
-            echo "Error: Tenant schema migrations failed"
-            exit 1
-          }
-          
-          echo "✓ Multi-tenant migrations completed successfully"
+          echo "✓ Migrations completed successfully"
+          SSH_END
 
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [run-migrations, test-frontend]
+    needs: [migrate, test-frontend]
     if: github.ref == 'refs/heads/uat'
     environment: uat2
     steps:
@@ -404,7 +396,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [run-migrations, test-backend]
+    needs: [migrate, test-backend]
     if: github.ref == 'refs/heads/uat'
     environment: uat2-backend
     steps:
