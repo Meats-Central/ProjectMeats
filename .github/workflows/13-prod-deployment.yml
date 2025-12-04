@@ -264,9 +264,68 @@ jobs:
           fi
 
 
+  # Decoupled migration job - runs idempotent DB migrations before deployment
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: prod2-backend
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PROD_HOST }}" >> ~/.ssh/known_hosts
+      
+      - name: Run migrations via SSH on deployment server
+        env:
+          SSHPASS: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'SSH_END'
+          set -euo pipefail
+          
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
+          }
+          
+          # Check for virtual environment
+          if [ -f "../venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source venv/bin/activate
+          else
+            echo "Warning: No virtual environment found, using system Python"
+          fi
+          
+          # Verify environment file exists
+          if [ ! -f ".env" ]; then
+            echo "Warning: .env file not found, using environment variables"
+          fi
+          
+          # Run migrations (idempotent with --fake-initial)
+          echo "Running database migrations..."
+          python manage.py migrate --fake-initial --noinput || {
+            echo "Error: Migrations failed"
+            exit 1
+          }
+          
+          echo "✓ Migrations completed successfully"
+          SSH_END
+
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend, pre-deployment-checks]
+    needs: [migrate, test-frontend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
@@ -288,7 +347,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.FRONTEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/opt/pm/frontend"
 
@@ -435,7 +494,7 @@ jobs:
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend, pre-deployment-checks]
+    needs: [migrate, test-backend, pre-deployment-checks]
     if: github.ref == 'refs/heads/main'
     environment: prod2-backend
     steps:
@@ -465,7 +524,7 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="prod-latest"
+          TAG="prod-${{ github.sha }}"
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
@@ -505,40 +564,15 @@ jobs:
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
           sudo docker pull "$REG/$IMG:$TAG"
 
-          # Run migrations (shared-schema multi-tenancy using standard Django migrations)
-          echo "Running database migrations..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
+          # Note: Migrations now handled by separate 'migrate' job
+          # Only collectstatic needs to run here
+          echo "=== Collecting static files ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
             python manage.py collectstatic --noinput || true
-
-          # Create/update superuser and root tenant (idempotent)
-          echo "Setting up superuser and root tenant..."
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            sh -c "
-              echo 'Creating/updating superuser and root tenant...'
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo '⚠ create_super_tenant command failed or not available'
-              }
-              
-              echo 'Creating/updating guest tenant...'
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo '⚠ create_guest_tenant command failed or not available'
-              }
-            "
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \

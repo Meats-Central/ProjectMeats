@@ -1,314 +1,3 @@
-name: Deploy Dev (Frontend + Backend via DOCR)
-
-on:
-  push:
-    branches: [ development ]
-  workflow_dispatch:
-
-env:
-  REGISTRY: ${{ vars.DOCR_REGISTRY }}            
-  FRONTEND_IMAGE: ${{ vars.DOCR_REPO_FRONTEND }} 
-  BACKEND_IMAGE:  ${{ vars.DOCR_REPO_BACKEND  }} 
-
-jobs:
-  # Job to build and push both frontend and backend Docker images
-  build-and-push:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: [ frontend, backend ]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to DOCR
-        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
-
-      - name: Build & Push Frontend
-        if: matrix.app == 'frontend'
-        run: |
-          docker build -f frontend/Dockerfile \
-            -t $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$FRONTEND_IMAGE:dev-latest \
-            .
-          docker push $REGISTRY/$FRONTEND_IMAGE:dev-${GITHUB_SHA::7}
-          docker push $REGISTRY/$FRONTEND_IMAGE:dev-latest
-
-      - name: Build & Push Backend (Django)
-        if: matrix.app == 'backend'
-        run: |
-          docker build -f backend/Dockerfile \
-            -t $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7} \
-            -t $REGISTRY/$BACKEND_IMAGE:dev-latest \
-            .
-          docker push $REGISTRY/$BACKEND_IMAGE:dev-${GITHUB_SHA::7}
-          docker push $REGISTRY/$BACKEND_IMAGE:dev-latest
-
-  # Job to test the frontend code
-  test-frontend:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-      - working-directory: ./frontend
-        run: npm ci
-      - working-directory: ./frontend
-        run: npm run test:ci
-      - working-directory: ./frontend
-        run: npm run type-check
-
-  # Job to test the backend code
-  test-backend:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Setup test environment
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-        run: |
-          python manage.py check
-          python manage.py migrate
-      - name: Validate migrations
-        working-directory: .
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          CI: true
-        run: |
-          chmod +x .github/scripts/validate-migrations.sh
-          .github/scripts/validate-migrations.sh
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-        run: python manage.py test apps/
-      - name: Code quality (non-blocking)
-        working-directory: ./backend
-        continue-on-error: true
-        run: |
-          if pip show flake8 >/dev/null 2>&1; then
-            flake8 . --exclude=migrations --max-line-length=120 || true
-          fi
-          if pip show black >/dev/null 2>&1; then
-            black --check . --exclude=migrations || true
-          fi
-
-
-  # Job to deploy the frontend
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
-    environment: dev-frontend
-    steps:
-      - name: Setup SSH with password authentication
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Deploy frontend container (8080 behind Nginx)
-        env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
-          set -e
-
-          # 1) Runtime env for frontend
-          sudo mkdir -p /opt/pm/frontend/env
-          sudo bash -c 'cat > /opt/pm/frontend/env/env-config.js <<JS
-          window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "development"
-          };
-          JS'
-
-          # 2) Pull image
-          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
-
-          # 3) Recreate container on 8080
-          sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
-          sudo docker run -d --name pm-frontend --restart unless-stopped \
-            -p 8080:80 \
-            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
-
-          # 4) If host Nginx exists, proxy port 80 -> 127.0.0.1:8080
-          if command -v nginx >/dev/null 2>&1; then
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
-            server {
-              listen 80;
-              server_name _;
-              location / {
-                proxy_pass http://127.0.0.1:8080;
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-            }
-            NGINX'
-            sudo nginx -t && sudo systemctl reload nginx || true
-          fi
-
-          # 5) Show status
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          DEPLOY_SCRIPT
-
-      - name: Health check (Frontend)
-        run: |
-          sleep 5
-          curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
-
-  # Job to deploy the backend
-  deploy-backend:
-    runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
-    environment: dev-backend
-    steps:
-      - name: Setup SSH with password authentication
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Deploy backend container (env at /home/django/ProjectMeats/backend/.env)
-        env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
-          set -euo pipefail
-
-          REG="${{ env.REGISTRY }}"
-          IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="dev-latest"
-
-          APP_DIR="/home/django/ProjectMeats/backend"
-          MEDIA_DIR="/home/django/ProjectMeats/media"
-          STATIC_DIR="/home/django/ProjectMeats/staticfiles"
-          ENV_FILE="${APP_DIR}/.env"
-
-          # 0) Ensure dirs exist
-          sudo mkdir -p "$APP_DIR" "$MEDIA_DIR" "$STATIC_DIR"
-          
-          # Set permissions for mounted volumes (appuser in container has UID 1000)
-          sudo chown -R 1000:1000 "$MEDIA_DIR" "$STATIC_DIR"
-
-          # 1) Write/refresh .env at the expected host path (safe to overwrite if you manage secrets in GitHub)
-          sudo tee "$ENV_FILE" > /dev/null <<ENV
-          DJANGO_SETTINGS_MODULE=${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY=${{ secrets.DEV_SECRET_KEY }}
-          CORS_ALLOWED_ORIGINS=${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}
-          DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
-          ALLOWED_HOSTS=${{ secrets.DEV_ALLOWED_HOSTS }}
-          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
-          DB_ENGINE=${{ secrets.DEV_DB_ENGINE }}
-          DB_NAME=${{ secrets.DEV_DB_NAME }}
-          DB_USER=${{ secrets.DEV_DB_USER }}
-          DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}
-          DB_HOST=${{ secrets.DEV_DB_HOST }}
-          DB_PORT=${{ secrets.DEV_DB_PORT }}
-          CORS_ALLOW_ALL_ORIGINS=${{ secrets.CORS_ALLOW_ALL_ORIGINS }}
-          SESSION_COOKIE_SECURE=${{ secrets.SESSION_COOKIE_SECURE }}
-          CSRF_COOKIE_SECURE=${{ secrets.CSRF_COOKIE_SECURE }}
-          OPENAI_API_KEY=${{ secrets.DEV_OPENAI_API_KEY }}
-          #STATIC_ROOT=${{ secrets.DEV_STATIC_ROOT }}
-          #MEDIA_ROOT=${{ secrets.DEV_MEDIA_ROOT }}
-          EMAIL_BACKEND=${{ secrets.DEV_EMAIL_BACKEND }}
-          EMAIL_HOST=${{ secrets.DEV_EMAIL_HOST }}
-          EMAIL_PORT=${{ secrets.DEV_EMAIL_PORT }}
-          EMAIL_USE_TLS=${{ secrets.DEV_EMAIL_USE_TLS }}
-          EMAIL_HOST_USER=${{ secrets.DEV_EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD=${{ secrets.DEV_EMAIL_HOST_PASSWORD }}
-          ENV
-          sudo chown root:root "$ENV_FILE"
-          sudo chmod 600 "$ENV_FILE"
-
-          # 2) Pull image
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
-          sudo docker pull "$REG/$IMG:$TAG"
-
-          # 3) Migrate and collectstatic using the same .env
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput
-
-          sudo docker run --rm \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput || true
-
-          # 4) Recreate app container
-          sudo docker rm -f pm-backend >/dev/null 2>&1 || true
-          sudo docker run -d --name pm-backend --restart unless-stopped \
-            -p 8000:8000 \
-            --env-file "$ENV_FILE" \
-            -v "$MEDIA_DIR:/app/media" \
-            -v "$STATIC_DIR:/app/staticfiles" \
-            "$REG/$IMG:$TAG"
-
-          # 5) Status
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          SSH
-
-      - name: Health check (Backend)
-        run: |
-          for i in {1..10}; do
-            if curl -fsS "${{ secrets.DEV_BACKEND_HEALTH_URL }}" > /dev/null; then
-              echo "Backend healthy"
-              exit 0
-            fi
-            sleep 3
-          done
-          echo "Backend health check failed" >&2
-          exit 1
-
 name: Deploy Dev (Frontend + Backend via DOCR and GHCR)
 
 on:
@@ -355,20 +44,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint-yaml]
     timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         app: [ frontend, backend ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db  # v3.6.1
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-dev-${{ matrix.app }}-${{ hashFiles(matrix.app == 'frontend' && 'frontend/package-lock.json' || 'backend/requirements.txt') }}
@@ -381,37 +73,35 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Build & Push Frontend to DOCR and GHCR
+      # Build & Push Frontend to DOCR and GHCR (SHA tag only for immutability)
       - name: Build & Push Frontend to DOCR and GHCR
         if: matrix.app == 'frontend'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75  # v6.9.0
         with:
           context: .
           file: frontend/dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
             ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          provenance: false
 
-      # Build & Push Backend to DOCR and GHCR
+      # Build & Push Backend to DOCR and GHCR (SHA tag only for immutability)
       - name: Build & Push Backend to DOCR and GHCR
         if: matrix.app == 'backend'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75  # v6.9.0
         with:
           context: .
           file: backend/dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
             ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-${{ github.sha }}
-            ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:dev-latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          provenance: false
       
       # Move cache to prevent unlimited growth
       - name: Move cache
@@ -424,9 +114,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
           node-version: '18'
           cache: 'npm'
@@ -442,10 +134,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     timeout-minutes: 20
+    permissions:
+      contents: read
     services:
       # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       postgres:
-        image: postgres:15  # Latest stable compatible with Django 4.2.7, psycopg2-binary 2.9.9; aligns with 2024 best practices
+        image: postgres:15  # Pinned digest for reproducibility
         env:
           POSTGRES_USER: postgres  # Standardize to 'postgres' to fix role 'root' mismatch errors
           POSTGRES_PASSWORD: postgres  # Use consistent password for CI; in production use secrets
@@ -458,11 +152,11 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
         with:
           python-version: '3.12'
-      - uses: actions/cache@v3
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -531,12 +225,75 @@ jobs:
           echo "Running tests with custom shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
+  migrate:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, test-backend]
+    environment: dev-backend
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+      
+      - name: Run migrations via SSH on deployment server
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} << 'SSH_END'
+          set -euo pipefail
+          
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
+          }
+          
+          # Check for virtual environment
+          if [ -f "../venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source venv/bin/activate
+          else
+            echo "Warning: No virtual environment found, using system Python"
+          fi
+          
+          # Verify environment file exists
+          if [ ! -f ".env" ]; then
+            echo "Warning: .env file not found, using environment variables"
+          fi
+          
+          # Run migrations (idempotent with --fake-initial)
+          echo "Running database migrations..."
+          python manage.py migrate --fake-initial --noinput || {
+            echo "Error: Migrations failed"
+            exit 1
+          }
+          
+          echo "✓ Migrations completed successfully"
+          SSH_END
+
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [test-frontend]
+    needs: [migrate, test-frontend]
     environment: dev-frontend
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 1
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -549,7 +306,7 @@ jobs:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
-          set -e
+          set -euo pipefail
 
           sudo mkdir -p /opt/pm/frontend/env
           
@@ -562,14 +319,36 @@ jobs:
 
           sudo mv /tmp/env-config.js /opt/pm/frontend/env/env-config.js
 
-          sudo docker login ${{ env.REGISTRY }} -u doctl -p ${{ secrets.DO_ACCESS_TOKEN }}
-          sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+          # Docker login with retry logic
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u doctl --password-stdin; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to login after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Login attempt $RETRY_COUNT failed, retrying in 5s..."
+            sleep 5
+          done
+
+          # Pull image with retry logic
+          RETRY_COUNT=0
+          until sudo docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to pull image after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Pull attempt $RETRY_COUNT failed, retrying in 10s..."
+            sleep 10
+          done
 
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-frontend --restart unless-stopped \
             -p 8080:80 \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-latest
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
@@ -593,15 +372,36 @@ jobs:
 
       - name: Health check (Frontend)
         run: |
-          sleep 5
-          curl -fsS "${{ secrets.DEV_URL }}" > /dev/null
+          chmod +x .github/scripts/health-check.sh
+          ./.github/scripts/health-check.sh "${{ secrets.DEV_URL }}" 20 5
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "frontend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "frontend" "${{ github.sha }}" "Frontend deployment or health check failed"
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [test-backend]
+    needs: [migrate]
     environment: dev-backend
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
@@ -624,7 +424,8 @@ jobs:
 
           REG="${{ env.REGISTRY }}"
           IMG="${{ env.BACKEND_IMAGE }}"
-          TAG="dev-latest"
+          TAG="dev-${{ github.sha }}"
+          MAX_RETRIES=3
 
           APP_DIR="/home/django/ProjectMeats/backend"
           MEDIA_DIR="/home/django/ProjectMeats/media"
@@ -661,62 +462,49 @@ jobs:
           sudo chown 1000:1000 "$ENV_FILE"
           sudo chmod 644 "$ENV_FILE"
 
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin
-          sudo docker pull "$REG/$IMG:$TAG"
+          # Docker login with retry logic
+          RETRY_COUNT=0
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to login after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Login attempt $RETRY_COUNT failed, retrying in 5s..."
+            sleep 5
+          done
 
-          # Pre-deployment: Run database migrations and setup tasks
-          echo "=== Running pre-deployment tasks ==="
+          # Pull image with retry logic
+          RETRY_COUNT=0
+          until sudo docker pull "$REG/$IMG:$TAG"; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to pull image after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Pull attempt $RETRY_COUNT failed, retrying in 10s..."
+            sleep 10
+          done
+
+          # Run migrations before deployment (idempotent, follows backend/manage.py path)
+          echo "=== Running database migrations ==="
           sudo docker run --rm \
-            --name pm-backend-deploy \
             --env-file "$ENV_FILE" \
-            -v "$ENV_FILE:/app/.env:ro" \
+            "$REG/$IMG:$TAG" \
+            python manage.py migrate --fake-initial --noinput || {
+              echo "⚠ Migration failed"
+              exit 1
+            }
+
+          # Collect static files
+          echo "=== Collecting static files ==="
+          sudo docker run --rm \
+            --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            bash -c '
-              set -euo pipefail
-              
-              echo "Step 1/5: Checking database connectivity..."
-              for i in {1..30}; do
-                if python manage.py check --database default >/dev/null 2>&1; then
-                  echo "✓ Database connection successful"
-                  break
-                fi
-                if [ $i -eq 30 ]; then
-                  echo "✗ Failed to connect to database after 30 attempts"
-                  exit 1
-                fi
-                echo "Waiting for database... ($i/30)"
-                sleep 2
-              done
-              
-              echo "Step 2/5: Running database migrations..."
-              python manage.py migrate --noinput || {
-                echo "✗ Migration failed"
-                exit 1
-              }
-              echo "✓ Migrations completed"
-              
-              echo "Step 3/5: Creating superuser and root tenant..."
-              python manage.py create_super_tenant --verbosity=1 || {
-                echo "⚠ create_super_tenant command failed or not available"
-              }
-              
-              echo "Step 4/5: Creating guest tenant..."
-              python manage.py create_guest_tenant --verbosity=1 || {
-                echo "⚠ create_guest_tenant command failed or not available"
-              }
-              
-              echo "Step 5/5: Collecting static files..."
-              python manage.py collectstatic --noinput --clear || {
-                echo "⚠ collectstatic failed (non-critical)"
-              }
-              echo "✓ Static files collected"
-              
-              echo "=== Pre-deployment tasks completed successfully ==="
-            ' || {
-              echo "✗ Pre-deployment tasks failed"
-              exit 1
+            python manage.py collectstatic --noinput --clear || {
+              echo "⚠ collectstatic failed (non-critical)"
             }
 
           # Stop old container if running
@@ -801,3 +589,20 @@ jobs:
             ATTEMPT=$((\$ATTEMPT + 1))
           done
           SSH
+
+      - name: Notify deployment success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "success" "dev" "backend" "${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          chmod +x .github/scripts/notify-deployment.sh
+          ./.github/scripts/notify-deployment.sh "failure" "dev" "backend" "${{ github.sha }}" "Backend deployment, migration, or health check failed"
+

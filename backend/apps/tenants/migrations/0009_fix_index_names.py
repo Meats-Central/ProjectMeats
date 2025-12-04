@@ -9,10 +9,27 @@ def rename_indexes_safe(apps, schema_editor):
     Safely rename indexes to stable names in the database.
     Handles permission errors by creating new indexes if rename fails.
     Uses savepoints to avoid transaction abort issues.
+    
+    IMPORTANT: This migration checks if tenants_tenantdomain table exists first.
+    If it doesn't exist (e.g., fresh database), it's a no-op.
     """
     connection = schema_editor.connection
     
     with connection.cursor() as cursor:
+        # Check if table exists first
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'tenants_tenantdomain'
+            )
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            print("Table tenants_tenantdomain does not exist - skipping index migration")
+            return
+        
         # Get existing indexes
         cursor.execute("""
             SELECT indexname 
@@ -85,8 +102,6 @@ def rename_indexes_safe(apps, schema_editor):
                 except Exception as e:
                     connection.savepoint_rollback(sid)
                     print(f"Could not create td_tenant_primary_idx: {e}")
-            if not renamed:
-                cursor.execute('CREATE INDEX IF NOT EXISTS td_tenant_primary_idx ON tenants_tenantdomain(tenant_id, is_primary)')
 
 
 class Migration(migrations.Migration):
