@@ -386,7 +386,7 @@ jobs:
             sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          sudo docker ps --format "table {{{{.Names}}}}\t{{{{.Image}}}}\t{{{{.Status}}}}\t{{{{.Ports}}}}"
           DEPLOY_SCRIPT
 
       - name: Health check (Web)
@@ -480,7 +480,7 @@ jobs:
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          sudo docker ps --format "table {{{{.Names}}}}\t{{{{.Image}}}}\t{{{{.Status}}}}\t{{{{.Ports}}}}"
           SSH
 
       - name: Post-deployment health check
