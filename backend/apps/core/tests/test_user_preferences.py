@@ -62,7 +62,20 @@ class UserPreferencesAPITest(APITestCase):
     """Tests for UserPreferences API endpoints."""
     
     def setUp(self):
-        """Set up test users and authentication."""
+        """Set up test users, authentication, and test tenant."""
+        # Create test tenant (Client) for django-tenants
+        from apps.tenants.models import Client, Domain
+        self.tenant = Client.objects.create(
+            schema_name='test',
+            name='Test Tenant'
+        )
+        Domain.objects.create(
+            domain='test.localhost',
+            tenant=self.tenant,
+            is_primary=True
+        )
+        
+        # Create test users
         self.user1 = User.objects.create_user(
             username='user1',
             email='user1@example.com',
@@ -76,10 +89,22 @@ class UserPreferencesAPITest(APITestCase):
         self.token1 = Token.objects.create(user=self.user1)
         self.token2 = Token.objects.create(user=self.user2)
     
+    def _make_request(self, method, url, token, data=None):
+        """Helper to make requests with tenant domain header."""
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+            HTTP_HOST='test.localhost'  # Required for django-tenants
+        )
+        if method == 'GET':
+            return self.client.get(url)
+        elif method == 'PATCH':
+            return self.client.patch(url, data, format='json')
+        elif method == 'PUT':
+            return self.client.put(url, data, format='json')
+    
     def test_get_or_create_preferences(self):
         """Test GET /api/v1/preferences/me/ creates preferences if not exists."""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token1.key}')
-        response = self.client.get('/api/v1/preferences/me/')
+        response = self._make_request('GET', '/api/v1/preferences/me/', self.token1)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['user'], self.user1.id)
@@ -92,16 +117,15 @@ class UserPreferencesAPITest(APITestCase):
     
     def test_update_preferences_partial(self):
         """Test PATCH /api/v1/preferences/me/ updates preferences."""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token1.key}')
-        
         # First create preferences
-        self.client.get('/api/v1/preferences/me/')
+        self._make_request('GET', '/api/v1/preferences/me/', self.token1)
         
         # Update theme only
-        response = self.client.patch(
+        response = self._make_request(
+            'PATCH',
             '/api/v1/preferences/me/',
-            {'theme': 'dark'},
-            format='json'
+            self.token1,
+            {'theme': 'dark'}
         )
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -113,8 +137,6 @@ class UserPreferencesAPITest(APITestCase):
     
     def test_update_preferences_full(self):
         """Test PUT /api/v1/preferences/me/ updates all preferences."""
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token1.key}')
-        
         data = {
             'theme': 'dark',
             'sidebar_collapsed': True,
@@ -123,11 +145,7 @@ class UserPreferencesAPITest(APITestCase):
             'widget_preferences': {'sales': {'period': 'month'}}
         }
         
-        response = self.client.put(
-            '/api/v1/preferences/me/',
-            data,
-            format='json'
-        )
+        response = self._make_request('PUT', '/api/v1/preferences/me/', self.token1, data)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['theme'], 'dark')
@@ -137,21 +155,21 @@ class UserPreferencesAPITest(APITestCase):
     def test_user_isolation(self):
         """Test users can only access their own preferences."""
         # User1 creates preferences
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token1.key}')
-        response1 = self.client.patch(
+        response1 = self._make_request(
+            'PATCH',
             '/api/v1/preferences/me/',
-            {'theme': 'dark'},
-            format='json'
+            self.token1,
+            {'theme': 'dark'}
         )
         self.assertEqual(response1.status_code, status.HTTP_200_OK)
         self.assertEqual(response1.data['theme'], 'dark')
         
         # User2 creates preferences
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token2.key}')
-        response2 = self.client.patch(
+        response2 = self._make_request(
+            'PATCH',
             '/api/v1/preferences/me/',
-            {'theme': 'light'},
-            format='json'
+            self.token2,
+            {'theme': 'light'}
         )
         self.assertEqual(response2.status_code, status.HTTP_200_OK)
         self.assertEqual(response2.data['theme'], 'light')
@@ -164,6 +182,8 @@ class UserPreferencesAPITest(APITestCase):
     
     def test_unauthenticated_access_denied(self):
         """Test unauthenticated users cannot access preferences."""
+        # Make request with tenant domain but no auth
+        self.client.credentials(HTTP_HOST='test.localhost')
         response = self.client.get('/api/v1/preferences/me/')
         # DRF may return 401 or 403 depending on authentication configuration
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
