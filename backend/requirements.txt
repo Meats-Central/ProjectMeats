@@ -4,17 +4,17 @@
 # For planned version upgrades, see docs/ROADMAP.md
 
 # Core Django and DRF
-Django==4.2.7
+Django>=5.0
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-environ==0.11.2
 django-filter==23.3
 
 # Multi-tenancy
-django-tenants==3.5.0
+django-tenants>=3.5
 
 # Database
-psycopg2-binary==2.9.9  # PostgreSQL adapter for django-tenants compatibility
+psycopg[binary]>=3.2.0  # Modern PostgreSQL adapter (psycopg3)
 dj-database-url==2.1.0
 
 # API Documentation

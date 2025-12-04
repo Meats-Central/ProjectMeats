@@ -1,7 +1,7 @@
 # ProjectMeats Development Makefile
 # Provides essential development commands for Django + React application
 
-.PHONY: help setup dev start stop test clean docs format lint env-dev env-staging env-prod env-validate env-secrets deploy-test deploy-check health-check deploy-simulate
+.PHONY: help setup dev start stop test clean docs format lint env-dev env-staging env-prod env-validate env-secrets deploy-test deploy-check health-check deploy-simulate up down migrate-all
 
 # Default target
 help:
@@ -15,9 +15,13 @@ help:
 	@echo "Development:"
 	@echo "  make start      - Start servers with PostgreSQL (uses start_dev.sh)"
 	@echo "  make stop       - Stop all servers (uses stop_dev.sh)"
+	@echo "  make dev        - Start development servers (manual)"
+	@echo "  make up         - Start Docker services"
+	@echo "  make down       - Stop Docker services"
 	@echo "  make backend    - Start Django server only"
 	@echo "  make frontend   - Start React server only"
 	@echo "  make migrate    - Apply database migrations"
+	@echo "  make migrate-all- Migrate public + all tenant schemas"
 	@echo "  make migrations - Create new migrations"
 	@echo "  make shell      - Open Django shell"
 	@echo "  make validate-db-config - Validate database environment variables"
@@ -79,12 +83,21 @@ stop:
 	@echo "🛑 Stopping all development servers..."
 	@./stop_dev.sh
 
-dev: validate-db-config
+dev: validate-db-config  ## Start everything (docker + vite + django)
 	@echo "🚀 Starting development servers..."
 	@echo "Backend: http://localhost:8000"
 	@echo "Frontend: http://localhost:3000"
 	@echo ""
+	@docker-compose up -d
 	@make -j2 backend frontend
+
+up:  ## Start Docker services
+	@echo "🐳 Starting Docker services..."
+	@docker-compose up -d
+
+down:  ## Stop Docker services
+	@echo "🐳 Stopping Docker services..."
+	@docker-compose down
 
 validate-db-config:
 	@echo "🔍 Validating database configuration..."
@@ -121,6 +134,14 @@ frontend:
 # Database commands
 migrate:
 	cd backend && python manage.py migrate
+
+migrate-all:  ## Migrate public + all tenant schemas
+	@echo "🗃️  Running multi-tenant migrations..."
+	@echo "Step 1: Migrating public schema..."
+	cd backend && python manage.py migrate_schemas --schema=public
+	@echo "Step 2: Migrating all tenant schemas..."
+	cd backend && python manage.py migrate_schemas
+	@echo "✅ All schemas migrated successfully!"
 
 migrations:
 	cd backend && python manage.py makemigrations
