@@ -51,6 +51,7 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
     "tenant_apps.products",
     "tenant_apps.sales_orders",
     "tenant_apps.invoices",
+    "tenant_apps.cockpit",
 ]
 
 # Schema-based multi-tenancy: django-tenants must be first in INSTALLED_APPS
