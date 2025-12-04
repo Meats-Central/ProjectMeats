@@ -91,12 +91,33 @@ DATABASES = {
 # -----------------------------------------------------------------------------
 # CORS
 # -----------------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = [
+# Default allowed origins for meatscentral.com domains
+# These are always allowed in addition to any configured via environment
+_DEFAULT_CORS_ORIGINS = [
+    "https://meatscentral.com",
+    "https://www.meatscentral.com",
+    "https://dev.meatscentral.com",
+    "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",
+    "https://uat-backend.meatscentral.com",
+    "https://prod.meatscentral.com",
+    "https://prod-backend.meatscentral.com",
+]
+
+# Parse CORS_ALLOWED_ORIGINS from environment and merge with defaults
+_env_cors_origins = [
     origin.strip()
     for origin in config("CORS_ALLOWED_ORIGINS", default="").split(",")
     if origin.strip()
 ]
+
+# Combine default origins with environment-configured origins (no duplicates)
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys(_DEFAULT_CORS_ORIGINS + _env_cors_origins))
+
 CORS_ALLOW_CREDENTIALS = True
+# Allow all origins if explicitly set via environment variable (useful for debugging)
+# In production, prefer setting CORS_ALLOWED_ORIGINS instead
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -109,14 +130,36 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
     "x-tenant-id",
 ]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # CSRF trusted origins - required for cross-origin POST requests to admin
-# Should match CORS_ALLOWED_ORIGINS for consistency
-CSRF_TRUSTED_ORIGINS = [
+# Default CSRF trusted origins for meatscentral.com domains
+_DEFAULT_CSRF_ORIGINS = [
+    "https://meatscentral.com",
+    "https://www.meatscentral.com",
+    "https://dev.meatscentral.com",
+    "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",
+    "https://uat-backend.meatscentral.com",
+    "https://prod.meatscentral.com",
+    "https://prod-backend.meatscentral.com",
+]
+
+_env_csrf_origins = [
     origin.strip()
     for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
     if origin.strip()
 ]
+
+# Combine default origins with environment-configured origins (no duplicates)
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_DEFAULT_CSRF_ORIGINS + _env_csrf_origins))
 
 # -----------------------------------------------------------------------------
 # Security Headers
