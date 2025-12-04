@@ -497,7 +497,7 @@ jobs:
           ATTEMPT=1
           
           # First check if container is running
-          if ! sudo docker ps --filter "name=projectmeats-backend-uat" --filter "status=running" | grep -q projectmeats-backend-uat; then
+          if ! sudo docker ps --filter "name=pm-backend" --filter "status=running" | grep -q pm-backend; then
             echo "✗ Backend container is not running"
             exit 1
           fi
@@ -505,7 +505,7 @@ jobs:
           echo "✓ Backend container is running"
           
           # Check container health (if healthcheck is defined in dockerfile)
-          CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' projectmeats-backend-uat 2>/dev/null || echo "none")
+          CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' pm-backend 2>/dev/null || echo "none")
           echo "Container health status: $CONTAINER_HEALTH"
           
           # Health check using localhost since we're on the deployment server
@@ -527,7 +527,7 @@ jobs:
             
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               # If container is running, treat as success despite health check failure
-              if sudo docker ps --filter "name=projectmeats-backend-uat" --filter "status=running" | grep -q projectmeats-backend-uat; then
+              if sudo docker ps --filter "name=pm-backend" --filter "status=running" | grep -q pm-backend; then
                 echo "⚠ Health check failed but container is running (HTTP $HTTP_CODE)"
                 echo "✓ Accepting deployment as successful"
                 exit 0
