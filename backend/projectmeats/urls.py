@@ -34,6 +34,7 @@ urlpatterns = [
     path("api/v1/ai-assistant/", include("tenant_apps.ai_assistant.urls")),
     path("api/v1/", include("apps.core.urls")),  # Core shared utilities
     path("api/v1/bug-reports/", include("tenant_apps.bug_reports.urls")),
+    path("api/v1/cockpit/", include("tenant_apps.cockpit.urls")),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
