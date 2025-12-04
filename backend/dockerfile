@@ -78,11 +78,12 @@ HEALTHCHECK --interval=30s --timeout=5s \
   CMD curl -fsS http://127.0.0.1:8000/api/v1/health/ || exit 1
 
 # Start Gunicorn with debug logging, preload, and error handling
-CMD set -x && \
-    echo "Starting container at $(date)" && \
+# Use exec form for proper signal handling
+CMD ["sh", "-c", "set -x && \
+    echo \"Starting container at $(date)\" && \
     python manage.py check && \
-    echo "Django check passed" && \
-    gunicorn projectmeats.wsgi:application \
+    echo \"Django check passed\" && \
+    exec gunicorn projectmeats.wsgi:application \
       --bind 0.0.0.0:8000 \
       --workers ${GUNICORN_WORKERS:-3} \
       --timeout ${GUNICORN_TIMEOUT:-120} \
@@ -90,4 +91,4 @@ CMD set -x && \
       --log-level debug \
       --capture-output \
       --access-logfile - \
-      --error-logfile - || { echo "Gunicorn failed with exit code $?"; sleep 300; }
+      --error-logfile - || { echo \"Gunicorn failed with exit code $?\"; sleep 300; }"]
