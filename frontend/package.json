@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "React frontend for ProjectMeats - migrated from PowerApps. For planned upgrades, see docs/ROADMAP.md",
   "private": true,
+  "_comments": {
+    "react-table-migration": "TODO: Replace react-table@7.8.0 with @tanstack/react-table (TanStack Table v8) for React 19 compatibility. See: https://tanstack.com/table/latest"
+  },
   "dependencies": {
     "@ant-design/icons": "^6.0.2",
     "@types/node": "^16.18.0",
