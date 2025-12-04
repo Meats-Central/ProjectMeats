@@ -294,6 +294,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Parse DATABASE_URL and set DB credentials
+        id: parse_db
+        run: |
+          if [ -n "${{ secrets.PROD_DB_URL }}" ]; then
+            DB_USER=$(echo "${{ secrets.PROD_DB_URL }}" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+            DB_PASSWORD=$(echo "${{ secrets.PROD_DB_URL }}" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+            DB_HOST=$(echo "${{ secrets.PROD_DB_URL }}" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "${{ secrets.PROD_DB_URL }}" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "${{ secrets.PROD_DB_URL }}" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            
+            echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+            echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
+            echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+            echo "db_port=${DB_PORT:-5432}" >> $GITHUB_OUTPUT
+            echo "db_name=${DB_NAME:-defaultdb}" >> $GITHUB_OUTPUT
+          else
+            echo "db_user=" >> $GITHUB_OUTPUT
+            echo "db_password=" >> $GITHUB_OUTPUT
+            echo "db_host=" >> $GITHUB_OUTPUT
+            echo "db_port=5432" >> $GITHUB_OUTPUT
+            echo "db_name=defaultdb" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Run idempotent migrations
         working-directory: ./backend
         env:
@@ -301,28 +324,18 @@ jobs:
           SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
           DB_ENGINE: django.db.backends.postgresql
-          DB_NAME: defaultdb
+          DB_NAME: ${{ steps.parse_db.outputs.db_name }}
+          DB_USER: ${{ steps.parse_db.outputs.db_user }}
+          DB_PASSWORD: ${{ steps.parse_db.outputs.db_password }}
+          DB_HOST: ${{ steps.parse_db.outputs.db_host }}
+          DB_PORT: ${{ steps.parse_db.outputs.db_port }}
         run: |
           echo "=== Running idempotent schema migrations ==="
-          
-          # Parse DATABASE_URL to set individual DB environment variables if using production settings
-          if [ -n "$DATABASE_URL" ]; then
-            export DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-            export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-            export DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            export DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            # Parse DB_NAME from DATABASE_URL, fallback to env var if parsing fails
-            PARSED_DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-            if [ -n "$PARSED_DB_NAME" ]; then
-              export DB_NAME="$PARSED_DB_NAME"
-            fi
-            
-            echo "Parsed database configuration:"
-            echo "  DB_HOST: $DB_HOST"
-            echo "  DB_PORT: $DB_PORT"
-            echo "  DB_NAME: $DB_NAME"
-            echo "  DB_USER: $DB_USER"
-          fi
+          echo "Database configuration:"
+          echo "  DB_HOST: $DB_HOST"
+          echo "  DB_PORT: $DB_PORT"
+          echo "  DB_NAME: $DB_NAME"
+          echo "  DB_USER: $DB_USER"
           
           # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
           python manage.py migrate_schemas --shared --fake-initial --noinput || {
