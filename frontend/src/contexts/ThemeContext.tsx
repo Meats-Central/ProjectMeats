@@ -34,10 +34,10 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  // Initialize theme from localStorage or default to 'light'
+  // Initialize theme from localStorage or default to 'dark'
   const [themeName, setThemeName] = useState<ThemeName>(() => {
     const stored = localStorage.getItem('theme');
-    return (stored === 'light' || stored === 'dark') ? stored : 'light';
+    return (stored === 'light' || stored === 'dark') ? stored : 'dark';
   });
   
   const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
@@ -45,6 +45,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Use custom theme if tenant branding is loaded, otherwise use default theme
   const theme = customTheme || themes[themeName];
+
+  // Apply theme to document body
+  useEffect(() => {
+    document.body.setAttribute('data-theme', themeName);
+    document.body.style.backgroundColor = theme.colors.background;
+    document.body.style.color = theme.colors.textPrimary;
+  }, [themeName, theme]);
 
   // Sync theme to backend when it changes
   useEffect(() => {

@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Breadcrumb from '../Navigation/Breadcrumb';
 import Omnibox from '../AIAssistant/Omnibox';
+import FloatingAssistButton from '../FloatingAssistButton';
 import { useNavigation } from '../../contexts/NavigationContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Theme } from '../../config/theme';
@@ -48,8 +49,10 @@ const Layout: React.FC = () => {
       <MainArea $sidebarOpen={sidebarOpen} $sidebarHovered={sidebarHovered}>
         <Header />
         <Content $theme={theme}>
-          <Breadcrumb />
-          <Outlet />
+          <CenteredContainer>
+            <Breadcrumb />
+            <Outlet />
+          </CenteredContainer>
         </Content>
       </MainArea>
       <Omnibox
@@ -57,6 +60,7 @@ const Layout: React.FC = () => {
         onClose={() => setShowOmnibox(false)}
         onSubmit={handleOmniboxSubmit}
       />
+      <FloatingAssistButton />
       <KeyboardShortcutHint $theme={theme}>
         Press <kbd>Ctrl+K</kbd> (or <kbd>⌘K</kbd>) to open AI Command Center
       </KeyboardShortcutHint>
@@ -80,9 +84,26 @@ const MainArea = styled.div<{ $sidebarOpen: boolean; $sidebarHovered: boolean }>
 
 const Content = styled.main<{ $theme: Theme }>`
   flex: 1;
-  padding: 30px;
+  padding: 1rem;
   background-color: ${(props) => props.$theme.colors.background};
   overflow-y: auto;
+  display: flex;
+  justify-content: center;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+`;
+
+const CenteredContainer = styled.div`
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+
+  @media (max-width: 768px) {
+    padding: 0;
+  }
 `;
 
 const KeyboardShortcutHint = styled.div<{ $theme: Theme }>`
