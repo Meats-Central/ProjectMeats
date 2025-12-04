@@ -1,5 +1,5 @@
 """
-Test settings for ProjectMeats - simplified for CI/CD testing without django-tenants complexity
+Test settings for ProjectMeats - with django-tenants schema-based multi-tenancy
 """
 import os
 
@@ -10,21 +10,16 @@ from .base import *  # noqa
 # Secret key for tests
 SECRET_KEY = "test-secret-key-not-for-production-use-only-testing"
 
-# Database configuration
-# Simplified: Use standard PostgreSQL without django-tenants schema isolation
-# This aligns with the custom shared-schema multi-tenancy approach used in base.py
+# Database configuration with django-tenants backend
 database_url = os.environ.get("DATABASE_URL", "").strip()
 
 if database_url:
     # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use STANDARD PostgreSQL backend (not django-tenants backend)
-    # This matches the production approach: custom shared-schema multi-tenancy
-    # No schema isolation - all tenants share same schema with tenant_id filtering
+    # Use django-tenants PostgreSQL backend for schema-based multi-tenancy
     if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-        # Keep standard backend - do NOT switch to django_tenants.postgresql_backend
-        pass  # Explicitly keep django.db.backends.postgresql
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
         
         # Add connection timeout for database reliability
         if "OPTIONS" not in _db_config:
@@ -33,23 +28,11 @@ if database_url:
 
     DATABASES = {"default": _db_config}
     
-    # Do NOT enable django-tenants - use custom shared-schema approach
-    # Remove django-tenants from INSTALLED_APPS if it exists
-    INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "django_tenants"]  # noqa
-    
-    # Do NOT add django-tenants middleware - use custom tenant middleware
-    # The custom apps.tenants.middleware.TenantMiddleware is already in base.py
-    MIDDLEWARE = [m for m in MIDDLEWARE if "django_tenants" not in m]  # noqa
-    
-    # No schema-based routing needed for shared-schema approach
-    DATABASE_ROUTERS = []
-    
 else:
-    # Use PostgreSQL for testing to match production environment
-    # This ensures migrations and database features work consistently
+    # Use PostgreSQL with django-tenants backend for testing
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.postgresql",
+            "ENGINE": "django_tenants.postgresql_backend",
             "NAME": os.environ.get("TEST_DB_NAME", "test_projectmeats"),
             "USER": os.environ.get("TEST_DB_USER", os.environ.get("DB_USER", "postgres")),
             "PASSWORD": os.environ.get("TEST_DB_PASSWORD", os.environ.get("DB_PASSWORD", "postgres")),

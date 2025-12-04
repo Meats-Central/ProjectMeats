@@ -66,12 +66,15 @@ if _database_url:
         conn_max_age=600,
         conn_health_checks=True,
     )
+    # Use django-tenants PostgreSQL backend for schema-based multi-tenancy
+    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
+        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
 else:
     # Explicit PostgreSQL configuration from individual environment variables
     # No SQLite fallback - all DB vars are required in production
     # These will raise KeyError if not set, ensuring fail-fast behavior
     _db_config = {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_tenants.postgresql_backend",  # django-tenants backend
         "NAME": os.environ["DB_NAME"],
         "USER": os.environ["DB_USER"],
         "PASSWORD": os.environ["DB_PASSWORD"],

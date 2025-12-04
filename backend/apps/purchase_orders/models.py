@@ -2,6 +2,10 @@
 Purchase Orders models for ProjectMeats.
 
 Defines purchase order entities and related business logic.
+
+
+Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
+Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
 """
 from decimal import Decimal
 from django.db import models
@@ -19,10 +23,8 @@ from apps.core.models import (
     PackageTypeChoices,
     ProteinTypeChoices,
     TimestampModel,
-    TenantManager,
     WeightUnitChoices,
 )
-from apps.tenants.models import Tenant
 
 
 class PurchaseOrderStatus(models.TextChoices):
@@ -36,16 +38,6 @@ class PurchaseOrderStatus(models.TextChoices):
 
 class PurchaseOrder(TimestampModel):
     """Purchase Order model for managing purchase orders."""
-
-    # Multi-tenancy
-    tenant = models.ForeignKey(
-        Tenant,
-        on_delete=models.CASCADE,
-        related_name="purchase_orders",
-        help_text="Tenant that owns this purchase order",
-        null=True,
-        blank=True,
-    )
 
     order_number = models.CharField(max_length=50, unique=True, help_text="Unique order number")
     supplier = models.ForeignKey(
@@ -152,10 +144,6 @@ class PurchaseOrder(TimestampModel):
         blank=True,
         help_text="Primary contact for this order",
     )
-
-    # Custom manager for tenant filtering
-    objects = TenantManager()
-
     class Meta:
         ordering = ["-order_date", "-created_on"]
         verbose_name = "Purchase Order"
@@ -167,16 +155,6 @@ class PurchaseOrder(TimestampModel):
 
 class CarrierPurchaseOrder(TimestampModel):
     """Carrier Purchase Order model for managing carrier-specific purchase orders."""
-
-    # Multi-tenancy
-    tenant = models.ForeignKey(
-        Tenant,
-        on_delete=models.CASCADE,
-        related_name="carrier_purchase_orders",
-        help_text="Tenant that owns this carrier purchase order",
-        null=True,
-        blank=True,
-    )
 
     # Generated timestamp
     date_time_stamp_created = models.DateTimeField(
@@ -323,10 +301,6 @@ class CarrierPurchaseOrder(TimestampModel):
         default="",
         help_text="Departments (comma-separated: BOL, COA, POD, etc.)",
     )
-
-    # Custom manager for tenant filtering
-    objects = TenantManager()
-
     class Meta:
         ordering = ["-date_time_stamp_created", "-created_on"]
         verbose_name = "Carrier Purchase Order"
@@ -338,16 +312,6 @@ class CarrierPurchaseOrder(TimestampModel):
 
 class ColdStorageEntry(TimestampModel):
     """Cold Storage Entry model for tracking boxing and cold storage operations."""
-
-    # Multi-tenancy
-    tenant = models.ForeignKey(
-        Tenant,
-        on_delete=models.CASCADE,
-        related_name="cold_storage_entries",
-        help_text="Tenant that owns this cold storage entry",
-        null=True,
-        blank=True,
-    )
 
     # Generated timestamp
     date_time_stamp_created = models.DateTimeField(
@@ -445,10 +409,6 @@ class ColdStorageEntry(TimestampModel):
         default="",
         help_text="Additional notes",
     )
-
-    # Custom manager for tenant filtering
-    objects = TenantManager()
-
     class Meta:
         ordering = ["-date_time_stamp_created", "-created_on"]
         verbose_name = "Cold Storage Entry"
