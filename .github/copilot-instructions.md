@@ -1713,3 +1713,77 @@ Based on recurring issues, we've added:
 
 **Last Updated**: 2025-11-03  
 **Version**: 3.0 (Enhanced with Copilot efficiency improvements and lessons learned)
+
+---
+
+## Django Migration Best Practices
+
+### Idempotent Migrations with `--fake-initial`
+
+**When to Use:** Production deployments, redeployments, or when tables may already exist.
+
+**Command:**
+```bash
+python manage.py migrate --fake-initial --noinput
+```
+
+**What It Does:**
+- Checks if tables from initial migrations already exist
+- If they exist, marks those migrations as applied without running them
+- Continues with unapplied migrations normally
+- Prevents "relation already exists" errors on redeployment
+
+**When NOT to Use:**
+- Fresh database setup (not harmful, but unnecessary)
+- Development environments where you want to catch schema drift
+- When you need to verify initial migrations actually run
+
+**Multi-Tenancy Context (django-tenants):**
+```bash
+# Step 1: Shared schema (public)
+python manage.py migrate_schemas --shared --fake-initial --noinput
+
+# Step 2: Create/update super tenant
+python manage.py create_super_tenant --no-input
+
+# Step 3: Tenant schemas
+python manage.py migrate_schemas --tenant --noinput
+```
+
+**Example Use Case:**
+Deploying to a server where manual table creation occurred, or redeploying after a rollback:
+
+```bash
+# This will NOT fail even if users table exists
+python manage.py migrate --fake-initial
+
+# Output:
+# Operations to perform:
+#   Apply all migrations: auth, contenttypes, sessions, ...
+# Running migrations:
+#   Applying contenttypes.0001_initial... FAKED
+#   Applying auth.0001_initial... FAKED
+#   Applying myapp.0002_new_feature... OK
+```
+
+**Safety Guarantees:**
+- ✅ Idempotent (safe to run multiple times)
+- ✅ Won't skip actual schema changes
+- ✅ Only affects initial migrations (0001_initial.py)
+- ✅ Compatible with django-tenants
+- ⚠️ Assumes initial schema is correct (doesn't verify)
+
+**Alternative: Migration Verification**
+If you need to verify initial schema matches migrations:
+```bash
+python manage.py migrate --check  # Exits non-zero if unapplied migrations exist
+python manage.py showmigrations --list  # Shows migration status
+```
+
+**CI/CD Integration:**
+Our deployment workflows use `--fake-initial` to ensure reliable redeployments without manual intervention.
+
+**References:**
+- Django Docs: https://docs.djangoproject.com/en/4.2/ref/django-admin/#cmdoption-migrate-fake-initial
+- Our Implementation: `.github/workflows/11-dev-deployment.yml` (deploy-backend job)
+
