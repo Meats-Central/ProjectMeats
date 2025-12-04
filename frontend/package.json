@@ -67,6 +67,7 @@
     "prettier": "^3.6.2",
     "prop-types": "^15.8.1",
     "react-app-rewired": "^2.2.1",
+    "react-refresh": "^0.14.2",
     "serve": "^14.2.0",
     "storybook": "^9.1.5",
     "webpack": "^5.101.3"
