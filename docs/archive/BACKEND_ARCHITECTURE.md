@@ -419,3 +419,9 @@ Health check endpoint at `/health/` provides:
 - [Django REST Framework](https://www.django-rest-framework.org/)
 - [drf-spectacular](https://drf-spectacular.readthedocs.io/)
 - [Multi-tenancy Patterns](https://django-tenants.readthedocs.io/)
+
+---
+
+**Last Updated:** 2025-12-04  
+**Version:** 1.1  
+**Maintained By:** ProjectMeats Team
