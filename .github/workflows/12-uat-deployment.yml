@@ -386,7 +386,7 @@ jobs:
             sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          sudo docker ps -a
           DEPLOY_SCRIPT
 
       - name: Health check (Web)
@@ -433,26 +433,26 @@ jobs:
 
           # Configure environment variables (using correct DJANGO_SETTINGS_MODULE for UAT/staging)
           sudo tee "$ENV_FILE" > /dev/null <<ENV
-DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
-SECRET_KEY=${{ secrets.UAT_SECRET_KEY }}
-CORS_ALLOWED_ORIGINS=${{ secrets.UAT_CORS_ALLOWED_ORIGINS }}
-DATABASE_URL=${{ secrets.UAT_DATABASE_URL }}
-ALLOWED_HOSTS=${{ secrets.UAT_ALLOWED_HOSTS }}
-DEBUG=${{ secrets.DEBUG }}
-LOG_LEVEL=${{ secrets.LOG_LEVEL }}
-CORS_ALLOW_ALL_ORIGINS=${{ secrets.UAT_CORS_ALLOW_ALL_ORIGINS }}
-SESSION_COOKIE_SECURE=${{ secrets.UAT_SESSION_COOKIE_SECURE }}
-CSRF_COOKIE_SECURE=${{ secrets.UAT_CSRF_COOKIE_SECURE }}
-OPENAI_API_KEY=${{ secrets.UAT_OPENAI_API_KEY }}
-STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
-MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
-EMAIL_BACKEND=${{ secrets.UAT_EMAIL_BACKEND }}
-EMAIL_HOST=${{ secrets.UAT_EMAIL_HOST }}
-EMAIL_PORT=${{ secrets.UAT_EMAIL_PORT }}
-EMAIL_USE_TLS=${{ secrets.UAT_EMAIL_USE_TLS }}
-EMAIL_HOST_USER=${{ secrets.UAT_EMAIL_HOST_USER }}
-EMAIL_HOST_PASSWORD=${{ secrets.UAT_EMAIL_HOST_PASSWORD }}
-ENV
+          DJANGO_SETTINGS_MODULE=projectmeats.settings.staging
+          SECRET_KEY=${{ secrets.UAT_SECRET_KEY }}
+          CORS_ALLOWED_ORIGINS=${{ secrets.UAT_CORS_ALLOWED_ORIGINS }}
+          DATABASE_URL=${{ secrets.UAT_DATABASE_URL }}
+          ALLOWED_HOSTS=${{ secrets.UAT_ALLOWED_HOSTS }}
+          DEBUG=${{ secrets.DEBUG }}
+          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+          CORS_ALLOW_ALL_ORIGINS=${{ secrets.UAT_CORS_ALLOW_ALL_ORIGINS }}
+          SESSION_COOKIE_SECURE=${{ secrets.UAT_SESSION_COOKIE_SECURE }}
+          CSRF_COOKIE_SECURE=${{ secrets.UAT_CSRF_COOKIE_SECURE }}
+          OPENAI_API_KEY=${{ secrets.UAT_OPENAI_API_KEY }}
+          STATIC_ROOT=${{ secrets.UAT_STATIC_ROOT }}
+          MEDIA_ROOT=${{ secrets.UAT_MEDIA_ROOT }}
+          EMAIL_BACKEND=${{ secrets.UAT_EMAIL_BACKEND }}
+          EMAIL_HOST=${{ secrets.UAT_EMAIL_HOST }}
+          EMAIL_PORT=${{ secrets.UAT_EMAIL_PORT }}
+          EMAIL_USE_TLS=${{ secrets.UAT_EMAIL_USE_TLS }}
+          EMAIL_HOST_USER=${{ secrets.UAT_EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD=${{ secrets.UAT_EMAIL_HOST_PASSWORD }}
+          ENV
           sudo chown root:root "$ENV_FILE"
           sudo chmod 600 "$ENV_FILE"
 
@@ -462,14 +462,17 @@ ENV
           # Note: Migrations now handled by separate 'migrate' job
           # Only collectstatic needs to run here
           echo "=== Collecting static files ==="
-          sudo docker run --rm \
+          if sudo docker run --rm \
             --env-file "$ENV_FILE" \
             -v "$MEDIA_DIR:/app/media" \
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG" \
-            python manage.py collectstatic --noinput --clear || {
-              echo "⚠️  collectstatic failed (non-critical, continuing...)"
-            }
+            python manage.py collectstatic --noinput --clear
+          then
+            echo "✓ collectstatic succeeded"
+          else
+            echo "⚠️  collectstatic failed (non-critical, continuing...)"
+          fi
 
           sudo docker rm -f pm-backend >/dev/null 2>&1 || true
           sudo docker run -d --name pm-backend --restart unless-stopped \
@@ -479,7 +482,7 @@ ENV
             -v "$STATIC_DIR:/app/staticfiles" \
             "$REG/$IMG:$TAG"
 
-          sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          sudo docker ps -a
           SSH
 
       - name: Post-deployment health check
