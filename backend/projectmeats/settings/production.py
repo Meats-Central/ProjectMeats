@@ -89,14 +89,43 @@ DATABASES = {
 }
 
 # -----------------------------------------------------------------------------
-# CORS
+# CORS & CSRF Trusted Origins
 # -----------------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in config("CORS_ALLOWED_ORIGINS", default="").split(",")
-    if origin.strip()
+# Default allowed origins for meatscentral.com domains
+# These are used for both CORS and CSRF protection
+# The list is reused to ensure consistency between CORS and CSRF settings
+_DEFAULT_TRUSTED_ORIGINS = [
+    "https://meatscentral.com",
+    "https://www.meatscentral.com",
+    "https://dev.meatscentral.com",
+    "https://dev-backend.meatscentral.com",
+    "https://uat.meatscentral.com",
+    "https://uat-backend.meatscentral.com",
+    "https://prod.meatscentral.com",
+    "https://prod-backend.meatscentral.com",
 ]
+
+
+def _merge_origins(default_origins: list, env_var_name: str) -> list:
+    """
+    Merge default origins with environment-configured origins, removing duplicates
+    while preserving order. Uses dict.fromkeys() which maintains insertion order
+    in Python 3.7+ and removes duplicates since dict keys must be unique.
+    """
+    env_origins = [
+        origin.strip()
+        for origin in config(env_var_name, default="").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys(default_origins + env_origins))
+
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = _merge_origins(_DEFAULT_TRUSTED_ORIGINS, "CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
+# Allow all origins if explicitly set via environment variable (useful for debugging)
+# In production, prefer setting CORS_ALLOWED_ORIGINS instead
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -109,14 +138,18 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
     "x-tenant-id",
 ]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # CSRF trusted origins - required for cross-origin POST requests to admin
-# Should match CORS_ALLOWED_ORIGINS for consistency
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in config("CSRF_TRUSTED_ORIGINS", default="").split(",")
-    if origin.strip()
-]
+# Uses the same default origins as CORS for consistency
+CSRF_TRUSTED_ORIGINS = _merge_origins(_DEFAULT_TRUSTED_ORIGINS, "CSRF_TRUSTED_ORIGINS")
 
 # -----------------------------------------------------------------------------
 # Security Headers
