@@ -16,8 +16,11 @@ describe('Tenant Context', () => {
   });
   
   afterAll(() => {
-    // Restore original window.location
-    window.location = originalLocation;
+    // Restore original window.location (TypeScript 5.9 requires proper casting)
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true
+    });
   });
   
   beforeEach(() => {
