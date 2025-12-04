@@ -63,19 +63,23 @@ class UserPreferencesAPITest(APITestCase):
     
     def setUp(self):
         """Set up test users, authentication, and test tenant."""
-        # Create test tenant (Client) for django-tenants
+        # Import here to avoid circular imports
         from apps.tenants.models import Client, Domain
-        self.tenant = Client.objects.create(
-            schema_name='test',
-            name='Test Tenant'
-        )
-        Domain.objects.create(
-            domain='test.localhost',
-            tenant=self.tenant,
-            is_primary=True
-        )
+        from django_tenants.utils import schema_context, get_public_schema_name
         
-        # Create test users
+        # Create test tenant (Client) in the public schema
+        with schema_context(get_public_schema_name()):
+            self.tenant = Client.objects.create(
+                schema_name='test',
+                name='Test Tenant'
+            )
+            Domain.objects.create(
+                domain='test.localhost',
+                tenant=self.tenant,
+                is_primary=True
+            )
+        
+        # Create test users (in the current test schema)
         self.user1 = User.objects.create_user(
             username='user1',
             email='user1@example.com',
