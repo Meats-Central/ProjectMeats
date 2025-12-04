@@ -273,38 +273,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'backend/requirements.txt'
-      
-      - name: Install dependencies
-        working-directory: ./backend
+      - name: Setup SSH
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_HOST }}" >> ~/.ssh/known_hosts
       
-      - name: Run idempotent multi-tenant migrations
-        working-directory: ./backend
+      - name: Run migrations via SSH on deployment server
         env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-          DB_ENGINE: django_tenants.postgresql_backend
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          # Parse DATABASE_URL for production settings compatibility
-          if [ -n "$DATABASE_URL" ]; then
-            export DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-            export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-            export DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            export DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-          fi
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'SSH_END'
+          set -euo pipefail
           
           echo "=== Running multi-tenant migrations (SCHEMAS_FIRST) ==="
           
