@@ -399,6 +399,9 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
