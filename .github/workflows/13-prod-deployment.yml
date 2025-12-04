@@ -301,6 +301,7 @@ jobs:
           SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
           DB_ENGINE: django.db.backends.postgresql
+          DB_NAME: defaultdb
         run: |
           echo "=== Running idempotent schema migrations ==="
           
@@ -310,7 +311,11 @@ jobs:
             export DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
             export DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
             export DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            # Parse DB_NAME from DATABASE_URL, fallback to env var if parsing fails
+            PARSED_DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            if [ -n "$PARSED_DB_NAME" ]; then
+              export DB_NAME="$PARSED_DB_NAME"
+            fi
             
             echo "Parsed database configuration:"
             echo "  DB_HOST: $DB_HOST"
