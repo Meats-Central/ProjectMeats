@@ -27,6 +27,7 @@ def _split_list(val: str | None) -> list[str]:
 _COMMON_INTERNAL_HOSTS = [
     "localhost",
     "127.0.0.1",
+    ".meatscentral.com",  # Wildcard for all subdomains
     # Specific IPs expected by tests and common container bridges
     "10.244.45.4",
     "10.0.0.1",

@@ -58,8 +58,8 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
 INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 MIDDLEWARE = [
-    "django_tenants.middleware.main.TenantMainMiddleware",  # Must be first for schema isolation
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # Must be first to ensure CORS headers are applied early
+    "django_tenants.middleware.main.TenantMainMiddleware",  # Second for schema isolation
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
