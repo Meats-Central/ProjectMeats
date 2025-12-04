@@ -233,87 +233,54 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
-      - name: Install dependencies
-        working-directory: ./backend
+      - name: Setup SSH
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
       
-      - name: Parse DATABASE_URL and set DB credentials
-        id: parse_db
-        run: |
-          if [ -n "${{ secrets.DEV_DATABASE_URL }}" ]; then
-            DB_USER=$(echo "${{ secrets.DEV_DATABASE_URL }}" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-            DB_PASSWORD=$(echo "${{ secrets.DEV_DATABASE_URL }}" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-            DB_HOST=$(echo "${{ secrets.DEV_DATABASE_URL }}" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-            DB_PORT=$(echo "${{ secrets.DEV_DATABASE_URL }}" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-            DB_NAME=$(echo "${{ secrets.DEV_DATABASE_URL }}" | sed -n 's|.*/\([^?]*\).*|\1|p')
-            
-            echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
-            echo "db_password=$DB_PASSWORD" >> $GITHUB_OUTPUT
-            echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
-            echo "db_port=${DB_PORT:-5432}" >> $GITHUB_OUTPUT
-            echo "db_name=${DB_NAME:-defaultdb}" >> $GITHUB_OUTPUT
-          else
-            echo "db_user=" >> $GITHUB_OUTPUT
-            echo "db_password=" >> $GITHUB_OUTPUT
-            echo "db_host=" >> $GITHUB_OUTPUT
-            echo "db_port=5432" >> $GITHUB_OUTPUT
-            echo "db_name=defaultdb" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Run idempotent migrations
-        working-directory: ./backend
+      - name: Run migrations via SSH on deployment server
         env:
-          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
-          DB_ENGINE: django.db.backends.postgresql
-          DB_NAME: ${{ steps.parse_db.outputs.db_name }}
-          DB_USER: ${{ steps.parse_db.outputs.db_user }}
-          DB_PASSWORD: ${{ steps.parse_db.outputs.db_password }}
-          DB_HOST: ${{ steps.parse_db.outputs.db_host }}
-          DB_PORT: ${{ steps.parse_db.outputs.db_port }}
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
         run: |
-          echo "=== Running idempotent schema migrations ==="
-          echo "Database configuration:"
-          echo "  DB_HOST: $DB_HOST"
-          echo "  DB_PORT: $DB_PORT"
-          echo "  DB_NAME: $DB_NAME"
-          echo "  DB_USER: $DB_USER"
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} << 'SSH_END'
+          set -euo pipefail
           
-          # Step 1: Apply shared schema migrations (idempotent with --fake-initial)
-          python manage.py migrate_schemas --shared --fake-initial --noinput || {
-            echo "migrate_schemas not available, falling back to standard migrate"
-            python manage.py migrate --fake-initial --noinput
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
           }
           
-          # Step 2: Create/update super tenant (idempotent)
-          python manage.py create_super_tenant --no-input --verbosity=1 || {
-            echo "⚠ create_super_tenant command failed or not available"
-          }
+          # Check for virtual environment
+          if [ -f "../venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            echo "Activating virtual environment..."
+            source venv/bin/activate
+          else
+            echo "Warning: No virtual environment found, using system Python"
+          fi
           
-          # Step 3: Apply tenant-specific migrations (idempotent)
-          python manage.py migrate_schemas --tenant --noinput || {
-            echo "⚠ migrate_schemas --tenant failed or not available"
+          # Verify environment file exists
+          if [ ! -f ".env" ]; then
+            echo "Warning: .env file not found, using environment variables"
+          fi
+          
+          # Run migrations (idempotent with --fake-initial)
+          echo "Running database migrations..."
+          python manage.py migrate --fake-initial --noinput || {
+            echo "Error: Migrations failed"
+            exit 1
           }
           
           echo "✓ Migrations completed successfully"
+          SSH_END
 
   deploy-frontend:
     runs-on: ubuntu-latest
