@@ -284,14 +284,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.UAT_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
       
       - name: Run migrations via SSH on deployment server
         env:
-          SSHPASS: ${{ secrets.UAT_SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -e ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.UAT_USER }}@${{ secrets.UAT_HOST }} << 'SSH_END'
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'SSH_END'
           set -euo pipefail
           
           echo "=== Running migrations on deployment server ==="
