@@ -4,25 +4,22 @@ import uuid
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django_tenants.models import TenantMixin, DomainMixin
 
 
-class Client(models.Model):
+class Client(TenantMixin):
     """
     Client model for django-tenants schema-based multi-tenancy.
 
     This model represents a tenant in the schema-based multi-tenancy approach
     where each client gets its own PostgreSQL schema for complete data isolation.
 
-    This is separate from the Tenant model which is used for shared-schema
-    multi-tenancy. Both approaches are supported for flexibility.
+    Inherits from TenantMixin which provides:
+    - schema_name: PostgreSQL schema name
+    - auto_create_schema: Whether to automatically create schema
+    - auto_drop_schema: Whether to automatically drop schema on delete
     """
 
-    schema_name = models.CharField(
-        max_length=63,
-        unique=True,
-        db_index=True,
-        help_text="PostgreSQL schema name for this client",
-    )
     name = models.CharField(max_length=255, help_text="Client organization name")
     description = models.TextField(
         blank=True, help_text="Optional description of the client"
@@ -32,6 +29,10 @@ class Client(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Enable automatic schema management
+    auto_create_schema = True
+    auto_drop_schema = False  # Safety: don't auto-drop schemas
+
     class Meta:
         db_table = "tenants_client"
 
@@ -39,7 +40,7 @@ class Client(models.Model):
         return f"{self.name} ({self.schema_name})"
 
 
-class Domain(models.Model):
+class Domain(DomainMixin):
     """
     Domain model for django-tenants schema-based multi-tenancy.
 
@@ -47,27 +48,14 @@ class Domain(models.Model):
     This is the django-tenants DomainMixin-based model used for
     schema-based multi-tenancy.
 
-    This is separate from TenantDomain which is used for shared-schema
-    multi-tenancy routing.
-    """
+    Inherits from DomainMixin which provides:
+    - domain: Domain name field
+    - tenant: ForeignKey to Client
+    - is_primary: Whether this is the primary domain
 
-    domain = models.CharField(
-        max_length=253,
-        unique=True,
-        db_index=True,
-        help_text="Domain name (e.g., 'client.example.com')",
-    )
-    tenant = models.ForeignKey(
-        Client,
-        on_delete=models.CASCADE,
-        related_name="domains",
-        help_text="Client associated with this domain",
-    )
-    is_primary = models.BooleanField(
-        default=True,
-        db_index=True,
-        help_text="Whether this is the primary domain for the client",
-    )
+    This is separate from TenantDomain which is used for shared-schema
+    multi-tenancy routing (deprecated).
+    """
 
     class Meta:
         db_table = "tenants_domain"
