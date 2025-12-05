@@ -103,8 +103,7 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
 ]
 
 
-
-MIDDLEWARE = [MIDDLEWARE = [
+MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Must be first for CORS headers
     # CRITICAL: Custom TenantMiddleware (NOT django_tenants.middleware.main.TenantMainMiddleware)
     "apps.tenants.middleware.TenantMiddleware",  # Sets request.tenant without schema routing
