@@ -578,3 +578,9 @@ For questions or issues with multi-tenancy:
 2. Review the test cases in `test_isolation.py`
 3. Consult the Django multi-tenancy documentation
 4. Contact the development team
+
+---
+
+**Last Updated:** 2025-12-04  
+**Version:** 1.1  
+**Maintained By:** ProjectMeats Team
