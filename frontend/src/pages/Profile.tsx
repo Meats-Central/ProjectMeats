@@ -315,19 +315,6 @@ const ProfileHeader = styled.div`
   margin-bottom: 30px;
 `;
 
-const Avatar = styled.div`
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: 700;
-  color: white;
-`;
-
 const ProfileInfo = styled.div`
   flex: 1;
 `;
