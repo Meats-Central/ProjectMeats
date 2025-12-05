@@ -1,48 +1,121 @@
-# Project Meats — Current Architecture (Authoritative — December 2025)
+# ProjectMeats Architecture (Authoritative — December 2025)
 
-## Stack
-- Backend: Django 5.x + django-tenants 3.x + PostgreSQL 15+
-- Frontend: React 19 + TypeScript 5.9 + Vite 5 + dnd-kit + TanStack Query
-- Multi-Tenancy: **Schema-based isolation only** (django-tenants)
-- No `tenant_id` foreign keys anywhere in business models
+> **IMPORTANT**: This document is the single source of truth for ProjectMeats architecture.
+> If any other documentation contradicts this file, THIS FILE WINS.
 
-## Directory Structure (Mandatory)
+## Multi-Tenancy: Shared Schema Only
+
+**ProjectMeats uses SHARED SCHEMA multi-tenancy. There is NO django-tenants schema-based isolation.**
+
+```mermaid
+flowchart LR
+    subgraph "Multi-Tenancy Architecture"
+        direction TB
+        A[HTTP Request] --> B[TenantMiddleware]
+        B --> C{Resolve Tenant}
+        C -->|X-Tenant-ID| D[Header Resolution]
+        C -->|Domain Match| E[TenantDomain Lookup]
+        C -->|Subdomain| F[Slug Matching]
+        C -->|User Default| G[TenantUser Association]
+        D --> H[request.tenant]
+        E --> H
+        F --> H
+        G --> H
+        H --> I[ViewSet Queries]
+        I --> J[.filter tenant=request.tenant]
+    end
+    
+    subgraph "Database Schema"
+        K[(PostgreSQL)]
+        K --> L[Single Public Schema]
+        L --> M[All Tables]
+        M --> N[tenant_id ForeignKey]
+    end
+```
+
+### Key Principles
+
+1. **Single Schema**: All tenants share one PostgreSQL schema (`public`)
+2. **ForeignKey Isolation**: Business models use `tenant` ForeignKey for data isolation
+3. **Middleware Resolution**: `TenantMiddleware` sets `request.tenant` from domain/header/user
+4. **ViewSet Filtering**: All ViewSets filter querysets by `tenant=request.tenant`
+
+### What Was Removed
+
+- ❌ django-tenants package dependency
+- ❌ `Client` and `Domain` models (TenantMixin/DomainMixin)
+- ❌ Schema-based routing and `migrate_schemas` commands
+- ❌ `TENANT_MODEL`, `TENANT_DOMAIN_MODEL`, `DATABASE_ROUTERS` settings
+
+### What Remains
+
+- ✅ `Tenant` model for tenant metadata
+- ✅ `TenantUser` for user-tenant associations with roles
+- ✅ `TenantDomain` for custom domain routing
+- ✅ `TenantInvitation` for invite-only signup
+- ✅ Custom `TenantMiddleware` for shared-schema resolution
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Backend | Django + DRF | 5.x |
+| Database | PostgreSQL | 15+ |
+| Frontend | React + TypeScript | 19 + 5.9 |
+| Build Tool | Vite | 5.x |
+| UI Components | dnd-kit, TanStack Query | Latest |
+| Styling | Tailwind CSS | 3.x |
+
+## Directory Structure
+
 ```
 /backend/
   manage.py
-  /shared_apps/      ← public schema only (auth, tenants, etc.)
-  /tenant_apps/      ← all business logic lives here
+  projectmeats/
+    settings/
+      base.py         # Shared settings
+      development.py  # Dev overrides
+      production.py   # Prod overrides
+  apps/
+    core/             # Shared utilities
+    tenants/          # Tenant management
+  tenant_apps/        # Business logic apps
+
 /frontend/
   src/
-    /features/       ← new feature-sliced layout
-    /components/ui/  ← shadcn/ui components
+    features/         # Feature-sliced layout
+    components/       # Reusable components
+    hooks/            # Custom React hooks
+    services/         # API clients
+
+/deploy/
+  nginx/              # Nginx configuration
 ```
 
-## Golden Rules (never break)
-1. Always use schema context (`connection.schema_name`, `tenant_schema()`)
-2. Migrations → `python manage.py migrate_schemas` (never plain migrate on tenant data)
-3. All Celery tasks must be tenant-aware
-4. Sidebar is Dark Mode with white text (#ffffff on #0f172a)
-5. All new components use React 19 + TypeScript strict mode
+## Golden Rules
 
-This file overrides every older doc. If something contradicts this file → this file wins.
+1. **Never use django-tenants** - All multi-tenancy is via tenant_id ForeignKeys
+2. **Always filter by tenant** - ViewSets must filter querysets with `tenant=request.tenant`
+3. **Use standard migrate** - No `migrate_schemas` commands needed
+4. **API via unified ingress** - All API calls go through `/api/v1/`
+
+## Migration Commands
+
+```bash
+# Standard Django migrations (no schema-based commands)
+python manage.py makemigrations
+python manage.py migrate
+
+# Check for unapplied migrations
+python manage.py makemigrations --check
+```
+
+## API Design
+
+- **Base URL**: `/api/v1/`
+- **Authentication**: Token + Session
+- **Tenant Header**: `X-Tenant-ID` (optional, for explicit tenant selection)
 
 ---
 
-## Phase 1 – Core Platform Foundation ✓ Closed December 2025
-
-### Completed Components
-- ✅ **CI/CD Pipeline**: GitHub Actions workflows for dev/UAT/production
-- ✅ **Branch Protection**: Semantic PR checks and branch flow validation
-- ✅ **Multi-Tenant Migrations**: `migrate_schemas` commands in Makefile
-- ✅ **Docker Setup**: docker-compose for local development
-- ✅ **Code Standards**: EditorConfig, linting, formatting rules
-- ✅ **Documentation**: Single source of truth established (docs/ARCHITECTURE.md)
-
-### Key Achievements
-- Django 5.x + psycopg3 (modern PostgreSQL adapter)
-- React 19 + TypeScript 5.9 strict mode
-- Feature-sliced directory structure prepared
-- 137 legacy docs archived to prevent AI hallucinations
-
-**Status**: Production-ready foundation. All future work builds on this baseline.
+**Last Updated**: December 2025 | **Version**: 2.0 (Shared Schema Only)

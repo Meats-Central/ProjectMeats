@@ -180,8 +180,25 @@ jobs:
             echo "No init scripts directory found at ./docker-entrypoint-initdb.d/"
           fi
       
-      # Note: makemigrations should be done locally and committed. Focus on migrate only in CI.
-      # Run full Django migrations (idempotent)
+      # Gate: Check for uncommitted migrations (fails if model changes need new migrations)
+      - name: Check for unapplied migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+          POSTGRES_USER: postgres
+        run: |
+          echo "Checking for uncommitted model changes..."
+          python manage.py makemigrations --check --dry-run --noinput || {
+            echo "ERROR: Uncommitted migrations detected!"
+            echo "Run 'python manage.py makemigrations' locally and commit the migration files."
+            exit 1
+          }
+          echo "✓ No uncommitted migrations"
+      
+      # Run full Django migrations (standard migrate, no schema-based commands)
       - name: Run full Django migrations
         working-directory: ./backend
         env:
@@ -194,7 +211,7 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      # Run tests directly - custom shared-schema multi-tenancy (no django-tenants schema isolation)
+      # Run tests - shared-schema multi-tenancy with tenant_id isolation
       - name: Run tests
         working-directory: ./backend
         env:
@@ -204,7 +221,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Running tests with custom shared-schema multi-tenancy..."
+          echo "Running tests with shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
   migrate:

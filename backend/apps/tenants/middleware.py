@@ -1,11 +1,16 @@
 """
-Middleware for multi-tenancy support in ProjectMeats.
+Middleware for shared-schema multi-tenancy support in ProjectMeats.
 
+Architecture: Shared Schema Multi-Tenancy
+=========================================
 This middleware sets the current tenant in the request context based on:
 1. X-Tenant-ID header (for API requests) - HIGHEST PRIORITY
-2. Full domain name match (via TenantDomain model) - NEW
+2. Full domain name match (via TenantDomain model)
 3. Subdomain (if configured)
 4. Authenticated user's default tenant association - FALLBACK
+
+All tenant isolation is enforced via tenant_id foreign keys on business
+models. There is NO PostgreSQL schema-based routing.
 
 Tenant Resolution Order:
 -----------------------
@@ -14,7 +19,7 @@ Tenant Resolution Order:
    - Validates user has access to requested tenant
    - Returns 403 Forbidden if user lacks permission
    
-2. **Domain Match**: For multi-tenant domain routing (shared-schema pattern)
+2. **Domain Match**: For multi-tenant domain routing
    - Matches full domain against TenantDomain model entries
    - Example: tenant.example.com → TenantDomain.objects.get(domain="tenant.example.com")
    
