@@ -349,8 +349,9 @@ const NavIcon = styled.span<{ $color?: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => props.$color || 'inherit'};
+  color: inherit;
   flex-shrink: 0;
+  opacity: 0.9;
 `;
 
 const NavLabel = styled.span`
