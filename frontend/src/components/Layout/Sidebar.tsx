@@ -56,8 +56,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
     // Load keep open preference from localStorage
     return localStorage.getItem('sidebarKeepOpen') === 'true';
   });
-<<<<<<< HEAD
-=======
 
   // Check if we're on desktop (for pin functionality)
   // Using function to safely access window for SSR compatibility
@@ -71,7 +69,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
->>>>>>> origin/development
 
   // Sync keepOpen with parent isOpen state when keepOpen changes
   useEffect(() => {
@@ -146,11 +143,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
         )}
       </SidebarHeader>
 
-<<<<<<< HEAD
-      <Navigation>
-        <NavigationMenu items={navigation} isExpanded={isExpanded} />
-      </Navigation>
-=======
       {isExpanded && (
         <SearchContainer $isDarkMode={isDarkMode}>
           <SearchInputWrapper $isDarkMode={isDarkMode}>
@@ -179,7 +171,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
           </FooterText>
         )}
       </SidebarFooter>
->>>>>>> origin/development
     </SidebarContainer>
   );
 };
@@ -187,15 +178,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
 const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMode: boolean }>`
   width: ${(props) => (props.$isOpen ? '260px' : '64px')};
   height: 100vh;
-<<<<<<< HEAD
-  background: #333; /* Consistent dark background regardless of theme */
-  color: white; /* Consistent white text */
-  transition: width 0.3s ease;
-=======
   background: ${(props) => props.$isDarkMode ? '#0f172a' : '#ffffff'};
   color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
   transition: width 0.25s ease;
->>>>>>> origin/development
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -207,17 +192,11 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMo
     : '2px 0 12px rgba(0, 0, 0, 0.08)'};
 `;
 
-<<<<<<< HEAD
-const SidebarHeader = styled.div<{ $theme: Theme }>`
-  padding: 20px 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Consistent border */
-=======
 const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean; $isDarkMode: boolean }>`
   padding: 16px;
   border-bottom: 1px solid ${(props) => props.$isDarkMode 
     ? 'rgba(255, 255, 255, 0.08)' 
     : 'rgba(0, 0, 0, 0.08)'};
->>>>>>> origin/development
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -255,42 +234,6 @@ const LogoText = styled.h2<{ $isDarkMode: boolean }>`
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
-<<<<<<< HEAD
-  color: white; /* Consistent white tenant name */
-`;
-
-const KeepOpenToggle = styled.button<{ $theme: Theme; $active: boolean }>`
-  background: ${(props) => props.$active ? props.$theme.colors.primary : 'none'};
-  border: none;
-  color: white; /* Consistent white icon color */
-  cursor: pointer;
-  font-size: 16px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-  opacity: ${(props) => props.$active ? 1 : 0.6};
-
-  &:hover {
-    opacity: 1;
-    background-color: ${(props) => props.$active ? props.$theme.colors.primaryHover : props.$theme.colors.surfaceHover};
-    color: ${(props) => props.$active ? 'white' : props.$theme.colors.sidebarTextHover};
-    transform: scale(1.1);
-  }
-`;
-
-const Navigation = styled.nav`
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 0;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-=======
   color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
   letter-spacing: 0.01em;
 `;
@@ -324,19 +267,9 @@ const PinButton = styled.button<{ $theme: Theme; $active: boolean; $isDarkMode: 
   &:focus-visible {
     outline: 2px solid #7c3aed;
     outline-offset: 2px;
->>>>>>> origin/development
   }
+`;
 
-<<<<<<< HEAD
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-  }
-=======
 const SearchContainer = styled.div<{ $isDarkMode: boolean }>`
   padding: 12px 16px;
 `;
@@ -432,7 +365,6 @@ const FooterText = styled.span<{ $isDarkMode: boolean }>`
     ? 'rgba(255, 255, 255, 0.4)' 
     : 'rgba(0, 0, 0, 0.4)'};
   letter-spacing: 0.02em;
->>>>>>> origin/development
 `;
 
 export default Sidebar;

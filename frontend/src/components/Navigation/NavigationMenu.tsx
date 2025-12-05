@@ -1,21 +1,12 @@
 /**
  * NavigationMenu Component
  * 
-<<<<<<< HEAD
- * Handles nested navigation with expandable/collapsible submenus
- * Supports multi-level hierarchies with proper indentation
- */
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
-=======
  * Handles nested navigation with expandable/collapsible accordion submenus
  * Supports multi-level hierarchies with proper indentation and smooth animations
  */
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import styled, { css } from 'styled-components';
->>>>>>> origin/development
 import { NavigationItem } from '../../config/navigation';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Theme } from '../../config/theme';
@@ -26,14 +17,6 @@ interface NavigationMenuProps {
   level?: number;
 }
 
-<<<<<<< HEAD
-const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: sidebarExpanded, level = 0 }) => {
-  const { theme } = useTheme();
-  const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-
-  const toggleExpand = (label: string) => {
-=======
 // Chevron SVG icon component for accordion expand/collapse
 const ChevronIcon: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => (
   <svg 
@@ -93,7 +76,6 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       e.preventDefault();
       e.stopPropagation();
     }
->>>>>>> origin/development
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(label)) {
@@ -113,8 +95,6 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     return false;
   };
 
-<<<<<<< HEAD
-=======
   const isExactActive = (item: NavigationItem): boolean => {
     return item.path === location.pathname;
   };
@@ -194,53 +174,10 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     </MenuButton>
   );
 
->>>>>>> origin/development
   return (
     <MenuContainer>
       {items.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
-<<<<<<< HEAD
-        const isExpanded = expandedItems.has(item.label);
-        const active = isActive(item);
-
-        return (
-          <MenuItem key={item.label} $level={level}>
-            {item.path ? (
-              <StyledNavLink
-                to={item.path}
-                $theme={theme}
-                $level={level}
-                $active={active}
-                onClick={() => hasChildren && toggleExpand(item.label)}
-              >
-                <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && sidebarExpanded && (
-                  <ExpandIcon $isExpanded={isExpanded}>
-                    {isExpanded ? '▼' : '▶'}
-                  </ExpandIcon>
-                )}
-              </StyledNavLink>
-            ) : (
-              <MenuButton
-                onClick={() => toggleExpand(item.label)}
-                $theme={theme}
-                $level={level}
-                $active={active}
-              >
-                <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && sidebarExpanded && (
-                  <ExpandIcon $isExpanded={isExpanded}>
-                    {isExpanded ? '▼' : '▶'}
-                  </ExpandIcon>
-                )}
-              </MenuButton>
-            )}
-
-            {hasChildren && isExpanded && (
-              <SubMenu $isExpanded={isExpanded}>
-=======
         const isItemExpanded = expandedItems.has(item.label);
         const active = isActive(item);
         const exactActive = isExactActive(item);
@@ -260,17 +197,12 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
             {menuItemContent}
             {hasChildren && (
               <AccordionContent $isExpanded={isItemExpanded && sidebarExpanded} $isDarkMode={isDarkMode}>
->>>>>>> origin/development
                 <NavigationMenu
                   items={item.children!}
                   isExpanded={sidebarExpanded}
                   level={level + 1}
                 />
-<<<<<<< HEAD
-              </SubMenu>
-=======
               </AccordionContent>
->>>>>>> origin/development
             )}
           </MenuItem>
         );
@@ -282,62 +214,11 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
 const MenuContainer = styled.div`
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
-=======
   gap: 2px;
->>>>>>> origin/development
 `;
 
 const MenuItem = styled.div<{ $level: number }>`
   position: relative;
-<<<<<<< HEAD
-  margin-bottom: 2px;
-`;
-
-const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 15px;
-  padding-left: ${(props) => 15 + props.$level * 20}px;
-  color: white;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  font-size: ${(props) => Math.max(14 - props.$level, 12)}px;
-  background: ${(props) => (props.$active ? 'rgba(255, 255, 255, 0.15)' : 'transparent')};
-  border-left: ${(props) => (props.$active ? '3px solid #667eea' : '3px solid transparent')};
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-  }
-
-  &.active {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-left: 3px solid #667eea;
-  }
-`;
-
-const MenuButton = styled.button<{ $theme: Theme; $level: number; $active: boolean }>`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 15px;
-  padding-left: ${(props) => 15 + props.$level * 20}px;
-  color: white;
-  background: ${(props) => (props.$active ? 'rgba(255, 255, 255, 0.15)' : 'transparent')};
-  border: none;
-  border-left: ${(props) => (props.$active ? '3px solid #667eea' : '3px solid transparent')};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: ${(props) => Math.max(14 - props.$level, 12)}px;
-  text-align: left;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-=======
 `;
 
 const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: boolean }>`
@@ -458,28 +339,19 @@ const ExpandButton = styled.button<{ $isExpanded: boolean; $isDarkMode: boolean 
       ? 'rgba(255, 255, 255, 0.1)' 
       : 'rgba(0, 0, 0, 0.05)'};
     color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
->>>>>>> origin/development
   }
 `;
 
 const NavIcon = styled.span<{ $color?: string }>`
   font-size: 18px;
-<<<<<<< HEAD
-  min-width: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${(props) => props.$color || 'white'};
-  filter: ${(props) => (props.$color ? 'none' : 'none')};
-=======
   min-width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => props.$color || 'inherit'};
+  color: inherit;
   flex-shrink: 0;
->>>>>>> origin/development
+  opacity: 0.9;
 `;
 
 const NavLabel = styled.span`
@@ -488,22 +360,6 @@ const NavLabel = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-<<<<<<< HEAD
-`;
-
-const ExpandIcon = styled.span<{ $isExpanded: boolean }>`
-  font-size: 10px;
-  transition: transform 0.2s ease;
-  transform: ${(props) => (props.$isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)')};
-  margin-left: auto;
-`;
-
-const SubMenu = styled.div<{ $isExpanded: boolean }>`
-  overflow: hidden;
-  max-height: ${(props) => (props.$isExpanded ? '1000px' : '0')};
-  transition: max-height 0.3s ease;
-  background: rgba(0, 0, 0, 0.2);
-=======
   letter-spacing: 0.01em;
 `;
 
@@ -524,7 +380,6 @@ const AccordionContent = styled.div<{ $isExpanded: boolean; $isDarkMode: boolean
   border-radius: 4px;
   margin-left: 8px;
   margin-right: 8px;
->>>>>>> origin/development
 `;
 
 export default NavigationMenu;
