@@ -10,17 +10,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="tenant",
-            name="schema_name",
-            field=models.CharField(
-                blank=True,
-                db_index=True,
-                help_text="Database schema name (for future django-tenants compatibility)",
-                max_length=63,
-                null=True,
-                unique=True,
-            ),
+        # Add schema_name column only if it doesn't exist (idempotent)
+        migrations.RunSQL(
+            sql="""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tenants_tenant' AND column_name='schema_name'
+                    ) THEN 
+                        ALTER TABLE tenants_tenant ADD COLUMN schema_name VARCHAR(63) NULL;
+                        CREATE UNIQUE INDEX IF NOT EXISTS tenants_tenant_schema_name_uniq ON tenants_tenant(schema_name);
+                    END IF; 
+                END $$;
+            """,
+            reverse_sql="ALTER TABLE tenants_tenant DROP COLUMN IF EXISTS schema_name CASCADE;",
         ),
         migrations.CreateModel(
             name="TenantDomain",

@@ -388,6 +388,6 @@ By following these practices, we've reduced migration-related deployment failure
 
 ---
 
-**Last Updated:** 2025-11-03  
-**Version:** 1.0  
+**Last Updated:** 2025-12-04  
+**Version:** 1.1  
 **Maintained By:** DevOps & Backend Team
