@@ -32,7 +32,7 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 - **Tenant Context**: Use `TenantMiddleware` to automatically set `request.tenant` for each request. Always filter queries using the `for_tenant()` method on tenant-aware models.
 - **Data Isolation**: All business entity models (`Supplier`, `Customer`, `PurchaseOrder`, `Plant`, `Contact`, `Carrier`, `AccountsReceivable`) include a `tenant` ForeignKey and must be queried with tenant filtering.
 - **ViewSet Pattern**: All ViewSets managing tenant-scoped data must override `get_queryset()` to filter by tenant and `perform_create()` to assign the tenant on creation.
-- **Migrations**: Use `migrate_schemas` instead of `migrate` for `TENANT_APPS`. See [Multi-Tenancy Guide](../docs/MULTI_TENANCY_GUIDE.md) for details.
+- **Migrations**: Use `migrate_schemas` instead of `migrate` for `TENANT_APPS`. See [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md) for details.
 
 ---
 
@@ -616,7 +616,7 @@ if customer:
 
 #### References
 
-- Multi-Tenancy Guide: `docs/MULTI_TENANCY_GUIDE.md` (if exists)
+- Multi-Tenancy Guide: `docs/archive/MULTI_TENANCY_GUIDE.md`
 - Migration Commands: `.github/workflows/*deployment*.yml` (migrate job)
 - Devcontainer Setup: `.devcontainer/setup.sh`
 
@@ -1068,7 +1068,7 @@ if customer:
 
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
-  - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md))
+  - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md))
   - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
     - Run `python manage.py makemigrations <app_name>` AND commit the migration file
     - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
@@ -1444,14 +1444,14 @@ if customer:
 
 ### Repository-Specific Documentation
 - [Branch Workflow Checklist](../branch-workflow-checklist.md)
-- [Repository Best Practices](../docs/REPOSITORY_BEST_PRACTICES.md)
-- [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md) - **Essential reading for all backend work**
-- [Deployment Troubleshooting](../docs/DEPLOYMENT_TROUBLESHOOTING.md) - **Required for deployment issues**
-- [Testing Strategy](../docs/TESTING_STRATEGY.md)
-- [Deployment Guide](../DEPLOYMENT_GUIDE.md)
-- [Backend Architecture](../docs/BACKEND_ARCHITECTURE.md)
-- [Frontend Architecture](../docs/FRONTEND_ARCHITECTURE.md)
-- [Multi-Tenancy Guide](../docs/MULTI_TENANCY_GUIDE.md)
+- [Repository Best Practices](../docs/archive/REPOSITORY_BEST_PRACTICES.md)
+- [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md) - **Essential reading for all backend work**
+- [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) - **Required for deployment issues**
+- [Testing Strategy](../docs/archive/TESTING_STRATEGY.md)
+- [Deployment Runbook](../DEPLOYMENT_RUNBOOK.md)
+- [Backend Architecture](../docs/archive/BACKEND_ARCHITECTURE.md)
+- [Frontend Architecture](../docs/archive/FRONTEND_ARCHITECTURE.md)
+- [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md)
 
 ### Tools & Libraries
 - [Django Tenants](https://django-tenants.readthedocs.io/) - Multi-tenancy
@@ -1486,7 +1486,7 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
 1. **Never Modify Applied Migrations**
    - ❌ Changing dependencies after migration is applied
    - ✅ Create new migration to fix issues
-   - See: [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md)
+   - See: [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
 
 2. **Minimal Migration Dependencies**
    - ❌ Depending on unnecessary later migrations
@@ -1675,7 +1675,7 @@ Based on recurring issues, we've added:
 - [ ] Run `.github/scripts/validate-environment.sh` (if config changes)
 - [ ] Test migrations on fresh database
 - [ ] Ensure pre-commit hooks pass
-- [ ] Review [Migration Best Practices](../docs/MIGRATION_BEST_PRACTICES.md)
+- [ ] Review [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
 - [ ] Update copilot-log.md with lessons learned
 
 **For Migration Changes:**
@@ -1689,7 +1689,7 @@ Based on recurring issues, we've added:
 
 **For Deployment Issues:**
 - [ ] If the deployment fails with "Unapplied migrations detected", the developer MUST run `git pull`, execute `python manage.py makemigrations`, commit the new file(s), and push to re-trigger the pipeline
-- [ ] Check [Deployment Troubleshooting](../docs/DEPLOYMENT_TROUBLESHOOTING.md) first
+- [ ] Check [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) first
 - [ ] Review GitHub Actions logs
 - [ ] SSH to server and check container logs
 - [ ] Compare working vs broken environment variables
@@ -1711,8 +1711,8 @@ Based on recurring issues, we've added:
 
 ---
 
-**Last Updated**: 2025-11-03  
-**Version**: 3.0 (Enhanced with Copilot efficiency improvements and lessons learned)
+**Last Updated**: 2025-12-05  
+**Version**: 3.1 (Fixed broken documentation links to point to archived locations)
 
 ---
 
