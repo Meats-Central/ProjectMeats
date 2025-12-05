@@ -99,6 +99,17 @@ else:
             f"See Django docs: https://docs.djangoproject.com/en/stable/ref/settings/#databases"
         )
 
+# ==============================================================================
+# CODESPACES AUTO-CONFIGURATION
+# ==============================================================================
+# Automatically ensure django-tenants backend when running in GitHub Codespaces
+# This guarantees multi-tenancy support without manual intervention
+if os.getenv('CODESPACES') == 'true':
+    if 'default' in DATABASES:
+        # Force django-tenants backend for Codespaces environment
+        DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+        logger.info("Codespaces detected: Using django_tenants.postgresql_backend")
+
 # Log which database backend is being used
 logger.info(
     f"Development environment using database backend: {DATABASES['default']['ENGINE']}"
