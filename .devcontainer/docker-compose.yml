@@ -2,9 +2,16 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile.dev
+    # Use pre-built image from GitHub Container Registry
+    # This ensures consistent environment across all Codespaces instances
+    image: ghcr.io/meats-central/projectmeats/app:latest
+    
+    # Build configuration (commented out - using GHCR image instead)
+    # Uncomment these lines if you need to build locally:
+    # build:
+    #   context: ..
+    #   dockerfile: .devcontainer/Dockerfile.dev
+    
     volumes:
       - ..:/workspaces/ProjectMeats:cached
     depends_on:
