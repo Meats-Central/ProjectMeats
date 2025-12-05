@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Theme } from '../../config/theme';
+import { navigation } from '../../config/navigation';
+import NavigationMenu from '../Navigation/NavigationMenu';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -18,22 +20,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
     // Load keep open preference from localStorage
     return localStorage.getItem('sidebarKeepOpen') === 'true';
   });
-  
-  const menuItems = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/suppliers', label: 'Suppliers', icon: '🏭' },
-    { path: '/customers', label: 'Customers', icon: '👥' },
-    { path: '/purchase-orders', label: 'Purchase Orders', icon: '📋' },
-    {
-      path: '/accounts-receivables',
-      label: 'Accounts Receivables',
-      icon: '💰',
-    },
-    { path: '/contacts', label: 'Contacts', icon: '📞' },
-    { path: '/plants', label: 'Plants', icon: '🏢' },
-    { path: '/carriers', label: 'Carriers', icon: '🚛' },
-    { path: '/ai-assistant', label: 'AI Assistant', icon: '🤖' },
-  ];
 
   // Sync keepOpen with parent isOpen state when keepOpen changes
   useEffect(() => {
@@ -98,14 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
       </SidebarHeader>
 
       <Navigation>
-        {menuItems.map((item) => (
-          <NavItem key={item.path}>
-            <StyledNavLink to={item.path} $theme={theme}>
-              <NavIcon $theme={theme}>{item.icon}</NavIcon>
-              {isExpanded && <NavLabel>{item.label}</NavLabel>}
-            </StyledNavLink>
-          </NavItem>
-        ))}
+        <NavigationMenu items={navigation} isExpanded={isExpanded} />
       </Navigation>
     </SidebarContainer>
   );
@@ -114,8 +93,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
 const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
   width: ${(props) => (props.$isOpen ? '250px' : '60px')};
   height: 100vh;
-  background: ${(props) => props.$theme.colors.sidebarBackground};
-  color: ${(props) => props.$theme.colors.sidebarText};
+  background: #333; /* Consistent dark background regardless of theme */
+  color: white; /* Consistent white text */
   transition: width 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -128,7 +107,7 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
 
 const SidebarHeader = styled.div<{ $theme: Theme }>`
   padding: 20px 15px;
-  border-bottom: 1px solid ${(props) => props.$theme.colors.sidebarBorder};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Consistent border */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -156,12 +135,13 @@ const LogoText = styled.h2`
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
+  color: white; /* Consistent white tenant name */
 `;
 
 const KeepOpenToggle = styled.button<{ $theme: Theme; $active: boolean }>`
   background: ${(props) => props.$active ? props.$theme.colors.primary : 'none'};
   border: none;
-  color: ${(props) => props.$active ? 'white' : props.$theme.colors.sidebarText};
+  color: white; /* Consistent white icon color */
   cursor: pointer;
   font-size: 16px;
   padding: 5px 8px;
@@ -179,49 +159,26 @@ const KeepOpenToggle = styled.button<{ $theme: Theme; $active: boolean }>`
 
 const Navigation = styled.nav`
   flex: 1;
-  padding-top: 20px;
-`;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 0;
 
-const NavItem = styled.li`
-  list-style: none;
-  margin-bottom: 2px;
-`;
-
-const StyledNavLink = styled(NavLink)<{ $theme: Theme }>`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 12px 20px;
-  color: ${(props) => props.$theme.colors.sidebarText};
-  text-decoration: none;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: ${(props) => props.$theme.name === 'dark' 
-      ? 'rgba(52, 152, 219, 0.15)' 
-      : 'rgba(52, 152, 219, 0.1)'};
-    color: ${(props) => props.$theme.colors.sidebarTextHover};
+  &::-webkit-scrollbar {
+    width: 6px;
   }
 
-  &.active {
-    background-color: ${(props) => props.$theme.colors.sidebarActive};
-    color: white;
-    border-right: 3px solid ${(props) => props.$theme.colors.primaryActive};
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
   }
-`;
 
-const NavIcon = styled.span<{ $theme: Theme }>`
-  font-size: 20px;
-  min-width: 20px;
-  display: flex;
-  justify-content: center;
-  filter: ${(props) => props.$theme.name === 'dark' ? 'grayscale(100%) brightness(1.5)' : 'grayscale(100%) brightness(0.7)'};
-  opacity: 0.9;
-`;
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
 
-const NavLabel = styled.span`
-  font-weight: 500;
-  white-space: nowrap;
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
 `;
 
 export default Sidebar;

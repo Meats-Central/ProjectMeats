@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import styled from 'styled-components';
+import UserAvatar from '../components/Profile/UserAvatar';
 
 const Profile: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: user?.first_name || '',
     lastName: user?.last_name || '',
@@ -16,6 +18,25 @@ const Profile: React.FC = () => {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  const handleAvatarUpload = async (file: File) => {
+    // TODO: Implement actual API upload with tenant-isolated storage
+    // For now, create a local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarUrl(reader.result as string);
+      setMessage({ 
+        type: 'success', 
+        text: 'Profile picture uploaded! (Preview only - backend integration needed)' 
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Future implementation:
+    // const formData = new FormData();
+    // formData.append('avatar', file);
+    // await apiService.uploadAvatar(formData);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -96,9 +117,13 @@ const Profile: React.FC = () => {
 
       <ProfileCard>
         <ProfileHeader>
-          <Avatar>
-            {user.first_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '👤'}
-          </Avatar>
+          <UserAvatar
+            isEditMode={isEditing}
+            imageUrl={avatarUrl}
+            initials={user.first_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '👤'}
+            onUpload={handleAvatarUpload}
+            size={80}
+          />
           <ProfileInfo>
             <DisplayName>
               {user.first_name && user.last_name
@@ -288,19 +313,6 @@ const ProfileHeader = styled.div`
   align-items: center;
   gap: 20px;
   margin-bottom: 30px;
-`;
-
-const Avatar = styled.div`
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: 700;
-  color: white;
 `;
 
 const ProfileInfo = styled.div`
