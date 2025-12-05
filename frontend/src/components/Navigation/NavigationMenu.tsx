@@ -214,11 +214,12 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
 const MenuContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 `;
 
 const MenuItem = styled.div<{ $level: number }>`
   position: relative;
+  margin-bottom: 2px;
 `;
 
 const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: boolean }>`

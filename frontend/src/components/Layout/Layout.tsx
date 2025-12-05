@@ -77,7 +77,7 @@ const LayoutContainer = styled.div<{ $theme: Theme }>`
 const MainArea = styled.div<{ $sidebarOpen: boolean; $sidebarHovered: boolean }>`
   flex: 1;
   margin-left: ${(props) => (props.$sidebarOpen || props.$sidebarHovered ? '260px' : '64px')};
-  transition: margin-left 0.25s ease;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 `;
