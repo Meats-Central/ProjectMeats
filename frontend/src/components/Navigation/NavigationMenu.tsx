@@ -17,7 +17,7 @@ interface NavigationMenuProps {
   level?: number;
 }
 
-const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded, level = 0 }) => {
+const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: sidebarExpanded, level = 0 }) => {
   const { theme } = useTheme();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -60,8 +60,8 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded, leve
                 onClick={() => hasChildren && toggleExpand(item.label)}
               >
                 <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {isExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && isExpanded && (
+                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+                {hasChildren && sidebarExpanded && (
                   <ExpandIcon $isExpanded={isExpanded}>
                     {isExpanded ? '▼' : '▶'}
                   </ExpandIcon>
@@ -75,8 +75,8 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded, leve
                 $active={active}
               >
                 <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {isExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && isExpanded && (
+                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+                {hasChildren && sidebarExpanded && (
                   <ExpandIcon $isExpanded={isExpanded}>
                     {isExpanded ? '▼' : '▶'}
                   </ExpandIcon>
@@ -88,7 +88,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded, leve
               <SubMenu $isExpanded={isExpanded}>
                 <NavigationMenu
                   items={item.children!}
-                  isExpanded={isExpanded}
+                  isExpanded={sidebarExpanded}
                   level={level + 1}
                 />
               </SubMenu>
