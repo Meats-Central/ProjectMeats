@@ -40,11 +40,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
   });
 
   // Check if we're on desktop (for pin functionality)
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  // Using function to safely access window for SSR compatibility
+  const getIsDesktop = () => typeof window !== 'undefined' && window.innerWidth >= 768;
+  const [isDesktop, setIsDesktop] = useState(getIsDesktop);
   
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768);
+      setIsDesktop(getIsDesktop());
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

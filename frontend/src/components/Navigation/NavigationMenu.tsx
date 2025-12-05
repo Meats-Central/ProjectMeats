@@ -98,6 +98,77 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     return item.path === location.pathname;
   };
 
+  // Render a simple navigation link (no children)
+  const renderNavLink = (item: NavigationItem, exactActive: boolean, active: boolean) => (
+    <StyledNavLink
+      to={item.path!}
+      $theme={theme}
+      $level={level}
+      $active={exactActive}
+      $hasActiveChild={active && !exactActive}
+    >
+      <NavIcon $color={item.color}>{item.icon}</NavIcon>
+      {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+    </StyledNavLink>
+  );
+
+  // Render accordion header content (icon and label)
+  const renderAccordionContent = (item: NavigationItem) => {
+    if (item.path) {
+      return (
+        <AccordionNavLink to={item.path} $level={level}>
+          <NavIcon $color={item.color}>{item.icon}</NavIcon>
+          {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+        </AccordionNavLink>
+      );
+    }
+    return (
+      <>
+        <NavIcon $color={item.color}>{item.icon}</NavIcon>
+        {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+      </>
+    );
+  };
+
+  // Render accordion header with expand/collapse button
+  const renderAccordionHeader = (item: NavigationItem, isItemExpanded: boolean, active: boolean) => (
+    <AccordionHeader
+      onClick={(e) => {
+        if (!item.path) {
+          toggleExpand(item.label, e);
+        }
+      }}
+      $theme={theme}
+      $level={level}
+      $active={active}
+      $isExpanded={isItemExpanded}
+    >
+      {renderAccordionContent(item)}
+      {sidebarExpanded && (
+        <ExpandButton 
+          onClick={(e) => toggleExpand(item.label, e)}
+          $isExpanded={isItemExpanded}
+          aria-label={isItemExpanded ? 'Collapse' : 'Expand'}
+        >
+          <ChevronIcon isExpanded={isItemExpanded} />
+        </ExpandButton>
+      )}
+    </AccordionHeader>
+  );
+
+  // Render menu button (fallback for items without path or children)
+  const renderMenuButton = (item: NavigationItem, active: boolean) => (
+    <MenuButton
+      onClick={() => toggleExpand(item.label)}
+      $theme={theme}
+      $level={level}
+      $active={active}
+    >
+      <NavIcon $color={item.color}>{item.icon}</NavIcon>
+      {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+    </MenuButton>
+  );
+
   return (
     <MenuContainer>
       {items.map((item) => {
@@ -106,66 +177,19 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
         const active = isActive(item);
         const exactActive = isExactActive(item);
 
+        // Determine which component to render
+        let menuItemContent;
+        if (item.path && !hasChildren) {
+          menuItemContent = renderNavLink(item, exactActive, active);
+        } else if (hasChildren) {
+          menuItemContent = renderAccordionHeader(item, isItemExpanded, active);
+        } else {
+          menuItemContent = renderMenuButton(item, active);
+        }
+
         return (
           <MenuItem key={item.label} $level={level}>
-            {item.path && !hasChildren ? (
-              <StyledNavLink
-                to={item.path}
-                $theme={theme}
-                $level={level}
-                $active={exactActive}
-                $hasActiveChild={active && !exactActive}
-              >
-                <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-              </StyledNavLink>
-            ) : hasChildren ? (
-              <AccordionHeader
-                onClick={(e) => {
-                  if (item.path) {
-                    // If has path, clicking the main area navigates, clicking chevron expands
-                  } else {
-                    toggleExpand(item.label, e);
-                  }
-                }}
-                $theme={theme}
-                $level={level}
-                $active={active}
-                $isExpanded={isItemExpanded}
-              >
-                {item.path ? (
-                  <AccordionNavLink to={item.path} $level={level}>
-                    <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                    {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                  </AccordionNavLink>
-                ) : (
-                  <>
-                    <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                    {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                  </>
-                )}
-                {sidebarExpanded && (
-                  <ExpandButton 
-                    onClick={(e) => toggleExpand(item.label, e)}
-                    $isExpanded={isItemExpanded}
-                    aria-label={isItemExpanded ? 'Collapse' : 'Expand'}
-                  >
-                    <ChevronIcon isExpanded={isItemExpanded} />
-                  </ExpandButton>
-                )}
-              </AccordionHeader>
-            ) : (
-              <MenuButton
-                onClick={() => toggleExpand(item.label)}
-                $theme={theme}
-                $level={level}
-                $active={active}
-              >
-                <NavIcon $color={item.color}>{item.icon}</NavIcon>
-                {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-              </MenuButton>
-            )}
-
+            {menuItemContent}
             {hasChildren && (
               <AccordionContent $isExpanded={isItemExpanded && sidebarExpanded}>
                 <NavigationMenu
@@ -319,7 +343,12 @@ const NavLabel = styled.span`
 
 const AccordionContent = styled.div<{ $isExpanded: boolean }>`
   overflow: hidden;
-  max-height: ${(props) => (props.$isExpanded ? '1000px' : '0')};
+  /* 
+   * max-height is set to a large value to enable CSS transitions.
+   * CSS cannot animate to 'auto' height, so we use a value large enough
+   * to accommodate deeply nested navigation (supports ~25 items at 40px each).
+   */
+  max-height: ${(props) => (props.$isExpanded ? '2000px' : '0')};
   opacity: ${(props) => (props.$isExpanded ? 1 : 0)};
   transition: max-height 0.25s ease-out, opacity 0.2s ease;
   background: rgba(0, 0, 0, 0.15);
