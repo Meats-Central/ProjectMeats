@@ -545,6 +545,28 @@ jobs:
           
           echo "✓ Container is running"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          SSH
+      
+      - name: Enforce Super Tenant State
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
+          set -euo pipefail
+          
+          echo "=== Enforcing Super Tenant State ==="
+          sudo docker exec -e SUPERUSER_PASSWORD='${{ secrets.DEVELOPMENT_SUPERUSER_PASSWORD }}' pm-backend python manage.py create_super_tenant || {
+            echo "⚠️  Super tenant creation had warnings (may already exist)"
+          }
+          echo "✓ Super tenant state enforced"
+          SSH
+      
+      - name: Health checks on deployment server
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
+          set -euo pipefail
           
           # Perform health checks on the remote server
           echo "=== Performing health checks ==="
