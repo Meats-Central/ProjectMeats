@@ -180,7 +180,7 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMo
   height: 100vh;
   background: ${(props) => props.$isDarkMode ? '#0f172a' : '#ffffff'};
   color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
-  transition: width 0.25s ease;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -200,7 +200,8 @@ const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean; $isDarkM
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 64px;
+  min-height: 60px;
+  height: 60px;
 `;
 
 const Logo = styled.div`
