@@ -9,11 +9,15 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Django-tenants Multi-Tenancy Configuration
-# Schema-based multi-tenancy settings must be defined before INSTALLED_APPS
-# Reference: https://django-tenants.readthedocs.io/
+# ==============================================================================
+# SHARED SCHEMA CONFIGURATION (django-tenants DISABLED for routing)
+# ==============================================================================
+# We use a custom TenantMiddleware (apps.tenants.middleware.TenantMiddleware)
+# for tenant resolution based on domain/subdomain/headers, but ALL apps run
+# in a shared PostgreSQL schema. This avoids the "Public vs Tenant World" split
+# that causes 404s on business endpoints.
 
-# Common Django apps used in both shared and tenant schemas
+# Common Django apps used across the application
 _DJANGO_CORE_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -22,23 +26,23 @@ _DJANGO_CORE_APPS = [
     "django.contrib.messages",
 ]
 
-# Apps available in all schemas (shared across all tenants)
-SHARED_APPS = [
-    "django_tenants",  # Must be first
-] + _DJANGO_CORE_APPS + [
-    "django.contrib.staticfiles",
+# Third-party apps
+_THIRD_PARTY_APPS = [
+    # NOTE: django_tenants is kept for model definitions (Tenant, TenantDomain)
+    # but its middleware is DISABLED to prevent schema-based routing
+    "django_tenants",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
     "drf_spectacular",
     "django_filters",
-    "apps.core",
-    "apps.tenants",  # Tenant management is shared
 ]
 
-# Apps that will be created in each tenant schema
-# Include Django core apps for tenant-specific data (users, permissions, etc.)
-TENANT_APPS = _DJANGO_CORE_APPS + [
+# ProjectMeats apps (all in shared schema)
+_PROJECT_APPS = [
+    "apps.core",
+    "apps.tenants",  # Tenant management
+    # Business apps (previously in TENANT_APPS, now in shared schema)
     "tenant_apps.accounts_receivables",
     "tenant_apps.suppliers",
     "tenant_apps.customers",
@@ -54,12 +58,24 @@ TENANT_APPS = _DJANGO_CORE_APPS + [
     "tenant_apps.cockpit",
 ]
 
-# Schema-based multi-tenancy: django-tenants must be first in INSTALLED_APPS
-INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
+# All apps in one shared schema (no SHARED_APPS/TENANT_APPS split)
+INSTALLED_APPS = (
+    _THIRD_PARTY_APPS[:1]  # django_tenants must be first if present
+    + _DJANGO_CORE_APPS
+    + ["django.contrib.staticfiles"]
+    + _THIRD_PARTY_APPS[1:]  # Rest of third-party apps
+    + _PROJECT_APPS
+)
+
+# Legacy django-tenants configuration (kept for reference, NOT USED for routing)
+# These are preserved to avoid migration issues but are not actively used
+_UNUSED_SHARED_APPS = _DJANGO_CORE_APPS + ["django_tenants", "apps.tenants"]
+_UNUSED_TENANT_APPS = _DJANGO_CORE_APPS + [app for app in _PROJECT_APPS if app.startswith("tenant_apps.")]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # Must be first to ensure CORS headers are applied early
-    "django_tenants.middleware.main.TenantMainMiddleware",  # Second for schema isolation
+    "corsheaders.middleware.CorsMiddleware",  # Must be first for CORS headers
+    # CRITICAL: Custom TenantMiddleware (NOT django_tenants.middleware.main.TenantMainMiddleware)
+    "apps.tenants.middleware.TenantMiddleware",  # Sets request.tenant without schema routing
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -72,9 +88,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "projectmeats.urls"
 
-# Public schema URL configuration (django-tenants)
-# These URLs are accessible without a tenant context  
-PUBLIC_SCHEMA_URLCONF = "projectmeats.public_urls"
+# NOTE: PUBLIC_SCHEMA_URLCONF is NOT used when TenantMainMiddleware is disabled
+# All requests use ROOT_URLCONF regardless of tenant
 
 TEMPLATES = [
     {
