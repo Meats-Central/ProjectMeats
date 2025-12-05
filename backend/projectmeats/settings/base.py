@@ -69,8 +69,39 @@ INSTALLED_APPS = (
 
 # Legacy django-tenants configuration (kept for reference, NOT USED for routing)
 # These are preserved to avoid migration issues but are not actively used
-_UNUSED_SHARED_APPS = _DJANGO_CORE_APPS + ["django_tenants", "apps.tenants"]
-_UNUSED_TENANT_APPS = _DJANGO_CORE_APPS + [app for app in _PROJECT_APPS if app.startswith("tenant_apps.")]
+
+# ==============================================================================
+# DJANGO-TENANTS REQUIRED SETTINGS
+# ==============================================================================
+SHARED_APPS = [
+    "django_tenants",
+] + _DJANGO_CORE_APPS + [
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "drf_spectacular",
+    "django_filters",
+    "apps.core",
+    "apps.tenants",
+]
+
+TENANT_APPS = _DJANGO_CORE_APPS + [
+    "tenant_apps.accounts_receivables",
+    "tenant_apps.suppliers",
+    "tenant_apps.customers",
+    "tenant_apps.contacts",
+    "tenant_apps.purchase_orders",
+    "tenant_apps.plants",
+    "tenant_apps.carriers",
+    "tenant_apps.bug_reports",
+    "tenant_apps.ai_assistant",
+    "tenant_apps.products",
+    "tenant_apps.sales_orders",
+    "tenant_apps.invoices",
+    "tenant_apps.cockpit",
+]
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Must be first for CORS headers
