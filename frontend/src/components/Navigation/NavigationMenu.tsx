@@ -39,9 +39,10 @@ const ChevronIcon: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => (
 );
 
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: sidebarExpanded, level = 0 }) => {
-  const { theme } = useTheme();
+  const { theme, themeName } = useTheme();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const isDarkMode = themeName === 'dark';
 
   // Auto-expand parent items when a child is active
   useEffect(() => {
@@ -106,6 +107,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       $level={level}
       $active={exactActive}
       $hasActiveChild={active && !exactActive}
+      $isDarkMode={isDarkMode}
     >
       <NavIcon $color={item.color}>{item.icon}</NavIcon>
       {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
@@ -142,12 +144,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       $level={level}
       $active={active}
       $isExpanded={isItemExpanded}
+      $isDarkMode={isDarkMode}
     >
       {renderAccordionContent(item)}
       {sidebarExpanded && (
         <ExpandButton 
           onClick={(e) => toggleExpand(item.label, e)}
           $isExpanded={isItemExpanded}
+          $isDarkMode={isDarkMode}
           aria-label={isItemExpanded ? 'Collapse' : 'Expand'}
         >
           <ChevronIcon isExpanded={isItemExpanded} />
@@ -163,6 +167,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       $theme={theme}
       $level={level}
       $active={active}
+      $isDarkMode={isDarkMode}
     >
       <NavIcon $color={item.color}>{item.icon}</NavIcon>
       {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
@@ -191,7 +196,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
           <MenuItem key={item.label} $level={level}>
             {menuItemContent}
             {hasChildren && (
-              <AccordionContent $isExpanded={isItemExpanded && sidebarExpanded}>
+              <AccordionContent $isExpanded={isItemExpanded && sidebarExpanded} $isDarkMode={isDarkMode}>
                 <NavigationMenu
                   items={item.children!}
                   isExpanded={sidebarExpanded}
@@ -216,29 +221,35 @@ const MenuItem = styled.div<{ $level: number }>`
   position: relative;
 `;
 
-const baseItemStyles = css<{ $level: number; $active: boolean }>`
+const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
   padding-left: ${(props) => 12 + props.$level * 16}px;
-  color: rgba(255, 255, 255, ${(props) => props.$active ? 1 : 0.8});
+  color: ${(props) => props.$isDarkMode 
+    ? `rgba(255, 255, 255, ${props.$active ? 1 : 0.7})` 
+    : `rgba(30, 41, 59, ${props.$active ? 1 : 0.7})`};
   text-decoration: none;
   transition: all 0.15s ease;
   font-size: ${(props) => props.$level === 0 ? 14 : 13}px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 0 8px;
   min-height: 40px;
   
   &:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: white;
+    background-color: ${(props) => props.$isDarkMode 
+      ? 'rgba(255, 255, 255, 0.08)' 
+      : 'rgba(0, 0, 0, 0.04)'};
+    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
   }
 `;
 
-const activeStyles = css`
-  background-color: rgba(255, 255, 255, 0.12);
-  color: white;
+const activeStyles = css<{ $isDarkMode: boolean }>`
+  background-color: ${(props) => props.$isDarkMode 
+    ? 'rgba(124, 58, 237, 0.15)' 
+    : 'rgba(124, 58, 237, 0.1)'};
+  color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
   
   &::before {
     content: '';
@@ -248,19 +259,25 @@ const activeStyles = css`
     transform: translateY(-50%);
     width: 3px;
     height: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
     border-radius: 0 3px 3px 0;
+  }
+
+  &:hover {
+    background-color: ${(props) => props.$isDarkMode 
+      ? 'rgba(124, 58, 237, 0.2)' 
+      : 'rgba(124, 58, 237, 0.15)'};
   }
 `;
 
-const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: boolean; $hasActiveChild?: boolean }>`
+const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: boolean; $hasActiveChild?: boolean; $isDarkMode: boolean }>`
   ${baseItemStyles}
   position: relative;
   
   ${(props) => props.$active && activeStyles}
   
-  ${(props) => props.$hasActiveChild && css`
-    color: rgba(255, 255, 255, 0.95);
+  ${(props) => props.$hasActiveChild && css<{ $isDarkMode: boolean }>`
+    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)'};
   `}
 
   &.active {
@@ -268,13 +285,13 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: 
   }
 `;
 
-const AccordionHeader = styled.div<{ $theme: Theme; $level: number; $active: boolean; $isExpanded: boolean }>`
+const AccordionHeader = styled.div<{ $theme: Theme; $level: number; $active: boolean; $isExpanded: boolean; $isDarkMode: boolean }>`
   ${baseItemStyles}
   position: relative;
   cursor: pointer;
   
-  ${(props) => props.$active && !props.$isExpanded && css`
-    color: rgba(255, 255, 255, 0.95);
+  ${(props) => props.$active && !props.$isExpanded && css<{ $isDarkMode: boolean }>`
+    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)'};
   `}
 `;
 
@@ -288,7 +305,7 @@ const AccordionNavLink = styled(NavLink)<{ $level: number }>`
   min-height: inherit;
 `;
 
-const MenuButton = styled.button<{ $theme: Theme; $level: number; $active: boolean }>`
+const MenuButton = styled.button<{ $theme: Theme; $level: number; $active: boolean; $isDarkMode: boolean }>`
   ${baseItemStyles}
   width: calc(100% - 16px);
   background: transparent;
@@ -300,7 +317,7 @@ const MenuButton = styled.button<{ $theme: Theme; $level: number; $active: boole
   ${(props) => props.$active && activeStyles}
 `;
 
-const ExpandButton = styled.button<{ $isExpanded: boolean }>`
+const ExpandButton = styled.button<{ $isExpanded: boolean; $isDarkMode: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,14 +327,18 @@ const ExpandButton = styled.button<{ $isExpanded: boolean }>`
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.5)' 
+    : 'rgba(0, 0, 0, 0.4)'};
   transition: all 0.15s ease;
   margin-left: auto;
   flex-shrink: 0;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: ${(props) => props.$isDarkMode 
+      ? 'rgba(255, 255, 255, 0.1)' 
+      : 'rgba(0, 0, 0, 0.05)'};
+    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
   }
 `;
 
@@ -341,7 +362,7 @@ const NavLabel = styled.span`
   letter-spacing: 0.01em;
 `;
 
-const AccordionContent = styled.div<{ $isExpanded: boolean }>`
+const AccordionContent = styled.div<{ $isExpanded: boolean; $isDarkMode: boolean }>`
   overflow: hidden;
   /* 
    * max-height is set to a large value to enable CSS transitions.
@@ -351,7 +372,9 @@ const AccordionContent = styled.div<{ $isExpanded: boolean }>`
   max-height: ${(props) => (props.$isExpanded ? '2000px' : '0')};
   opacity: ${(props) => (props.$isExpanded ? 1 : 0)};
   transition: max-height 0.25s ease-out, opacity 0.2s ease;
-  background: rgba(0, 0, 0, 0.15);
+  background: ${(props) => props.$isDarkMode 
+    ? 'rgba(0, 0, 0, 0.15)' 
+    : 'rgba(0, 0, 0, 0.02)'};
   margin: ${(props) => props.$isExpanded ? '2px 0' : '0'};
   border-radius: 4px;
   margin-left: 8px;

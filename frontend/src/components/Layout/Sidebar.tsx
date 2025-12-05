@@ -30,10 +30,28 @@ const PinIcon: React.FC<{ isPinned: boolean }> = ({ isPinned }) => (
   </svg>
 );
 
+// Search icon SVG component
+const SearchIcon: React.FC = () => (
+  <svg 
+    width="16" 
+    height="16" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
-  const { theme, tenantBranding } = useTheme();
+  const { theme, themeName, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [keepOpen, setKeepOpen] = useState(() => {
     // Load keep open preference from localStorage
     return localStorage.getItem('sidebarKeepOpen') === 'true';
@@ -90,28 +108,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
 
   // Sidebar is expanded if: keepOpen is true, OR it's being hovered (when not kept open)
   const isExpanded = keepOpen || isHovered;
+  const isDarkMode = themeName === 'dark';
 
   return (
     <SidebarContainer
       $isOpen={isExpanded}
       $theme={theme}
+      $isDarkMode={isDarkMode}
       onMouseEnter={() => !keepOpen && setIsHovered(true)}
       onMouseLeave={() => !keepOpen && setIsHovered(false)}
     >
-      <SidebarHeader $theme={theme} $isExpanded={isExpanded}>
+      <SidebarHeader $theme={theme} $isExpanded={isExpanded} $isDarkMode={isDarkMode}>
         <Logo>
           {tenantBranding?.logoUrl ? (
             <LogoImage src={tenantBranding.logoUrl} alt={tenantBranding.tenantName} />
           ) : (
-            <LogoIcon>🥩</LogoIcon>
+            <LogoIconWrapper $isDarkMode={isDarkMode}>
+              <span>🥩</span>
+            </LogoIconWrapper>
           )}
-          {isExpanded && <LogoText>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
+          {isExpanded && <LogoText $isDarkMode={isDarkMode}>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
         </Logo>
         {isExpanded && isDesktop && (
           <PinButton 
             onClick={handleKeepOpenToggle} 
             $theme={theme} 
-            $active={keepOpen} 
+            $active={keepOpen}
+            $isDarkMode={isDarkMode}
             title={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
             aria-label={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
           >
@@ -120,13 +143,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
         )}
       </SidebarHeader>
 
-      <NavigationSection>
+      {isExpanded && (
+        <SearchContainer $isDarkMode={isDarkMode}>
+          <SearchInputWrapper $isDarkMode={isDarkMode}>
+            <SearchIconWrapper $isDarkMode={isDarkMode}>
+              <SearchIcon />
+            </SearchIconWrapper>
+            <SearchInput
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              $isDarkMode={isDarkMode}
+            />
+          </SearchInputWrapper>
+        </SearchContainer>
+      )}
+
+      <NavigationSection $isDarkMode={isDarkMode}>
         <NavigationMenu items={navigation} isExpanded={isExpanded} />
       </NavigationSection>
 
-      <SidebarFooter $isExpanded={isExpanded}>
+      <SidebarFooter $isExpanded={isExpanded} $isDarkMode={isDarkMode}>
         {isExpanded && (
-          <FooterText>
+          <FooterText $isDarkMode={isDarkMode}>
             © 2025 ProjectMeats
           </FooterText>
         )}
@@ -135,11 +175,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
   );
 };
 
-const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
+const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMode: boolean }>`
   width: ${(props) => (props.$isOpen ? '260px' : '64px')};
   height: 100vh;
-  background: #0f172a; /* Dark mode per architecture */
-  color: #ffffff;
+  background: ${(props) => props.$isDarkMode ? '#0f172a' : '#ffffff'};
+  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
   transition: width 0.25s ease;
   display: flex;
   flex-direction: column;
@@ -147,12 +187,16 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
   left: 0;
   top: 0;
   z-index: 1000;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  box-shadow: ${(props) => props.$isDarkMode 
+    ? '2px 0 12px rgba(0, 0, 0, 0.3)' 
+    : '2px 0 12px rgba(0, 0, 0, 0.08)'};
 `;
 
-const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean }>`
+const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean; $isDarkMode: boolean }>`
   padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.08)' 
+    : 'rgba(0, 0, 0, 0.08)'};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -165,52 +209,118 @@ const Logo = styled.div`
   gap: 12px;
 `;
 
-const LogoIcon = styled.span`
-  font-size: 28px;
-  line-height: 1;
+const LogoIconWrapper = styled.div<{ $isDarkMode: boolean }>`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${(props) => props.$isDarkMode 
+    ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)' 
+    : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'};
+  border-radius: 8px;
+  font-size: 18px;
 `;
 
 const LogoImage = styled.img`
   width: 32px;
   height: 32px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 8px;
 `;
 
-const LogoText = styled.h2`
+const LogoText = styled.h2<{ $isDarkMode: boolean }>`
   font-size: 18px;
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
-  color: #ffffff;
+  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
   letter-spacing: 0.01em;
 `;
 
-const PinButton = styled.button<{ $theme: Theme; $active: boolean }>`
+const PinButton = styled.button<{ $theme: Theme; $active: boolean; $isDarkMode: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: ${(props) => props.$active ? 'rgba(102, 126, 234, 0.2)' : 'transparent'};
+  background: ${(props) => props.$active 
+    ? 'rgba(124, 58, 237, 0.2)' 
+    : 'transparent'};
   border: none;
   border-radius: 6px;
-  color: ${(props) => props.$active ? '#667eea' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${(props) => props.$active 
+    ? '#7c3aed' 
+    : props.$isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.4)'};
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${(props) => props.$active ? 'rgba(102, 126, 234, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
-    color: ${(props) => props.$active ? '#667eea' : '#ffffff'};
+    background: ${(props) => props.$active 
+      ? 'rgba(124, 58, 237, 0.3)' 
+      : props.$isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
+    color: ${(props) => props.$active 
+      ? '#7c3aed' 
+      : props.$isDarkMode ? '#ffffff' : '#1e293b'};
   }
 
   &:focus-visible {
-    outline: 2px solid #667eea;
+    outline: 2px solid #7c3aed;
     outline-offset: 2px;
   }
 `;
 
-const NavigationSection = styled.nav`
+const SearchContainer = styled.div<{ $isDarkMode: boolean }>`
+  padding: 12px 16px;
+`;
+
+const SearchInputWrapper = styled.div<{ $isDarkMode: boolean }>`
+  display: flex;
+  align-items: center;
+  background: ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.08)' 
+    : 'rgba(0, 0, 0, 0.04)'};
+  border-radius: 8px;
+  padding: 8px 12px;
+  gap: 8px;
+  border: 1px solid ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.1)' 
+    : 'rgba(0, 0, 0, 0.08)'};
+  transition: all 0.15s ease;
+
+  &:focus-within {
+    border-color: #7c3aed;
+    background: ${(props) => props.$isDarkMode 
+      ? 'rgba(124, 58, 237, 0.1)' 
+      : 'rgba(124, 58, 237, 0.05)'};
+  }
+`;
+
+const SearchIconWrapper = styled.div<{ $isDarkMode: boolean }>`
+  color: ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.5)' 
+    : 'rgba(0, 0, 0, 0.4)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SearchInput = styled.input<{ $isDarkMode: boolean }>`
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
+  
+  &::placeholder {
+    color: ${(props) => props.$isDarkMode 
+      ? 'rgba(255, 255, 255, 0.4)' 
+      : 'rgba(0, 0, 0, 0.4)'};
+  }
+`;
+
+const NavigationSection = styled.nav<{ $isDarkMode: boolean }>`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -225,27 +335,35 @@ const NavigationSection = styled.nav`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: ${(props) => props.$isDarkMode 
+      ? 'rgba(255, 255, 255, 0.15)' 
+      : 'rgba(0, 0, 0, 0.15)'};
     border-radius: 3px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: ${(props) => props.$isDarkMode 
+        ? 'rgba(255, 255, 255, 0.25)' 
+        : 'rgba(0, 0, 0, 0.25)'};
     }
   }
 `;
 
-const SidebarFooter = styled.div<{ $isExpanded: boolean }>`
+const SidebarFooter = styled.div<{ $isExpanded: boolean; $isDarkMode: boolean }>`
   padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.08)' 
+    : 'rgba(0, 0, 0, 0.08)'};
   min-height: ${(props) => props.$isExpanded ? '48px' : '0'};
   display: ${(props) => props.$isExpanded ? 'flex' : 'none'};
   align-items: center;
   justify-content: center;
 `;
 
-const FooterText = styled.span`
+const FooterText = styled.span<{ $isDarkMode: boolean }>`
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: ${(props) => props.$isDarkMode 
+    ? 'rgba(255, 255, 255, 0.4)' 
+    : 'rgba(0, 0, 0, 0.4)'};
   letter-spacing: 0.02em;
 `;
 
