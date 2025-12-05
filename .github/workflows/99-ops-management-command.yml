@@ -1,0 +1,61 @@
+name: 🎮 Ops - Run Management Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+      command:
+        description: 'Django Command (e.g., seed_tenants --count=5)'
+        required: true
+        default: 'check'
+
+jobs:
+  execute-command:
+    name: Run "${{ inputs.command }}" on ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}-backend
+    steps:
+      - name: Setup SSH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+      - name: Set Environment Context
+        id: context
+        run: |
+          if [ "${{ inputs.environment }}" == "prod" ]; then
+            echo "HOST=${{ secrets.PRODUCTION_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.PRODUCTION_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.SSH_PASSWORD }}" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.environment }}" == "uat" ]; then
+            echo "HOST=${{ secrets.STAGING_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.STAGING_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.SSH_PASSWORD }}" >> $GITHUB_OUTPUT
+          else
+            echo "HOST=${{ secrets.DEV_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.DEV_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.DEV_SSH_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Execute Remote Command
+        env:
+          SSHPASS: ${{ steps.context.outputs.PASS }}
+        run: |
+          HOST="${{ steps.context.outputs.HOST }}"
+          USER="${{ steps.context.outputs.USER }}"
+          CMD="${{ inputs.command }}"
+          
+          echo "🚀 Executing on $USER@$HOST..."
+          
+          sshpass -e ssh -o StrictHostKeyChecking=no $USER@$HOST \
+          "docker exec pm-backend python manage.py $CMD"
