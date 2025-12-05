@@ -42,7 +42,7 @@ flowchart LR
 
 ### What Was Removed
 
-- ❌ django-tenants package dependency
+- ❌ `django-tenants` package dependency
 - ❌ `Client` and `Domain` models (TenantMixin/DomainMixin)
 - ❌ Schema-based routing and `migrate_schemas` commands
 - ❌ `TENANT_MODEL`, `TENANT_DOMAIN_MODEL`, `DATABASE_ROUTERS` settings

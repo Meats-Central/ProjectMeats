@@ -191,7 +191,7 @@ jobs:
           POSTGRES_USER: postgres
         run: |
           echo "Checking for uncommitted model changes..."
-          python manage.py makemigrations --check --dry-run --noinput || {
+          python manage.py makemigrations --check --noinput || {
             echo "ERROR: Uncommitted migrations detected!"
             echo "Run 'python manage.py makemigrations' locally and commit the migration files."
             exit 1
