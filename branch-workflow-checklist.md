@@ -584,5 +584,5 @@ git push origin v1.0.0
 
 ---
 
-**Last Updated**: 2024-11-03  
-**Version**: 1.0.0
+**Last Updated**: 2025-12-04  
+**Version**: 1.1

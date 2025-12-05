@@ -536,3 +536,9 @@ npm run build-storybook
 - [React Router](https://reactrouter.com/)
 - [Recharts](https://recharts.org/)
 - [React Testing Library](https://testing-library.com/react)
+
+---
+
+**Last Updated:** 2025-12-04  
+**Version:** 1.1  
+**Maintained By:** ProjectMeats Team
