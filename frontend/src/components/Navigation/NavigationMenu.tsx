@@ -1,12 +1,12 @@
 /**
  * NavigationMenu Component
  * 
- * Handles nested navigation with expandable/collapsible submenus
- * Supports multi-level hierarchies with proper indentation
+ * Handles nested navigation with expandable/collapsible accordion submenus
+ * Supports multi-level hierarchies with proper indentation and smooth animations
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { NavigationItem } from '../../config/navigation';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Theme } from '../../config/theme';
@@ -17,12 +17,64 @@ interface NavigationMenuProps {
   level?: number;
 }
 
+// Chevron SVG icon component for accordion expand/collapse
+const ChevronIcon: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => (
+  <svg 
+    width="12" 
+    height="12" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{
+      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      transition: 'transform 0.2s ease',
+      flexShrink: 0
+    }}
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: sidebarExpanded, level = 0 }) => {
   const { theme } = useTheme();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const toggleExpand = (label: string) => {
+  // Auto-expand parent items when a child is active
+  useEffect(() => {
+    const findActiveParents = (navItems: NavigationItem[], parents: string[] = []): string[] => {
+      for (const item of navItems) {
+        if (item.path === location.pathname) {
+          return parents;
+        }
+        if (item.children) {
+          const found = findActiveParents(item.children, [...parents, item.label]);
+          if (found.length > 0) {
+            return found;
+          }
+        }
+      }
+      return [];
+    };
+    
+    const activeParents = findActiveParents(items);
+    if (activeParents.length > 0) {
+      setExpandedItems(prev => {
+        const newSet = new Set(prev);
+        activeParents.forEach(parent => newSet.add(parent));
+        return newSet;
+      });
+    }
+  }, [location.pathname, items]);
+
+  const toggleExpand = (label: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(label)) {
@@ -42,31 +94,66 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     return false;
   };
 
+  const isExactActive = (item: NavigationItem): boolean => {
+    return item.path === location.pathname;
+  };
+
   return (
     <MenuContainer>
       {items.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
-        const isExpanded = expandedItems.has(item.label);
+        const isItemExpanded = expandedItems.has(item.label);
         const active = isActive(item);
+        const exactActive = isExactActive(item);
 
         return (
           <MenuItem key={item.label} $level={level}>
-            {item.path ? (
+            {item.path && !hasChildren ? (
               <StyledNavLink
                 to={item.path}
                 $theme={theme}
                 $level={level}
-                $active={active}
-                onClick={() => hasChildren && toggleExpand(item.label)}
+                $active={exactActive}
+                $hasActiveChild={active && !exactActive}
               >
                 <NavIcon $color={item.color}>{item.icon}</NavIcon>
                 {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && sidebarExpanded && (
-                  <ExpandIcon $isExpanded={isExpanded}>
-                    {isExpanded ? '▼' : '▶'}
-                  </ExpandIcon>
-                )}
               </StyledNavLink>
+            ) : hasChildren ? (
+              <AccordionHeader
+                onClick={(e) => {
+                  if (item.path) {
+                    // If has path, clicking the main area navigates, clicking chevron expands
+                  } else {
+                    toggleExpand(item.label, e);
+                  }
+                }}
+                $theme={theme}
+                $level={level}
+                $active={active}
+                $isExpanded={isItemExpanded}
+              >
+                {item.path ? (
+                  <AccordionNavLink to={item.path} $level={level}>
+                    <NavIcon $color={item.color}>{item.icon}</NavIcon>
+                    {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+                  </AccordionNavLink>
+                ) : (
+                  <>
+                    <NavIcon $color={item.color}>{item.icon}</NavIcon>
+                    {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
+                  </>
+                )}
+                {sidebarExpanded && (
+                  <ExpandButton 
+                    onClick={(e) => toggleExpand(item.label, e)}
+                    $isExpanded={isItemExpanded}
+                    aria-label={isItemExpanded ? 'Collapse' : 'Expand'}
+                  >
+                    <ChevronIcon isExpanded={isItemExpanded} />
+                  </ExpandButton>
+                )}
+              </AccordionHeader>
             ) : (
               <MenuButton
                 onClick={() => toggleExpand(item.label)}
@@ -76,22 +163,17 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
               >
                 <NavIcon $color={item.color}>{item.icon}</NavIcon>
                 {sidebarExpanded && <NavLabel>{item.label}</NavLabel>}
-                {hasChildren && sidebarExpanded && (
-                  <ExpandIcon $isExpanded={isExpanded}>
-                    {isExpanded ? '▼' : '▶'}
-                  </ExpandIcon>
-                )}
               </MenuButton>
             )}
 
-            {hasChildren && isExpanded && (
-              <SubMenu $isExpanded={isExpanded}>
+            {hasChildren && (
+              <AccordionContent $isExpanded={isItemExpanded && sidebarExpanded}>
                 <NavigationMenu
                   items={item.children!}
                   isExpanded={sidebarExpanded}
                   level={level + 1}
                 />
-              </SubMenu>
+              </AccordionContent>
             )}
           </MenuItem>
         );
@@ -103,67 +185,127 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
 const MenuContainer = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 2px;
 `;
 
 const MenuItem = styled.div<{ $level: number }>`
   position: relative;
-  margin-bottom: 2px;
 `;
 
-const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: boolean }>`
+const baseItemStyles = css<{ $level: number; $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 15px;
-  padding-left: ${(props) => 15 + props.$level * 20}px;
-  color: white;
+  padding: 10px 12px;
+  padding-left: ${(props) => 12 + props.$level * 16}px;
+  color: rgba(255, 255, 255, ${(props) => props.$active ? 1 : 0.8});
   text-decoration: none;
-  transition: all 0.2s ease;
-  font-size: ${(props) => Math.max(14 - props.$level, 12)}px;
-  background: ${(props) => (props.$active ? 'rgba(255, 255, 255, 0.15)' : 'transparent')};
-  border-left: ${(props) => (props.$active ? '3px solid #667eea' : '3px solid transparent')};
-
+  transition: all 0.15s ease;
+  font-size: ${(props) => props.$level === 0 ? 14 : 13}px;
+  border-radius: 6px;
+  margin: 0 8px;
+  min-height: 40px;
+  
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
     color: white;
   }
+`;
+
+const activeStyles = css`
+  background-color: rgba(255, 255, 255, 0.12);
+  color: white;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0 3px 3px 0;
+  }
+`;
+
+const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: boolean; $hasActiveChild?: boolean }>`
+  ${baseItemStyles}
+  position: relative;
+  
+  ${(props) => props.$active && activeStyles}
+  
+  ${(props) => props.$hasActiveChild && css`
+    color: rgba(255, 255, 255, 0.95);
+  `}
 
   &.active {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-left: 3px solid #667eea;
+    ${activeStyles}
   }
+`;
+
+const AccordionHeader = styled.div<{ $theme: Theme; $level: number; $active: boolean; $isExpanded: boolean }>`
+  ${baseItemStyles}
+  position: relative;
+  cursor: pointer;
+  
+  ${(props) => props.$active && !props.$isExpanded && css`
+    color: rgba(255, 255, 255, 0.95);
+  `}
+`;
+
+const AccordionNavLink = styled(NavLink)<{ $level: number }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+  min-height: inherit;
 `;
 
 const MenuButton = styled.button<{ $theme: Theme; $level: number; $active: boolean }>`
-  width: 100%;
+  ${baseItemStyles}
+  width: calc(100% - 16px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  
+  ${(props) => props.$active && activeStyles}
+`;
+
+const ExpandButton = styled.button<{ $isExpanded: boolean }>`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 15px;
-  padding-left: ${(props) => 15 + props.$level * 20}px;
-  color: white;
-  background: ${(props) => (props.$active ? 'rgba(255, 255, 255, 0.15)' : 'transparent')};
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
   border: none;
-  border-left: ${(props) => (props.$active ? '3px solid #667eea' : '3px solid transparent')};
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: ${(props) => Math.max(14 - props.$level, 12)}px;
-  text-align: left;
-
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.15s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+  
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: white;
   }
 `;
 
 const NavIcon = styled.span<{ $color?: string }>`
   font-size: 18px;
-  min-width: 18px;
+  min-width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => props.$color || 'white'};
-  filter: ${(props) => (props.$color ? 'none' : 'none')};
+  color: ${(props) => props.$color || 'inherit'};
+  flex-shrink: 0;
 `;
 
 const NavLabel = styled.span`
@@ -172,20 +314,19 @@ const NavLabel = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 `;
 
-const ExpandIcon = styled.span<{ $isExpanded: boolean }>`
-  font-size: 10px;
-  transition: transform 0.2s ease;
-  transform: ${(props) => (props.$isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)')};
-  margin-left: auto;
-`;
-
-const SubMenu = styled.div<{ $isExpanded: boolean }>`
+const AccordionContent = styled.div<{ $isExpanded: boolean }>`
   overflow: hidden;
   max-height: ${(props) => (props.$isExpanded ? '1000px' : '0')};
-  transition: max-height 0.3s ease;
-  background: rgba(0, 0, 0, 0.2);
+  opacity: ${(props) => (props.$isExpanded ? 1 : 0)};
+  transition: max-height 0.25s ease-out, opacity 0.2s ease;
+  background: rgba(0, 0, 0, 0.15);
+  margin: ${(props) => props.$isExpanded ? '2px 0' : '0'};
+  border-radius: 4px;
+  margin-left: 8px;
+  margin-right: 8px;
 `;
 
 export default NavigationMenu;

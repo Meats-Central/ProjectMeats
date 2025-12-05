@@ -12,6 +12,24 @@ interface SidebarProps {
   onHoverChange?: (isHovered: boolean) => void;
 }
 
+// Pin icon SVG component
+const PinIcon: React.FC<{ isPinned: boolean }> = ({ isPinned }) => (
+  <svg 
+    width="16" 
+    height="16" 
+    viewBox="0 0 24 24" 
+    fill={isPinned ? "currentColor" : "none"}
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{ transform: isPinned ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+  >
+    <line x1="12" y1="17" x2="12" y2="22" />
+    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+  </svg>
+);
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, tenantBranding } = useTheme();
   const location = useLocation();
@@ -20,6 +38,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
     // Load keep open preference from localStorage
     return localStorage.getItem('sidebarKeepOpen') === 'true';
   });
+
+  // Check if we're on desktop (for pin functionality)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Sync keepOpen with parent isOpen state when keepOpen changes
   useEffect(() => {
@@ -67,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
       onMouseEnter={() => !keepOpen && setIsHovered(true)}
       onMouseLeave={() => !keepOpen && setIsHovered(false)}
     >
-      <SidebarHeader $theme={theme}>
+      <SidebarHeader $theme={theme} $isExpanded={isExpanded}>
         <Logo>
           {tenantBranding?.logoUrl ? (
             <LogoImage src={tenantBranding.logoUrl} alt={tenantBranding.tenantName} />
@@ -76,58 +105,74 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
           )}
           {isExpanded && <LogoText>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
         </Logo>
-        {isExpanded && (
-          <KeepOpenToggle onClick={handleKeepOpenToggle} $theme={theme} $active={keepOpen} title={keepOpen ? "Auto-close sidebar" : "Keep sidebar open"}>
-            📌
-          </KeepOpenToggle>
+        {isExpanded && isDesktop && (
+          <PinButton 
+            onClick={handleKeepOpenToggle} 
+            $theme={theme} 
+            $active={keepOpen} 
+            title={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
+            aria-label={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
+          >
+            <PinIcon isPinned={keepOpen} />
+          </PinButton>
         )}
       </SidebarHeader>
 
-      <Navigation>
+      <NavigationSection>
         <NavigationMenu items={navigation} isExpanded={isExpanded} />
-      </Navigation>
+      </NavigationSection>
+
+      <SidebarFooter $isExpanded={isExpanded}>
+        {isExpanded && (
+          <FooterText>
+            © 2025 ProjectMeats
+          </FooterText>
+        )}
+      </SidebarFooter>
     </SidebarContainer>
   );
 };
 
 const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme }>`
-  width: ${(props) => (props.$isOpen ? '250px' : '60px')};
+  width: ${(props) => (props.$isOpen ? '260px' : '64px')};
   height: 100vh;
-  background: #333; /* Consistent dark background regardless of theme */
-  color: white; /* Consistent white text */
-  transition: width 0.3s ease;
+  background: #0f172a; /* Dark mode per architecture */
+  color: #ffffff;
+  transition: width 0.25s ease;
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 1000;
-  box-shadow: 2px 0 10px ${(props) => props.$theme.colors.shadowMedium};
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
 `;
 
-const SidebarHeader = styled.div<{ $theme: Theme }>`
-  padding: 20px 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Consistent border */
+const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean }>`
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 64px;
 `;
 
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 `;
 
 const LogoIcon = styled.span`
-  font-size: 24px;
+  font-size: 28px;
+  line-height: 1;
 `;
 
 const LogoImage = styled.img`
   width: 32px;
   height: 32px;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 6px;
 `;
 
 const LogoText = styled.h2`
@@ -135,50 +180,71 @@ const LogoText = styled.h2`
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
-  color: white; /* Consistent white tenant name */
+  color: #ffffff;
+  letter-spacing: 0.01em;
 `;
 
-const KeepOpenToggle = styled.button<{ $theme: Theme; $active: boolean }>`
-  background: ${(props) => props.$active ? props.$theme.colors.primary : 'none'};
+const PinButton = styled.button<{ $theme: Theme; $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: ${(props) => props.$active ? 'rgba(102, 126, 234, 0.2)' : 'transparent'};
   border: none;
-  color: white; /* Consistent white icon color */
+  border-radius: 6px;
+  color: ${(props) => props.$active ? '#667eea' : 'rgba(255, 255, 255, 0.6)'};
   cursor: pointer;
-  font-size: 16px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-  opacity: ${(props) => props.$active ? 1 : 0.6};
+  transition: all 0.15s ease;
 
   &:hover {
-    opacity: 1;
-    background-color: ${(props) => props.$active ? props.$theme.colors.primaryHover : props.$theme.colors.surfaceHover};
-    color: ${(props) => props.$active ? 'white' : props.$theme.colors.sidebarTextHover};
-    transform: scale(1.1);
+    background: ${(props) => props.$active ? 'rgba(102, 126, 234, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+    color: ${(props) => props.$active ? '#667eea' : '#ffffff'};
+  }
+
+  &:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
   }
 `;
 
-const Navigation = styled.nav`
+const NavigationSection = styled.nav`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 0;
+  padding: 8px 0;
 
   &::-webkit-scrollbar {
     width: 6px;
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
+    background: transparent;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 3px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.25);
     }
   }
+`;
+
+const SidebarFooter = styled.div<{ $isExpanded: boolean }>`
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: ${(props) => props.$isExpanded ? '48px' : '0'};
+  display: ${(props) => props.$isExpanded ? 'flex' : 'none'};
+  align-items: center;
+  justify-content: center;
+`;
+
+const FooterText = styled.span`
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.02em;
 `;
 
 export default Sidebar;
