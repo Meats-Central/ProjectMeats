@@ -382,7 +382,7 @@ jobs:
           # IMPORTANT: Validates nginx config before reload to prevent 502 errors
           if command -v nginx >/dev/null 2>&1; then
             echo "=== Configuring host nginx reverse proxy ==="
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<'\''NGINX'\''
 server {
     listen 80;
     server_name _;
@@ -390,10 +390,10 @@ server {
     # Proxy to frontend container on port 8080
     location / {
         proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         
         # Proxy timeouts for better reliability
         proxy_connect_timeout 60s;
