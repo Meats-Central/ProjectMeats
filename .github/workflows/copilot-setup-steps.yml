@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup-dependencies:
+  copilot-setup-steps:
     name: Setup Development Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
