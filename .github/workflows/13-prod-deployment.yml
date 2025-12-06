@@ -385,7 +385,7 @@ jobs:
             # Configure host nginx reverse proxy using tee
             # We use a simple forwarding proxy because the container handles the logic
             echo "=== Configuring host nginx reverse proxy ==="
-            sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null <<'EOF'
+            sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null <<'NGINXEOF'
 server {
     listen 80;
     server_name _;
@@ -399,7 +399,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-EOF
+NGINXEOF
             
             # Validate and reload
             if sudo nginx -t; then
