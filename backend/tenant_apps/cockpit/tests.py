@@ -7,16 +7,14 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
-from django_tenants.test.cases import TenantTestCase
-from django_tenants.test.client import TenantClient
 
-from apps.tenants.models import Tenant
+from apps.tenants.models import Tenant, TenantUser
 from tenant_apps.customers.models import Customer
 from tenant_apps.suppliers.models import Supplier
 from tenant_apps.purchase_orders.models import PurchaseOrder
 
 
-class CockpitSearchTestCase(TenantTestCase):
+class CockpitSearchTestCase(TestCase):
     """Test cockpit search API with multi-tenancy."""
     
     @classmethod
@@ -24,20 +22,28 @@ class CockpitSearchTestCase(TenantTestCase):
         super().setUpClass()
         # Create test tenant
         cls.tenant = Tenant.objects.create(
-            schema_name='test_cockpit',
             name='Test Cockpit Tenant',
-            paid_until='2025-12-31',
-            on_trial=False
+            slug='test-cockpit',
+            contact_email='test@example.com',
+            is_active=True,
         )
     
     def setUp(self):
-        self.client = TenantClient(self.tenant)
+        self.client = APIClient()
         
         # Create test user
         self.user = User.objects.create_user(
             username='testuser',
             password='testpass123',
             email='test@example.com'
+        )
+        
+        # Associate user with tenant
+        TenantUser.objects.create(
+            user=self.user,
+            tenant=self.tenant,
+            role='admin',
+            is_active=True
         )
         
         # Authenticate
