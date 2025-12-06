@@ -26,11 +26,24 @@ class Command(BaseCommand):
 
         # 1. Superuser
         if email and password and not User.objects.filter(email=email).exists():
-            superuser = User.objects.create_superuser(email=email, password=password)
+            superuser = User.objects.create_superuser(
+                username=email.split('@')[0],  # Use email prefix as username
+                email=email,
+                password=password
+            )
             self.stdout.write(self.style.SUCCESS('Superuser created.'))
         else:
             superuser = User.objects.filter(is_superuser=True).first()
-            self.stdout.write(self.style.SUCCESS('Superuser exists.'))
+            if superuser:
+                self.stdout.write(self.style.SUCCESS('Superuser exists.'))
+            else:
+                self.stdout.write(
+                    self.style.ERROR(
+                        'No superuser found. Set DJANGO_SUPERUSER_EMAIL and '
+                        'DJANGO_SUPERUSER_PASSWORD environment variables.'
+                    )
+                )
+                return
 
         # 2. Public Tenant
         public_tenant, created = Tenant.objects.get_or_create(
@@ -56,6 +69,12 @@ class Command(BaseCommand):
         if created:
             TenantDomain.objects.create(domain='demo.localhost', tenant=demo_tenant)
             self.stdout.write(self.style.SUCCESS('Demo Tenant and Domain created.'))
+        else:
+            # Ensure domain exists even if tenant already exists (idempotent)
+            TenantDomain.objects.get_or_create(
+                domain='demo.localhost',
+                defaults={'tenant': demo_tenant}
+            )
 
         # 4. Link User
         TenantUser.objects.get_or_create(

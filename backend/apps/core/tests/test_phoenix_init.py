@@ -64,6 +64,34 @@ class PhoenixInitCommandTests(TestCase):
         # Verify no new superuser was created
         self.assertEqual(User.objects.filter(is_superuser=True).count(), 1)
 
+    def test_command_fails_gracefully_when_no_superuser_exists(self):
+        """Test that command handles missing superuser gracefully."""
+        out = StringIO()
+
+        with mock.patch.dict('os.environ', {}, clear=True):
+            call_command('phoenix_init', stdout=out)
+
+        # Check error message was displayed
+        output = out.getvalue()
+        self.assertIn('No superuser found', output)
+        self.assertIn('DJANGO_SUPERUSER_EMAIL', output)
+
+    def test_command_creates_superuser_with_username(self):
+        """Test that command creates superuser with username from email."""
+        out = StringIO()
+
+        with mock.patch.dict('os.environ', {
+            'DJANGO_SUPERUSER_EMAIL': 'testuser@example.com',
+            'DJANGO_SUPERUSER_PASSWORD': 'testpass123'
+        }):
+            call_command('phoenix_init', stdout=out)
+
+        # Check superuser was created with correct username
+        self.assertTrue(User.objects.filter(email='testuser@example.com').exists())
+        user = User.objects.get(email='testuser@example.com')
+        self.assertEqual(user.username, 'testuser')  # From email prefix
+        self.assertTrue(user.is_superuser)
+
     def test_command_creates_public_tenant(self):
         """Test that command creates public tenant."""
         out = StringIO()
