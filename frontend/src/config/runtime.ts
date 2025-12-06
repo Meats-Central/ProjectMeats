@@ -94,7 +94,7 @@ function getRuntimeConfigNumber(key: string, defaultValue: number = 0): number {
 // Export configuration values
 export const config = {
   // API Configuration - uses tenant context for domain-based multi-tenancy
-  API_BASE_URL: getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1'),
+  API_BASE_URL: getRuntimeConfig('API_BASE_URL', '/api/v1'),
   
   // Environment - uses tenant context for domain-based detection
   ENVIRONMENT: getRuntimeConfig('ENVIRONMENT', 'development'),

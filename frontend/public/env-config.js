@@ -8,6 +8,6 @@
 // For local development, these values match the .env.example defaults.
 
 window.ENV = {
-  API_BASE_URL: "http://localhost:8000/api/v1",
+  API_BASE_URL: "/api/v1",
   ENVIRONMENT: "development"
 };
