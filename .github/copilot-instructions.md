@@ -19,6 +19,24 @@
 - ✅ **ALWAYS** filter querysets with `tenant=request.tenant`
 - ✅ **ALWAYS** use standard `python manage.py migrate`
 
+### Critical CI/CD Constraints
+
+**IDEMPOTENCY:** All CI/CD jobs must be re-runnable without errors:
+- ✅ Use `--fake-initial` flag for production migrations: `python manage.py migrate --fake-initial --noinput`
+- ✅ Use `IF NOT EXISTS` in raw SQL migrations
+- ✅ Always check for existing state before creating resources
+
+**PATHING:** Always use root-relative paths in CI/CD workflows:
+- ✅ Correct: `python backend/manage.py migrate`
+- ✅ Correct: `cd backend && python manage.py migrate`
+- ❌ Wrong: `python manage.py migrate` (assumes cwd)
+
+**STANDARD MIGRATIONS:** Use Django's standard migration system:
+- ✅ Create migrations: `python manage.py makemigrations`
+- ✅ Apply migrations: `python manage.py migrate`
+- ✅ Idempotent production: `python manage.py migrate --fake-initial --noinput`
+- ❌ NEVER use: `migrate_schemas`, `migrate_schemas --shared`, `migrate_schemas --tenant`
+
 ### Deployment Rules
 
 **NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
