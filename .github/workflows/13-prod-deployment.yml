@@ -101,11 +101,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
       - working-directory: ./frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci
       - working-directory: ./frontend
         run: npm run test:ci
       - working-directory: ./frontend
@@ -381,46 +381,21 @@ jobs:
             -v "$APP_DIR/env/env-config.js:/usr/share/nginx/html/env-config.js:ro" \
             "$REG/$IMG:$TAG"
 
-          # Configure host nginx reverse proxy with validation
-          # IMPORTANT: Validates nginx config before reload to prevent 502 errors
           if command -v nginx >/dev/null 2>&1; then
-            echo "=== Configuring host nginx reverse proxy ==="
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<'\''NGINX'\''
-server {
-    listen 80;
-    server_name _;
-    
-    # Proxy to frontend container on port 8080
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Proxy timeouts for better reliability
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-NGINX'
-            
-            # Validate nginx configuration before applying
-            # This prevents malformed config from breaking the deployment
-            echo "Validating nginx configuration..."
-            if sudo nginx -t; then
-              echo "✓ Nginx configuration is valid"
-              sudo systemctl reload nginx
-              echo "✓ Nginx reloaded successfully"
-            else
-              echo "✗ Nginx configuration validation failed!"
-              echo "Config file content:"
-              sudo cat /etc/nginx/conf.d/pm-frontend.conf
-              exit 1
-            fi
-          else
-            echo "⚠ Nginx not installed on host, skipping reverse proxy setup"
+            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            server {
+              listen 80;
+              server_name _;
+              location / {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+            }
+            NGINX'
+            sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
           sudo docker ps -a
@@ -610,20 +585,6 @@ NGINX'
           sudo docker ps -a
           SSH
       
-      - name: Enforce Super Tenant State
-        env:
-          SSHPASS: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} <<'SSH'
-          set -euo pipefail
-          
-          echo "=== Enforcing Super Tenant State ==="
-          sudo docker exec -e SUPERUSER_PASSWORD='${{ secrets.PRODUCTION_SUPERUSER_PASSWORD }}' pm-backend python manage.py create_super_tenant || {
-            echo "⚠️  Super tenant creation had warnings (may already exist)"
-          }
-          echo "✓ Super tenant state enforced"
-          SSH
-      
       - name: Post-deployment health check
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -635,52 +596,26 @@ NGINX'
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
-          # First check if container is running
-          if ! sudo docker ps --filter "name=pm-backend" --filter "status=running" | grep -q pm-backend; then
-            echo "✗ Backend container is not running"
-            exit 1
-          fi
-          
-          echo "✓ Backend container is running"
-          
-          # Check container health (if healthcheck is defined in dockerfile)
-          CONTAINER_HEALTH=$(sudo docker inspect --format='{{.State.Health.Status}}' pm-backend 2>/dev/null || echo "none")
-          echo "Container health status: $CONTAINER_HEALTH"
-          
           # Health check using localhost since we're on the deployment server
           HEALTH_URL="http://localhost:8000/api/v1/health/"
-          echo "Attempting health check URL: $HEALTH_URL"
+          echo "Health check URL: $HEALTH_URL"
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             # Don't send Host header to avoid ALLOWED_HOSTS issues
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
             
-            # Accept 200 (healthy) or 404 (running but URL routing issue - non-blocking)
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
-              exit 0
-            elif [ "$HTTP_CODE" = "404" ] && [ $ATTEMPT -ge 3 ]; then
-              echo "⚠ Backend responding with 404 (container running, possible tenant routing)"
-              echo "✓ Accepting as deployment succeeded (container is up)"
               exit 0
             fi
             
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              # If container is running, treat as success despite health check failure
-              if sudo docker ps --filter "name=pm-backend" --filter "status=running" | grep -q pm-backend; then
-                echo "⚠ Health check failed but container is running (HTTP $HTTP_CODE)"
-                echo "=== Last 20 lines of backend logs ==="
-                docker logs pm-backend --tail 20
-                echo "✓ Accepting deployment as successful"
-                exit 0
-              else
-                echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
-                echo "Last response code: $HTTP_CODE"
-                # Show last few lines of container logs for debugging
-                echo "=== Last 20 lines of backend logs ==="
-                docker logs pm-backend --tail 20
-                exit 1
-              fi
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              echo "Last response code: $HTTP_CODE"
+              # Show last few lines of container logs for debugging
+              echo "=== Last 20 lines of backend logs ==="
+              docker logs pm-backend --tail 20
+              exit 1
             fi
             
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE)..."

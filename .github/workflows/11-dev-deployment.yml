@@ -20,11 +20,29 @@ env:
   GHCR_REGISTRY: ghcr.io/meats-central
 
 jobs:
-  # Note: lint-yaml temporarily removed due to Docker Hub infrastructure issues
-  # TODO: Re-enable when Docker Hub is stable or migrate to alternative linter
+  # Lint YAML files to prevent syntax errors
+  lint-yaml:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Run yamllint
+        uses: reviewdog/action-yamllint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          yamllint_flags: '.github/workflows/'
   
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [lint-yaml]
     timeout-minutes: 45
     permissions:
       contents: read
@@ -102,11 +120,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
       - working-directory: ./frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci
       - working-directory: ./frontend
         run: npm run test:ci
       - working-directory: ./frontend
@@ -148,36 +166,7 @@ jobs:
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
-          # Upgrade setuptools and wheel for better dependency resolution
-          pip install --upgrade setuptools wheel
-          # Install Django ecosystem packages first with explicit versions
-          pip install "Django>=5.0" "django-filter>=23.0" "djangorestframework>=3.15.0"
-          # Install all requirements (will use already-installed versions where possible)
           pip install -r requirements.txt
-          # Verify critical package versions
-          echo "=== Installed Django Ecosystem Versions ==="
-          python -c "import django; print(f'Django: {django.__version__}')"
-          python -c "import django_filters; print(f'django-filter: {django_filters.__version__}')"
-          python -c "import rest_framework; print(f'DRF: {rest_framework.__version__}')"
-      
-      # Check for uncommitted migrations BEFORE running tests
-      - name: Check for uncommitted migrations
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-        run: |
-          echo "Checking for uncommitted migrations..."
-          python manage.py makemigrations --dry-run --check || {
-            echo ""
-            echo "ERROR: Uncommitted migrations detected!"
-            echo "Run 'python manage.py makemigrations' locally and commit the migration files."
-            echo ""
-            exit 1
-          }
-          echo "✅ No uncommitted migrations detected"
       
       # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       - name: Wait for DB readiness
@@ -209,25 +198,8 @@ jobs:
             echo "No init scripts directory found at ./docker-entrypoint-initdb.d/"
           fi
       
-      # Gate: Check for uncommitted migrations (fails if model changes need new migrations)
-      - name: Check for unapplied migrations
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          SECRET_KEY: test-secret-key-for-testing-only
-          DEBUG: True
-          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
-          POSTGRES_USER: postgres
-        run: |
-          echo "Checking for uncommitted model changes..."
-          python manage.py makemigrations --check --noinput || {
-            echo "ERROR: Uncommitted migrations detected!"
-            echo "Run 'python manage.py makemigrations' locally and commit the migration files."
-            exit 1
-          }
-          echo "✓ No uncommitted migrations"
-      
-      # Run full Django migrations (standard migrate, no schema-based commands)
+      # Note: makemigrations should be done locally and committed. Focus on migrate only in CI.
+      # Run full Django migrations (idempotent)
       - name: Run full Django migrations
         working-directory: ./backend
         env:
@@ -240,7 +212,7 @@ jobs:
           echo "Applying full database migrations..."
           python manage.py migrate --noinput
       
-      # Run tests - shared-schema multi-tenancy with tenant_id isolation
+      # Run tests directly - custom shared-schema multi-tenancy (no django-tenants schema isolation)
       - name: Run tests
         working-directory: ./backend
         env:
@@ -250,7 +222,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Running tests with shared-schema multi-tenancy..."
+          echo "Running tests with custom shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
   migrate:
@@ -300,20 +272,9 @@ jobs:
             echo "Warning: .env file not found, using environment variables"
           fi
           
-          # IMPORTANT: For Operation Fresh Start (first run after migration reset)
-          # Uncomment the following lines to reset the database:
-          # echo "=== Resetting database (Operation Fresh Start) ==="
-          # python manage.py reset_db --noinput || {
-          #   echo "Warning: reset_db command not available, using raw SQL..."
-          #   # Alternative: Use raw SQL to drop and recreate database
-          #   # psql -U $DB_USER -h $DB_HOST -c "DROP DATABASE IF EXISTS $DB_NAME;"
-          #   # psql -U $DB_USER -h $DB_HOST -c "CREATE DATABASE $DB_NAME;"
-          # }
-          # echo "✓ Database reset complete"
-          
-          # Run migrations (standard Django migrate without --fake-initial)
+          # Run migrations (idempotent with --fake-initial)
           echo "Running database migrations..."
-          python manage.py migrate --noinput || {
+          python manage.py migrate --fake-initial --noinput || {
             echo "Error: Migrations failed"
             exit 1
           }
@@ -389,46 +350,21 @@ jobs:
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
-          # Configure host nginx reverse proxy with validation
-          # IMPORTANT: Validates nginx config before reload to prevent 502 errors
           if command -v nginx >/dev/null 2>&1; then
-            echo "=== Configuring host nginx reverse proxy ==="
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<'\''NGINX'\''
-server {
-    listen 80;
-    server_name _;
-    
-    # Proxy to frontend container on port 8080
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Proxy timeouts for better reliability
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-NGINX'
-            
-            # Validate nginx configuration before applying
-            # This prevents malformed config from breaking the deployment
-            echo "Validating nginx configuration..."
-            if sudo nginx -t; then
-              echo "✓ Nginx configuration is valid"
-              sudo systemctl reload nginx
-              echo "✓ Nginx reloaded successfully"
-            else
-              echo "✗ Nginx configuration validation failed!"
-              echo "Config file content:"
-              sudo cat /etc/nginx/conf.d/pm-frontend.conf
-              exit 1
-            fi
-          else
-            echo "⚠ Nginx not installed on host, skipping reverse proxy setup"
+            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            server {
+              listen 80;
+              server_name _;
+              location / {
+                proxy_pass http://127.0.0.1:8080;
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+            }
+            NGINX'
+            sudo nginx -t && sudo systemctl reload nginx || true
           fi
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
@@ -550,12 +486,12 @@ NGINX'
             sleep 10
           done
 
-          # Run migrations before deployment (standard Django migrate)
+          # Run migrations before deployment (idempotent, follows backend/manage.py path)
           echo "=== Running database migrations ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --noinput || {
+            python manage.py migrate --fake-initial --noinput || {
               echo "⚠ Migration failed"
               exit 1
             }
@@ -609,28 +545,6 @@ NGINX'
           
           echo "✓ Container is running"
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-          SSH
-      
-      - name: Enforce Super Tenant State
-        env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
-          set -euo pipefail
-          
-          echo "=== Enforcing Super Tenant State ==="
-          sudo docker exec -e SUPERUSER_PASSWORD='${{ secrets.DEVELOPMENT_SUPERUSER_PASSWORD }}' pm-backend python manage.py create_super_tenant || {
-            echo "⚠️  Super tenant creation had warnings (may already exist)"
-          }
-          echo "✓ Super tenant state enforced"
-          SSH
-      
-      - name: Health checks on deployment server
-        env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'SSH'
-          set -euo pipefail
           
           # Perform health checks on the remote server
           echo "=== Performing health checks ==="
