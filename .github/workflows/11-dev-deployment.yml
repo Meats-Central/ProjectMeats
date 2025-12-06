@@ -151,7 +151,7 @@ jobs:
           # Upgrade setuptools and wheel for better dependency resolution
           pip install --upgrade setuptools wheel
           # Install Django ecosystem packages first with explicit versions
-          pip install "Django>=5.0" "django-filter>=23.0" "djangorestframework>=3.14.0"
+          pip install "Django>=5.0" "django-filter>=23.0" "djangorestframework>=3.15.0"
           # Install all requirements (will use already-installed versions where possible)
           pip install -r requirements.txt
           # Verify critical package versions
