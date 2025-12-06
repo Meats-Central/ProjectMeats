@@ -1,6 +1,7 @@
 """
 Tests for Purchase Orders app models.
 """
+import uuid
 from decimal import Decimal
 from unittest import skip, TestCase
 from django.utils import timezone
@@ -31,46 +32,49 @@ class CarrierPurchaseOrderModelTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
+        unique_id = uuid.uuid4().hex[:8]
         self.carrier = Carrier.objects.create(
-            name="Test Carrier",
-            email="carrier@test.com",
+            name=f"Test Carrier {unique_id}",
+            email=f"carrier-{unique_id}@test.com",
         )
         self.supplier = Supplier.objects.create(
-            name="Test Supplier",
-            email="supplier@test.com",
+            name=f"Test Supplier {unique_id}",
+            email=f"supplier-{unique_id}@test.com",
         )
         self.plant = Plant.objects.create(
-            name="Test Plant",
+            name=f"Test Plant {unique_id}",
             city="Test City",
         )
         self.product = Product.objects.create(
-            product_code="TEST001",
+            product_code=f"TEST-{unique_id}",
             description_of_product_item="Test Product",
         )
 
     def test_create_carrier_purchase_order(self):
         """Test creating a carrier purchase order."""
+        unique_id = uuid.uuid4().hex[:8]
         carrier_po = CarrierPurchaseOrder.objects.create(
             carrier=self.carrier,
             supplier=self.supplier,
-            our_carrier_po_num="CPO-001",
+            our_carrier_po_num=f"CPO-{unique_id}",
             carrier_name="Test Carrier",
             pick_up_date=timezone.now().date(),
         )
         
         self.assertEqual(carrier_po.carrier, self.carrier)
         self.assertEqual(carrier_po.supplier, self.supplier)
-        self.assertEqual(carrier_po.our_carrier_po_num, "CPO-001")
+        self.assertEqual(carrier_po.our_carrier_po_num, f"CPO-{unique_id}")
         self.assertIsNotNone(carrier_po.date_time_stamp_created)
 
     def test_carrier_purchase_order_with_product_details(self):
         """Test carrier PO with product details from Excel schema."""
+        unique_id = uuid.uuid4().hex[:8]
         carrier_po = CarrierPurchaseOrder.objects.create(
             carrier=self.carrier,
             supplier=self.supplier,
             plant=self.plant,
             product=self.product,
-            our_carrier_po_num="CPO-002",
+            our_carrier_po_num=f"CPO-{unique_id}",
             type_of_protein=ProteinTypeChoices.BEEF,
             fresh_or_frozen=FreshOrFrozenChoices.FRESH,
             edible_or_inedible=EdibleInedibleChoices.EDIBLE,
@@ -87,24 +91,26 @@ class CarrierPurchaseOrderModelTest(TestCase):
 
     def test_carrier_purchase_order_with_payment_terms(self):
         """Test carrier PO with payment and credit terms."""
+        unique_id = uuid.uuid4().hex[:8]
         carrier_po = CarrierPurchaseOrder.objects.create(
             carrier=self.carrier,
             supplier=self.supplier,
             payment_terms=AccountingPaymentTermsChoices.WIRE,
-            our_carrier_po_num="CPO-003",
+            our_carrier_po_num=f"CPO-{unique_id}",
         )
         
         self.assertEqual(carrier_po.payment_terms, "Wire")
 
     def test_carrier_purchase_order_str_representation(self):
         """Test the string representation of carrier PO."""
+        unique_id = uuid.uuid4().hex[:8]
         carrier_po = CarrierPurchaseOrder.objects.create(
             carrier=self.carrier,
             supplier=self.supplier,
-            our_carrier_po_num="CPO-004",
+            our_carrier_po_num=f"CPO-{unique_id}",
         )
         
-        self.assertIn("CPO-004", str(carrier_po))
+        self.assertIn(f"CPO-{unique_id}", str(carrier_po))
 
 
 @skip("Requires refactoring for schema-based multi-tenancy - see SCHEMA_ISOLATION_MIGRATION_COMPLETE.md")
@@ -113,22 +119,23 @@ class ColdStorageEntryModelTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
+        unique_id = uuid.uuid4().hex[:8]
         self.supplier = Supplier.objects.create(
-            name="Test Supplier",
-            email="supplier@test.com",
+            name=f"Test Supplier {unique_id}",
+            email=f"supplier-{unique_id}@test.com",
         )
         self.customer = Customer.objects.create(
-            name="Test Customer",
-            email="customer@test.com",
+            name=f"Test Customer {unique_id}",
+            email=f"customer-{unique_id}@test.com",
         )
         self.supplier_po = PurchaseOrder.objects.create(
-            order_number="PO-001",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=timezone.now().date(),
         )
         self.product = Product.objects.create(
-            product_code="TEST001",
+            product_code=f"TEST-{unique_id}",
             description_of_product_item="Test Product",
         )
 
@@ -211,6 +218,7 @@ Tests for Purchase Orders API endpoints and version history.
 
 Validates purchase order creation, updates, and version history tracking.
 """
+import uuid
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -227,15 +235,18 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def setUp(self):
         """Set up test data."""
+        unique_id = uuid.uuid4().hex[:8]
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
+            username=f"testuser-{unique_id}", 
+            email=f"test-{unique_id}@example.com", 
+            password="testpass123"
         )
         self.client.force_authenticate(user=self.user)
 
         self.tenant = Tenant.objects.create(
-            name="Test Company",
-            slug="test-company",
-            contact_email="admin@testcompany.com",
+            name=f"Test Company {unique_id}",
+            slug=f"test-company-{unique_id}",
+            contact_email=f"admin-{unique_id}@testcompany.com",
             created_by=self.user,
         )
 
@@ -244,17 +255,18 @@ class PurchaseOrderHistoryTests(APITestCase):
 
         # Create a supplier for testing
         self.supplier = Supplier.objects.create(
-            name="Test Supplier",
-            email="supplier@example.com",
+            name=f"Test Supplier {unique_id}",
+            email=f"supplier-{unique_id}@example.com",
             phone="123-456-7890",
             tenant=self.tenant,
         )
 
     def test_history_created_on_new_po(self):
         """Test that history entry is created when a new PO is created."""
+        unique_id = uuid.uuid4().hex[:8]
         # Create a purchase order
         po = PurchaseOrder.objects.create(
-            order_number="PO-001",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -270,9 +282,10 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_history_created_on_update(self):
         """Test that history entry is created when a PO is updated."""
+        unique_id = uuid.uuid4().hex[:8]
         # Create a purchase order
         po = PurchaseOrder.objects.create(
-            order_number="PO-002",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -293,9 +306,10 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_history_api_endpoint(self):
         """Test the history API endpoint returns correct data."""
+        unique_id = uuid.uuid4().hex[:8]
         # Create a purchase order
         po = PurchaseOrder.objects.create(
-            order_number="PO-003",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -320,9 +334,10 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_history_tracks_user(self):
         """Test that history entries can track user who made changes."""
+        unique_id = uuid.uuid4().hex[:8]
         # Create a purchase order with user context
         PurchaseOrder.objects.create(
-            order_number="PO-004",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -340,9 +355,10 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_history_entries_ordered_by_date(self):
         """Test that history entries are returned in reverse chronological order."""
+        unique_id = uuid.uuid4().hex[:8]
         # Create and update a purchase order multiple times
         po = PurchaseOrder.objects.create(
-            order_number="PO-005",
+            order_number=f"PO-{unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -364,9 +380,11 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_multiple_pos_separate_history(self):
         """Test that different POs have separate history entries."""
+        unique_id1 = uuid.uuid4().hex[:8]
+        unique_id2 = uuid.uuid4().hex[:8]
         # Create two purchase orders
         po1 = PurchaseOrder.objects.create(
-            order_number="PO-006",
+            order_number=f"PO-{unique_id1}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -374,7 +392,7 @@ class PurchaseOrderHistoryTests(APITestCase):
         )
 
         po2 = PurchaseOrder.objects.create(
-            order_number="PO-007",
+            order_number=f"PO-{unique_id2}",
             supplier=self.supplier,
             total_amount=Decimal("2000.00"),
             order_date=date.today(),
