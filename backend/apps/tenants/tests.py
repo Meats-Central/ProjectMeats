@@ -357,7 +357,7 @@ class TenantSchemaNameTests(TestCase):
         )
 
         # Schema name should be generated from slug (dashes replaced with underscores)
-        expected_schema = f"test_company_{unique_id}".replace("-", "_")
+        expected_schema = f"test-company-{unique_id}".replace("-", "_")
         self.assertEqual(tenant.schema_name, expected_schema)
 
     def test_schema_name_explicit(self):
