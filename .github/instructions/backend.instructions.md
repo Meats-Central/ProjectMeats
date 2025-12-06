@@ -21,6 +21,12 @@ applyTo:
 - ✅ **ALWAYS** filter querysets with `tenant=request.tenant`
 - ✅ **ALWAYS** use standard `python manage.py migrate`
 
+**Note**: `request.tenant` is set by `TenantMiddleware` which resolves the tenant from:
+1. `X-Tenant-ID` header (explicit API selection)
+2. Domain match via `TenantDomain` model
+3. Subdomain matching (`tenant.slug`)
+4. Authenticated user's default tenant
+
 ### Migration Commands
 ```bash
 # Create migrations

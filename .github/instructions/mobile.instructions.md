@@ -13,13 +13,20 @@ applyTo:
 ### Component Structure
 ```typescript
 // Use functional components with TypeScript
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+
+type RootStackParamList = {
+  MyScreen: { id: string };
+};
+
 interface MyScreenProps {
-  navigation: any;
-  route: any;
+  navigation: StackNavigationProp<RootStackParamList, 'MyScreen'>;
+  route: RouteProp<RootStackParamList, 'MyScreen'>;
 }
 
 export const MyScreen: React.FC<MyScreenProps> = ({ navigation, route }) => {
-  // Component logic
+  // Component logic with type-safe navigation and route params
   return <View><Text>Content</Text></View>;
 };
 ```

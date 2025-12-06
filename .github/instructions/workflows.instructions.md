@@ -118,8 +118,8 @@ migrate:
           export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
         fi
         
-        # Install dependencies
-        pip install -r requirements.txt
+        # Install dependencies (exit on error)
+        pip install -r backend/requirements.txt || exit 1
         
         # Run standard Django migrations (NOT migrate_schemas)
         python manage.py migrate --fake-initial --noinput
