@@ -37,7 +37,7 @@ class DatabaseConnectivityTest(TestCase):
         self.assertIn(
             engine,
             valid_engines,
-            f"Database engine must be PostgreSQL (standard), got: {engine}"
+            f"Database engine must be standard PostgreSQL backend, got: {engine}"
         )
 
     @skip("Requires write access in test environment")
