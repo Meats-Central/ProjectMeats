@@ -3,9 +3,8 @@ Invoices models for ProjectMeats.
 
 Defines invoice entities and related business logic.
 
-
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
+Currently, these models do not have tenant isolation implemented.
 """
 from decimal import Decimal
 from django.db import models
