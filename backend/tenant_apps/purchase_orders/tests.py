@@ -380,11 +380,11 @@ class PurchaseOrderHistoryTests(APITestCase):
 
     def test_multiple_pos_separate_history(self):
         """Test that different POs have separate history entries."""
-        unique_id1 = uuid.uuid4().hex[:8]
-        unique_id2 = uuid.uuid4().hex[:8]
+        po1_unique_id = uuid.uuid4().hex[:8]
+        po2_unique_id = uuid.uuid4().hex[:8]
         # Create two purchase orders
         po1 = PurchaseOrder.objects.create(
-            order_number=f"PO-{unique_id1}",
+            order_number=f"PO-{po1_unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("1000.00"),
             order_date=date.today(),
@@ -392,7 +392,7 @@ class PurchaseOrderHistoryTests(APITestCase):
         )
 
         po2 = PurchaseOrder.objects.create(
-            order_number=f"PO-{unique_id2}",
+            order_number=f"PO-{po2_unique_id}",
             supplier=self.supplier,
             total_amount=Decimal("2000.00"),
             order_date=date.today(),

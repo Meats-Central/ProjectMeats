@@ -23,7 +23,6 @@ class CockpitSearchTestCase(TestCase):
         super().setUpClass()
         # Create test tenant with unique identifiers
         unique_id = uuid.uuid4().hex[:8]
-        cls.unique_id = unique_id
         cls.tenant = Tenant.objects.create(
             name=f'Test Cockpit Tenant {unique_id}',
             slug=f'test-cockpit-{unique_id}',
