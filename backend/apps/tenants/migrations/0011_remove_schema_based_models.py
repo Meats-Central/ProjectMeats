@@ -7,17 +7,18 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     """
-    Migration to remove schema-based multi-tenancy models.
+    Idempotent migration to remove schema-based multi-tenancy models.
     
     This migration:
-    1. Drops the tenants_domain table (django-tenants Domain model)
-    2. Drops the tenants_client table (django-tenants Client model)
+    1. Drops the tenants_domain table (django-tenants Domain model) if it exists
+    2. Drops the tenants_client table (django-tenants Client model) if it exists
     
     These tables are no longer needed as ProjectMeats uses shared-schema
     multi-tenancy with tenant_id foreign keys for data isolation.
     
-    Note: RunSQL is used for better control over the DROP operation and
-    to handle cases where tables may not exist (idempotent).
+    Note: RunSQL with IF EXISTS is used to make this migration idempotent.
+    It will succeed whether or not the tables exist, making it safe to run
+    in any database state.
     """
 
     dependencies = [
@@ -26,6 +27,7 @@ class Migration(migrations.Migration):
 
     operations = [
         # Drop the database tables using RunSQL for idempotent operation
+        # CASCADE ensures dependent objects (foreign keys, indexes) are also dropped
         migrations.RunSQL(
             sql=[
                 "DROP TABLE IF EXISTS tenants_domain CASCADE;",
@@ -37,7 +39,7 @@ class Migration(migrations.Migration):
                 "SELECT 1;",
             ],
         ),
-        # Remove model state from Django's migration tracking
-        migrations.DeleteModel(name="Domain"),
-        migrations.DeleteModel(name="Client"),
+        # Note: We do NOT use DeleteModel because it fails if the model state
+        # doesn't exist. The RunSQL above handles the actual table deletion
+        # in an idempotent way.
     ]
