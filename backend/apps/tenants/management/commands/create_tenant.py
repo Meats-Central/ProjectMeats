@@ -241,22 +241,3 @@ class Command(BaseCommand):
         
         pattern = re.compile(r'^[a-z0-9-]+$')
         return pattern.match(slug) is not None
-            self.stdout.write(
-                'For true django-tenants compatibility with separate PostgreSQL schemas:'
-            )
-            self.stdout.write('')
-            self.stdout.write('1. Install django-tenants database backend in settings:')
-            self.stdout.write('   DATABASES = {')
-            self.stdout.write('       "default": {')
-            self.stdout.write('           "ENGINE": "django_tenants.postgresql_backend",')
-            self.stdout.write('           ...')
-            self.stdout.write('       }')
-            self.stdout.write('   }')
-            self.stdout.write('')
-            self.stdout.write('2. Configure SHARED_APPS and TENANT_APPS in settings')
-            self.stdout.write('')
-            self.stdout.write('3. Run migrations:')
-            self.stdout.write(f'   python manage.py migrate_schemas --schema={tenant.schema_name}')
-            self.stdout.write('')
-            self.stdout.write('Current setup uses application-level tenant filtering instead.')
-            self.stdout.write('')
