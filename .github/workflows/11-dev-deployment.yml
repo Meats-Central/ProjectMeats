@@ -284,7 +284,7 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [build-and-push, test-frontend]
+    needs: [build-and-push, test-frontend, deploy-backend]
     environment: dev-frontend
     timeout-minutes: 20
     permissions:

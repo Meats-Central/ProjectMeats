@@ -325,7 +325,7 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [migrate, test-frontend, pre-deployment-checks]
+    needs: [migrate, test-frontend, pre-deployment-checks, deploy-backend]
     if: github.ref == 'refs/heads/main'
     environment: prod2-frontend
     steps:
