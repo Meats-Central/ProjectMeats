@@ -378,21 +378,46 @@ jobs:
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
+          # Configure host nginx reverse proxy with validation
+          # IMPORTANT: Validates nginx config before reload to prevent 502 errors
           if command -v nginx >/dev/null 2>&1; then
+            echo "=== Configuring host nginx reverse proxy ==="
             sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
-            server {
-              listen 80;
-              server_name _;
-              location / {
-                proxy_pass http://127.0.0.1:8080;
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-            }
-            NGINX'
-            sudo nginx -t && sudo systemctl reload nginx || true
+server {
+    listen 80;
+    server_name _;
+    
+    # Proxy to frontend container on port 8080
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        
+        # Proxy timeouts for better reliability
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+NGINX'
+            
+            # Validate nginx configuration before applying
+            # This prevents malformed config from breaking the deployment
+            echo "Validating nginx configuration..."
+            if sudo nginx -t; then
+              echo "✓ Nginx configuration is valid"
+              sudo systemctl reload nginx
+              echo "✓ Nginx reloaded successfully"
+            else
+              echo "✗ Nginx configuration validation failed!"
+              echo "Config file content:"
+              sudo cat /etc/nginx/conf.d/pm-frontend.conf
+              exit 1
+            fi
+          else
+            echo "⚠ Nginx not installed on host, skipping reverse proxy setup"
           fi
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
