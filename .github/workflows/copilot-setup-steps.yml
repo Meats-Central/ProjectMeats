@@ -1,4 +1,4 @@
-name: Copilot Setup Steps
+name: "Copilot Agent Setup"
 
 on:
   workflow_dispatch:
@@ -7,41 +7,58 @@ jobs:
   # CRITICAL: This job ID must be exactly 'copilot-setup-steps'
   # Do not change this to 'setup', 'build', or anything else.
   copilot-setup-steps:
+    name: Setup Development Dependencies
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    
+    permissions:
+      contents: read
+      packages: read
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      # 1. Backend Setup (Python)
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip' # Caches dependencies for speed
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
-      - name: Install Backend Dependencies
+      - name: Install Python dependencies
+        working-directory: backend
         run: |
-          pip install -r backend/requirements.txt
-          # If you have a dev-requirements.txt, install it here too
-          # pip install -r backend/requirements-dev.txt || true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "✅ Python dependencies installed"
 
-      # 2. Frontend Setup (Node.js)
-      - name: Set up Node.js 20
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Install Frontend Dependencies
+      - name: Install Node dependencies
+        working-directory: frontend
         run: |
-          cd frontend
-          npm ci # 'ci' is faster and safer than 'install' for CI environments
+          npm ci
+          echo "✅ Node dependencies installed"
 
-      # 3. (Optional) Database Client
-      # Useful if the agent needs to run DB commands during tasks
       - name: Install PostgreSQL Client
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
+
+      - name: Verify installations
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Python Version: $(python --version)"
+          echo "Node Version: $(node --version)"
+          echo "NPM Version: $(npm --version)"
+          echo "PostgreSQL Client: $(psql --version)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ All dependencies verified and ready for Copilot agent"
