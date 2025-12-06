@@ -52,7 +52,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Cache Docker layers
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-prod-${{ matrix.app }}-${{ hashFiles(matrix.app == 'frontend' && 'frontend/package-lock.json' || 'backend/requirements.txt') }}
@@ -134,7 +134,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
