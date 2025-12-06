@@ -22,13 +22,14 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("tenants", "0011_remove_schema_based_models"),
+        ("tenants", "0011_tenant_schema_name"),
     ]
 
     operations = [
         # Drop the legacy django-tenants tables using RunSQL for idempotent operation
+        # CASCADE ensures dependent objects (foreign keys, indexes) are also dropped
         migrations.RunSQL(
             sql=[
-                # Drop tables in correct order (domain references client)
                 "DROP TABLE IF EXISTS tenants_domain CASCADE;",
                 "DROP TABLE IF EXISTS tenants_client CASCADE;",
             ],
