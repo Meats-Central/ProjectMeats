@@ -150,6 +150,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      # Check for uncommitted migrations BEFORE running tests
+      - name: Check for uncommitted migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: True
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.test
+        run: |
+          echo "Checking for uncommitted migrations..."
+          python manage.py makemigrations --dry-run --check || {
+            echo ""
+            echo "ERROR: Uncommitted migrations detected!"
+            echo "Run 'python manage.py makemigrations' locally and commit the migration files."
+            echo ""
+            exit 1
+          }
+          echo "✅ No uncommitted migrations detected"
+      
       # Enforces strict order: DB service > health wait > migrations > seeding/tests to prevent missing relations, races, and duplicates in CI
       - name: Wait for DB readiness
         env:
