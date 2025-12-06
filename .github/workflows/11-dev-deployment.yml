@@ -253,77 +253,9 @@ jobs:
           echo "Running tests with shared-schema multi-tenancy..."
           python manage.py test apps/ --verbosity=2
 
-  migrate:
-    runs-on: ubuntu-latest
-    needs: [build-and-push, test-backend]
-    environment: dev-backend
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    steps:
-      - name: Setup SSH
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
-      
-      - name: Run migrations via SSH on deployment server
-        env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes \
-            ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} << 'SSH_END'
-          set -euo pipefail
-          
-          echo "=== Running migrations on deployment server ==="
-          
-          # Navigate to project directory
-          cd /home/django/ProjectMeats/backend || {
-            echo "Error: Project directory not found"
-            exit 1
-          }
-          
-          # Check for virtual environment
-          if [ -f "../venv/bin/activate" ]; then
-            echo "Activating virtual environment..."
-            source ../venv/bin/activate
-          elif [ -f "venv/bin/activate" ]; then
-            echo "Activating virtual environment..."
-            source venv/bin/activate
-          else
-            echo "Warning: No virtual environment found, using system Python"
-          fi
-          
-          # Verify environment file exists
-          if [ ! -f ".env" ]; then
-            echo "Warning: .env file not found, using environment variables"
-          fi
-          
-          # IMPORTANT: For Operation Fresh Start (first run after migration reset)
-          # Uncomment the following lines to reset the database:
-          # echo "=== Resetting database (Operation Fresh Start) ==="
-          # python manage.py reset_db --noinput || {
-          #   echo "Warning: reset_db command not available, using raw SQL..."
-          #   # Alternative: Use raw SQL to drop and recreate database
-          #   # psql -U $DB_USER -h $DB_HOST -c "DROP DATABASE IF EXISTS $DB_NAME;"
-          #   # psql -U $DB_USER -h $DB_HOST -c "CREATE DATABASE $DB_NAME;"
-          # }
-          # echo "✓ Database reset complete"
-          
-          # Run migrations (standard Django migrate without --fake-initial)
-          echo "Running database migrations..."
-          python manage.py migrate --noinput || {
-            echo "Error: Migrations failed"
-            exit 1
-          }
-          
-          echo "✓ Migrations completed successfully"
-          SSH_END
-
   deploy-frontend:
     runs-on: ubuntu-latest
-    needs: [migrate, test-frontend]
+    needs: [build-and-push, test-frontend]
     environment: dev-frontend
     timeout-minutes: 20
     permissions:
@@ -457,7 +389,7 @@ NGINX'
 
   deploy-backend:
     runs-on: ubuntu-latest
-    needs: [migrate]
+    needs: [build-and-push, test-backend]
     environment: dev-backend
     timeout-minutes: 30
     permissions:
@@ -652,27 +584,27 @@ NGINX'
           MAX_ATTEMPTS=20
           ATTEMPT=1
           
-          while [ \$ATTEMPT -le \$MAX_ATTEMPTS ]; do
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             # Use localhost since we're on the remote server  
             # Get HTTP status using -I (HEAD request) and grep
-            HTTP_CODE=$(curl -s -I http://localhost:8000/api/v1/health/ 2>/dev/null | grep "^HTTP" | awk '{print \$2}' || echo "000")
+            HTTP_CODE=$(curl -s -I http://localhost:8000/api/v1/health/ 2>/dev/null | grep "^HTTP" | awk '{print $2}' || echo "000")
             
-            if [ "\$HTTP_CODE" = "200" ]; then
-              echo "✓ Backend health check passed (HTTP \$HTTP_CODE)"
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
               echo "=== Deployment completed successfully ==="
               exit 0
             fi
             
-            if [ \$ATTEMPT -eq \$MAX_ATTEMPTS ]; then
-              echo "✗ Backend health check failed after \$MAX_ATTEMPTS attempts (HTTP \$HTTP_CODE)"
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
               echo "=== Container logs ==="
               sudo docker logs pm-backend --tail 100 2>&1
               exit 1
             fi
             
-            echo "Health check attempt \$ATTEMPT/\$MAX_ATTEMPTS failed (HTTP \$HTTP_CODE), retrying..."
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS failed (HTTP $HTTP_CODE), retrying..."
             sleep 5
-            ATTEMPT=$((\$ATTEMPT + 1))
+            ATTEMPT=$(($ATTEMPT + 1))
           done
           SSH
 
