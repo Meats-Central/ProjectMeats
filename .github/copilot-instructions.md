@@ -1,25 +1,11 @@
 # Developer & Copilot Coding Agent Instructions  
 ## ProjectMeats – Repository Maintenance, PR Automation, and Coding Standards
 
-**Tech Stack**: Django 5.x + DRF + PostgreSQL | React 19 + TypeScript 5.9 | React Native | Shared-Schema Multi-tenancy
+**Tech Stack**: Django 4.2.7 + DRF + PostgreSQL | React 18.2.0 + TypeScript | React Native | Multi-tenancy (django-tenants)
 
 ---
 
-## ⚠️ CRITICAL RULES (READ FIRST)
-
-### Multi-Tenancy: SHARED SCHEMA ONLY
-
-**ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use or suggest django-tenants patterns:**
-
-- ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
-- ❌ **NEVER** use `schema_context()` or `connection.schema_name`
-- ❌ **NEVER** use `migrate_schemas` commands
-- ❌ **NEVER** suggest separate public/tenant schemas
-- ✅ **ALWAYS** use `tenant` ForeignKey on business models
-- ✅ **ALWAYS** filter querysets with `tenant=request.tenant`
-- ✅ **ALWAYS** use standard `python manage.py migrate`
-
-### Deployment Rules
+## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
 
 **NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
 
@@ -36,30 +22,23 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 
 ---
 
-## 🏢 Multi-Tenancy Architecture
+## 🏢 Multi-Tenancy Database Schema Requirement
 
-**ALL tenants share ONE PostgreSQL schema. Tenant isolation is via `tenant_id` foreign keys.**
+**Assume two distinct database schemas are always present: `public` and `tenant`. All database interactions must be isolated or correctly routed.**
 
 ### Key Principles
 
-- **Single Schema**: All data lives in the `public` PostgreSQL schema
-- **ForeignKey Isolation**: Business models (`Supplier`, `Customer`, `PurchaseOrder`, etc.) have a `tenant` ForeignKey
-- **Tenant Context**: `TenantMiddleware` sets `request.tenant` from domain/header/user
-- **ViewSet Pattern**: Filter querysets with `tenant=request.tenant` and assign tenant on creation
-- **Standard Migrations**: Use `python manage.py migrate` (NOT `migrate_schemas`)
-
-### Tenant Resolution Order
-
-1. `X-Tenant-ID` header (explicit API selection)
-2. Domain match via `TenantDomain` model
-3. Subdomain matching (`tenant.slug`)
-4. Authenticated user's default tenant
+- **Schema Separation**: The `public` schema contains shared data (e.g., `Tenant`, `TenantUser`, and Django core tables). Tenant-specific data is isolated within tenant schemas.
+- **Tenant Context**: Use `TenantMiddleware` to automatically set `request.tenant` for each request. Always filter queries using the `for_tenant()` method on tenant-aware models.
+- **Data Isolation**: All business entity models (`Supplier`, `Customer`, `PurchaseOrder`, `Plant`, `Contact`, `Carrier`, `AccountsReceivable`) include a `tenant` ForeignKey and must be queried with tenant filtering.
+- **ViewSet Pattern**: All ViewSets managing tenant-scoped data must override `get_queryset()` to filter by tenant and `perform_create()` to assign the tenant on creation.
+- **Migrations**: Use `migrate_schemas` instead of `migrate` for `TENANT_APPS`. See [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md) for details.
 
 ---
 
 ## 📋 Table of Contents
 1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Multi-Tenancy Architecture](#-multi-tenancy-architecture)
+2. [Multi-Tenancy Database Schema](#-multi-tenancy-database-schema-requirement)
 3. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
 4. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
 5. [Code Quality & Security](#-code-quality--security-standards)
@@ -249,7 +228,7 @@ Repeat similarly for `UAT` → `main`.
 - **Data Protection:**
   - Encrypt sensitive data at rest (use Django's encrypted fields or database-level encryption)
   - Use HTTPS/TLS for all data in transit (enforce in production via middleware)
-  - Implement proper tenant isolation via ForeignKey filtering (shared-schema multi-tenancy)
+  - Implement proper tenant isolation in multi-tenant architecture (django-tenants)
   - Sanitize all user inputs to prevent XSS, SQL injection, command injection
   - Use parameterized queries exclusively (ORM handles this, never use raw SQL with string interpolation)
   - Implement Content Security Policy (CSP) headers
@@ -473,27 +452,28 @@ Repeat similarly for `UAT` → `main`.
   - Document complex migrations with comments
   - Test rollback procedures for critical migrations
 
-### 🏢 Shared-Schema Multi-Tenancy Patterns
+### 🏢 Multi-Tenancy Database Schema Management
 
-**CRITICAL**: ProjectMeats uses SHARED-SCHEMA multi-tenancy. NO django-tenants schema isolation.
+**CRITICAL**: ProjectMeats uses custom shared-schema multi-tenancy (NOT django-tenants schema isolation).
 
 #### Core Principles
 
-1. **Single PostgreSQL Schema**
-   - All tenants share the `public` PostgreSQL schema
-   - Business models have `tenant` ForeignKey for data isolation
-   - Standard Django `migrate` command (NO `migrate_schemas`)
+1. **Always Public and Tenant Schemas**
+   - Every database operation must consider both public (shared) and tenant-specific data
+   - Public schema: User accounts, authentication, global settings
+   - Tenant schema: Business data (customers, orders, products, etc.)
+   - Models use `tenant_id` foreign key for isolation
 
-2. **Standard Migration Commands**
+2. **Migration Command Sequence (Idempotent)**
    ```bash
-   # Create migrations
-   python manage.py makemigrations
+   # Step 1: Shared schema (public tables)
+   python backend/manage.py migrate_schemas --shared --fake-initial --noinput
    
-   # Apply migrations
-   python manage.py migrate
+   # Step 2: Create/update super tenant
+   python backend/manage.py create_super_tenant --no-input
    
-   # Check for unapplied migrations (CI gating)
-   python manage.py makemigrations --check
+   # Step 3: Tenant-specific migrations
+   python backend/manage.py migrate_schemas --tenant --noinput
    ```
 
 3. **Tenant-Aware Query Patterns**
@@ -555,20 +535,27 @@ if customer:
 
 #### Migration Best Practices
 
-1. **Use --fake-initial for Idempotency (Production)**
+1. **Use --fake-initial for Idempotency**
    - Prevents duplicate migration errors
    - Safe to re-run in CI/CD pipelines
    - Assumes initial migrations already exist
 
 2. **Test Migrations Locally First**
    ```bash
-   # Standard migration commands
-   python manage.py makemigrations
-   python manage.py migrate
+   # Test shared schema
+   python backend/manage.py migrate_schemas --shared --fake-initial
+   
+   # Test tenant migrations
+   python backend/manage.py migrate_schemas --tenant
    
    # Verify
-   python manage.py showmigrations
+   python backend/manage.py showmigrations
    ```
+
+3. **Tenant Command Idempotency**
+   - `create_super_tenant`: Safe to re-run, checks if exists
+   - `create_guest_tenant`: Safe to re-run, checks if exists
+   - Both commands are used in deployment workflows
 
 #### Tenant Middleware Considerations
 
@@ -597,16 +584,16 @@ if customer:
    - Filter ModelAdmin querysets by tenant if applicable
    - Superusers can see all tenants
 
-#### CI/CD Integration
+#### CI/CD Multi-Tenancy Integration
 
 1. **GitHub Actions Workflows**
-   - Use standard `migrate` command
-   - Add `makemigrations --check` gating
+   - Use separate `migrate` job (Phase 1)
    - Environment-scoped DB URLs (DEV_DB_URL, UAT_DB_URL, PROD_DB_URL)
+   - Run idempotent sequence before deployment
    
 2. **Devcontainer Setup**
-   - postCreateCommand runs standard migrations
-   - Sets up test data
+   - postCreateCommand runs multi-tenant migrations
+   - Sets up super tenant and guest tenant
    - Ready for immediate development
 
 #### Debugging Multi-Tenancy Issues
@@ -621,7 +608,7 @@ if customer:
 
 **Symptom**: Migration fails with "table already exists"
 - **Cause**: Not using --fake-initial
-- **Fix**: Use `python manage.py migrate --fake-initial`
+- **Fix**: Use `migrate_schemas --shared --fake-initial`
 
 **Symptom**: Tests fail with "no such table"
 - **Cause**: Test database not migrated
@@ -1082,11 +1069,12 @@ if customer:
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
   - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md))
-  - **CRITICAL:** For **any** model change in the project:
-    - Run `python manage.py makemigrations` AND commit the migration file
-    - Use standard `python manage.py migrate` for applying migrations
-    - For production, use `python manage.py migrate --fake-initial --noinput` for idempotency
-    - All apps use shared-schema multi-tenancy (no separate tenant schemas)
+  - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
+    - Run `python manage.py makemigrations <app_name>` AND commit the migration file
+    - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
+    - For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
+    - TENANT_APPS include: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
+    - SHARED_APPS (use regular `migrate`): core, tenants, and Django core apps
   - Always run `python manage.py makemigrations --check` before committing
   - Test migrations on fresh database locally before PR
   - Use minimal dependencies (only depend on migrations you actually need)
@@ -1466,7 +1454,7 @@ if customer:
 - [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md)
 
 ### Tools & Libraries
-- [Django](https://docs.djangoproject.com/) - Web framework (shared-schema multi-tenancy)
+- [Django Tenants](https://django-tenants.readthedocs.io/) - Multi-tenancy
 - [drf-spectacular](https://drf-spectacular.readthedocs.io/) - OpenAPI documentation
 - [Ant Design](https://ant.design/) - React UI components
 - [Styled Components](https://styled-components.com/) - CSS in JS
@@ -1724,29 +1712,11 @@ Based on recurring issues, we've added:
 ---
 
 **Last Updated**: 2025-12-05  
-**Version**: 4.0 (Shared Schema Only - Removed django-tenants)
+**Version**: 3.1 (Fixed broken documentation links to point to archived locations)
 
 ---
 
 ## Django Migration Best Practices
-
-### Standard Migration Commands
-
-**ProjectMeats uses STANDARD Django migrations (NO django-tenants migrate_schemas).**
-
-```bash
-# Create migrations
-python manage.py makemigrations
-
-# Apply migrations
-python manage.py migrate
-
-# Check for unapplied migrations (CI gating)
-python manage.py makemigrations --check
-
-# Show migration status
-python manage.py showmigrations
-```
 
 ### Idempotent Migrations with `--fake-initial`
 
@@ -1768,6 +1738,18 @@ python manage.py migrate --fake-initial --noinput
 - Development environments where you want to catch schema drift
 - When you need to verify initial migrations actually run
 
+**Multi-Tenancy Context (django-tenants):**
+```bash
+# Step 1: Shared schema (public)
+python manage.py migrate_schemas --shared --fake-initial --noinput
+
+# Step 2: Create/update super tenant
+python manage.py create_super_tenant --no-input
+
+# Step 3: Tenant schemas
+python manage.py migrate_schemas --tenant --noinput
+```
+
 **Example Use Case:**
 Deploying to a server where manual table creation occurred, or redeploying after a rollback:
 
@@ -1788,7 +1770,15 @@ python manage.py migrate --fake-initial
 - ✅ Idempotent (safe to run multiple times)
 - ✅ Won't skip actual schema changes
 - ✅ Only affects initial migrations (0001_initial.py)
+- ✅ Compatible with django-tenants
 - ⚠️ Assumes initial schema is correct (doesn't verify)
+
+**Alternative: Migration Verification**
+If you need to verify initial schema matches migrations:
+```bash
+python manage.py migrate --check  # Exits non-zero if unapplied migrations exist
+python manage.py showmigrations --list  # Shows migration status
+```
 
 **CI/CD Integration:**
 Our deployment workflows use `--fake-initial` to ensure reliable redeployments without manual intervention.

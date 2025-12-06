@@ -30,14 +30,15 @@ class DatabaseConnectivityTest(TestCase):
     def test_database_engine_configured(self):
         """Test that database engine is properly configured."""
         engine = connection.settings_dict['ENGINE']
-        # Only standard PostgreSQL backend is supported (shared-schema multi-tenancy)
+        # Accept both django-tenants backend and standard PostgreSQL backend
         valid_engines = [
             'django.db.backends.postgresql',
+            'django_tenants.postgresql_backend',
         ]
         self.assertIn(
             engine,
             valid_engines,
-            f"Database engine must be standard PostgreSQL backend, got: {engine}"
+            f"Database engine must be PostgreSQL (standard or django-tenants), got: {engine}"
         )
 
     @skip("Requires write access in test environment")

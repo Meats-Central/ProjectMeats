@@ -1,14 +1,6 @@
 """
 Base settings for ProjectMeats.
 Common configuration shared across all environments.
-
-Multi-Tenancy Architecture: SHARED SCHEMA ONLY
-==============================================
-ProjectMeats uses a shared-schema multi-tenancy approach:
-- All tenants share the same PostgreSQL schema
-- Tenant isolation is enforced via `tenant_id` foreign keys
-- Custom TenantMiddleware resolves tenant from domain/subdomain/header
-- NO django-tenants schema-based isolation
 """
 
 from pathlib import Path
@@ -18,14 +10,12 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # ==============================================================================
-# SHARED SCHEMA MULTI-TENANCY CONFIGURATION
+# SHARED SCHEMA CONFIGURATION (django-tenants DISABLED for routing)
 # ==============================================================================
 # We use a custom TenantMiddleware (apps.tenants.middleware.TenantMiddleware)
-# for tenant resolution based on domain/subdomain/headers. ALL apps run
-# in a shared PostgreSQL schema with tenant_id foreign keys for isolation.
-
-# Row-level security flag for auditing and future PostgreSQL RLS implementation
-ROW_LEVEL_SECURITY = True
+# for tenant resolution based on domain/subdomain/headers, but ALL apps run
+# in a shared PostgreSQL schema. This avoids the "Public vs Tenant World" split
+# that causes 404s on business endpoints.
 
 # Common Django apps used across the application
 _DJANGO_CORE_APPS = [
@@ -38,6 +28,9 @@ _DJANGO_CORE_APPS = [
 
 # Third-party apps
 _THIRD_PARTY_APPS = [
+    # NOTE: django_tenants is kept for model definitions (Tenant, TenantDomain)
+    # but its middleware is DISABLED to prevent schema-based routing
+    "django_tenants",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
@@ -45,11 +38,11 @@ _THIRD_PARTY_APPS = [
     "django_filters",
 ]
 
-# ProjectMeats apps (all in shared schema with tenant_id isolation)
+# ProjectMeats apps (all in shared schema)
 _PROJECT_APPS = [
     "apps.core",
-    "apps.tenants",  # Tenant management (shared-schema approach)
-    # Business apps (all use tenant_id for data isolation)
+    "apps.tenants",  # Tenant management
+    # Business apps (previously in TENANT_APPS, now in shared schema)
     "tenant_apps.accounts_receivables",
     "tenant_apps.suppliers",
     "tenant_apps.customers",
@@ -65,17 +58,55 @@ _PROJECT_APPS = [
     "tenant_apps.cockpit",
 ]
 
-# All apps in one shared schema
+# All apps in one shared schema (no SHARED_APPS/TENANT_APPS split)
 INSTALLED_APPS = (
-    _DJANGO_CORE_APPS
+    _THIRD_PARTY_APPS[:1]  # django_tenants must be first if present
+    + _DJANGO_CORE_APPS
     + ["django.contrib.staticfiles"]
-    + _THIRD_PARTY_APPS
+    + _THIRD_PARTY_APPS[1:]  # Rest of third-party apps
     + _PROJECT_APPS
 )
 
+# Legacy django-tenants configuration (kept for reference, NOT USED for routing)
+# These are preserved to avoid migration issues but are not actively used
+
+# ==============================================================================
+# DJANGO-TENANTS REQUIRED SETTINGS
+# ==============================================================================
+SHARED_APPS = [
+    "django_tenants",
+] + _DJANGO_CORE_APPS + [
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "drf_spectacular",
+    "django_filters",
+    "apps.core",
+    "apps.tenants",
+]
+
+TENANT_APPS = _DJANGO_CORE_APPS + [
+    "tenant_apps.accounts_receivables",
+    "tenant_apps.suppliers",
+    "tenant_apps.customers",
+    "tenant_apps.contacts",
+    "tenant_apps.purchase_orders",
+    "tenant_apps.plants",
+    "tenant_apps.carriers",
+    "tenant_apps.bug_reports",
+    "tenant_apps.ai_assistant",
+    "tenant_apps.products",
+    "tenant_apps.sales_orders",
+    "tenant_apps.invoices",
+    "tenant_apps.cockpit",
+]
+
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Must be first for CORS headers
-    "apps.tenants.middleware.TenantMiddleware",  # Custom shared-schema tenant resolution
+    # CRITICAL: Custom TenantMiddleware (NOT django_tenants.middleware.main.TenantMainMiddleware)
+    "apps.tenants.middleware.TenantMiddleware",  # Sets request.tenant without schema routing
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -87,6 +118,9 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "projectmeats.urls"
+
+# NOTE: PUBLIC_SCHEMA_URLCONF is NOT used when TenantMainMiddleware is disabled
+# All requests use ROOT_URLCONF regardless of tenant
 
 TEMPLATES = [
     {
@@ -277,3 +311,10 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+
+# Django-tenants configuration for schema-based multi-tenancy
+TENANT_MODEL = "tenants.Client"
+TENANT_DOMAIN_MODEL = "tenants.Domain"
+
+# Database router for schema-based multi-tenancy
+DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter"]
