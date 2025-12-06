@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("core", "0002_userpreferences"),
+        ("core", "0001_initial"),
         ("plants", "0001_initial"),
         ("contacts", "0001_initial"),
     ]
