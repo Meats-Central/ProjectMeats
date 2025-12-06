@@ -5,10 +5,10 @@
 
 # Core Django and DRF
 Django>=5.0
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-django-environ==0.11.2
-django-filter==23.3
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+django-environ==0.12.0
+django-filter==25.2
 
 # Multi-tenancy: Uses shared-schema approach (NO django-tenants)
 # All tenant isolation is via tenant_id foreign keys on business models
@@ -18,10 +18,10 @@ psycopg[binary]>=3.2.0  # Modern PostgreSQL adapter (psycopg3)
 dj-database-url==2.1.0
 
 # API Documentation
-drf-spectacular==0.27.0
+drf-spectacular==0.29.0
 
 # Development and Testing
-django-extensions==3.2.3
+django-extensions==4.1
 pytest-django==4.7.0
 pytest-cov==4.1.0
 factory-boy==3.3.0
