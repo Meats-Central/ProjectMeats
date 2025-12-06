@@ -8,9 +8,8 @@ from .models import Tenant, TenantUser, TenantDomain
 import uuid
 
 
-@skip("Requires refactoring for schema-based multi-tenancy - see SCHEMA_ISOLATION_MIGRATION_COMPLETE.md")
 class TenantModelTests(TestCase):
-    """Test cases for Tenant model."""
+    """Test cases for Tenant model with shared-schema multi-tenancy."""
 
     def setUp(self):
         self.user = User.objects.create_user(
@@ -18,7 +17,7 @@ class TenantModelTests(TestCase):
         )
 
     def test_tenant_creation(self):
-        """Test basic tenant creation."""
+        """Test basic tenant creation in shared schema."""
         tenant = Tenant.objects.create(
             name="Test Company",
             slug="test-company",
@@ -54,11 +53,33 @@ class TenantModelTests(TestCase):
         )
 
         self.assertEqual(str(tenant), "Test Company (test-company)")
+    
+    def test_tenant_isolation_in_shared_schema(self):
+        """Test that multiple tenants can coexist in shared schema."""
+        tenant1 = Tenant.objects.create(
+            name="Company A",
+            slug="company-a",
+            contact_email="admin@companya.com",
+            created_by=self.user,
+        )
+        tenant2 = Tenant.objects.create(
+            name="Company B",
+            slug="company-b",
+            contact_email="admin@companyb.com",
+            created_by=self.user,
+        )
+        
+        # Both tenants should exist in same schema
+        self.assertEqual(Tenant.objects.count(), 2)
+        self.assertIsNotNone(Tenant.objects.filter(slug="company-a").first())
+        self.assertIsNotNone(Tenant.objects.filter(slug="company-b").first())
+        
+        # Tenants should have unique IDs
+        self.assertNotEqual(tenant1.id, tenant2.id)
 
 
-@skip("Requires refactoring for schema-based multi-tenancy - see SCHEMA_ISOLATION_MIGRATION_COMPLETE.md")
 class TenantUserModelTests(TestCase):
-    """Test cases for TenantUser model."""
+    """Test cases for TenantUser model with shared-schema multi-tenancy."""
 
     def setUp(self):
         self.user1 = User.objects.create_user(
@@ -75,7 +96,7 @@ class TenantUserModelTests(TestCase):
         )
 
     def test_tenant_user_creation(self):
-        """Test creating tenant-user association."""
+        """Test creating tenant-user association in shared schema."""
         tenant_user = TenantUser.objects.create(
             tenant=self.tenant, user=self.user1, role="owner"
         )
@@ -89,7 +110,7 @@ class TenantUserModelTests(TestCase):
         """Test that user cannot be associated with same tenant twice."""
         TenantUser.objects.create(tenant=self.tenant, user=self.user1, role="owner")
 
-        # This should not raise an error but let's check uniqueness
+        # This should raise an IntegrityError due to unique constraint
         with self.assertRaises(Exception):
             TenantUser.objects.create(tenant=self.tenant, user=self.user1, role="admin")
 
