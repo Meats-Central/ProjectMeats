@@ -134,6 +134,3 @@ celerybeat.pid
 dmypy.json
 *storybook.log
 storybook-static
-
-# Master Convergence Backups
-backups/

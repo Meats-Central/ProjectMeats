@@ -3,8 +3,9 @@ Purchase Orders models for ProjectMeats.
 
 Defines purchase order entities and related business logic.
 
-TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-Currently, these models do not have tenant isolation implemented.
+
+Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
+Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
 """
 from decimal import Decimal
 from django.db import models

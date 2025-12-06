@@ -64,23 +64,24 @@ class UserPreferencesAPITest(APITestCase):
     """Tests for UserPreferences API endpoints."""
     
     def setUp(self):
-        """Set up test users and authentication (shared-schema approach)."""
+        """Set up test users, authentication, and test tenant."""
         # Import here to avoid circular imports
-        from apps.tenants.models import Tenant, TenantDomain
+        from apps.tenants.models import Client, Domain
+        from django_tenants.utils import schema_context, get_public_schema_name
         
-        # Create test tenant in shared schema (no schema_context needed)
-        self.tenant = Tenant.objects.create(
-            slug='test-tenant',
-            name='Test Tenant',
-            contact_email='test@testtenantcom'
-        )
-        TenantDomain.objects.create(
-            domain='test.localhost',
-            tenant=self.tenant,
-            is_primary=True
-        )
+        # Create test tenant (Client) in the public schema
+        with schema_context(get_public_schema_name()):
+            self.tenant = Client.objects.create(
+                schema_name='test',
+                name='Test Tenant'
+            )
+            Domain.objects.create(
+                domain='test.localhost',
+                tenant=self.tenant,
+                is_primary=True
+            )
         
-        # Create test users (all in shared schema)
+        # Create test users (in the current test schema)
         self.user1 = User.objects.create_user(
             username='user1',
             email='user1@example.com',
