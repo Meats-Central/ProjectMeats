@@ -177,7 +177,7 @@ class TenantMiddleware:
                     )
 
         # 4. Get user's default tenant if authenticated
-        if not tenant and request.user.is_authenticated:
+        if not tenant and hasattr(request, 'user') and request.user.is_authenticated:
             if is_debug_host:
                 logger.info(f"{debug_prefix} Attempting default tenant lookup for user: {request.user.username}")
             

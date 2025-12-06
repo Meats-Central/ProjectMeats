@@ -10,6 +10,21 @@ from .base import *  # noqa
 # Secret key for tests
 SECRET_KEY = "test-secret-key-not-for-production-use-only-testing"
 
+# Reorder middleware for tests - AuthenticationMiddleware must run before TenantMiddleware
+# This ensures request.user is available when TenantMiddleware runs
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",  # Moved before TenantMiddleware
+    "apps.tenants.middleware.TenantMiddleware",  # Now runs after auth
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
 # Database configuration with standard PostgreSQL backend
 database_url = os.environ.get("DATABASE_URL", "").strip()
 
