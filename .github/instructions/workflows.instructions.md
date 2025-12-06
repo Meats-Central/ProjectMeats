@@ -1,8 +1,10 @@
-# GitHub Workflows Instructions
+---
+applyTo:
+  - .github/workflows/**/*.yml
+  - .github/workflows/**/*.yaml
+---
 
-## applyTo
-- .github/workflows/**/*.yml
-- .github/workflows/**/*.yaml
+# GitHub Workflows Instructions
 
 ## Workflow Structure Standards
 

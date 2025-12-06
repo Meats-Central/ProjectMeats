@@ -1,10 +1,12 @@
-# Backend Development Instructions
+---
+applyTo:
+  - backend/**/*.py
+  - backend/**/models.py
+  - backend/**/views.py
+  - backend/**/serializers.py
+---
 
-## applyTo
-- backend/**/*.py
-- backend/**/models.py
-- backend/**/views.py
-- backend/**/serializers.py
+# Backend Development Instructions
 
 ## Django Multi-Tenancy Patterns
 
