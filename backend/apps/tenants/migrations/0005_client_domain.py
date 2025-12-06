@@ -1,11 +1,13 @@
-# Migration for django-tenants integration
-# Created to add Client and Domain models for schema-based multi-tenancy
-# Based on django-tenants 3.5.0 TenantMixin and DomainMixin structure
-# Made idempotent to handle cases where tables already exist
+# Migration for schema-based models (compatibility layer)
+# Modified to remove django_tenants dependency
 
 from django.db import migrations, models, connection
 import django.db.models.deletion
-import django_tenants.postgresql_backend.base
+
+
+def _check_schema_name(value):
+    """Dummy validator for schema_name - no longer used."""
+    return value
 
 
 def create_tables_if_not_exist(apps, schema_editor):
@@ -136,7 +138,7 @@ class Migration(migrations.Migration):
                     name='Client',
                     fields=[
                         ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('schema_name', models.CharField(db_index=True, max_length=63, unique=True, validators=[django_tenants.postgresql_backend.base._check_schema_name])),
+                        ('schema_name', models.CharField(db_index=True, max_length=63, unique=True, validators=[_check_schema_name])),
                         ('name', models.CharField(help_text='Client organization name', max_length=255)),
                         ('description', models.TextField(blank=True, help_text='Optional description of the client')),
                         ('created_at', models.DateTimeField(auto_now_add=True)),
