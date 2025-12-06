@@ -148,7 +148,17 @@ jobs:
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
+          # Upgrade setuptools and wheel for better dependency resolution
+          pip install --upgrade setuptools wheel
+          # Install Django ecosystem packages first with explicit versions
+          pip install "Django>=5.0" "django-filter>=23.0" "djangorestframework>=3.14.0"
+          # Install all requirements (will use already-installed versions where possible)
           pip install -r requirements.txt
+          # Verify critical package versions
+          echo "=== Installed Django Ecosystem Versions ==="
+          python -c "import django; print(f'Django: {django.__version__}')"
+          python -c "import django_filters; print(f'django-filter: {django_filters.__version__}')"
+          python -c "import rest_framework; print(f'DRF: {rest_framework.__version__}')"
       
       # Check for uncommitted migrations BEFORE running tests
       - name: Check for uncommitted migrations
