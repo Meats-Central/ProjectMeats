@@ -1,3 +1,4 @@
 test_db.sqlite3
 db.sqlite3
 .env
+db_test.sqlite3
