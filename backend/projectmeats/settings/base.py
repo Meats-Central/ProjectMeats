@@ -24,6 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # for tenant resolution based on domain/subdomain/headers. ALL apps run
 # in a shared PostgreSQL schema with tenant_id foreign keys for isolation.
 
+# Row-level security flag for auditing and future PostgreSQL RLS implementation
+ROW_LEVEL_SECURITY = True
+
 # Common Django apps used across the application
 _DJANGO_CORE_APPS = [
     "django.contrib.admin",

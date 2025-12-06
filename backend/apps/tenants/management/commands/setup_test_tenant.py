@@ -1,18 +1,29 @@
 """
 Management command to set up test tenant for CI/CD environments.
+
+SHARED-SCHEMA MULTI-TENANCY:
+This command uses ProjectMeats' custom shared-schema multi-tenancy approach,
+NOT django-tenants. All tenants share the same PostgreSQL schema with tenant_id
+foreign keys for data isolation.
 """
 from django.core.management.base import BaseCommand
 from django.db import connection
+from apps.tenants.models import Tenant, TenantDomain
 
 
 class Command(BaseCommand):
-    help = 'Set up test tenant for CI/CD environments'
+    help = 'Set up test tenant for CI/CD environments (shared-schema approach)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--tenant-name',
-            default='test_tenant',
-            help='Name of the test tenant schema (default: test_tenant)'
+            default='Test Tenant',
+            help='Name of the test tenant (default: Test Tenant)'
+        )
+        parser.add_argument(
+            '--tenant-slug',
+            default='test-tenant',
+            help='Slug of the test tenant (default: test-tenant)'
         )
         parser.add_argument(
             '--domain',
@@ -21,7 +32,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Check if django-tenants is configured
+        # Check if PostgreSQL is configured
         if "postgresql" not in connection.settings_dict.get("ENGINE", ""):
             self.stdout.write(
                 self.style.WARNING(
@@ -30,39 +41,29 @@ class Command(BaseCommand):
             )
             return
 
-        try:
-            from django_tenants.utils import get_tenant_model, schema_context
-            from apps.tenants.models import Domain
-        except ImportError:
-            self.stdout.write(
-                self.style.WARNING(
-                    "django-tenants not installed - skipping tenant setup"
-                )
-            )
-            return
-
         tenant_name = options['tenant_name']
+        tenant_slug = options['tenant_slug']
         domain_name = options['domain']
 
-        # Create tenant (idempotent with get_or_create)
-        Client = get_tenant_model()
-        tenant, created = Client.objects.get_or_create(
-            schema_name=tenant_name,
+        # Create tenant in shared schema (idempotent with get_or_create)
+        tenant, created = Tenant.objects.get_or_create(
+            slug=tenant_slug,
             defaults={
-                'name': f'Test Tenant ({tenant_name})',
-                'description': 'Test tenant for CI/CD environments'
+                'name': tenant_name,
+                'contact_email': f'admin@{tenant_slug}.com',
+                'is_active': True,
             }
         )
 
         if created:
             self.stdout.write(
-                self.style.SUCCESS(f'Created tenant: {tenant_name}')
+                self.style.SUCCESS(f'✓ Created tenant: {tenant_name} ({tenant_slug})')
             )
         else:
-            self.stdout.write(f'Tenant already exists: {tenant_name}')
+            self.stdout.write(f'  Tenant already exists: {tenant_name}')
 
-        # Create domain
-        domain, created = Domain.objects.get_or_create(
+        # Create domain mapping
+        domain, created = TenantDomain.objects.get_or_create(
             domain=domain_name,
             defaults={
                 'tenant': tenant,
@@ -72,26 +73,21 @@ class Command(BaseCommand):
 
         if created:
             self.stdout.write(
-                self.style.SUCCESS(f'Created domain: {domain_name}')
+                self.style.SUCCESS(f'✓ Created domain: {domain_name} -> {tenant_slug}')
             )
         else:
-            self.stdout.write(f'Domain already exists: {domain_name}')
+            self.stdout.write(f'  Domain already exists: {domain_name}')
 
-        # Migrate tenant schema
-        try:
-            with schema_context(tenant.schema_name):
-                from django.core.management import call_command
-                call_command('migrate_schemas', schema_name=tenant.schema_name, verbosity=0)
-                self.stdout.write(
-                    self.style.SUCCESS(f'Migrated tenant schema: {tenant_name}')
-                )
-        except Exception as e:
-            self.stdout.write(
-                self.style.WARNING(f'Could not migrate tenant schema: {e}')
-            )
-
+        # No schema migrations needed - we use shared schema
+        # Standard migrations are run once for all tenants
         self.stdout.write(
             self.style.SUCCESS(
-                f'Test tenant setup complete: {tenant_name} -> {domain_name}'
+                f'\n✓ Test tenant setup complete: {tenant_name} -> {domain_name}'
+            )
+        )
+        self.stdout.write(
+            self.style.NOTICE(
+                '\nNote: Using shared-schema multi-tenancy. '
+                'Run "python manage.py migrate" for schema updates.'
             )
         )
