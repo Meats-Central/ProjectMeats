@@ -1,13 +1,14 @@
 """
 Management command to create a new tenant with domain.
 
-This command creates a tenant (Client) and associated domain objects following
-django-tenants patterns while working with ProjectMeats' custom shared-schema
-multi-tenancy implementation.
+SHARED-SCHEMA MULTI-TENANCY:
+This command creates a tenant and associated domain objects using ProjectMeats'
+custom shared-schema multi-tenancy implementation. All tenants share the same
+PostgreSQL schema with tenant_id foreign keys for data isolation.
 
 Usage:
-    python manage.py create_tenant --schema-name=acme --name="ACME Corp" --domain=acme.example.com
-    python manage.py create_tenant --schema-name=test --name="Test Co" --on-trial --paid-until=2024-12-31
+    python manage.py create_tenant --slug=acme --name="ACME Corp" --domain=acme.example.com
+    python manage.py create_tenant --slug=test-co --name="Test Co" --on-trial --paid-until=2024-12-31
 """
 import os
 from datetime import datetime, timedelta
@@ -24,10 +25,10 @@ class Command(BaseCommand):
         """Add command-line arguments."""
         # Required arguments
         parser.add_argument(
-            '--schema-name',
+            '--slug',
             type=str,
             required=True,
-            help='Database schema name (e.g., "acme_corp"). Must be unique and PostgreSQL-compatible.'
+            help='URL-friendly identifier (e.g., "acme-corp"). Must be unique.'
         )
         parser.add_argument(
             '--name',
@@ -37,11 +38,6 @@ class Command(BaseCommand):
         )
         
         # Optional tenant configuration
-        parser.add_argument(
-            '--slug',
-            type=str,
-            help='URL-friendly identifier (auto-generated from schema-name if not provided)'
-        )
         parser.add_argument(
             '--contact-email',
             type=str,
@@ -84,31 +80,22 @@ class Command(BaseCommand):
             choices=['development', 'staging', 'uat', 'production'],
             help='Environment context for tenant creation'
         )
-        
-        # Migration options
-        parser.add_argument(
-            '--run-migrations',
-            action='store_true',
-            help='Run schema migrations for the new tenant (for true django-tenants compatibility)'
-        )
 
     def handle(self, *args, **options):
         """Execute the command."""
         verbosity = options.get('verbosity', 1)
         
         # Get required parameters
-        schema_name = options['schema_name']
+        slug = options['slug']
         name = options['name']
         
         # Get optional parameters
-        slug = options.get('slug') or schema_name.replace('_', '-')
-        contact_email = options.get('contact_email') or f'admin@{slug}.local'
+        contact_email = options.get('contact_email') or f'admin@{slug}.com'
         contact_phone = options.get('contact_phone', '')
         on_trial = options.get('on_trial', False)
         domain_name = options.get('domain')
         is_primary = options.get('is_primary', True)
         environment = options.get('environment') or os.getenv('DJANGO_ENV', 'development')
-        run_migrations = options.get('run_migrations', False)
         
         # Parse paid_until date
         paid_until = None
@@ -125,19 +112,18 @@ class Command(BaseCommand):
             # Default to 30 days trial
             paid_until = timezone.now() + timedelta(days=30)
         
-        # Validate schema_name (PostgreSQL identifier rules)
-        if not self._validate_schema_name(schema_name):
+        # Validate slug (URL-friendly identifier rules)
+        if not self._validate_slug(slug):
             raise CommandError(
-                f'Invalid schema name: {schema_name}. '
-                f'Must start with a letter or underscore, contain only alphanumeric characters '
-                f'and underscores, and be max 63 characters.'
+                f'Invalid slug: {slug}. '
+                f'Must contain only lowercase letters, numbers, and hyphens, '
+                f'and be max 100 characters.'
             )
         
         if verbosity >= 2:
             self.stdout.write('🔧 Tenant Configuration:')
-            self.stdout.write(f'   - Schema Name: {schema_name}')
-            self.stdout.write(f'   - Name: {name}')
             self.stdout.write(f'   - Slug: {slug}')
+            self.stdout.write(f'   - Name: {name}')
             self.stdout.write(f'   - Contact Email: {contact_email}')
             self.stdout.write(f'   - Contact Phone: {contact_phone}')
             self.stdout.write(f'   - On Trial: {on_trial}')
@@ -148,22 +134,21 @@ class Command(BaseCommand):
         
         try:
             with transaction.atomic():
-                # Create tenant (raises IntegrityError on duplicate schema_name)
+                # Create tenant in shared schema (raises IntegrityError on duplicate slug)
                 if verbosity >= 1:
-                    self.stdout.write(f'Creating tenant: {name} ({schema_name})...')
+                    self.stdout.write(f'Creating tenant: {name} ({slug})...')
                 
-                # Check for duplicate schema_name first
-                if Tenant.objects.filter(schema_name=schema_name).exists():
+                # Check for duplicate slug first
+                if Tenant.objects.filter(slug=slug).exists():
                     raise CommandError(
-                        f'Tenant with schema_name "{schema_name}" already exists. '
-                        f'Use a unique schema_name.'
+                        f'Tenant with slug "{slug}" already exists. '
+                        f'Use a unique slug.'
                     )
                 
-                # Create new tenant
+                # Create new tenant in shared schema
                 tenant = Tenant.objects.create(
-                    schema_name=schema_name,
-                    name=name,
                     slug=slug,
+                    name=name,
                     contact_email=contact_email,
                     contact_phone=contact_phone,
                     is_active=True,
@@ -204,36 +189,15 @@ class Command(BaseCommand):
                                 )
                             )
                 
-                # Run migrations if requested
-                if run_migrations:
-                    self._run_tenant_migrations(tenant, verbosity)
-                else:
-                    if verbosity >= 1:
-                        self.stdout.write('')
-                        self.stdout.write(
-                            self.style.WARNING(
-                                '⚠️  Schema migrations not run. ProjectMeats uses shared-schema '
-                                'multi-tenancy.'
-                            )
-                        )
-                        self.stdout.write(
-                            'To run migrations for true django-tenants compatibility, use:'
-                        )
-                        self.stdout.write(
-                            f'  python manage.py migrate_schemas --schema={schema_name}'
-                        )
-                        self.stdout.write('')
-                
                 # Summary
                 if verbosity >= 1:
                     self.stdout.write(self.style.SUCCESS('=' * 60))
-                    self.stdout.write(self.style.SUCCESS('TENANT CREATION COMPLETE'))
+                    self.stdout.write(self.style.SUCCESS('TENANT CREATION COMPLETE (Shared-Schema)'))
                     self.stdout.write(self.style.SUCCESS('=' * 60))
                     self.stdout.write('')
                     self.stdout.write(f'Tenant ID: {tenant.id}')
-                    self.stdout.write(f'Schema Name: {tenant.schema_name}')
-                    self.stdout.write(f'Name: {tenant.name}')
                     self.stdout.write(f'Slug: {tenant.slug}')
+                    self.stdout.write(f'Name: {tenant.name}')
                     self.stdout.write(f'Contact: {tenant.contact_email}')
                     self.stdout.write(f'Trial: {tenant.is_trial}')
                     if tenant.trial_ends_at:
@@ -247,6 +211,10 @@ class Command(BaseCommand):
                     if not domain_name:
                         self.stdout.write('  3. Add domain(s) for tenant routing')
                     self.stdout.write('')
+                    self.stdout.write(self.style.NOTICE(
+                        'Note: Using shared-schema multi-tenancy. '
+                        'No schema migrations needed.'
+                    ))
                 
         except Exception as e:
             self.stdout.write(
@@ -258,62 +226,18 @@ class Command(BaseCommand):
                 self.stdout.write(traceback.format_exc())
             raise
 
-    def _validate_schema_name(self, schema_name):
+    def _validate_slug(self, slug):
         """
-        Validate schema name follows PostgreSQL identifier rules.
+        Validate slug follows URL-friendly identifier rules.
         
         Rules:
-        - Must start with a letter (a-z) or underscore
-        - Can contain letters, digits, and underscores
-        - Maximum 63 characters
+        - Must contain only lowercase letters, numbers, and hyphens
+        - Maximum 100 characters
         """
         import re
         
-        if len(schema_name) > 63:
+        if len(slug) > 100:
             return False
         
-        pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
-        return pattern.match(schema_name) is not None
-
-    def _run_tenant_migrations(self, tenant, verbosity):
-        """
-        Run migrations for tenant schema.
-        
-        Note: This is a placeholder for true django-tenants compatibility.
-        ProjectMeats uses shared-schema multi-tenancy, so this is not needed
-        for normal operation.
-        
-        For true django-tenants setup, you would use:
-            from django_tenants.utils import tenant_context
-            from django.core.management import call_command
-            
-            with tenant_context(tenant):
-                call_command('migrate_schemas', schema_name=tenant.schema_name)
-        """
-        if verbosity >= 1:
-            self.stdout.write('')
-            self.stdout.write(
-                self.style.WARNING(
-                    '⚠️  Schema migration requested but ProjectMeats uses shared-schema '
-                    'multi-tenancy.'
-                )
-            )
-            self.stdout.write(
-                'For true django-tenants compatibility with separate PostgreSQL schemas:'
-            )
-            self.stdout.write('')
-            self.stdout.write('1. Install django-tenants database backend in settings:')
-            self.stdout.write('   DATABASES = {')
-            self.stdout.write('       "default": {')
-            self.stdout.write('           "ENGINE": "django_tenants.postgresql_backend",')
-            self.stdout.write('           ...')
-            self.stdout.write('       }')
-            self.stdout.write('   }')
-            self.stdout.write('')
-            self.stdout.write('2. Configure SHARED_APPS and TENANT_APPS in settings')
-            self.stdout.write('')
-            self.stdout.write('3. Run migrations:')
-            self.stdout.write(f'   python manage.py migrate_schemas --schema={tenant.schema_name}')
-            self.stdout.write('')
-            self.stdout.write('Current setup uses application-level tenant filtering instead.')
-            self.stdout.write('')
+        pattern = re.compile(r'^[a-z0-9-]+$')
+        return pattern.match(slug) is not None

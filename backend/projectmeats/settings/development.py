@@ -48,9 +48,8 @@ if database_url:
     # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use django-tenants PostgreSQL backend for schema-based multi-tenancy
-    if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+    # Use standard Django PostgreSQL backend (shared-schema multi-tenancy)
+    # No django-tenants - we use tenant_id foreign keys for isolation
 
     # Set connection settings for development
     _db_config.setdefault(
@@ -69,10 +68,10 @@ else:
     DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.postgresql"
 
     if DB_ENGINE == "django.db.backends.postgresql":
-        # PostgreSQL configuration with django-tenants backend for schema isolation
+        # PostgreSQL configuration with standard Django backend (shared-schema)
         DATABASES = {
             "default": {
-                "ENGINE": "django_tenants.postgresql_backend",  # django-tenants backend
+                "ENGINE": "django.db.backends.postgresql",  # Standard Django backend
                 "NAME": config("DB_NAME"),
                 "USER": config("DB_USER"),
                 "PASSWORD": config("DB_PASSWORD"),
@@ -102,13 +101,13 @@ else:
 # ==============================================================================
 # CODESPACES AUTO-CONFIGURATION
 # ==============================================================================
-# Automatically ensure django-tenants backend when running in GitHub Codespaces
-# This guarantees multi-tenancy support without manual intervention
+# Codespaces environment - ensure standard PostgreSQL backend
 if os.getenv('CODESPACES') == 'true':
     if 'default' in DATABASES:
-        # Force django-tenants backend for Codespaces environment
-        DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-        logger.info("Codespaces detected: Using django_tenants.postgresql_backend")
+        # Ensure standard PostgreSQL backend (no schema-based tenancy)
+        if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+            DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+            logger.info("Codespaces detected: Using django.db.backends.postgresql")
 
 # Log which database backend is being used
 logger.info(

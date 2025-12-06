@@ -1,10 +1,12 @@
-# Frontend Development Instructions
+---
+applyTo:
+  - frontend/**/*.ts
+  - frontend/**/*.tsx
+  - frontend/**/*.jsx
+  - frontend/src/**/*
+---
 
-## applyTo
-- frontend/**/*.ts
-- frontend/**/*.tsx
-- frontend/**/*.jsx
-- frontend/src/**/*
+# Frontend Development Instructions
 
 ## React + TypeScript Standards
 

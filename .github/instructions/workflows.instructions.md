@@ -1,8 +1,10 @@
-# GitHub Workflows Instructions
+---
+applyTo:
+  - .github/workflows/**/*.yml
+  - .github/workflows/**/*.yaml
+---
 
-## applyTo
-- .github/workflows/**/*.yml
-- .github/workflows/**/*.yaml
+# GitHub Workflows Instructions
 
 ## Workflow Structure Standards
 
@@ -116,10 +118,11 @@ migrate:
           export DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
         fi
         
-        # Idempotent multi-tenant migrations
-        python manage.py migrate_schemas --shared --fake-initial --noinput
-        python manage.py create_super_tenant --no-input
-        python manage.py migrate_schemas --tenant --noinput
+        # Install dependencies (exit on error)
+        pip install -r backend/requirements.txt || exit 1
+        
+        # Run standard Django migrations (NOT migrate_schemas)
+        python manage.py migrate --fake-initial --noinput
 ```
 
 **Key Points:**
@@ -127,6 +130,7 @@ migrate:
 - ✅ Run migrations in CI environment, not via SSH
 - ✅ Block deployment if migrations fail
 - ✅ Parse DATABASE_URL for production settings
+- ✅ Use standard Django `migrate` command (NOT `migrate_schemas`)
 
 ## Deployment Jobs
 
@@ -323,7 +327,7 @@ tags: image:prod-${{ github.sha }}
 # Separate migrate job
 migrate:
   steps:
-    - run: python manage.py migrate_schemas --shared --fake-initial
+    - run: python manage.py migrate --fake-initial --noinput
 
 deploy:
   needs: [migrate]

@@ -1,23 +1,20 @@
 """
-Public schema URL configuration for ProjectMeats.
+Legacy public schema URL configuration for ProjectMeats.
 
 ⚠️ WARNING: This file is NOT CURRENTLY USED ⚠️
 
-This file was created for django-tenants' PUBLIC_SCHEMA_URLCONF setting,
-which routes requests in the "public" schema (without tenant context).
+This file is a legacy artifact from a previous django-tenants implementation
+that used schema-based multi-tenancy. ProjectMeats now uses a shared-schema
+approach with tenant_id foreign keys for data isolation.
 
-CURRENT STATUS:
-- TenantMainMiddleware is DISABLED in settings/base.py
-- Using custom TenantMiddleware instead (shared schema pattern)
+CURRENT ARCHITECTURE:
+- Using custom TenantMiddleware (apps.tenants.middleware.TenantMiddleware)
 - ALL requests use projectmeats.urls (ROOT_URLCONF)
-- This file is kept for reference but is not active
+- Tenant isolation via tenant_id foreign keys on business models
+- NO django-tenants or schema-based routing
 
-If you need to re-enable schema-based routing, you would need to:
-1. Enable django_tenants.middleware.main.TenantMainMiddleware
-2. Set PUBLIC_SCHEMA_URLCONF = "projectmeats.public_urls" in settings
-3. Ensure database has proper schema structure
-
-See: https://django-tenants.readthedocs.io/ for more information.
+This file is kept for historical reference but serves no active purpose.
+It can be safely deleted in future cleanup efforts.
 """
 from django.urls import path
 from .health import health_check, health_detailed, ready_check

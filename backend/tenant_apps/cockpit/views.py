@@ -20,7 +20,7 @@ class CockpitSlotViewSet(viewsets.ReadOnlyModelViewSet):
     Aggregated search across tenant models (Customer, Supplier, PurchaseOrder).
     
     Returns polymorphic results with type fields for frontend icon rendering.
-    Respects django-tenants schema isolation automatically via TenantMainMiddleware.
+    Respects shared-schema tenant isolation via tenant_id filtering in querysets.
     """
     permission_classes = [IsAuthenticated]
     serializer_class = CustomerSlotSerializer  # Default serializer for schema generation

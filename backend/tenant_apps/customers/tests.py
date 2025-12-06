@@ -3,6 +3,7 @@ Tests for Customers API endpoints.
 
 Validates customer creation, validation, and error handling.
 """
+import uuid
 from unittest import skip
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -18,15 +19,18 @@ class CustomerAPITests(APITestCase):
 
     def setUp(self):
         """Set up test data."""
+        unique_id = uuid.uuid4().hex[:8]
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
+            username=f"testuser-{unique_id}", 
+            email=f"test-{unique_id}@example.com", 
+            password="testpass123"
         )
         self.client.force_authenticate(user=self.user)
 
         self.tenant = Tenant.objects.create(
-            name="Test Company",
-            slug="test-company",
-            contact_email="admin@testcompany.com",
+            name=f"Test Company {unique_id}",
+            slug=f"test-company-{unique_id}",
+            contact_email=f"admin-{unique_id}@testcompany.com",
             created_by=self.user,
         )
 

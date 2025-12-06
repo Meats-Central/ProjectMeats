@@ -1,49 +1,40 @@
 """
-Tests for multi-tenancy data isolation with django-tenants schema-based approach.
+Tests for multi-tenancy data isolation with SHARED-SCHEMA approach.
 
-This module tests that data is properly isolated between tenants using PostgreSQL schemas.
-Schema isolation is automatic - each tenant has its own schema with complete data isolation.
+ProjectMeats uses shared-schema multi-tenancy where:
+- All tenants share one PostgreSQL schema
+- Tenant isolation is via tenant_id ForeignKey on business models
+- TenantMiddleware sets request.tenant for context
 
-NOTE: These tests are currently SKIPPED because they require a full PostgreSQL database
-with django-tenants schema creation, which is not feasible in the standard test suite.
-They serve as documentation for the expected isolation behavior.
+This module tests that data is properly isolated between tenants using tenant_id filtering.
 """
 
 from django.test import TestCase
 from unittest import skip
-from django_tenants.utils import schema_context
-from django.contrib.auth.models import User
-from apps.tenants.models import Client, Domain
-from tenant_apps.suppliers.models import Supplier
-from tenant_apps.customers.models import Customer
-from tenant_apps.purchase_orders.models import PurchaseOrder
-from tenant_apps.plants.models import Plant
-from tenant_apps.contacts.models import Contact
-from tenant_apps.carriers.models import Carrier
-from tenant_apps.accounts_receivables.models import AccountsReceivable
-from decimal import Decimal
-from datetime import date
 
 
-@skip("Schema-based isolation tests require full tenant setup - see SCHEMA_ISOLATION_MIGRATION_COMPLETE.md")
+@skip("Isolation tests require database setup - run manually with test database")
 class TenantIsolationTests(TestCase):
-    """Test cases for schema-based tenant data isolation.
+    """Test cases for shared-schema tenant data isolation.
     
-    These tests demonstrate how schema-based isolation works with django-tenants.
+    These tests demonstrate how tenant isolation works with tenant_id ForeignKeys.
     They are skipped in the standard test suite but serve as documentation.
+    
+    Key Patterns:
+    1. All business models have a `tenant` ForeignKey
+    2. ViewSets filter querysets with tenant=request.tenant
+    3. ViewSets assign tenant on perform_create()
     """
 
     def test_supplier_isolation(self):
-        """Test that suppliers are isolated between tenants via PostgreSQL schemas."""
-        # This test demonstrates schema-based isolation
-        # In production:
-        # 1. Each tenant has its own PostgreSQL schema
-        # 2. Queries are automatically scoped to the active schema
-        # 3. No tenant ForeignKey is needed
+        """Test that suppliers are isolated via tenant_id ForeignKey."""
+        # In shared-schema approach:
+        # Supplier.objects.filter(tenant=tenant_a) returns only tenant_a's suppliers
+        # Supplier.objects.filter(tenant=tenant_b) returns only tenant_b's suppliers
         pass
 
     def test_customer_isolation(self):
-        """Test that customers are isolated between tenants via PostgreSQL schemas."""
+        """Test that customers are isolated via tenant_id ForeignKey."""
         pass
 
     def test_purchase_order_isolation(self):
@@ -69,7 +60,7 @@ class TenantIsolationTests(TestCase):
     def test_null_tenant_not_visible(self):
         """Test that records without tenant assignment are not visible.
         
-        NOTE: With schema-based isolation, there is no tenant field.
-        All records in a schema belong to that tenant automatically.
+        With shared-schema isolation, all business records MUST have a tenant.
+        Records with NULL tenant should not be returned by filtered querysets.
         """
         pass

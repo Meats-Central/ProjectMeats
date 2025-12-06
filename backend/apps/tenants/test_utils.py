@@ -1,5 +1,10 @@
 """
-Test utilities for django-tenants multi-tenancy testing.
+Test utilities for shared-schema multi-tenancy testing.
+
+ProjectMeats uses shared-schema multi-tenancy where:
+- All tenants share one PostgreSQL schema
+- Tenant isolation is via tenant_id ForeignKey
+- No django-tenants schema_context needed
 """
 import os
 from django.test import TestCase
@@ -11,49 +16,36 @@ def is_postgres_configured():
     return "postgresql" in connection.settings_dict.get("ENGINE", "")
 
 
-def is_django_tenants_enabled():
-    """Check if django-tenants is enabled and configured."""
-    try:
-        from django_tenants.utils import get_tenant_model, get_tenant_domain_model
-        from django.apps import apps
-        return apps.is_installed("django_tenants")
-    except ImportError:
-        return False
-
-
 class TenantTestMixin:
     """
     Mixin for test cases that need tenant support.
-    Automatically sets up tenant context when django-tenants is available.
+    Sets up a test tenant for shared-schema multi-tenancy tests.
     """
     
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        
-        if is_django_tenants_enabled() and is_postgres_configured():
-            cls._setup_tenant_context()
+        cls._setup_tenant_context()
     
     @classmethod
     def _setup_tenant_context(cls):
         """Set up tenant context for tests."""
         try:
-            from django_tenants.utils import get_tenant_model, schema_context
-            from apps.tenants.models import Domain
+            from apps.tenants.models import Tenant, TenantDomain
             
             # Get or create test tenant
-            Client = get_tenant_model()
-            tenant, created = Client.objects.get_or_create(
-                schema_name='test_tenant',
+            tenant, created = Tenant.objects.get_or_create(
+                slug='test-tenant',
                 defaults={
                     'name': 'Test Tenant',
-                    'paid_until': '2099-12-31',
-                    'on_trial': True
+                    'contact_email': 'test@example.com',
+                    'is_active': True,
+                    'is_trial': True
                 }
             )
             
             # Create domain for test tenant
-            domain, created = Domain.objects.get_or_create(
+            domain, created = TenantDomain.objects.get_or_create(
                 domain='test.example.com',
                 defaults={
                     'tenant': tenant,
@@ -72,25 +64,19 @@ class TenantTestMixin:
 
 class TenantTestCase(TenantTestMixin, TestCase):
     """
-    TestCase with automatic tenant setup for django-tenants.
-    Falls back gracefully when django-tenants is not configured.
+    TestCase with automatic tenant setup for shared-schema multi-tenancy.
     """
     pass
 
 
 def with_tenant_context(test_func):
     """
-    Decorator to run a test within a tenant context.
-    Only applies when django-tenants is configured.
+    Decorator to run a test with a tenant in the request context.
+    For shared-schema, this just ensures self.tenant is available.
     """
     def wrapper(self, *args, **kwargs):
-        if (hasattr(self, 'tenant') and 
-            self.tenant and 
-            is_django_tenants_enabled()):
-            
-            from django_tenants.utils import schema_context
-            with schema_context(self.tenant.schema_name):
-                return test_func(self, *args, **kwargs)
+        if hasattr(self, 'tenant') and self.tenant:
+            return test_func(self, *args, **kwargs)
         else:
             return test_func(self, *args, **kwargs)
     

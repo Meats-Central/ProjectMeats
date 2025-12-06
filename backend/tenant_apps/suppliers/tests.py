@@ -3,6 +3,7 @@ Tests for Suppliers API endpoints.
 
 Validates supplier creation, validation, and error handling.
 """
+import uuid
 from unittest import skip
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -18,15 +19,18 @@ class SupplierAPITests(APITestCase):
 
     def setUp(self):
         """Set up test data."""
+        unique_id = uuid.uuid4().hex[:8]
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
+            username=f"testuser-{unique_id}", 
+            email=f"test-{unique_id}@example.com", 
+            password="testpass123"
         )
         self.client.force_authenticate(user=self.user)
 
         self.tenant = Tenant.objects.create(
-            name="Test Company",
-            slug="test-company",
-            contact_email="admin@testcompany.com",
+            name=f"Test Company {unique_id}",
+            slug=f"test-company-{unique_id}",
+            contact_email=f"admin-{unique_id}@testcompany.com",
             created_by=self.user,
         )
 
@@ -120,8 +124,11 @@ class SupplierAPITests(APITestCase):
     def test_create_supplier_without_tenant_and_no_tenant_user(self):
         """Test that creating a supplier fails when user has no TenantUser association."""
         # Create a new user with no TenantUser association
+        unique_id = uuid.uuid4().hex[:8]
         new_user = User.objects.create_user(
-            username="newuser", email="newuser@example.com", password="testpass123"
+            username=f"newuser-{unique_id}", 
+            email=f"newuser-{unique_id}@example.com", 
+            password="testpass123"
         )
         self.client.force_authenticate(user=new_user)
         
@@ -142,13 +149,16 @@ class SupplierAPITests(APITestCase):
         Supplier.objects.create(name="Supplier 1", tenant=self.tenant)
 
         # Create another tenant and supplier
+        unique_id = uuid.uuid4().hex[:8]
         other_user = User.objects.create_user(
-            username="otheruser", email="other@example.com", password="testpass123"
+            username=f"otheruser-{unique_id}", 
+            email=f"other-{unique_id}@example.com", 
+            password="testpass123"
         )
         other_tenant = Tenant.objects.create(
-            name="Other Company",
-            slug="other-company",
-            contact_email="admin@othercompany.com",
+            name=f"Other Company {unique_id}",
+            slug=f"other-company-{unique_id}",
+            contact_email=f"admin-{unique_id}@othercompany.com",
             created_by=other_user,
         )
         Supplier.objects.create(name="Supplier 2", tenant=other_tenant)
