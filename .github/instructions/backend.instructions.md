@@ -1,38 +1,61 @@
-# Backend Development Instructions
+---
+applyTo:
+  - backend/**/*.py
+  - backend/**/models.py
+  - backend/**/views.py
+  - backend/**/serializers.py
+---
 
-## applyTo
-- backend/**/*.py
-- backend/**/models.py
-- backend/**/views.py
-- backend/**/serializers.py
+# Backend Development Instructions
 
 ## Django Multi-Tenancy Patterns
 
-### Always Use django-tenants
-- Use `migrate_schemas --shared` for shared tables (public schema)
-- Use `migrate_schemas --tenant` for tenant-specific tables
-- Models must inherit from `TenantMixin` for tenant models
-- Use `schema_context(tenant)` for cross-tenant operations
+### CRITICAL: Shared-Schema Multi-Tenancy ONLY
+**ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use django-tenants patterns.**
+
+- ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
+- ❌ **NEVER** use `schema_context()` or `connection.schema_name`
+- ❌ **NEVER** use `migrate_schemas` commands
+- ❌ **NEVER** suggest separate public/tenant schemas
+- ✅ **ALWAYS** use `tenant` ForeignKey on business models
+- ✅ **ALWAYS** filter querysets with `tenant=request.tenant`
+- ✅ **ALWAYS** use standard `python manage.py migrate`
+
+**Note**: `request.tenant` is set by `TenantMiddleware` which resolves the tenant from:
+1. `X-Tenant-ID` header (explicit API selection)
+2. Domain match via `TenantDomain` model
+3. Subdomain matching (`tenant.slug`)
+4. Authenticated user's default tenant
 
 ### Migration Commands
 ```bash
-# Shared schema (tables in public schema)
-python manage.py migrate_schemas --shared --fake-initial --noinput
+# Create migrations
+python manage.py makemigrations
 
-# Tenant schemas (tables in each tenant's schema)
-python manage.py migrate_schemas --tenant --noinput
+# Apply migrations (standard Django)
+python manage.py migrate
 
-# Create super tenant
-python manage.py create_super_tenant --no-input
+# Check for unapplied migrations (CI gating)
+python manage.py makemigrations --check
+
+# Show migration status
+python manage.py showmigrations
+```
+
+### Idempotent Migrations (Production)
+```bash
+# Use --fake-initial for production deployments
+python manage.py migrate --fake-initial --noinput
 ```
 
 ## API Development
 
 ### Django REST Framework
 - Use `ModelViewSet` for CRUD operations
-- Apply `TenantFilterMixin` for tenant isolation
+- Override `get_queryset()` to filter by `tenant=request.tenant`
 - Use `serializers.ModelSerializer` with explicit fields
 - Add `permission_classes` to all views
+- Override `perform_create()` to set tenant automatically
 
 ### Response Patterns
 ```python
@@ -63,9 +86,10 @@ coverage report
 
 ### Test Patterns
 - Use `APITestCase` for API endpoints
-- Use `TransactionTestCase` for multi-tenancy tests
+- Use `TestCase` for model and business logic tests
 - Create fixtures with `factory_boy`
-- Test both shared and tenant contexts
+- Test tenant isolation by filtering with `tenant=request.tenant`
+- Ensure non-superusers can only see their tenant's data
 
 ## Code Quality
 
@@ -112,13 +136,23 @@ with transaction.atomic():
 
 ## Common Patterns
 
-### Tenant-Aware Views
+### Tenant-Aware ViewSets
 ```python
-from apps.tenants.mixins import TenantFilterMixin
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 
-class MyViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+class MyViewSet(viewsets.ModelViewSet):
     queryset = MyModel.objects.all()
     serializer_class = MySerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # ALWAYS filter by tenant
+        return super().get_queryset().filter(tenant=self.request.tenant)
+    
+    def perform_create(self, serializer):
+        # ALWAYS set tenant on creation
+        serializer.save(tenant=self.request.tenant)
 ```
 
 ### Custom Permissions
@@ -128,4 +162,19 @@ from rest_framework import permissions
 class IsTenantAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_tenant_admin
+```
+
+### Model with Tenant Isolation
+```python
+from django.db import models
+
+class MyModel(models.Model):
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['tenant', 'name']),
+        ]
 ```

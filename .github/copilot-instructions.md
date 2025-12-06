@@ -249,7 +249,7 @@ Repeat similarly for `UAT` → `main`.
 - **Data Protection:**
   - Encrypt sensitive data at rest (use Django's encrypted fields or database-level encryption)
   - Use HTTPS/TLS for all data in transit (enforce in production via middleware)
-  - Implement proper tenant isolation in multi-tenant architecture (django-tenants)
+  - Implement proper tenant isolation via ForeignKey filtering (shared-schema multi-tenancy)
   - Sanitize all user inputs to prevent XSS, SQL injection, command injection
   - Use parameterized queries exclusively (ORM handles this, never use raw SQL with string interpolation)
   - Implement Content Security Policy (CSP) headers
@@ -621,7 +621,7 @@ if customer:
 
 **Symptom**: Migration fails with "table already exists"
 - **Cause**: Not using --fake-initial
-- **Fix**: Use `migrate_schemas --shared --fake-initial`
+- **Fix**: Use `python manage.py migrate --fake-initial`
 
 **Symptom**: Tests fail with "no such table"
 - **Cause**: Test database not migrated
@@ -1082,12 +1082,11 @@ if customer:
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
   - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md))
-  - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
-    - Run `python manage.py makemigrations <app_name>` AND commit the migration file
-    - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
-    - For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
-    - TENANT_APPS include: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
-    - SHARED_APPS (use regular `migrate`): core, tenants, and Django core apps
+  - **CRITICAL:** For **any** model change in the project:
+    - Run `python manage.py makemigrations` AND commit the migration file
+    - Use standard `python manage.py migrate` for applying migrations
+    - For production, use `python manage.py migrate --fake-initial --noinput` for idempotency
+    - All apps use shared-schema multi-tenancy (no separate tenant schemas)
   - Always run `python manage.py makemigrations --check` before committing
   - Test migrations on fresh database locally before PR
   - Use minimal dependencies (only depend on migrations you actually need)
@@ -1467,7 +1466,7 @@ if customer:
 - [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md)
 
 ### Tools & Libraries
-- [Django Tenants](https://django-tenants.readthedocs.io/) - Multi-tenancy
+- [Django](https://docs.djangoproject.com/) - Web framework (shared-schema multi-tenancy)
 - [drf-spectacular](https://drf-spectacular.readthedocs.io/) - OpenAPI documentation
 - [Ant Design](https://ant.design/) - React UI components
 - [Styled Components](https://styled-components.com/) - CSS in JS
