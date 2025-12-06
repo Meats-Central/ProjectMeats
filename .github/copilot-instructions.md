@@ -48,6 +48,24 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 - **ViewSet Pattern**: Filter querysets with `tenant=request.tenant` and assign tenant on creation
 - **Standard Migrations**: Use `python manage.py migrate` (NOT `migrate_schemas`)
 
+### Ethical AI & Coding Standards
+
+**ProjectMeats adheres to responsible AI development principles:**
+
+- **Bias Mitigation**: Review data sources and model outputs for fairness
+- **Transparency**: Document AI-driven features and their limitations
+- **Privacy**: Never train models on sensitive customer/tenant data without consent
+- **Human Oversight**: AI assists, humans decide (especially for critical operations)
+- **Sustainability**: Optimize model inference to reduce compute carbon footprint
+
+**Code Quality Standards:**
+
+- **Backend**: Follow PEP 8, use type hints, max line length 120 chars
+- **Frontend**: Airbnb ESLint config, TypeScript strict mode, prefer functional components
+- **Testing**: 80%+ coverage goal, test multi-tenancy isolation
+- **Security**: OWASP Top 10 awareness, dependency scanning via Dependabot
+- **Documentation**: Maintain this file + inline comments for complex logic
+
 ### Tenant Resolution Order
 
 1. `X-Tenant-ID` header (explicit API selection)

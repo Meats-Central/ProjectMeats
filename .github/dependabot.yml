@@ -1,32 +1,17 @@
-# Dependabot Configuration for ProjectMeats
-# Enables automated dependency updates and security alerts
-
 version: 2
-
 updates:
-  # Python/Django Backend
+  # Backend (Python)
   - package-ecosystem: "pip"
     directory: "/backend"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "backend"
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      django:
-        patterns:
-          - "django*"
-          - "drf*"
-          - "djangorestframework*"
-      testing:
-        patterns:
-          - "pytest*"
-          - "factory*"
-          - "coverage*"
+      - "python"
+    reviewers:
+      - "Meats-Central/backend-team"
 
   # Frontend (npm)
   - package-ecosystem: "npm"
@@ -34,25 +19,12 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "frontend"
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      react:
-        patterns:
-          - "react*"
-          - "@types/react*"
-      typescript:
-        patterns:
-          - "typescript"
-          - "@types/*"
-      build:
-        patterns:
-          - "vite*"
-          - "esbuild*"
+    reviewers:
+      - "Meats-Central/frontend-team"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -63,27 +35,4 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "ci/cd"
-    commit-message:
-      prefix: "chore(ci)"
-
-  # Docker
-  - package-ecosystem: "docker"
-    directory: "/backend"
-    schedule:
-      interval: "monthly"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(docker)"
-
-  - package-ecosystem: "docker"
-    directory: "/frontend"
-    schedule:
-      interval: "monthly"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(docker)"
+      - "github-actions"
