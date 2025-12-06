@@ -351,20 +351,30 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            # Configure host nginx reverse proxy using tee
+            # We use a simple forwarding proxy because the container handles the logic
+            echo "=== Configuring host nginx reverse proxy ==="
+            sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null <<'EOF'
             server {
               listen 80;
               server_name _;
               location / {
                 proxy_pass http://127.0.0.1:8080;
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
               }
             }
-            NGINX'
-            sudo nginx -t && sudo systemctl reload nginx || true
+EOF
+            
+            # Validate and reload
+            if sudo nginx -t; then
+              sudo systemctl reload nginx
+            else
+              echo "✗ Nginx validation failed"
+              exit 1
+            fi
           fi
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
@@ -568,8 +578,8 @@ jobs:
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             # Use localhost since we're on the remote server  
-            # Get HTTP status using -I (HEAD request) and grep
-            HTTP_CODE=$(curl -s -I http://localhost:8000/api/v1/health/ 2>/dev/null | grep "^HTTP" | awk '{print $2}' || echo "000")
+            # Get HTTP status using GET request with status code output
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
             
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"

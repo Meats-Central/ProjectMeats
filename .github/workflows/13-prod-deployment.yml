@@ -382,20 +382,30 @@ jobs:
             "$REG/$IMG:$TAG"
 
           if command -v nginx >/dev/null 2>&1; then
-            sudo bash -c 'cat > /etc/nginx/conf.d/pm-frontend.conf <<NGINX
+            # Configure host nginx reverse proxy using tee
+            # We use a simple forwarding proxy because the container handles the logic
+            echo "=== Configuring host nginx reverse proxy ==="
+            sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null <<'EOF'
             server {
               listen 80;
               server_name _;
               location / {
                 proxy_pass http://127.0.0.1:8080;
-                proxy_set_header Host \$host;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto \$scheme;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
               }
             }
-            NGINX'
-            sudo nginx -t && sudo systemctl reload nginx || true
+EOF
+            
+            # Validate and reload
+            if sudo nginx -t; then
+              sudo systemctl reload nginx
+            else
+              echo "✗ Nginx validation failed"
+              exit 1
+            fi
           fi
 
           sudo docker ps -a
