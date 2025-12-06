@@ -2,10 +2,11 @@
 # Created to add Client and Domain models for schema-based multi-tenancy
 # Based on django-tenants 3.5.0 TenantMixin and DomainMixin structure
 # Made idempotent to handle cases where tables already exist
+# NOTE: These models were later removed in migration 0011_remove_schema_based_models
 
 from django.db import migrations, models, connection
 import django.db.models.deletion
-# django_tenants import removed - using standard Django validators for shared-schema approach
+# django_tenants validator removed - these models are deprecated and removed in 0011
 
 
 def create_tables_if_not_exist(apps, schema_editor):
