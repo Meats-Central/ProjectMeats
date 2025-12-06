@@ -351,48 +351,46 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
 
           if command -v nginx >/dev/null 2>&1; then
-            # Configure host nginx reverse proxy using tee
-            # We use a simple forwarding proxy because the container handles the logic
             echo "=== Configuring host nginx reverse proxy ==="
-            sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null <<'NGINXEOF'
-server {
-    listen 80;
-    server_name _;
+            cat <<'EOF' | sudo tee /etc/nginx/conf.d/pm-frontend.conf > /dev/null
+          server {
+              listen 80;
+              server_name _;
 
-    # 1. Backend API (Running on Host Port 8000)
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+              # 1. Backend API (Running on Host Port 8000)
+              location /api/ {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
 
-    # 2. Django Admin (Running on Host Port 8000)
-    location /admin/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+              # 2. Django Admin (Running on Host Port 8000)
+              location /admin/ {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
 
-    # 3. Static Files (Running on Host Port 8000 via Whitenoise)
-    location /static/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-    }
+              # 3. Static Files (Running on Host Port 8000 via Whitenoise)
+              location /static/ {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host $host;
+              }
 
-    # 4. Frontend (Running on Host Port 8080)
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-NGINXEOF
+              # 4. Frontend (Running on Host Port 8080)
+              location / {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+          EOF
             
             # Validate and reload
             if sudo nginx -t; then
