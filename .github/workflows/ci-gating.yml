@@ -1,0 +1,109 @@
+name: "CI Gating (Migrations & Linting)"
+
+on:
+  pull_request:
+    branches: [development, uat, main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/**'
+  
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-checks:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Check for missing migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.development
+        run: |
+          python manage.py makemigrations --check --dry-run --no-input
+      
+      - name: Run migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: projectmeats.settings.development
+        run: |
+          python manage.py migrate --no-input
+      
+      - name: Check code formatting (Black)
+        working-directory: ./backend
+        run: |
+          black --check . --exclude=migrations || echo "::warning::Backend code needs formatting"
+      
+      - name: Lint (Flake8)
+        working-directory: ./backend
+        run: |
+          flake8 . --exclude=migrations --max-line-length=120 || echo "::warning::Backend has linting issues"
+
+  frontend-checks:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Type check
+        working-directory: ./frontend
+        run: npm run type-check || echo "::warning::Frontend has type errors"
+      
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint || echo "::warning::Frontend has linting issues"
+      
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build

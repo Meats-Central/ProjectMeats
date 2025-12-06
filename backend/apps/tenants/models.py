@@ -27,13 +27,11 @@ from django.utils import timezone
 
 class Tenant(models.Model):
     """
-    Tenant model for multi-tenancy support.
+    Tenant model for shared-schema multi-tenancy support.
     Uses shared database, shared schema approach with tenant_id for isolation.
-
-    Note: While this model includes schema_name for alignment with django-tenants
-    patterns, ProjectMeats uses a custom shared-schema implementation rather than
-    PostgreSQL schema-based isolation. The schema_name field is provided for
-    future compatibility and follows django-tenants conventions.
+    
+    All business models reference this via ForeignKey for tenant isolation.
+    No PostgreSQL schema-based separation is used.
     """
 
     # Basic tenant information
@@ -41,14 +39,6 @@ class Tenant(models.Model):
     name = models.CharField(max_length=255, help_text="Tenant organization name")
     slug = models.SlugField(
         max_length=100, unique=True, help_text="URL-friendly identifier"
-    )
-    schema_name = models.CharField(
-        max_length=63,
-        unique=True,
-        null=True,
-        blank=True,
-        help_text="Database schema name (for future django-tenants compatibility)",
-        db_index=True,
     )
 
     # Contact information
@@ -112,12 +102,9 @@ class Tenant(models.Model):
         return timezone.now() > self.trial_ends_at
 
     def save(self, *args, **kwargs):
-        """Override save to ensure slug is always lowercase and schema_name is set."""
+        """Override save to ensure slug is always lowercase."""
         if self.slug:
             self.slug = self.slug.lower()
-            # Auto-generate schema_name from slug if not provided
-            if not self.schema_name:
-                self.schema_name = self.slug.replace("-", "_")
         super().save(*args, **kwargs)
 
     def get_theme_settings(self):
