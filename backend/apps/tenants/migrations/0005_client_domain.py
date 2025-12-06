@@ -5,7 +5,7 @@
 
 from django.db import migrations, models, connection
 import django.db.models.deletion
-import django_tenants.postgresql_backend.base
+# django_tenants import removed - using standard Django validators for shared-schema approach
 
 
 def create_tables_if_not_exist(apps, schema_editor):
@@ -136,7 +136,7 @@ class Migration(migrations.Migration):
                     name='Client',
                     fields=[
                         ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                        ('schema_name', models.CharField(db_index=True, max_length=63, unique=True, validators=[django_tenants.postgresql_backend.base._check_schema_name])),
+                        ('schema_name', models.CharField(db_index=True, max_length=63, unique=True)),
                         ('name', models.CharField(help_text='Client organization name', max_length=255)),
                         ('description', models.TextField(blank=True, help_text='Optional description of the client')),
                         ('created_at', models.DateTimeField(auto_now_add=True)),

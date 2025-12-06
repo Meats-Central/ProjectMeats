@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import django_tenants.postgresql_backend.base
+# django_tenants import removed - using standard Django validators for shared-schema approach
 
 
 class Migration(migrations.Migration):
@@ -19,7 +19,6 @@ class Migration(migrations.Migration):
                 db_index=True,
                 max_length=63,
                 unique=True,
-                validators=[django_tenants.postgresql_backend.base._check_schema_name],
             ),
         ),
         migrations.AlterField(

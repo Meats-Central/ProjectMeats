@@ -1,5 +1,6 @@
 """
-Test settings for ProjectMeats - with django-tenants schema-based multi-tenancy
+Test settings for ProjectMeats - with shared-schema multi-tenancy
+ProjectMeats uses SHARED SCHEMA ONLY - no django-tenants schema isolation
 """
 import os
 
@@ -10,16 +11,16 @@ from .base import *  # noqa
 # Secret key for tests
 SECRET_KEY = "test-secret-key-not-for-production-use-only-testing"
 
-# Database configuration with django-tenants backend
+# Database configuration with standard PostgreSQL backend
 database_url = os.environ.get("DATABASE_URL", "").strip()
 
 if database_url:
     # Parse DATABASE_URL
     _db_config = dj_database_url.parse(database_url)
 
-    # Use django-tenants PostgreSQL backend for schema-based multi-tenancy
+    # Use standard PostgreSQL backend for shared-schema multi-tenancy
     if _db_config.get("ENGINE") == "django.db.backends.postgresql":
-        _db_config["ENGINE"] = "django_tenants.postgresql_backend"
+        _db_config["ENGINE"] = "django.db.backends.postgresql"
         
         # Add connection timeout for database reliability
         if "OPTIONS" not in _db_config:
@@ -29,10 +30,10 @@ if database_url:
     DATABASES = {"default": _db_config}
     
 else:
-    # Use PostgreSQL with django-tenants backend for testing
+    # Use PostgreSQL with standard backend for testing
     DATABASES = {
         "default": {
-            "ENGINE": "django_tenants.postgresql_backend",
+            "ENGINE": "django.db.backends.postgresql",
             "NAME": os.environ.get("TEST_DB_NAME", "test_projectmeats"),
             "USER": os.environ.get("TEST_DB_USER", os.environ.get("DB_USER", "postgres")),
             "PASSWORD": os.environ.get("TEST_DB_PASSWORD", os.environ.get("DB_PASSWORD", "postgres")),
