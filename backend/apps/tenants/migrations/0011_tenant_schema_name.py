@@ -28,8 +28,8 @@ class Migration(migrations.Migration):
                         SELECT 1 FROM information_schema.columns 
                         WHERE table_name='tenants_tenant' AND column_name='schema_name'
                     ) THEN 
-                        ALTER TABLE tenants_tenant ADD COLUMN schema_name VARCHAR(63) NULL;
-                        CREATE UNIQUE INDEX IF NOT EXISTS tenants_tenant_schema_name_idx ON tenants_tenant(schema_name);
+                        ALTER TABLE tenants_tenant ADD COLUMN schema_name VARCHAR(63) NULL UNIQUE;
+                        CREATE UNIQUE INDEX IF NOT EXISTS tenants_tenant_schema_name_uniq ON tenants_tenant(schema_name);
                     END IF; 
                 END $$;
             """,
