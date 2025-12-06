@@ -300,9 +300,20 @@ jobs:
             echo "Warning: .env file not found, using environment variables"
           fi
           
-          # Run migrations (idempotent with --fake-initial)
+          # IMPORTANT: For Operation Fresh Start (first run after migration reset)
+          # Uncomment the following lines to reset the database:
+          # echo "=== Resetting database (Operation Fresh Start) ==="
+          # python manage.py reset_db --noinput || {
+          #   echo "Warning: reset_db command not available, using raw SQL..."
+          #   # Alternative: Use raw SQL to drop and recreate database
+          #   # psql -U $DB_USER -h $DB_HOST -c "DROP DATABASE IF EXISTS $DB_NAME;"
+          #   # psql -U $DB_USER -h $DB_HOST -c "CREATE DATABASE $DB_NAME;"
+          # }
+          # echo "✓ Database reset complete"
+          
+          # Run migrations (standard Django migrate without --fake-initial)
           echo "Running database migrations..."
-          python manage.py migrate --fake-initial --noinput || {
+          python manage.py migrate --noinput || {
             echo "Error: Migrations failed"
             exit 1
           }
@@ -539,12 +550,12 @@ NGINX'
             sleep 10
           done
 
-          # Run migrations before deployment (idempotent, follows backend/manage.py path)
+          # Run migrations before deployment (standard Django migrate)
           echo "=== Running database migrations ==="
           sudo docker run --rm \
             --env-file "$ENV_FILE" \
             "$REG/$IMG:$TAG" \
-            python manage.py migrate --fake-initial --noinput || {
+            python manage.py migrate --noinput || {
               echo "⚠ Migration failed"
               exit 1
             }
