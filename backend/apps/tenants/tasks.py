@@ -51,7 +51,7 @@ def send_invitation_email(self, invitation_id):
             }
         
         # Build invitation URL
-        frontend_url = settings.FRONTEND_URL if hasattr(settings, 'FRONTEND_URL') else 'http://localhost:3000'
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
         invitation_url = f"{frontend_url}/accept-invitation/{invitation.token}"
         
         # Email content

@@ -38,6 +38,7 @@ ViewSets should handle None tenant by returning empty querysets or raising valid
 """
 
 from django.http import HttpRequest, HttpResponseForbidden
+from django.db import connection
 from .models import Tenant, TenantUser, TenantDomain
 import logging
 
@@ -255,7 +256,6 @@ class TenantMiddleware:
         # Set PostgreSQL session variable for Row-Level Security (RLS)
         # This enables database-level tenant isolation as an additional security layer
         if tenant:
-            from django.db import connection
             try:
                 with connection.cursor() as cursor:
                     # Set the current tenant ID in the PostgreSQL session

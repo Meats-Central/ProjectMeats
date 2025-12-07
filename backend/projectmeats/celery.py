@@ -48,10 +48,6 @@ app.conf.update(
     
     # Result backend settings
     result_expires=3600,  # Results expire after 1 hour
-    result_backend_transport_options={
-        'master_name': 'mymaster',
-        'visibility_timeout': 3600,
-    },
     
     # Worker settings
     worker_prefetch_multiplier=4,
