@@ -43,6 +43,8 @@ _THIRD_PARTY_APPS = [
     "corsheaders",
     "drf_spectacular",
     "django_filters",
+    "anymail",  # Email backend
+    "django_celery_beat",  # Celery beat scheduler
 ]
 
 # ProjectMeats apps (all in shared schema with tenant_id isolation)
@@ -277,3 +279,56 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+
+# ==============================================================================
+# CELERY CONFIGURATION
+# ==============================================================================
+CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+# Task execution settings
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes hard limit
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes soft limit
+
+# Celery Beat (periodic tasks) uses Django database scheduler
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# ==============================================================================
+# EMAIL CONFIGURATION (Django-Anymail + SendGrid)
+# ==============================================================================
+# Email backend - use Anymail for SendGrid in production
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'  # Default to console for development
+)
+
+# Anymail configuration for SendGrid
+ANYMAIL = {
+    'SENDGRID_API_KEY': os.environ.get('SENDGRID_API_KEY', ''),
+}
+
+# Email settings
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@projectmeats.com')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'noreply@projectmeats.com')
+EMAIL_TIMEOUT = 10  # seconds
+
+# ==============================================================================
+# REDIS CACHE CONFIGURATION
+# ==============================================================================
+# Update CACHES to use Redis in production
+if os.environ.get('REDIS_URL'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
+        }
+    }
