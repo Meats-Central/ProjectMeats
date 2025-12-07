@@ -269,6 +269,13 @@ echo "Component: $COMPONENT"
 echo "Commit: ${COMMIT_SHA:0:7}"
 echo "=============================="
 
+# Check if any webhook is configured
+if [ -z "$SLACK_WEBHOOK_URL" ] && [ -z "$TEAMS_WEBHOOK_URL" ]; then
+  echo "ℹ️  No notification webhooks configured, skipping notifications"
+  echo "   Set SLACK_WEBHOOK_URL or TEAMS_WEBHOOK_URL to enable notifications"
+  exit 0
+fi
+
 # Send notifications (continue even if one fails)
 slack_result=0
 teams_result=0
