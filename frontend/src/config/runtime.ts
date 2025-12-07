@@ -8,7 +8,7 @@
  * Configuration priority for API_BASE_URL and ENVIRONMENT:
  * 1. Runtime config from window.ENV (set via env-config.js) - explicit override
  * 2. Tenant context from domain detection (via tenantContext.ts) - automatic
- * 3. Build-time environment variables (process.env.REACT_APP_*) - legacy fallback
+ * 3. Build-time environment variables (import.meta.env.VITE_* or process.env.REACT_APP_*) - legacy fallback
  * 4. Default values - last resort
  */
 
@@ -64,10 +64,20 @@ function getRuntimeConfig(key: string, defaultValue: string = ''): string {
   }
   
   // Fall back to build-time environment variables
-  const envKey = `REACT_APP_${key}`;
-  const envValue = process.env[envKey];
-  if (envValue !== undefined && envValue !== null && envValue !== '') {
-    return envValue;
+  // Support both VITE_ (new) and REACT_APP_ (legacy) prefixes
+  const viteEnvKey = `VITE_${key}`;
+  const reactEnvKey = `REACT_APP_${key}`;
+  
+  // Try Vite prefix first
+  const viteValue = import.meta.env?.[viteEnvKey];
+  if (viteValue !== undefined && viteValue !== null && viteValue !== '') {
+    return viteValue;
+  }
+  
+  // Fall back to legacy REACT_APP_ prefix
+  const reactValue = process.env?.[reactEnvKey];
+  if (reactValue !== undefined && reactValue !== null && reactValue !== '') {
+    return reactValue;
   }
   
   // Use default value
