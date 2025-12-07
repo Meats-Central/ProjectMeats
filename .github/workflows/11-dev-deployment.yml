@@ -242,6 +242,26 @@ jobs:
           # Use -T timeout to prevent hanging, continue on failure
           ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
           chmod 600 ~/.ssh/known_hosts || true
+
+      - name: Test SSH connectivity before migration
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+          MAX_SSH_RETRIES: 3
+          SSH_CONNECT_TIMEOUT: 30
+        run: |
+          # Checkout code first to access scripts
+          git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git /tmp/repo || true
+          if [ -f /tmp/repo/.github/scripts/ssh-connect-with-retry.sh ]; then
+            chmod +x /tmp/repo/.github/scripts/ssh-connect-with-retry.sh
+            /tmp/repo/.github/scripts/ssh-connect-with-retry.sh \
+              "${{ secrets.DEV_USER }}" \
+              "${{ secrets.DEV_HOST }}" \
+              "echo 'SSH ready for migrations'"
+          else
+            echo "Retry script not found, using simple test"
+            sshpass -e ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=30 \
+              ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} "echo 'SSH ready'"
+          fi
       
       - name: Run migrations via SSH on deployment server
         env:

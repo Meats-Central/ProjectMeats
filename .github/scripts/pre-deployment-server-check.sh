@@ -113,11 +113,11 @@ echo ""
 # Check 5: Connection Latency
 log_info "Check 5/6: Network Latency"
 if command -v ping &>/dev/null; then
-  LATENCY=$(ping -c 3 -W 2 "$HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}' || echo "0")
-  if [[ -n "$LATENCY" ]] && (( $(echo "$LATENCY > 0" | bc -l 2>/dev/null || echo 0) )); then
-    if (( $(echo "$LATENCY < 100" | bc -l 2>/dev/null || echo 1) )); then
+  LATENCY=$(ping -c 3 -W 2 "$HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}' | cut -d. -f1 || echo "0")
+  if [[ -n "$LATENCY" ]] && [[ "$LATENCY" != "0" ]] && [[ "$LATENCY" =~ ^[0-9]+$ ]]; then
+    if [[ "$LATENCY" -lt 100 ]]; then
       log_success "Average latency: ${LATENCY}ms (good)"
-    elif (( $(echo "$LATENCY < 300" | bc -l 2>/dev/null || echo 1) )); then
+    elif [[ "$LATENCY" -lt 300 ]]; then
       log_warning "Average latency: ${LATENCY}ms (acceptable)"
     else
       log_warning "Average latency: ${LATENCY}ms (high - may cause issues)"
@@ -134,11 +134,20 @@ echo ""
 log_info "Check 6/6: GitHub Actions IP Range Check"
 log_info "Verify your firewall allows these IP ranges:"
 if command -v curl &>/dev/null && command -v jq &>/dev/null; then
-  GITHUB_IPS=$(curl -s https://api.github.com/meta | jq -r '.actions[]' | head -5)
-  echo "$GITHUB_IPS" | while read -r ip_range; do
-    log_info "  → ${ip_range}"
-  done
-  log_info "  ... (see https://api.github.com/meta for full list)"
+  if GITHUB_IPS=$(timeout 10 curl -s https://api.github.com/meta 2>/dev/null | jq -r '.actions[]' 2>/dev/null | head -5); then
+    if [[ -n "$GITHUB_IPS" ]]; then
+      echo "$GITHUB_IPS" | while read -r ip_range; do
+        log_info "  → ${ip_range}"
+      done
+      log_info "  ... (see https://api.github.com/meta for full list)"
+    else
+      log_warning "Could not fetch GitHub Actions IP ranges"
+      log_info "  → Visit: https://api.github.com/meta"
+    fi
+  else
+    log_warning "Failed to retrieve GitHub Actions IP ranges"
+    log_info "  → Visit: https://api.github.com/meta"
+  fi
 else
   log_info "  → Install curl and jq to see GitHub Actions IP ranges"
   log_info "  → Or visit: https://api.github.com/meta"
