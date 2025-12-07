@@ -113,8 +113,21 @@ echo ""
 # Check 5: Connection Latency
 log_info "Check 5/6: Network Latency"
 if command -v ping &>/dev/null; then
-  LATENCY=$(ping -c 3 -W 2 "$HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}' | cut -d. -f1 || echo "0")
-  if [[ -n "$LATENCY" ]] && [[ "$LATENCY" != "0" ]] && [[ "$LATENCY" =~ ^[0-9]+$ ]]; then
+  # Try to extract latency, handling different ping output formats
+  PING_OUTPUT=$(ping -c 3 -W 2 "$HOST" 2>/dev/null | tail -1)
+  
+  # Try different parsing methods for different ping versions
+  LATENCY=""
+  if echo "$PING_OUTPUT" | grep -q "min/avg/max"; then
+    # Linux/BSD format: rtt min/avg/max/mdev = 1.234/2.345/3.456/0.789 ms
+    LATENCY=$(echo "$PING_OUTPUT" | awk -F'/' '{print $5}' | cut -d. -f1 2>/dev/null)
+  elif echo "$PING_OUTPUT" | grep -q "round-trip"; then
+    # macOS format: round-trip min/avg/max/stddev = 1.234/2.345/3.456/0.789 ms
+    LATENCY=$(echo "$PING_OUTPUT" | awk -F'/' '{print $2}' | cut -d. -f1 2>/dev/null)
+  fi
+  
+  # Validate latency is a positive integer
+  if [[ -n "$LATENCY" ]] && [[ "$LATENCY" =~ ^[0-9]+$ ]] && [[ "$LATENCY" -gt 0 ]]; then
     if [[ "$LATENCY" -lt 100 ]]; then
       log_success "Average latency: ${LATENCY}ms (good)"
     elif [[ "$LATENCY" -lt 300 ]]; then
@@ -123,7 +136,7 @@ if command -v ping &>/dev/null; then
       log_warning "Average latency: ${LATENCY}ms (high - may cause issues)"
     fi
   else
-    log_warning "Could not measure latency"
+    log_warning "Could not measure latency (parsing failed)"
   fi
 else
   log_warning "ping not available, skipping latency check"

@@ -129,11 +129,13 @@ while [ $ATTEMPT -le $MAX_RETRIES ]; do
   
   # Check if we should retry
   if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-    # Calculate exponential backoff delay using simple multiplication
+    # Calculate exponential backoff delay using POSIX-compatible loop
     # Attempt 1: 1s, 2: 2s, 3: 4s, 4: 8s, 5: 16s
     DELAY=1
-    for ((i=1; i<ATTEMPT; i++)); do
+    i=1
+    while [ $i -lt $ATTEMPT ]; do
       DELAY=$((DELAY * 2))
+      i=$((i + 1))
     done
     [ $DELAY -gt 30 ] && DELAY=30  # Cap at 30 seconds
     
