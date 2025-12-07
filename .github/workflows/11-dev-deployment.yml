@@ -238,7 +238,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          # Use -T timeout to prevent hanging, continue on failure
+          ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
+          chmod 600 ~/.ssh/known_hosts || true
       
       - name: Run migrations via SSH on deployment server
         env:
@@ -299,7 +302,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          # Use -T timeout to prevent hanging, continue on failure
+          ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
+          chmod 600 ~/.ssh/known_hosts || true
 
       - name: Deploy frontend container (8080 behind Nginx)
         env:
@@ -443,7 +449,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          # Use -T timeout to prevent hanging, continue on failure
+          ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
+          chmod 600 ~/.ssh/known_hosts || true
 
       - name: Deploy backend container (env at /home/django/ProjectMeats/backend/.env)
         env:
