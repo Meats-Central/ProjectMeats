@@ -307,6 +307,23 @@ jobs:
           ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
           chmod 600 ~/.ssh/known_hosts || true
 
+      - name: Test SSH connectivity
+        env:
+          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+        run: |
+          echo "Testing SSH connection to deployment server..."
+          if sshpass -e ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=30 ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} "echo 'SSH connection successful'"; then
+            echo "✓ SSH connectivity test passed"
+          else
+            echo "✗ SSH connectivity test failed - server may be unreachable"
+            echo "Please verify:"
+            echo "  1. Server at \${{ secrets.DEV_HOST }} is online and accessible"
+            echo "  2. SSH service is running on port 22"
+            echo "  3. Firewall allows SSH connections from GitHub Actions runners"
+            echo "  4. Credentials in secrets.DEV_USER and secrets.DEV_SSH_PASSWORD are correct"
+            exit 1
+          fi
+
       - name: Deploy frontend container (8080 behind Nginx)
         env:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
