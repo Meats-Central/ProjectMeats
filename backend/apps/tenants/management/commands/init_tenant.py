@@ -124,7 +124,7 @@ class Command(BaseCommand):
         verbosity = options.get("verbosity", 1)
 
         # Get required parameters
-        schema_name = options["schema_name"]
+        slug = options["slug"]
         name = options["name"]
         domain = options["domain"].lower()
         admin_email = options["admin_email"]
@@ -132,17 +132,17 @@ class Command(BaseCommand):
 
         # Get optional parameters with defaults
         admin_username = options.get("admin_username") or admin_email.split("@")[0]
-        slug = options.get("slug") or schema_name.replace("_", "-")
+        slug = options.get("slug") or slug.replace("_", "-")
         contact_email = options.get("contact_email") or admin_email
         on_trial = options.get("on_trial", False)
         trial_days = options.get("trial_days", 30)
         invitation_days = options.get("invitation_days", 7)
         skip_invitation = options.get("skip_invitation", False)
 
-        # Validate schema_name
-        if not self._validate_schema_name(schema_name):
+        # Validate slug
+        if not self._validate_slug(slug):
             raise CommandError(
-                f"Invalid schema name: {schema_name}. "
+                f"Invalid schema name: {slug}. "
                 f"Must start with a letter or underscore, contain only alphanumeric "
                 f"characters and underscores, and be max 63 characters."
             )
@@ -153,7 +153,7 @@ class Command(BaseCommand):
 
         if verbosity >= 2:
             self.stdout.write("\n🔧 Tenant Initialization Configuration:")
-            self.stdout.write(f"   - Schema Name: {schema_name}")
+            self.stdout.write(f"   - Schema Name: {slug}")
             self.stdout.write(f"   - Name: {name}")
             self.stdout.write(f"   - Slug: {slug}")
             self.stdout.write(f"   - Domain: {domain}")
@@ -169,7 +169,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 # 1. Create Tenant
                 tenant = self._create_tenant(
-                    schema_name=schema_name,
+                    slug=slug,
                     name=name,
                     slug=slug,
                     contact_email=contact_email,
@@ -233,12 +233,12 @@ class Command(BaseCommand):
                 self.stdout.write(traceback.format_exc())
             raise
 
-    def _validate_schema_name(self, schema_name: str) -> bool:
+    def _validate_slug(self, slug: str) -> bool:
         """Validate schema name follows PostgreSQL identifier rules."""
-        if len(schema_name) > 63:
+        if len(slug) > 63:
             return False
         pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
-        return pattern.match(schema_name) is not None
+        return pattern.match(slug) is not None
 
     def _validate_email(self, email: str) -> bool:
         """Validate email format."""
@@ -247,7 +247,7 @@ class Command(BaseCommand):
 
     def _create_tenant(
         self,
-        schema_name: str,
+        slug: str,
         name: str,
         slug: str,
         contact_email: str,
@@ -263,8 +263,8 @@ class Command(BaseCommand):
         if Tenant.objects.filter(slug=slug).exists():
             raise CommandError(f'Tenant with slug "{slug}" already exists')
 
-        if Tenant.objects.filter(schema_name=schema_name).exists():
-            raise CommandError(f'Tenant with schema_name "{schema_name}" already exists')
+        if Tenant.objects.filter(slug=slug).exists():
+            raise CommandError(f'Tenant with slug "{slug}" already exists')
 
         trial_ends_at = None
         if on_trial:
@@ -273,7 +273,7 @@ class Command(BaseCommand):
         tenant = Tenant.objects.create(
             name=name,
             slug=slug,
-            schema_name=schema_name,
+            slug=slug,
             contact_email=contact_email,
             is_active=True,
             is_trial=on_trial,
@@ -425,7 +425,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  - ID: {tenant.id}")
         self.stdout.write(f"  - Name: {tenant.name}")
         self.stdout.write(f"  - Slug: {tenant.slug}")
-        self.stdout.write(f"  - Schema: {tenant.schema_name}")
+        self.stdout.write(f"  - Schema: {tenant.slug}")
         self.stdout.write(f"  - Domain: {tenant_domain.domain}")
         self.stdout.write(f"  - Trial: {'Yes' if tenant.is_trial else 'No'}")
         if tenant.trial_ends_at:

@@ -44,7 +44,6 @@ class InitTenantCommandTests(TestCase):
         # Verify tenant was created
         tenant = Tenant.objects.get(slug="test-tenant")
         self.assertEqual(tenant.name, "Test Tenant")
-        self.assertEqual(tenant.schema_name, "test_tenant")
         self.assertTrue(tenant.is_active)
 
         # Verify domain was created
@@ -169,7 +168,6 @@ class GenerateInvitationLinkTests(TestCase):
         self.tenant = Tenant.objects.create(
             name="Test Company",
             slug="test-company",
-            schema_name="test_company",
             contact_email="admin@testcompany.com",
             created_by=self.user,
         )
@@ -236,7 +234,6 @@ class GenerateInvitationLinkTests(TestCase):
         localhost_tenant = Tenant.objects.create(
             name="Localhost Company",
             slug="localhost-company",
-            schema_name="localhost_company",
             contact_email="admin@localhost",
         )
         TenantDomain.objects.create(
@@ -258,7 +255,6 @@ class GetInvitationByTokenTests(TestCase):
         self.tenant = Tenant.objects.create(
             name="Test Company",
             slug="test-company",
-            schema_name="test_company",
             contact_email="admin@testcompany.com",
         )
 
@@ -307,7 +303,6 @@ class ValidateInvitationTests(TestCase):
         self.tenant = Tenant.objects.create(
             name="Test Company",
             slug="test-company",
-            schema_name="test_company",
             contact_email="admin@testcompany.com",
         )
 
@@ -392,7 +387,6 @@ class TenantQueryTests(TestCase):
         self.tenant1 = Tenant.objects.create(
             name="Company One",
             slug="company-one",
-            schema_name="company_one",
             contact_email="admin@company-one.com",
             is_active=True,
             is_trial=True,
@@ -401,7 +395,6 @@ class TenantQueryTests(TestCase):
         self.tenant2 = Tenant.objects.create(
             name="Company Two",
             slug="company-two",
-            schema_name="company_two",
             contact_email="admin@company-two.com",
             is_active=True,
             is_trial=False,

@@ -25,7 +25,6 @@ class CreateTenantCommandTests(TestCase):
     def test_creates_tenant_with_custom_slug(self):
         pass
     
-    def test_auto_generates_slug_from_schema_name(self):
         pass
     
     def test_auto_generates_contact_email_from_slug(self):
@@ -40,7 +39,6 @@ class CreateTenantCommandTests(TestCase):
     def test_creates_trial_tenant_with_paid_until(self):
         pass
     
-    def test_validates_schema_name_format(self):
         pass
     
     def test_validates_paid_until_date_format(self):

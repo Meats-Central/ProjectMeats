@@ -12,8 +12,8 @@ Usage:
     
     # Create custom tenants
     create_custom_tenants([
-        {'schema_name': 'acme', 'name': 'ACME Corp', 'domain': 'acme.example.com'},
-        {'schema_name': 'globex', 'name': 'Globex Inc', 'domain': 'globex.example.com'},
+        {'slug': 'acme', 'name': 'ACME Corp', 'domain': 'acme.example.com'},
+        {'slug': 'globex', 'name': 'Globex Inc', 'domain': 'globex.example.com'},
     ])
 """
 from datetime import datetime, timedelta
@@ -53,9 +53,8 @@ def create_demo_tenants(
     for config in demo_configs:
         try:
             tenant = create_single_tenant(
-                schema_name=config['schema_name'],
+                slug=config['slug'],
                 name=config['name'],
-                slug=config.get('slug'),
                 contact_email=config.get('contact_email'),
                 contact_phone=config.get('contact_phone', ''),
                 on_trial=config.get('on_trial', True),
@@ -92,14 +91,14 @@ def create_custom_tenants(
     Example:
         >>> configs = [
         ...     {
-        ...         'schema_name': 'acme_corp',
+        ...         'slug': 'acme-corp',
         ...         'name': 'ACME Corporation',
         ...         'domain': 'acme.example.com',
         ...         'contact_email': 'admin@acme.com',
         ...         'on_trial': False,
         ...     },
         ...     {
-        ...         'schema_name': 'test_company',
+        ...         'slug': 'test-company',
         ...         'name': 'Test Company',
         ...         'domain': 'test.example.com',
         ...         'on_trial': True,
@@ -115,9 +114,8 @@ def create_custom_tenants(
     for config in tenant_configs:
         try:
             tenant = create_single_tenant(
-                schema_name=config['schema_name'],
+                slug=config['slug'],
                 name=config['name'],
-                slug=config.get('slug'),
                 contact_email=config.get('contact_email'),
                 contact_phone=config.get('contact_phone', ''),
                 on_trial=config.get('on_trial', True),
@@ -138,9 +136,8 @@ def create_custom_tenants(
 
 
 def create_single_tenant(
-    schema_name: str,
+    slug: str,
     name: str,
-    slug: Optional[str] = None,
     contact_email: Optional[str] = None,
     contact_phone: str = '',
     on_trial: bool = True,
@@ -153,9 +150,8 @@ def create_single_tenant(
     Create a single tenant with optional domain.
     
     Args:
-        schema_name: Database schema name (unique identifier)
+        slug: URL-friendly identifier (unique)
         name: Tenant organization name
-        slug: URL-friendly identifier (auto-generated if not provided)
         contact_email: Primary contact email
         contact_phone: Primary contact phone
         on_trial: Whether tenant is on trial
@@ -168,12 +164,9 @@ def create_single_tenant(
         Created Tenant object
     
     Raises:
-        ValueError: If tenant with schema_name already exists
+        ValueError: If tenant with slug already exists
     """
     # Generate defaults
-    if not slug:
-        slug = schema_name.replace('_', '-')
-    
     if not contact_email:
         contact_email = f'admin@{slug}.local'
     
@@ -181,9 +174,6 @@ def create_single_tenant(
         trial_ends_at = timezone.now() + timedelta(days=30)
     
     # Check if tenant already exists
-    if Tenant.objects.filter(schema_name=schema_name).exists():
-        raise ValueError(f'Tenant with schema_name "{schema_name}" already exists')
-    
     if Tenant.objects.filter(slug=slug).exists():
         raise ValueError(f'Tenant with slug "{slug}" already exists')
     
@@ -191,7 +181,6 @@ def create_single_tenant(
         with transaction.atomic():
             # Create tenant
             tenant = Tenant.objects.create(
-                schema_name=schema_name,
                 name=name,
                 slug=slug,
                 contact_email=contact_email,
@@ -202,7 +191,7 @@ def create_single_tenant(
             )
             
             if verbosity >= 1:
-                print(f'✅ Created tenant: {tenant.name} ({tenant.schema_name})')
+                print(f'✅ Created tenant: {tenant.name} ({tenant.slug})')
             
             # Create domain if provided
             if domain:
@@ -278,9 +267,8 @@ def _get_demo_tenant_configs(environment: str, count: int) -> List[Dict]:
     
     for i, company in enumerate(demo_companies[:count]):
         config = {
-            'schema_name': f"{environment}_{company['schema']}",
-            'name': f"{company['name']} ({environment.title()})",
             'slug': f"{environment}-{company['schema'].replace('_', '-')}",
+            'name': f"{company['name']} ({environment.title()})",
             'contact_email': f"admin@{company['domain_suffix']}.{settings['domain_base']}",
             'contact_phone': f'+1-555-{environment[:4].upper()}-{i:02d}',
             'on_trial': settings['on_trial'],
@@ -318,7 +306,7 @@ def cleanup_demo_tenants(
     """
     # Find tenants matching environment prefix
     demo_tenants = Tenant.objects.filter(
-        schema_name__startswith=f'{environment}_'
+        slug__startswith=f'{environment}-'
     )
     
     count = demo_tenants.count()
@@ -330,7 +318,7 @@ def cleanup_demo_tenants(
             print(f'\n🗑️  Deleting {count} demo tenants for {environment}:')
         
         for tenant in demo_tenants:
-            print(f'  - {tenant.name} ({tenant.schema_name})')
+            print(f'  - {tenant.name} ({tenant.slug})')
     
     if not dry_run:
         demo_tenants.delete()

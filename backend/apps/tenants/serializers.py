@@ -16,7 +16,6 @@ class TenantSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "slug",
-            "schema_name",
             "domain",
             "contact_email",
             "contact_phone",

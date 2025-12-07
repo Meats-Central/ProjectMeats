@@ -27,7 +27,7 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at", "updated_at"]
 
     fieldsets = [
-        ("Basic Information", {"fields": ("name", "slug", "schema_name", "domain")}),
+        ("Basic Information", {"fields": ("name", "slug", "domain")}),
         ("Contact Information", {"fields": ("contact_email", "contact_phone")}),
         ("Branding", {"fields": ("logo",)}),
         ("Status & Trial", {"fields": ("is_active", "is_trial", "trial_ends_at")}),

@@ -51,7 +51,7 @@ class Command(BaseCommand):
             
             # Output tenant names for verification
             for tenant in tenants:
-                self.stdout.write(f"  • {tenant.name} ({tenant.schema_name})")
+                self.stdout.write(f"  • {tenant.name} ({tenant.slug})")
                 
         except Exception as e:
             self.stdout.write(

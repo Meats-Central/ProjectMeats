@@ -137,3 +137,4 @@ storybook-static
 
 # Master Convergence Backups
 backups/
+backend/.env
