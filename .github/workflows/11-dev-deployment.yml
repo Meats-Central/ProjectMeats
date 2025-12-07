@@ -236,7 +236,7 @@ jobs:
       - name: Setup SSH
         run: |
           sudo apt-get update
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y sshpass netcat-openbsd dnsutils
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           # Use -T timeout to prevent hanging, continue on failure
@@ -300,29 +300,24 @@ jobs:
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y sshpass netcat-openbsd dnsutils
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           # Use -T timeout to prevent hanging, continue on failure
           ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
           chmod 600 ~/.ssh/known_hosts || true
 
-      - name: Test SSH connectivity
+      - name: Test SSH connectivity with retry
         env:
           SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+          MAX_SSH_RETRIES: 5
+          SSH_CONNECT_TIMEOUT: 30
         run: |
-          echo "Testing SSH connection to deployment server..."
-          if sshpass -e ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=30 ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} "echo 'SSH connection successful'"; then
-            echo "✓ SSH connectivity test passed"
-          else
-            echo "✗ SSH connectivity test failed - server may be unreachable"
-            echo "Please verify:"
-            echo "  1. Server is online and accessible"
-            echo "  2. SSH service is running on port 22"
-            echo "  3. Firewall allows SSH connections from GitHub Actions runners"
-            echo "  4. Credentials in secrets are correct"
-            exit 1
-          fi
+          chmod +x .github/scripts/ssh-connect-with-retry.sh
+          ./.github/scripts/ssh-connect-with-retry.sh \
+            "${{ secrets.DEV_USER }}" \
+            "${{ secrets.DEV_HOST }}" \
+            "echo 'SSH connection successful'"
 
       - name: Deploy frontend container (8080 behind Nginx)
         env:
@@ -464,7 +459,7 @@ jobs:
       - name: Setup SSH with password authentication
         run: |
           sudo apt-get update
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y sshpass netcat-openbsd dnsutils
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           # Use -T timeout to prevent hanging, continue on failure
