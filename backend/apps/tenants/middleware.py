@@ -251,6 +251,28 @@ class TenantMiddleware:
                     f"user={request.user.username}, tenant={tenant.slug}, "
                     f"error={type(e).__name__}: {str(e)}"
                 )
+        
+        # Set PostgreSQL session variable for Row-Level Security (RLS)
+        # This enables database-level tenant isolation as an additional security layer
+        if tenant:
+            from django.db import connection
+            try:
+                with connection.cursor() as cursor:
+                    # Set the current tenant ID in the PostgreSQL session
+                    # This can be used by RLS policies to enforce tenant isolation at DB level
+                    cursor.execute(
+                        "SELECT set_config('app.current_tenant_id', %s, false)",
+                        [str(tenant.id)]
+                    )
+                logger.debug(
+                    f"Set PostgreSQL session variable app.current_tenant_id={tenant.id}"
+                )
+            except Exception as e:
+                # Log but don't fail the request if session variable setting fails
+                logger.warning(
+                    f"Failed to set PostgreSQL session variable: "
+                    f"tenant_id={tenant.id}, error={type(e).__name__}: {str(e)}"
+                )
 
         try:
             response = self.get_response(request)
