@@ -20,6 +20,10 @@ SECRET_KEY = config(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Read additional ALLOWED_HOSTS from environment variable (comma-separated)
+# This allows GitHub Secrets to override/extend the default list
+_env_hosts = config("ALLOWED_HOSTS", default="", cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
@@ -31,7 +35,7 @@ ALLOWED_HOSTS = [
     "uat.meatscentral.com",
     "uat-backend.meatscentral.com",
     "157.245.114.182",
-]
+] + _env_hosts  # Append hosts from environment variable
 
 
 # Database Configuration
