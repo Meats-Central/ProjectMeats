@@ -34,23 +34,15 @@ on:
     secrets:
       FRONTEND_SSH_KEY:
         required: true
-      BACKEND_SSH_PASSWORD:
-        required: true
       FRONTEND_HOST:
         required: true
       FRONTEND_USER:
         required: true
+      BACKEND_SSH_PASSWORD:
+        required: true
       BACKEND_HOST:
         required: true
       BACKEND_USER:
-        required: true
-      BACKEND_IP:
-        required: true
-      DATABASE_URL:
-        required: true
-      SECRET_KEY:
-        required: true
-      DJANGO_SETTINGS_MODULE:
         required: true
       DO_ACCESS_TOKEN:
         required: true
@@ -180,37 +172,209 @@ jobs:
         run: echo "Frontend tests skipped - will be fixed in separate PR to migrate from jest to vitest"
 
   # ==========================================
-  # Stage 4: Migrate Database (SSH-based)
-  # NOTE: Runner-based approach doesn't work because GitHub runner can't reach private DB
+  # Stage 4: Migrate Database (Bastion Mode)
+  # Uses SSH tunnel through deployment server to access private database
+  # Runs migrations in Docker container on GitHub Runner
   # ==========================================
   migrate:
     needs: [test-backend]
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
     steps:
-      - name: Run migrations via SSH
-        env:
-          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
+      - name: Determine Environment Prefix
+        id: env_prefix
+        run: |
+          # Map environment to secret prefix
+          # dev-backend -> DEV, uat2-backend -> UAT, prod2-backend -> PROD
+          case "${{ inputs.backend_environment }}" in
+            dev-backend)
+              echo "PREFIX=DEV" >> $GITHUB_OUTPUT
+              ;;
+            uat2-backend)
+              echo "PREFIX=UAT" >> $GITHUB_OUTPUT
+              ;;
+            prod2-backend)
+              echo "PREFIX=PROD" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "ERROR: Unknown environment ${{ inputs.backend_environment }}"
+              exit 1
+              ;;
+          esac
+          
+          echo "Environment: ${{ inputs.backend_environment }}"
+          echo "Secret Prefix: $(cat $GITHUB_OUTPUT | grep PREFIX | cut -d= -f2)"
+      
+      - name: Install SSH Tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y openssh-client sshpass
+      
+      - name: Setup SSH Tunnel to Database
+        env:
+          DEV_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+          DEV_DB_HOST: ${{ secrets.DEV_DB_HOST }}
+          DEV_DB_PORT: ${{ secrets.DEV_DB_PORT }}
+          DEV_USER: ${{ secrets.DEV_USER }}
+          DEV_HOST: ${{ secrets.DEV_HOST }}
+          UAT_SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}
+          UAT_DB_HOST: ${{ secrets.UAT_DB_HOST }}
+          UAT_DB_PORT: ${{ secrets.UAT_DB_PORT }}
+          UAT_USER: ${{ secrets.UAT_USER }}
+          UAT_HOST: ${{ secrets.UAT_HOST }}
+          PROD_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+          PROD_DB_HOST: ${{ secrets.PROD_DB_HOST }}
+          PROD_DB_PORT: ${{ secrets.PROD_DB_PORT }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+        run: |
+          PREFIX="${{ steps.env_prefix.outputs.PREFIX }}"
           
-          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH_END'
-          set -euo pipefail
+          # Select secrets based on environment prefix
+          case "$PREFIX" in
+            DEV)
+              SSH_PASSWORD="$DEV_SSH_PASSWORD"
+              DB_HOST="$DEV_DB_HOST"
+              DB_PORT="$DEV_DB_PORT"
+              USER="$DEV_USER"
+              HOST="$DEV_HOST"
+              ;;
+            UAT)
+              SSH_PASSWORD="$UAT_SSH_PASSWORD"
+              DB_HOST="$UAT_DB_HOST"
+              DB_PORT="$UAT_DB_PORT"
+              USER="$UAT_USER"
+              HOST="$UAT_HOST"
+              ;;
+            PROD)
+              SSH_PASSWORD="$PROD_SSH_PASSWORD"
+              DB_HOST="$PROD_DB_HOST"
+              DB_PORT="$PROD_DB_PORT"
+              USER="$PROD_USER"
+              HOST="$PROD_HOST"
+              ;;
+          esac
           
-          echo "=== Running migrations on deployment server ==="
-          cd /home/django/ProjectMeats/backend || exit 1
+          echo "================================"
+          echo "Creating SSH Tunnel"
+          echo "================================"
+          echo "Target: $DB_HOST:$DB_PORT"
+          echo "Via Bastion: $USER@$HOST"
+          echo "Local Port: 5433"
+          echo ""
           
-          # Activate venv if exists
-          [ -f "../venv/bin/activate" ] && source ../venv/bin/activate || true
-          [ -f "venv/bin/activate" ] && source venv/bin/activate || true
+          # Create SSH tunnel in background
+          # Forward local port 5433 -> remote DB host:port
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -f -N \
+            -L 5433:$DB_HOST:$DB_PORT \
+            $USER@$HOST
           
-          # Run standard Django migrations (NOT migrate_schemas)
-          python manage.py migrate --fake-initial --noinput
+          # Wait for tunnel to establish
+          sleep 5
           
-          echo "✓ Migrations completed"
-          SSH_END
+          # Verify tunnel is active
+          echo "✓ SSH tunnel established"
+          ps aux | grep ssh | grep -v grep | grep 5433 || echo "Warning: Could not verify tunnel process"
+      
+      - name: Login to DigitalOcean Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DO_ACCESS_TOKEN }}
+          password: ${{ secrets.DO_ACCESS_TOKEN }}
+      
+      - name: Pull Backend Docker Image
+        run: |
+          # Use image_tag if provided, otherwise construct from environment and ref
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
+          else
+            IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          fi
+          
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "================================"
+          echo "Pulling Docker Image"
+          echo "================================"
+          echo "Image: $FULL_IMAGE"
+          
+          docker pull "$FULL_IMAGE"
+          
+          echo "✓ Image pulled successfully"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+      
+      - name: Run Database Migrations
+        env:
+          DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+          DEV_DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+          DEV_SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+          UAT_DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
+          UAT_DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
+          UAT_SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          PROD_DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+          PROD_SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+        run: |
+          PREFIX="${{ steps.env_prefix.outputs.PREFIX }}"
+          
+          # Select secrets based on environment prefix
+          case "$PREFIX" in
+            DEV)
+              DATABASE_URL="$DEV_DATABASE_URL"
+              DJANGO_SETTINGS_MODULE="$DEV_DJANGO_SETTINGS_MODULE"
+              SECRET_KEY="$DEV_SECRET_KEY"
+              ;;
+            UAT)
+              DATABASE_URL="$UAT_DATABASE_URL"
+              DJANGO_SETTINGS_MODULE="$UAT_DJANGO_SETTINGS_MODULE"
+              SECRET_KEY="$UAT_SECRET_KEY"
+              ;;
+            PROD)
+              DATABASE_URL="$PROD_DATABASE_URL"
+              DJANGO_SETTINGS_MODULE="$PROD_DJANGO_SETTINGS_MODULE"
+              SECRET_KEY="$PROD_SECRET_KEY"
+              ;;
+          esac
+          
+          echo "================================"
+          echo "Running Django Migrations"
+          echo "================================"
+          
+          # Parse DATABASE_URL to get credentials
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          
+          # Construct DATABASE_URL pointing to tunnel (localhost:5433)
+          TUNNEL_DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "Running migrations in Docker container..."
+          echo "Database: $DB_NAME via tunnel"
+          echo ""
+          
+          # Run migrations in Docker container with host networking
+          # --network host allows container to access Runner's localhost:5433
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$TUNNEL_DATABASE_URL" \
+            -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
+            -e SECRET_KEY="$SECRET_KEY" \
+            -e DB_ENGINE="django.db.backends.postgresql" \
+            "$FULL_IMAGE" \
+            python manage.py migrate --fake-initial --noinput
+          
+          echo ""
+          echo "✓ Migrations completed successfully"
+      
+      - name: Cleanup SSH Tunnel
+        if: always()
+        run: |
+          echo "Cleaning up SSH tunnel..."
+          pkill -f "ssh.*5433" || true
+          echo "✓ Cleanup complete"
 
   # ==========================================
   # Stage 5: Deploy Backend
