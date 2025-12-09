@@ -11,6 +11,16 @@ on:
         required: true
         type: string
         description: "Git reference to deploy"
+      backend_environment:
+        required: false
+        type: string
+        description: "GitHub Environment name for backend (e.g., dev-backend)"
+        default: ""
+      frontend_environment:
+        required: false
+        type: string
+        description: "GitHub Environment name for frontend (e.g., dev-frontend)"
+        default: ""
     secrets:
       FRONTEND_SSH_KEY:
         required: true
@@ -186,6 +196,7 @@ jobs:
   migrate:
     needs: [test-backend]
     runs-on: ubuntu-latest
+    environment: ${{ inputs.backend_environment }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -220,6 +231,7 @@ jobs:
   deploy-backend:
     needs: [migrate]
     runs-on: ubuntu-latest
+    environment: ${{ inputs.backend_environment }}
     steps:
       - name: Deploy backend container
         env:
@@ -275,6 +287,7 @@ jobs:
   deploy-frontend:
     needs: [deploy-backend, test-frontend]
     runs-on: ubuntu-latest
+    environment: ${{ inputs.frontend_environment }}
     steps:
       - name: Setup SSH
         run: |
