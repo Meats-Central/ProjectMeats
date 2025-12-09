@@ -2,6 +2,8 @@
 
 React + TypeScript frontend application for ProjectMeats business management system with multi-tenancy support.
 
+**Built with Vite** for fast builds and modern development experience.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -12,16 +14,19 @@ React + TypeScript frontend application for ProjectMeats business management sys
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Architecture](#architecture)
+- [Migration from CRA](#migration-from-cra)
 
 ## Overview
 
 This is the frontend application for ProjectMeats, built with:
 
-- **React 18.2.0** - Modern React with hooks and concurrent features
+- **React 19.0.0** - Latest React with improved performance
 - **TypeScript 4.9.5** - Type-safe JavaScript
+- **Vite 6.4.1** - Next-generation frontend tooling (⚡ 10-100x faster HMR)
 - **Ant Design 5.27.3** - UI component library
 - **Axios 1.6.0** - HTTP client for API communication
 - **React Router 6.30.1** - Client-side routing
+- **Vitest** - Fast unit testing with Vite
 
 ## Multi-Tenancy Support
 
@@ -132,17 +137,25 @@ The application will open at `http://localhost:3000`.
 ### Available Scripts
 
 ```bash
-# Development server with hot reload
+# Development server with hot reload (Vite)
 npm start
+# or
+npm run dev
 
-# Run tests in interactive watch mode
+# Run tests with Vitest
 npm test
+
+# Run tests with UI
+npm run test:ui
 
 # Run tests with coverage (CI mode)
 npm run test:ci
 
 # Build for production
 npm run build
+
+# Preview production build
+npm run preview
 
 # Type check without building
 npm run type-check
@@ -155,17 +168,13 @@ npm run lint:fix
 
 # Format code with Prettier
 npm run format
-
-# Serve production build locally
-npm run serve
 ```
 
 ### Project Structure
 
 ```
 frontend/
-├── public/              # Static assets
-│   ├── index.html       # HTML template
+├── public/              # Static assets (served as-is)
 │   └── env-config.js    # Runtime configuration (can be replaced at deploy time)
 ├── src/
 │   ├── components/      # Reusable UI components
@@ -180,7 +189,12 @@ frontend/
 │   │   ├── authService.ts       # Authentication
 │   │   └── tenantService.ts     # Tenant management
 │   ├── types/          # TypeScript type definitions
-│   └── App.tsx         # Root component
+│   ├── App.tsx         # Root component
+│   ├── index.tsx       # Entry point
+│   └── vite-env.d.ts   # Vite environment types
+├── index.html          # HTML template (in root for Vite)
+├── vite.config.ts      # Vite configuration
+├── vitest.setup.ts     # Test setup
 ├── package.json
 └── tsconfig.json
 ```
@@ -193,11 +207,20 @@ The frontend uses a hybrid configuration system that supports both build-time an
 
 #### Build-time Variables (`.env`)
 
+**Note**: Vite uses `VITE_` prefix (not `REACT_APP_`):
+
 ```bash
-REACT_APP_API_BASE_URL=http://localhost:8000/api/v1
-REACT_APP_ENVIRONMENT=development
-REACT_APP_AI_ASSISTANT_ENABLED=true
-REACT_APP_ENABLE_DOCUMENT_UPLOAD=true
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_ENVIRONMENT=development
+VITE_AI_ASSISTANT_ENABLED=true
+VITE_ENABLE_DOCUMENT_UPLOAD=true
+```
+
+Access in code:
+```typescript
+// Vite environment variables
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
+const isDev = import.meta.env.MODE === 'development';
 ```
 
 #### Runtime Variables (`public/env-config.js`)
@@ -211,7 +234,7 @@ window.ENV = {
 };
 ```
 
-**Priority**: `window.ENV` → Tenant context → `process.env.REACT_APP_*` → defaults
+**Priority**: `window.ENV` → Tenant context → `import.meta.env.VITE_*` → defaults
 
 See [RUNTIME_CONFIG.md](./RUNTIME_CONFIG.md) for detailed configuration guide.
 
@@ -219,9 +242,14 @@ See [RUNTIME_CONFIG.md](./RUNTIME_CONFIG.md) for detailed configuration guide.
 
 ### Running Tests
 
+The project uses **Vitest** for fast, Vite-native testing:
+
 ```bash
 # Interactive watch mode
 npm test
+
+# With UI dashboard
+npm run test:ui
 
 # Single run with coverage (for CI)
 npm run test:ci
@@ -236,9 +264,10 @@ The project maintains high test coverage for critical modules:
 
 ### Writing Tests
 
-Tests are written using Jest and React Testing Library:
+Tests are written using Vitest and React Testing Library:
 
 ```typescript
+import { describe, it, expect } from 'vitest';
 import { getTenantContext } from './config/tenantContext';
 
 describe('getTenantContext', () => {
@@ -395,6 +424,79 @@ npm run test:ci
 - [Backend API Documentation](../backend/README.md)
 - [Deployment Guide](../DEPLOYMENT_GUIDE.md)
 - [Multi-Tenancy Guide](../docs/MULTI_TENANCY_GUIDE.md)
+
+## Migration from CRA
+
+### What Changed
+
+The frontend has been migrated from **Create React App (CRA)** to **Vite** for improved developer experience and build performance.
+
+#### Key Changes
+
+1. **Build Tool**: Webpack → Vite
+   - ⚡ 10-100x faster Hot Module Replacement (HMR)
+   - ⚡ Instant server start (no bundling in dev mode)
+   - ⚡ Faster production builds
+
+2. **Environment Variables**: `REACT_APP_*` → `VITE_*`
+   ```diff
+   - REACT_APP_API_BASE_URL=http://localhost:8000/api/v1
+   + VITE_API_BASE_URL=http://localhost:8000/api/v1
+   ```
+
+3. **Environment Access**: `process.env` → `import.meta.env`
+   ```diff
+   - const apiUrl = process.env.REACT_APP_API_BASE_URL;
+   + const apiUrl = import.meta.env.VITE_API_BASE_URL;
+   ```
+
+4. **Testing**: Jest → Vitest
+   - Native Vite integration
+   - Same API as Jest (compatible)
+   - Faster test execution
+
+5. **Configuration Files**:
+   - Removed: `config-overrides.js`, `react-scripts`
+   - Added: `vite.config.ts`, `vitest.setup.ts`
+
+#### Backward Compatibility
+
+The migration maintains **full backward compatibility**:
+- Runtime configuration (`window.ENV`) still works
+- Tenant detection unchanged
+- API services unchanged
+- No breaking changes to application code
+
+#### Developer Benefits
+
+- **Faster iteration**: HMR updates in <50ms
+- **Modern tooling**: Native ESM, top-level await
+- **Better DX**: Clearer error messages, faster TypeScript checking
+- **Future-proof**: Vite is the standard for modern React apps
+
+### Migration Guide for Developers
+
+If you have local environment variables:
+
+1. Rename `.env` variables:
+   ```bash
+   # Old .env
+   REACT_APP_MY_VAR=value
+   
+   # New .env
+   VITE_MY_VAR=value
+   ```
+
+2. Update code references:
+   ```typescript
+   // Old
+   const myVar = process.env.REACT_APP_MY_VAR;
+   
+   // New
+   const myVar = import.meta.env.VITE_MY_VAR;
+   ```
+
+3. No other changes needed! The migration is complete.
 
 ## License
 
