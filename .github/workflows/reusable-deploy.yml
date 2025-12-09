@@ -198,32 +198,39 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run migrations
-        working-directory: backend
+      - name: Run migrations via SSH on deployment server
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
         run: |
-          # CRITICAL: Use standard Django migrate (NOT migrate_schemas)
+          # Install sshpass for password authentication
+          sudo apt-get update -qq
+          sudo apt-get install -y sshpass
+          
+          # Run migrations on the deployment server via SSH
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH_END'
+          set -euo pipefail
+          
+          echo "=== Running migrations on deployment server ==="
+          
+          # Navigate to project directory
+          cd /home/django/ProjectMeats/backend || {
+            echo "Error: Project directory not found"
+            exit 1
+          }
+          
+          # Activate virtual environment if it exists
+          if [ -f "../venv/bin/activate" ]; then
+            source ../venv/bin/activate
+          elif [ -f "venv/bin/activate" ]; then
+            source venv/bin/activate
+          fi
+          
+          # Run migrations (standard Django, NOT migrate_schemas)
           python manage.py migrate --fake-initial --noinput
+          
           echo "✓ Migrations completed successfully"
+          SSH_END
 
   # ==========================================
   # Stage 5: Deploy Backend
