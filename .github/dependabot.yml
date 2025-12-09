@@ -1,89 +1,265 @@
 # Dependabot Configuration for ProjectMeats
 # Enables automated dependency updates and security alerts
+# 
+# Key Features:
+# - Grouped updates to reduce PR noise
+# - Configurable open PR limits
+# - Patch version filtering for non-critical dependencies
+# - OWASP vulnerability management
+# - Auto-merge support for passing tests
 
 version: 2
 
 updates:
-  # Python/Django Backend
+  # ============================================================================
+  # Python/Django Backend Dependencies
+  # ============================================================================
   - package-ecosystem: "pip"
     directory: "/backend"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+      time: "03:00"
+    # Limit concurrent PRs to avoid overwhelming the review queue
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "backend"
+      - "automerge"
     commit-message:
       prefix: "chore(deps)"
+      include: "scope"
+    # Group related dependencies into single PRs
     groups:
+      # Django framework and DRF updates (critical path)
       django:
         patterns:
           - "django*"
           - "drf*"
           - "djangorestframework*"
+        # Update on any version change (minor/patch)
+        update-types:
+          - "minor"
+          - "patch"
+      # Testing tools (non-critical path)
       testing:
         patterns:
           - "pytest*"
           - "factory*"
           - "coverage*"
+          - "faker*"
+        # Only update on minor versions, skip patch
+        update-types:
+          - "minor"
+      # Database drivers and adapters
+      database:
+        patterns:
+          - "psycopg*"
+          - "sqlparse*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Security and authentication
+      security:
+        patterns:
+          - "cryptography*"
+          - "pyjwt*"
+          - "django-cors*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore patch updates for these non-critical dependencies
+    ignore:
+      # Documentation tools (patch versions only)
+      - dependency-name: "sphinx*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "mkdocs*"
+        update-types: ["version-update:semver-patch"]
+      # OWASP: Known false positives or accepted risks
+      # (Add specific CVE ignores here with justification)
+      # Example:
+      # - dependency-name: "pillow"
+      #   versions: ["< 9.0.0"]
+      #   reason: "CVE-2022-XXXX - Not applicable to our use case (no TIFF processing)"
 
-  # Frontend (npm)
+  # ============================================================================
+  # Frontend (npm) Dependencies
+  # ============================================================================
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+      time: "03:00"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "frontend"
+      - "automerge"
     commit-message:
       prefix: "chore(deps)"
+      include: "scope"
     groups:
+      # React 19 and core ecosystem
       react:
         patterns:
-          - "react*"
+          - "react"
+          - "react-dom"
+          - "react-router*"
           - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      # TypeScript 5.9+ and type definitions
       typescript:
         patterns:
           - "typescript"
           - "@types/*"
+          - "ts-node*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Build tools (Vite-based)
       build:
         patterns:
           - "vite*"
+          - "@vitejs/*"
           - "esbuild*"
+          - "rollup*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Testing utilities
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "vitest*"
+          - "jest*"
+          - "@jest/*"
+        update-types:
+          - "minor"
+      # Linting and formatting (non-critical)
+      dev-tools:
+        patterns:
+          - "eslint*"
+          - "prettier*"
+          - "@typescript-eslint/*"
+        update-types:
+          - "minor"
+    # Ignore patch updates for non-critical dev dependencies
+    ignore:
+      - dependency-name: "@types/*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "eslint-*"
+        update-types: ["version-update:semver-patch"]
+      # OWASP: Ignore known false positives
+      # Example:
+      # - dependency-name: "axios"
+      #   versions: ["< 1.0.0"]
+      #   reason: "CVE-2022-XXXX - Mitigated by input validation"
 
-  # GitHub Actions
+  # ============================================================================
+  # GitHub Actions - Grouped Updates
+  # ============================================================================
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+      time: "03:00"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "ci/cd"
+      - "automerge"
     commit-message:
       prefix: "chore(ci)"
+      include: "scope"
+    # Group all GitHub Actions into a single PR per week
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignore patch updates for stable actions
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "actions/setup-python"
+        update-types: ["version-update:semver-patch"]
 
-  # Docker
+  # ============================================================================
+  # Docker Base Images
+  # ============================================================================
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
       interval: "monthly"
+      day: "monday"
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
       - "docker"
+      - "backend"
     commit-message:
       prefix: "chore(docker)"
+    # Only update on minor versions (e.g., Python 3.11 -> 3.12)
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: "docker"
     directory: "/frontend"
     schedule:
       interval: "monthly"
+      day: "monday"
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
       - "docker"
+      - "frontend"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "nginx"
+        update-types: ["version-update:semver-patch"]
+
+# ============================================================================
+# Dependabot Configuration Notes
+# ============================================================================
+#
+# Auto-merge Strategy:
+# - PRs labeled with 'automerge' can be auto-merged after CI passes
+# - Requires branch protection rules and status checks
+# - Configure auto-merge in repository settings
+#
+# OWASP Vulnerability Management:
+# - Review Dependabot security alerts regularly
+# - Document ignored vulnerabilities with justification
+# - Use 'ignore' rules only for false positives or accepted risks
+# - Re-evaluate ignored vulnerabilities quarterly
+#
+# PR Limit Strategy:
+# - open-pull-requests-limit: 5 balances freshness vs. review load
+# - Groups reduce total PR count by combining related updates
+# - Adjust limits based on team capacity
+#
+# Update Types:
+# - "patch": 1.0.0 -> 1.0.1 (bug fixes)
+# - "minor": 1.0.0 -> 1.1.0 (new features, backwards compatible)
+# - "major": 1.0.0 -> 2.0.0 (breaking changes)
+#
+# Best Practices:
+# - Review and test dependency updates in development branch
+# - Monitor for breaking changes in major updates
+# - Keep production dependencies up-to-date for security
+# - Use 'ignore' sparingly and document reasons
+# ============================================================================

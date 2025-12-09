@@ -1,0 +1,287 @@
+name: Workflow Retention Policy Enforcement
+
+# This workflow automatically enforces artifact and log retention policies
+# Runs weekly to clean up old workflow artifacts and logs
+# Implements 30-day retention policy via GitHub API
+
+on:
+  schedule:
+    # Run every Sunday at 3 AM UTC (weekly cleanup)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: 'Retention period in days'
+        required: false
+        default: '30'
+        type: string
+      dry_run:
+        description: 'Dry run mode (preview only)'
+        required: false
+        default: false
+        type: boolean
+
+# Concurrency: Cancel in-progress runs of the same workflow
+concurrency:
+  group: workflow-retention-policy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+  contents: read
+
+env:
+  RETENTION_DAYS: ${{ inputs.retention_days || '30' }}
+  DRY_RUN: ${{ inputs.dry_run || false }}
+
+jobs:
+  enforce-retention-policy:
+    name: Enforce Retention Policy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Set up environment
+        id: setup
+        run: |
+          echo "CUTOFF_DATE=$(date -u -d '${{ env.RETENTION_DAYS }} days ago' '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "RUN_ID=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          
+          # Create logs directory
+          mkdir -p logs
+          
+          echo "📅 Retention Period: ${{ env.RETENTION_DAYS }} days"
+          echo "🔍 Cutoff Date: $(date -u -d '${{ env.RETENTION_DAYS }} days ago' '+%Y-%m-%d')"
+          echo "🏃 Run ID: $(date +%Y%m%d-%H%M%S)"
+      
+      - name: Delete old workflow artifacts
+        id: delete-artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🗑️  Deleting artifacts older than ${{ env.RETENTION_DAYS }} days..."
+          
+          CUTOFF_DATE="${{ steps.setup.outputs.CUTOFF_DATE }}"
+          deleted_count=0
+          total_size=0
+          
+          # Get all artifacts older than retention period
+          artifacts=$(gh api \
+            --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.created_at < \"$CUTOFF_DATE\") | {id: .id, name: .name, size: .size_in_bytes, created: .created_at}")
+          
+          if [[ -z "$artifacts" ]]; then
+            echo "✅ No old artifacts found"
+            echo "deleted_count=0" >> $GITHUB_OUTPUT
+            echo "size_saved=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Count artifacts
+          artifact_count=$(echo "$artifacts" | jq -s 'length')
+          echo "📦 Found $artifact_count artifacts to delete"
+          
+          # Log artifact details
+          echo "$artifacts" | jq -r '"  • \(.name) (\(.size / 1024 / 1024 | floor)MB) - \(.created)"' > logs/artifacts-to-delete.log
+          
+          if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+            echo "🔍 DRY RUN: Would delete $artifact_count artifacts"
+            cat logs/artifacts-to-delete.log
+            echo "deleted_count=0" >> $GITHUB_OUTPUT
+            echo "size_saved=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Delete each artifact
+          echo "$artifacts" | jq -c '.' | while IFS= read -r artifact; do
+            artifact_id=$(echo "$artifact" | jq -r '.id')
+            artifact_name=$(echo "$artifact" | jq -r '.name')
+            artifact_size=$(echo "$artifact" | jq -r '.size')
+            
+            if gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/actions/artifacts/$artifact_id" &> /dev/null; then
+              echo "  ✓ Deleted: $artifact_name"
+              deleted_count=$((deleted_count + 1))
+              total_size=$((total_size + artifact_size))
+            else
+              echo "  ✗ Failed to delete: $artifact_name"
+            fi
+            
+            # Rate limiting
+            sleep 0.5
+          done
+          
+          # Calculate size saved in MB
+          size_mb=$((total_size / 1024 / 1024))
+          
+          echo "deleted_count=$deleted_count" >> $GITHUB_OUTPUT
+          echo "size_saved=$size_mb" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "📊 Artifacts Deletion Summary:"
+          echo "  • Deleted: $deleted_count artifacts"
+          echo "  • Space saved: ${size_mb}MB"
+      
+      - name: Delete old workflow runs
+        id: delete-runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🗑️  Deleting workflow runs older than ${{ env.RETENTION_DAYS }} days..."
+          
+          CUTOFF_DATE="${{ steps.setup.outputs.CUTOFF_DATE }}"
+          deleted_count=0
+          
+          # Get workflow runs older than retention period
+          # Focus on failed and cancelled runs first
+          for status in "failure" "cancelled"; do
+            echo "Processing $status runs..."
+            
+            runs=$(gh api \
+              --paginate \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/actions/runs?per_page=100&status=$status" \
+              --jq ".workflow_runs[] | select(.created_at < \"$CUTOFF_DATE\") | {id: .id, name: .name, conclusion: .conclusion, created: .created_at, run_number: .run_number}")
+            
+            if [[ -z "$runs" ]]; then
+              echo "  ✅ No old $status runs found"
+              continue
+            fi
+            
+            run_count=$(echo "$runs" | jq -s 'length')
+            echo "  📝 Found $run_count $status runs to delete"
+            
+            if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+              echo "  🔍 DRY RUN: Would delete $run_count $status runs"
+              continue
+            fi
+            
+            # Delete runs
+            echo "$runs" | jq -c '.' | while IFS= read -r run; do
+              run_id=$(echo "$run" | jq -r '.id')
+              run_name=$(echo "$run" | jq -r '.name')
+              run_number=$(echo "$run" | jq -r '.run_number')
+              
+              if gh api \
+                --method DELETE \
+                -H "Accept: application/vnd.github+json" \
+                "/repos/${{ github.repository }}/actions/runs/$run_id" &> /dev/null; then
+                echo "    ✓ Deleted: Run #$run_number - $run_name"
+                deleted_count=$((deleted_count + 1))
+              else
+                echo "    ✗ Failed: Run #$run_number - $run_name"
+              fi
+              
+              # Rate limiting
+              sleep 0.5
+            done
+          done
+          
+          echo "deleted_count=$deleted_count" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "📊 Workflow Runs Deletion Summary:"
+          echo "  • Deleted: $deleted_count runs"
+      
+      - name: Generate retention report
+        if: always()
+        run: |
+          cat << 'EOF' > logs/retention-report.md
+          # Workflow Retention Policy Report
+          
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Run ID**: ${{ steps.setup.outputs.RUN_ID }}
+          
+          ## Configuration
+          
+          - **Retention Period**: ${{ env.RETENTION_DAYS }} days
+          - **Cutoff Date**: ${{ steps.setup.outputs.CUTOFF_DATE }}
+          - **Dry Run**: ${{ env.DRY_RUN }}
+          
+          ## Results
+          
+          ### Artifacts
+          - **Deleted**: ${{ steps.delete-artifacts.outputs.deleted_count }} artifacts
+          - **Space Saved**: ${{ steps.delete-artifacts.outputs.size_saved }}MB
+          
+          ### Workflow Runs
+          - **Deleted**: ${{ steps.delete-runs.outputs.deleted_count }} runs
+          
+          ## Policy Details
+          
+          This workflow enforces the following retention policies:
+          
+          1. **Artifacts**: Automatically deleted after ${{ env.RETENTION_DAYS }} days
+          2. **Failed/Cancelled Runs**: Deleted after ${{ env.RETENTION_DAYS }} days
+          3. **Successful Runs**: Logs retained according to GitHub's default policy
+          
+          ## Next Execution
+          
+          - **Scheduled**: Every Sunday at 3 AM UTC
+          - **Manual**: Can be triggered via workflow_dispatch with custom retention period
+          
+          ## Recommendations
+          
+          - Monitor storage usage trends
+          - Adjust retention period if needed
+          - Consider downloading important artifacts before they expire
+          
+          ---
+          
+          *This is an automated retention policy enforcement report*
+          EOF
+          
+          cat logs/retention-report.md
+      
+      - name: Upload retention report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retention-report-${{ steps.setup.outputs.RUN_ID }}
+          path: logs/
+          retention-days: 90
+      
+      - name: Notify completion
+        if: always()
+        run: |
+          if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+            echo "🔍 DRY RUN completed"
+          else
+            echo "✅ Retention policy enforcement completed"
+          fi
+          
+          echo ""
+          echo "Summary:"
+          echo "  📦 Artifacts deleted: ${{ steps.delete-artifacts.outputs.deleted_count }}"
+          echo "  📝 Runs deleted: ${{ steps.delete-runs.outputs.deleted_count }}"
+          echo "  💾 Space saved: ${{ steps.delete-artifacts.outputs.size_saved }}MB"
+      
+      # Optional: Send Slack notification
+      # Uncomment and configure when Slack webhook is available
+      # - name: Send Slack notification
+      #   if: success() && env.DRY_RUN == 'false'
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   run: |
+      #     curl -X POST "$SLACK_WEBHOOK_URL" \
+      #       -H 'Content-Type: application/json' \
+      #       -d '{
+      #         "text": "🗑️ Workflow Retention Policy Executed",
+      #         "blocks": [
+      #           {
+      #             "type": "section",
+      #             "text": {
+      #               "type": "mrkdwn",
+      #               "text": "*Workflow Retention Policy Report*\n\n• Artifacts deleted: ${{ steps.delete-artifacts.outputs.deleted_count }}\n• Runs deleted: ${{ steps.delete-runs.outputs.deleted_count }}\n• Space saved: ${{ steps.delete-artifacts.outputs.size_saved }}MB"
+      #             }
+      #           }
+      #         ]
+      #       }'
