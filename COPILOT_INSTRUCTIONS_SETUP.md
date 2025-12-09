@@ -3,6 +3,13 @@
 ## Overview
 This document summarizes the setup and improvements made to GitHub Copilot instructions for the ProjectMeats repository, following best practices from [gh.io/copilot-coding-agent-tips](https://docs.github.com/en/copilot/tutorials/coding-agent/get-the-best-results).
 
+## 📚 Reference Documentation
+
+**For deployment and pipeline information, see:**
+- [Development Pipeline (Source of Truth)](./docs/DEVELOPMENT_PIPELINE.md)
+- [Next Steps](./. github/NEXT_STEPS.md)
+- [Architecture](./docs/ARCHITECTURE.md)
+
 ## Changes Made
 
 ### 1. Critical Bug Fixes ✅
