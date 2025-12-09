@@ -206,9 +206,9 @@ jobs:
       - name: Run migrations
         working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/projectmeats' }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'dev-secret-key-for-testing' }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE || 'projectmeats.settings.development' }}
         run: |
           # CRITICAL: Use standard Django migrate (NOT migrate_schemas)
           python manage.py migrate --fake-initial --noinput
