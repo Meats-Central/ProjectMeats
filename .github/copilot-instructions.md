@@ -629,7 +629,7 @@ if customer:
 
 #### References
 
-- Multi-Tenancy Guide: `docs/archive/MULTI_TENANCY_GUIDE.md`
+- Architecture Guide: `docs/ARCHITECTURE.md` (single source of truth)
 - Migration Commands: `.github/workflows/*deployment*.yml` (migrate job)
 - Devcontainer Setup: `.devcontainer/setup.sh`
 
@@ -1081,7 +1081,7 @@ if customer:
 
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
-  - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md))
+  - **CRITICAL:** Never modify applied migrations once they are applied
   - **CRITICAL:** For **any** model change in the project:
     - Run `python manage.py makemigrations` AND commit the migration file
     - Use standard `python manage.py migrate` for applying migrations
@@ -1456,14 +1456,9 @@ if customer:
 
 ### Repository-Specific Documentation
 - [Branch Workflow Checklist](../branch-workflow-checklist.md)
-- [Repository Best Practices](../docs/archive/REPOSITORY_BEST_PRACTICES.md)
-- [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md) - **Essential reading for all backend work**
-- [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) - **Required for deployment issues**
-- [Testing Strategy](../docs/archive/TESTING_STRATEGY.md)
+- [Architecture Guide](../docs/ARCHITECTURE.md) - **Single source of truth for architecture decisions**
 - [Deployment Runbook](../DEPLOYMENT_RUNBOOK.md)
-- [Backend Architecture](../docs/archive/BACKEND_ARCHITECTURE.md)
-- [Frontend Architecture](../docs/archive/FRONTEND_ARCHITECTURE.md)
-- [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md)
+- Copilot Log: [copilot-log.md](../copilot-log.md) - Historical lessons learned
 
 ### Tools & Libraries
 - [Django](https://docs.djangoproject.com/) - Web framework (shared-schema multi-tenancy)
@@ -1498,7 +1493,6 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
 1. **Never Modify Applied Migrations**
    - ❌ Changing dependencies after migration is applied
    - ✅ Create new migration to fix issues
-   - See: [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
 
 2. **Minimal Migration Dependencies**
    - ❌ Depending on unnecessary later migrations
@@ -1687,7 +1681,7 @@ Based on recurring issues, we've added:
 - [ ] Run `.github/scripts/validate-environment.sh` (if config changes)
 - [ ] Test migrations on fresh database
 - [ ] Ensure pre-commit hooks pass
-- [ ] Review [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
+- [ ] Review architecture decisions in `docs/ARCHITECTURE.md`
 - [ ] Update copilot-log.md with lessons learned
 
 **For Migration Changes:**
@@ -1701,7 +1695,7 @@ Based on recurring issues, we've added:
 
 **For Deployment Issues:**
 - [ ] If the deployment fails with "Unapplied migrations detected", the developer MUST run `git pull`, execute `python manage.py makemigrations`, commit the new file(s), and push to re-trigger the pipeline
-- [ ] Check [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) first
+- [ ] Check copilot-log.md for similar issues and solutions
 - [ ] Review GitHub Actions logs
 - [ ] SSH to server and check container logs
 - [ ] Compare working vs broken environment variables
@@ -1716,8 +1710,7 @@ Based on recurring issues, we've added:
 ### Resources for Copilot Agents
 
 - **copilot-log.md** - 4700+ lines of historical lessons, search for similar issues
-- **MIGRATION_BEST_PRACTICES.md** - Comprehensive migration guide
-- **DEPLOYMENT_TROUBLESHOOTING.md** - Step-by-step issue resolution
+- **docs/ARCHITECTURE.md** - Single source of truth for architecture decisions
 - **Validation scripts** in `.github/scripts/` - Use these to validate changes
 - **Deployment workflows** in `.github/workflows/` - Reference for CI/CD patterns
 

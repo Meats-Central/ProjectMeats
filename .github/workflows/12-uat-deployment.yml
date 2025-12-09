@@ -173,8 +173,8 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          echo "Applying shared schema migrations..."
-          python manage.py migrate_schemas --shared --noinput || python manage.py migrate --noinput
+          echo "Applying database migrations..."
+          python manage.py migrate --noinput
       
       - name: Apply full migrations
         working-directory: ./backend
@@ -197,33 +197,27 @@ jobs:
           DJANGO_SETTINGS_MODULE: projectmeats.settings.test
           POSTGRES_USER: postgres
         run: |
-          # Create test tenant and apply tenant-specific migrations (idempotent)
+          # Create test tenant using shared-schema approach (idempotent)
           echo "Setting up test tenant..."
           {
-            echo "from apps.tenants.models import Client, Domain"
-            echo "from django.db import connection"
-            echo "from django_tenants.utils import schema_context"
+            echo "from apps.tenants.models import Tenant, TenantDomain"
+            echo "from django.contrib.auth import get_user_model"
+            echo ""
+            echo "User = get_user_model()"
             echo ""
             echo "# Create test tenant if not exists (idempotent)"
             echo "try:"
-            echo "    # Check if schema exists before creating tenant"
-            echo "    with connection.cursor() as cursor:"
-            echo "        cursor.execute(\"SELECT schema_name FROM information_schema.schemata WHERE schema_name = %s\", [\"test_tenant\"])"
-            echo "        schema_exists = cursor.fetchone() is not None"
-            echo "    "
-            echo "    if not schema_exists:"
-            echo "        tenant, created = Client.objects.get_or_create("
-            echo "            schema_name=\"test_tenant\","
-            echo "            defaults={\"name\": \"Test Tenant\", \"description\": \"Test tenant for CI\"}"
-            echo "        )"
-            echo "        if created:"
-            echo "            print(\"Created test tenant\")"
+            echo "    tenant, created = Tenant.objects.get_or_create("
+            echo "        slug=\"test-tenant\","
+            echo "        defaults={\"name\": \"Test Tenant\", \"description\": \"Test tenant for CI\"}"
+            echo "    )"
+            echo "    if created:"
+            echo "        print(\"Created test tenant\")"
             echo "    else:"
-            echo "        print(\"Test tenant schema already exists, skipping creation\")"
-            echo "        tenant = Client.objects.get(schema_name=\"test_tenant\")"
+            echo "        print(\"Test tenant already exists\")"
             echo ""
             echo "    # Create domain for test tenant (idempotent with get_or_create)"
-            echo "    domain, created = Domain.objects.get_or_create("
+            echo "    domain, created = TenantDomain.objects.get_or_create("
             echo "        domain=\"test.example.com\","
             echo "        defaults={\"tenant\": tenant, \"is_primary\": True}"
             echo "    )"
@@ -232,19 +226,13 @@ jobs:
             echo "    else:"
             echo "        print(\"Test domain already exists\")"
             echo ""
-            echo "    # Run tenant migrations"
-            echo "    print(\"Running tenant migrations...\")"
-            echo "    with schema_context(tenant.schema_name):"
-            echo "        from django.core.management import call_command"
-            echo "        call_command(\"migrate_schemas\", schema_name=tenant.schema_name, verbosity=0)"
-            echo ""
             echo "except Exception as e:"
             echo "    print(f\"Warning: Could not set up test tenant: {e}\")"
-            echo "    print(\"Continuing with shared schema only...\")"
+            echo "    print(\"Continuing with shared schema setup...\")"
           } > /tmp/setup_tenant.py
           python manage.py shell < /tmp/setup_tenant.py || echo "Warning: Tenant setup failed, continuing..."
       
-      # Multi-tenancy setup for django-tenants
+      # Shared-schema multi-tenancy setup
       # Fixed unclosed here-document for bash syntax error
       - name: Run tests
         working-directory: ./backend
