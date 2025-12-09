@@ -145,13 +145,24 @@ updates:
           - "prettier*"
           - "@typescript-eslint/*"
         update-types:
+          - "major"
           - "minor"
+      # Storybook ecosystem (cautious major updates)
+      storybook:
+        patterns:
+          - "@storybook/*"
+        update-types:
+          - "minor"
+          - "patch"
     # Ignore patch updates for non-critical dev dependencies
     ignore:
       - dependency-name: "@types/*"
         update-types: ["version-update:semver-patch"]
       - dependency-name: "eslint-*"
         update-types: ["version-update:semver-patch"]
+      # Storybook major version updates (handle manually)
+      - dependency-name: "@storybook/*"
+        update-types: ["version-update:semver-major"]
       # OWASP: Ignore known false positives
       # Example:
       # - dependency-name: "axios"
