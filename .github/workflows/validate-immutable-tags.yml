@@ -9,7 +9,7 @@ on:
 
 # Concurrency: One validation per PR at a time
 concurrency:
-  group: validate-tags-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

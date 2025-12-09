@@ -23,7 +23,7 @@ on:
 
 # Concurrency: Cancel in-progress runs of the same workflow
 concurrency:
-  group: workflow-retention-policy-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

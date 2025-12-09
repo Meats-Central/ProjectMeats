@@ -11,7 +11,7 @@ on:
 
 # Concurrency: Only one build at a time per branch
 concurrency:
-  group: build-dev-image-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
