@@ -14,28 +14,65 @@
 #### 1. TENANCY: Shared Schema Isolation (tenant_id ForeignKey)
 **ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use or suggest django-tenants patterns:**
 
-- ❌ **NEVER** suggest `django-tenants`, `schema_context`, `pg_schemas`, or schema-based isolation
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
+- ❌ **NEVER** suggest `django-tenants` package or any schema-based isolation library
 - ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
-- ❌ **NEVER** use `schema_context()` or `connection.schema_name`
-- ❌ **NEVER** use `migrate_schemas` commands
-- ❌ **NEVER** suggest separate public/tenant schemas
-- ✅ **ALWAYS** use `tenant` ForeignKey on business models
-- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)`
-- ✅ **ALWAYS** use standard `python manage.py migrate`
+- ❌ **NEVER** use `schema_context()` or `connection.schema_name` or any schema switching
+- ❌ **NEVER** use `migrate_schemas`, `migrate --shared`, or `migrate --tenant` commands
+- ❌ **NEVER** suggest separate public/tenant schemas or schema-per-tenant patterns
+- ❌ **NEVER** reference PostgreSQL schemas for tenant isolation
+- ❌ **NEVER** use `DATABASE_ROUTERS` for tenant routing
+- ❌ **NEVER** suggest `TENANT_MODEL` or `TENANT_DOMAIN_MODEL` settings
+- ❌ **NEVER** implement schema-based multi-tenancy in any form
 
-**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans that will confuse AI. These are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants`, you're reading archived material.
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** use `tenant` ForeignKey on ALL business models
+- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)` in ALL ViewSets
+- ✅ **ALWAYS** use standard `python manage.py migrate` (ONLY this command)
+- ✅ **ALWAYS** use shared PostgreSQL `public` schema for all tenants
+- ✅ **ALWAYS** rely on `TenantMiddleware` for tenant resolution
+- ✅ **ALWAYS** assign `tenant=request.tenant` in `perform_create()` methods
 
-#### 2. FRONTEND: Vite Build System
-**ProjectMeats is migrating to Vite. NEVER suggest legacy build tools:**
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- "django-tenants" package installation
+- Schema creation or migration per tenant
+- Schema switching or routing logic
+- Separate database schemas for isolation
+- `migrate_schemas` or similar commands
+- Any reference to `docs/archive/` content as current practice
 
-- ❌ **NEVER** suggest `react-scripts`, `craco`, or `react-app-rewired`
-- ❌ **NEVER** reference `Create React App` (CRA) configurations
-- ❌ **NEVER** suggest `REACT_APP_*` environment variables
-- ✅ **ALWAYS** use Vite configuration patterns
-- ✅ **ALWAYS** use `VITE_*` environment variables
-- ✅ **ALWAYS** use `import.meta.env` for environment access
+**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans from a DEPRECATED architecture. These files will confuse AI and are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants` or schema isolation, you're reading ARCHIVED material from a REJECTED design.
 
-**Why This Matters:** Legacy CRA patterns will break the build system. All frontend tooling has migrated to Vite.
+#### 2. FRONTEND: Vite Build System (Migration In Progress)
+**ProjectMeats is MIGRATING to Vite for frontend builds. Current state uses react-app-rewired as a temporary bridge.**
+
+**🎯 CURRENT STATE (Temporary - DO NOT ENHANCE):**
+- Frontend currently uses `react-app-rewired` with CRA base
+- This is a TRANSITIONAL setup - DO NOT add new CRA-specific configurations
+- DO NOT enhance or extend react-app-rewired setup
+- DO NOT add new REACT_APP_* environment variables
+
+**🚫 PROHIBITED (NEVER SUGGEST):**
+- ❌ **NEVER** suggest migrating back to pure `react-scripts`
+- ❌ **NEVER** suggest removing react-app-rewired before Vite migration
+- ❌ **NEVER** suggest `craco` as alternative to react-app-rewired
+- ❌ **NEVER** reference `npm run eject`
+- ❌ **NEVER** add new CRA-specific webpack configurations
+
+**✅ FUTURE STATE (Target Architecture - USE FOR NEW CODE):**
+- ✅ **ALWAYS** write new code compatible with Vite patterns
+- ✅ **ALWAYS** use `import.meta.env` for new environment variables (Vite-ready)
+- ✅ **ALWAYS** plan for VITE_* environment variable names
+- ✅ **ALWAYS** reference Vite documentation for build questions
+- ✅ **ALWAYS** use ES modules and modern import/export syntax
+
+**🔄 MIGRATION STATUS:**
+- Backend: ✅ 100% - Using standard Django (NO django-tenants)
+- Frontend: 🔄 0% - Still on react-app-rewired (Vite migration pending)
+- Documentation: ✅ 100% - Updated to reflect target architecture
+
+**Why This Matters:** We are moving AWAY from CRA ecosystem. Don't invest in CRA-specific solutions. Write Vite-compatible code even if currently running on CRA.
 
 ### Deployment Rules
 

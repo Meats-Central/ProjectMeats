@@ -36,7 +36,7 @@ Navigate to: **Repository Settings → Secrets and variables → Actions**
 | `DEV_SECRET_KEY` | Django secret key |
 | `DEV_BACKEND_IP` | Backend IP used in frontend nginx config |
 | `DEV_URL` | Frontend URL for health checks |
-| `REACT_APP_API_BASE_URL` | API base URL for React app |
+| `VITE_API_BASE_URL` | API base URL for frontend app (Vite build) |
 | `DO_ACCESS_TOKEN` | DigitalOcean container registry token |
 
 ## UAT/Staging Environment Secrets
