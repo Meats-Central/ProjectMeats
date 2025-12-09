@@ -109,59 +109,108 @@
 
 ## Pipeline Stages
 
-### Overview
+### Overview - Reusable Workflow Architecture
 
-The deployment pipeline follows this sequence:
+**ProjectMeats uses a modular, reusable workflow architecture:**
+- **Main Pipeline** (`main-pipeline.yml`) - Routes deployments based on branch
+- **Reusable Worker** (`reusable-deploy.yml`) - Performs actual deployment steps
 
 ```
-Push to Branch
+Push to Branch (development/uat/main)
   ↓
-1. Lint & Validate
+main-pipeline.yml (Router)
+  ├── If development → Call reusable-deploy.yml with dev secrets
+  ├── If uat → Call reusable-deploy.yml with uat secrets
+  └── If main → Call reusable-deploy.yml with prod secrets
   ↓
-2. Build & Push Images (Parallel)
+reusable-deploy.yml (Worker)
+  ↓
+1. Build & Push Images (Parallel)
   ├── Frontend → DOCR + GHCR
   └── Backend → DOCR + GHCR
   ↓
-3. Test (Parallel)
+2. Test (Parallel)
   ├── Frontend Tests (npm run test:ci)
   └── Backend Tests (python manage.py test)
   ↓
-4. Migrate Database
+3. Migrate Database
   ├── SSH to Backend Server
-  └── python manage.py migrate --fake-initial
+  └── python manage.py migrate --fake-initial --noinput
   ↓
-5. Deploy (Sequential)
+4. Deploy (Sequential)
   ├── Deploy Backend First
   │   ├── SSH to Backend Server
-  │   ├── Pull Image (dev-SHA tag)
+  │   ├── Pull Image (env-SHA tag)
   │   ├── Stop Old Container
   │   ├── Start New Container
   │   └── Health Check (localhost:8000/api/v1/health/)
   │
   └── Deploy Frontend Second
       ├── SSH to Frontend Server
-      ├── Pull Image (dev-SHA tag)
+      ├── Pull Image (env-SHA tag)
       ├── Stop Old Container
       ├── Start New Container
       ├── Configure Nginx
       └── Health Check (localhost:80)
-  ↓
-6. Post-Deployment
-  └── Slack Notification (Success/Failure)
 ```
 
-### 1. Lint & Validate
+**Benefits of Reusable Workflow Architecture:**
+- ✅ **DRY Principle** - Single deployment logic shared across all environments
+- ✅ **Consistency** - Identical deployment process for dev/uat/prod
+- ✅ **Maintainability** - Update deployment logic in one place
+- ✅ **Environment Isolation** - Secrets scoped per environment via GitHub Environments
 
-**Job:** `lint-yaml`
+### Workflow Architecture Details
 
+#### Main Pipeline (`main-pipeline.yml`)
+
+**Purpose:** Route deployments to correct environment based on branch
+
+**Trigger Conditions:**
 ```yaml
-- Run yamllint on .github/workflows/
-- Fail fast on syntax errors
+on:
+  push:
+    branches: [development, uat, main]
+  workflow_dispatch:
+    inputs:
+      environment: [development, uat, production]
 ```
 
-**Purpose:** Prevent invalid YAML from breaking CI/CD.
+**Routing Logic:**
+- `development` branch → `deploy-dev` job → calls `reusable-deploy.yml` with `DEV_*` secrets
+- `uat` branch → `deploy-uat` job → calls `reusable-deploy.yml` with `UAT_*` secrets
+- `main` branch → `deploy-prod` job → calls `reusable-deploy.yml` with `PROD_*` secrets
 
-### 2. Build & Push Images
+**Secrets Passing:**
+```yaml
+# Example: Development deployment
+deploy-dev:
+  uses: ./.github/workflows/reusable-deploy.yml
+  with:
+    environment: 'development'
+    ref: ${{ github.ref }}
+    backend_environment: 'dev-backend'
+    frontend_environment: 'dev-frontend'
+  secrets:
+    FRONTEND_SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
+    BACKEND_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+    DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+    # ... (other environment-specific secrets)
+```
+
+#### Reusable Deployment Worker (`reusable-deploy.yml`)
+
+**Purpose:** Execute deployment steps (build, test, migrate, deploy)
+
+**Inputs:**
+- `environment` (required) - Target environment name (development/uat/production)
+- `ref` (required) - Git reference to deploy
+- `backend_environment` (optional) - GitHub Environment name for backend
+- `frontend_environment` (optional) - GitHub Environment name for frontend
+- `image_tag` (optional) - Docker image tag (future: Build Once Deploy Many)
+- `api_base_url` (optional) - API base URL for frontend config
+
+### 1. Build & Push Images
 
 **Jobs:** `build-and-push (frontend)`, `build-and-push (backend)`
 
@@ -219,7 +268,7 @@ CMD ["gunicorn", "projectmeats.wsgi:application", "--bind", "0.0.0.0:8000"]
 - ✅ **Rollback-friendly** - Redeploy any previous SHA
 - ✅ **Redundancy** - Two registries prevent single point of failure
 
-### 3. Test
+### 2. Test
 
 **Jobs:** `test-frontend`, `test-backend`
 
@@ -244,13 +293,15 @@ python manage.py test apps/ --verbosity=2
 
 **Gating:** Deployment blocked if any test fails.
 
-### 4. Migrate Database
+### 3. Migrate Database
 
-**Job:** `migrate`
+**Job:** `migrate` (in `reusable-deploy.yml`)
 
-**Environment:** `dev-backend` / `uat-backend` / `prod-backend`
+**Environment:** `dev-backend` / `uat2-backend` / `prod2-backend`
 
-**Execution Method:** SSH to backend server
+**Execution Method:** SSH to backend server (database firewall restricts access to deployment servers only)
+
+**Migration Strategy:** Standard Django Shared-Schema Multi-Tenancy
 
 ```bash
 # SSH into backend server
@@ -260,7 +311,7 @@ set -euo pipefail
 cd /home/django/ProjectMeats/backend
 source ../venv/bin/activate
 
-# Run idempotent migrations
+# Run idempotent migrations (standard Django, NOT migrate_schemas)
 python manage.py migrate --fake-initial --noinput
 
 MIGRATE
@@ -270,6 +321,12 @@ MIGRATE
 - `--fake-initial` - Skip already-applied initial migrations (idempotent)
 - `--noinput` - Non-interactive mode for CI/CD
 
+**Architecture Alignment:**
+- ✅ **Settings:** Uses shared-schema multi-tenancy (tenant_id ForeignKey)
+- ✅ **Migration Command:** Standard Django `migrate` (NOT `migrate_schemas`)
+- ✅ **No django-tenants:** Confirmed in settings.py comments
+- ✅ **Single PostgreSQL Schema:** All tenants in `public` schema
+
 **Why SSH?**
 - Database firewall restricts access to deployment servers only
 - No need to expose DB to 5,462 GitHub Actions IP ranges
@@ -278,15 +335,15 @@ MIGRATE
 **Error Handling:**
 - Migration failure blocks deployment
 - Exits with non-zero code
-- Slack notification sent
+- Prevents deploying code that requires pending migrations
 
-### 5. Deploy
+### 4. Deploy
 
 #### A. Deploy Backend
 
-**Job:** `deploy-backend`
+**Job:** `deploy-backend` (in `reusable-deploy.yml`)
 
-**Environment:** `dev-backend` / `uat-backend` / `prod-backend`
+**Environment:** `dev-backend` / `uat2-backend` / `prod2-backend`
 
 **Process:**
 1. **SSH to Backend Server**
@@ -332,9 +389,9 @@ LOG_LEVEL=INFO
 
 #### B. Deploy Frontend
 
-**Job:** `deploy-frontend`
+**Job:** `deploy-frontend` (in `reusable-deploy.yml`)
 
-**Environment:** `dev-frontend` / `uat-frontend` / `prod-frontend`
+**Environment:** `dev-frontend` / `uat2-frontend` / `prod2-frontend`
 
 **Dependency:** Waits for `deploy-backend` to succeed
 
@@ -411,15 +468,6 @@ LOG_LEVEL=INFO
    ```bash
    curl -f http://localhost:80/
    ```
-
-### 6. Post-Deployment
-
-**Job:** Runs in both `deploy-backend` and `deploy-frontend`
-
-**Actions:**
-- Send Slack notification with status
-- Include commit SHA, environment, duration
-- On failure: Include error logs
 
 ---
 
@@ -527,11 +575,21 @@ gh run watch
 ### Manual Deployment Trigger
 
 ```bash
-# Trigger deployment workflow manually
-gh workflow run "11-dev-deployment.yml" --ref development
-gh workflow run "12-uat-deployment.yml" --ref uat
-gh workflow run "13-prod-deployment.yml" --ref main
+# Trigger deployment workflow manually via main-pipeline.yml
+gh workflow run "main-pipeline.yml" \
+  --ref development \
+  -f environment=development
+
+gh workflow run "main-pipeline.yml" \
+  --ref uat \
+  -f environment=uat
+
+gh workflow run "main-pipeline.yml" \
+  --ref main \
+  -f environment=production
 ```
+
+**Note:** The `main-pipeline.yml` automatically routes to the appropriate `reusable-deploy.yml` job based on the environment input.
 
 ### Rollback Procedure
 
@@ -539,7 +597,7 @@ gh workflow run "13-prod-deployment.yml" --ref main
 
 ```bash
 # Find last successful deployment
-gh run list --workflow "11-dev-deployment.yml" --limit 10
+gh run list --workflow "main-pipeline.yml" --limit 10
 
 # Re-run by ID
 gh run rerun <RUN_ID>
@@ -1130,16 +1188,24 @@ python manage.py sqlmigrate app_name migration_name
 
 ### Workflow Files
 
-- `.github/workflows/11-dev-deployment.yml` - Development deployment
-- `.github/workflows/12-uat-deployment.yml` - UAT deployment
-- `.github/workflows/13-prod-deployment.yml` - Production deployment
-- `.github/workflows/promote-dev-to-uat.yml` - Auto-promotion to UAT
-- `.github/workflows/promote-uat-to-main.yml` - Auto-promotion to Production
+**Active Workflows:**
+- `.github/workflows/main-pipeline.yml` - Master deployment router (routes to reusable-deploy.yml)
+- `.github/workflows/reusable-deploy.yml` - Reusable deployment worker (build, test, migrate, deploy)
+
+**Supporting Workflows:**
+- `.github/workflows/promote-dev-to-uat.yml` - Auto-promotion to UAT (if exists)
+- `.github/workflows/promote-uat-to-main.yml` - Auto-promotion to Production (if exists)
+
+**Archived Workflows:**
+- `.github/archived-workflows/11-dev-deployment.yml.bak` - Deprecated (replaced by main-pipeline.yml)
+- `.github/archived-workflows/12-uat-deployment.yml.bak` - Deprecated (replaced by main-pipeline.yml)
+- `.github/archived-workflows/13-prod-deployment.yml.bak` - Deprecated (replaced by main-pipeline.yml)
 
 ### Change Log
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2025-12-09 | 1.1.0 | Updated to reflect reusable workflow architecture (main-pipeline.yml + reusable-deploy.yml) |
 | 2025-12-09 | 1.0.0 | Initial source of truth document created |
 
 ---

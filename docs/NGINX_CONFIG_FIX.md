@@ -1,5 +1,16 @@
 # Nginx Configuration Fix Documentation
 
+> **⚠️ DEPRECATION NOTICE (2025-12-09)**  
+> This document references deprecated workflow files (`11-dev-deployment.yml`, `12-uat-deployment.yml`, `13-prod-deployment.yml`) that have been replaced by the reusable workflow architecture (`main-pipeline.yml` + `reusable-deploy.yml`).  
+>   
+> **Current Documentation:** See [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md) for the active deployment architecture.  
+>   
+> The nginx configuration patterns documented here are still valid and have been incorporated into the reusable workflow.  
+>   
+> This file is retained for historical reference only.
+
+---
+
 ## Problem Statement
 
 The frontend deployment jobs were failing due to malformed nginx configuration files generated during deployment. The issue manifested as:

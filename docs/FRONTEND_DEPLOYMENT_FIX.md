@@ -1,5 +1,14 @@
 # Fix Frontend Deployment SSH Connection - Action Required
 
+> **⚠️ DEPRECATION NOTICE (2025-12-09)**  
+> This document references deprecated workflow files (`11-dev-deployment.yml`, `12-uat-deployment.yml`, `13-prod-deployment.yml`) that have been replaced by the reusable workflow architecture (`main-pipeline.yml` + `reusable-deploy.yml`).  
+>   
+> **Current Documentation:** See [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md) for the active deployment architecture.  
+>   
+> This file is retained for historical reference only.
+
+---
+
 ## Summary
 
 The GitHub Actions deployment workflow has been updated to fix the SSH connection timeout issue for the dev frontend deployment. The workflow now correctly uses separate server configurations for frontend and backend deployments.
