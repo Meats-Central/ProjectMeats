@@ -29,11 +29,11 @@ jobs:
       
       - name: Setup SSH Tunnel to Database
         env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
+          BACKEND_SSH_PASSWORD: ${{ secrets.BACKEND_SSH_PASSWORD }}
+          DEV_DB_HOST: ${{ secrets.DEV_DB_HOST }}
+          DEV_DB_PORT: ${{ secrets.DEV_DB_PORT }}
+          BACKEND_USER: ${{ secrets.BACKEND_USER }}
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
         run: |
           # Install sshpass for password-based SSH
           sudo apt-get update -qq
@@ -41,10 +41,10 @@ jobs:
           
           # Create SSH tunnel in background
           # Forward local port 5433 -> remote DB host:port
-          echo "Creating SSH tunnel: localhost:5433 -> $DB_HOST:$DB_PORT"
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -f -N \
-            -L 5433:$DB_HOST:$DB_PORT \
-            $SSH_USER@$SSH_HOST
+          echo "Creating SSH tunnel: localhost:5433 -> $DEV_DB_HOST:$DEV_DB_PORT"
+          sshpass -p "$BACKEND_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -f -N \
+            -L 5433:$DEV_DB_HOST:$DEV_DB_PORT \
+            $BACKEND_USER@$BACKEND_HOST
           
           # Wait for tunnel to establish
           sleep 5
@@ -54,12 +54,15 @@ jobs:
       
       - name: Test Database Connectivity
         env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           # Install PostgreSQL client
           sudo apt-get install -y postgresql-client
+          
+          # Parse DATABASE_URL to get credentials and database name
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
           
           # Test connection through tunnel
           PGPASSWORD="$DB_PASSWORD" psql \
@@ -84,16 +87,18 @@ jobs:
       - name: Run Migration Check (Read-Only)
         working-directory: ./backend
         env:
-          # Override DATABASE_URL to use tunnel
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           echo "Testing database access through SSH tunnel..."
           
-          # Construct DATABASE_URL for tunnel
+          # Parse DATABASE_URL to get credentials
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          
+          # Construct DATABASE_URL for tunnel (localhost:5433)
           export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
           
           # Read-only check: Show migration status
@@ -105,13 +110,16 @@ jobs:
         if: false  # Disabled for safety - enable manually if needed
         working-directory: ./backend
         env:
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
-          # Construct DATABASE_URL for tunnel
+          # Parse DATABASE_URL to get credentials
+          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+          
+          # Construct DATABASE_URL for tunnel (localhost:5433)
           export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
           
           # CAUTION: This will actually run migrations
