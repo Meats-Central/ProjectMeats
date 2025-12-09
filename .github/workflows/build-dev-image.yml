@@ -9,6 +9,11 @@ on:
       - 'frontend/package*.json'
   workflow_dispatch:
 
+# Concurrency: Only one build at a time per branch
+concurrency:
+  group: build-dev-image-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   packages: write

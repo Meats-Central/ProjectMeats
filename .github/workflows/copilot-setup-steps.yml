@@ -8,6 +8,11 @@ on:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
 
+# Concurrency: Allow one setup per PR, cancel old runs
+concurrency:
+  group: copilot-setup-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   copilot-setup-steps:
     name: Setup Development Environment for Copilot

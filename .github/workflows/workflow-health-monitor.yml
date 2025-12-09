@@ -6,6 +6,11 @@ on:
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
+# Concurrency: Only one health check at a time
+concurrency:
+  group: workflow-health-monitor
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read

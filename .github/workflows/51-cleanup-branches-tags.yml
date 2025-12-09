@@ -6,6 +6,11 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:
 
+# Concurrency: Prevent multiple cleanup jobs from running simultaneously
+concurrency:
+  group: cleanup-branches-tags
+  cancel-in-progress: false
+
 jobs:
   cleanup-branches:
     runs-on: ubuntu-latest

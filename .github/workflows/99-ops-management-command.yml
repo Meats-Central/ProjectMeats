@@ -17,6 +17,11 @@ on:
         required: true
         default: 'check'
 
+# Concurrency: Prevent multiple management commands on same environment
+concurrency:
+  group: ops-management-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   execute-command:
     name: Run "${{ inputs.command }}" on ${{ inputs.environment }}

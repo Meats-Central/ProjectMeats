@@ -10,6 +10,11 @@ on:
       - '**.md'
       - '.github/workflows/docs-lint.yml'
 
+# Concurrency: Cancel in-progress runs for same PR or branch
+concurrency:
+  group: docs-lint-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # Restrict permissions for security
 permissions:
   contents: read

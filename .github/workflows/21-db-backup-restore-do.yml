@@ -11,6 +11,11 @@ on:
     - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
   workflow_dispatch:
 
+# Concurrency: Only one backup/restore operation at a time
+concurrency:
+  group: db-backup-restore
+  cancel-in-progress: false
+
 jobs:
   restore-from-do-backup:
     name: Restore Production Backup to Staging
