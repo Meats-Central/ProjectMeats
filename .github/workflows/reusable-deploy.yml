@@ -184,7 +184,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'  # Required for vitest/coverage-v8
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
@@ -217,7 +217,7 @@ jobs:
           sudo apt-get install -y sshpass
           
           # Run migrations on the deployment server via SSH
-          sshpass -e ssh -o StrictHostKeyChecking=yes \
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH_END'
           set -euo pipefail
           
