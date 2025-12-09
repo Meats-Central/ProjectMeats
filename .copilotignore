@@ -1,0 +1,41 @@
+# GitHub Copilot Ignore File
+# This file prevents GitHub Copilot from indexing specified directories and files
+# to avoid confusion from outdated or contradictory documentation
+
+# Archive directory (contains old schema isolation plans and zombie knowledge)
+docs/archive/**
+
+# Archived infrastructure and old configs
+archived/**
+
+# Build artifacts and dependencies
+node_modules/**
+dist/**
+build/**
+staticfiles/**
+media/**
+
+# Virtual environments
+venv/**
+env/**
+.venv/**
+backend/venv/**
+
+# Database files
+*.db
+*.sqlite3
+
+# Logs
+logs/**
+*.log
+
+# Temporary files
+tmp/**
+temp/**
+*.tmp
+*.backup
+
+# Test coverage
+coverage/**
+htmlcov/**
+.nyc_output/**
