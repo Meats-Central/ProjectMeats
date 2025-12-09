@@ -368,12 +368,32 @@ jobs:
             sleep 10
           done
 
+          # Debug: Print deployment variables
+          echo "=== Deployment Variables ==="
+          echo "REGISTRY: ${{ env.REGISTRY }}"
+          echo "FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE }}"
+          echo "TAG: dev-${{ github.sha }}"
+          echo "BACKEND_IP: ${{ secrets.DEV_BACKEND_IP }}"
+          echo "============================"
+
           sudo docker rm -f pm-frontend >/dev/null 2>&1 || true
-          sudo docker run -d --name pm-frontend --restart unless-stopped \
-            -p 8080:80 \
-            --add-host backend:${{ secrets.DEV_BACKEND_IP }} \
-            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+          
+          # Build docker run command conditionally
+          BACKEND_IP="${{ secrets.DEV_BACKEND_IP }}"
+          if [ -n "$BACKEND_IP" ]; then
+            echo "Adding backend host entry: $BACKEND_IP"
+            sudo docker run -d --name pm-frontend --restart unless-stopped \
+              -p 8080:80 \
+              --add-host backend:"$BACKEND_IP" \
+              -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+              ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+          else
+            echo "⚠️  DEV_BACKEND_IP not set, skipping --add-host"
+            sudo docker run -d --name pm-frontend --restart unless-stopped \
+              -p 8080:80 \
+              -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+              ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:dev-${{ github.sha }}
+          fi
 
           if command -v nginx >/dev/null 2>&1; then
             echo "=== Configuring host nginx reverse proxy ==="
