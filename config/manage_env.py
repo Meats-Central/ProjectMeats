@@ -11,6 +11,7 @@ Usage:
     python config/manage_env.py setup production
     python config/manage_env.py validate
     python config/manage_env.py generate-secrets
+    python config/manage_env.py audit
 """
 
 import os
@@ -19,8 +20,10 @@ import shutil
 import secrets
 import string
 import argparse
+import json
+import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 
 class Colors:
@@ -44,6 +47,7 @@ class EnvironmentManager:
         self.config_dir = self.project_root / 'config'
         self.backend_dir = self.project_root / 'backend'
         self.frontend_dir = self.project_root / 'frontend'
+        self.manifest_path = self.config_dir / 'env.manifest.json'
         
         # Required environment variables for each component
         self.required_backend_vars = [
@@ -197,6 +201,130 @@ class EnvironmentManager:
         self.log("- Add them to your environment variable management system", "WARNING")
         self.log("- Never commit them to version control", "WARNING")
         self.log("- Use different secrets for each environment", "WARNING")
+    
+    def load_manifest(self) -> Optional[Dict]:
+        """Load the environment manifest JSON"""
+        if not self.manifest_path.exists():
+            self.log(f"Manifest not found: {self.manifest_path}", "ERROR")
+            return None
+        
+        try:
+            with open(self.manifest_path, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            self.log(f"Invalid JSON in manifest: {e}", "ERROR")
+            return None
+    
+    def get_github_secrets(self) -> Optional[Set[str]]:
+        """Retrieve all GitHub secrets using gh CLI"""
+        try:
+            result = subprocess.run(
+                ['gh', 'secret', 'list', '--json', 'name'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            secrets_data = json.loads(result.stdout)
+            return {secret['name'] for secret in secrets_data}
+        except subprocess.CalledProcessError as e:
+            self.log(f"Failed to retrieve GitHub secrets: {e.stderr}", "ERROR")
+            return None
+        except FileNotFoundError:
+            self.log("GitHub CLI (gh) not found. Install it to use audit feature.", "ERROR")
+            self.log("Visit: https://cli.github.com/", "INFO")
+            return None
+        except json.JSONDecodeError as e:
+            self.log(f"Failed to parse GitHub secrets response: {e}", "ERROR")
+            return None
+    
+    def extract_manifest_secrets(self, manifest: Dict) -> Set[str]:
+        """Extract all expected secret names from the manifest"""
+        expected_secrets = set()
+        
+        variables = manifest.get('variables', {})
+        environments = manifest.get('environments', {})
+        
+        for category in variables.values():
+            for var_name, var_config in category.items():
+                # Handle explicit mappings
+                if 'ci_secret_mapping' in var_config:
+                    for env_name, secret_name in var_config['ci_secret_mapping'].items():
+                        expected_secrets.add(secret_name)
+                
+                # Handle pattern-based secrets
+                if 'ci_secret_pattern' in var_config:
+                    pattern = var_config['ci_secret_pattern']
+                    for env_name, env_config in environments.items():
+                        if 'prefix' in env_config:
+                            secret_name = pattern.replace('{PREFIX}', env_config['prefix'])
+                            expected_secrets.add(secret_name)
+        
+        return expected_secrets
+    
+    def audit_secrets(self) -> bool:
+        """Audit GitHub secrets against manifest"""
+        self.log("=" * 70, "INFO")
+        self.log("🔍 ENVIRONMENT MANIFEST AUDIT", "INFO")
+        self.log("=" * 70, "INFO")
+        
+        # Load manifest
+        manifest = self.load_manifest()
+        if not manifest:
+            return False
+        
+        self.log(f"✓ Loaded manifest v{manifest.get('version', 'unknown')}", "SUCCESS")
+        
+        # Get GitHub secrets
+        github_secrets = self.get_github_secrets()
+        if github_secrets is None:
+            return False
+        
+        self.log(f"✓ Retrieved {len(github_secrets)} secrets from GitHub", "SUCCESS")
+        
+        # Extract expected secrets from manifest
+        expected_secrets = self.extract_manifest_secrets(manifest)
+        self.log(f"✓ Extracted {len(expected_secrets)} expected secrets from manifest", "SUCCESS")
+        
+        # Find zombie and missing secrets
+        zombie_secrets = github_secrets - expected_secrets
+        missing_secrets = expected_secrets - github_secrets
+        
+        # Report findings
+        self.log("\n" + "=" * 70, "INFO")
+        
+        if zombie_secrets:
+            self.log("🧟 ZOMBIE SECRETS (In GitHub, NOT in manifest):", "WARNING")
+            self.log("-" * 70, "WARNING")
+            for secret in sorted(zombie_secrets):
+                self.log(f"  • {secret}", "WARNING")
+            self.log(f"\nTotal: {len(zombie_secrets)} zombie secret(s)", "WARNING")
+        else:
+            self.log("✅ No zombie secrets found", "SUCCESS")
+        
+        self.log("\n" + "=" * 70, "INFO")
+        
+        if missing_secrets:
+            self.log("❌ MISSING SECRETS (In manifest, NOT in GitHub):", "ERROR")
+            self.log("-" * 70, "ERROR")
+            for secret in sorted(missing_secrets):
+                self.log(f"  • {secret}", "ERROR")
+            self.log(f"\nTotal: {len(missing_secrets)} missing secret(s)", "ERROR")
+        else:
+            self.log("✅ No missing secrets found", "SUCCESS")
+        
+        self.log("\n" + "=" * 70, "INFO")
+        
+        # Summary
+        if not zombie_secrets and not missing_secrets:
+            self.log("🎉 AUDIT PASSED: All secrets are in sync!", "SUCCESS")
+            return True
+        else:
+            self.log("⚠️  AUDIT INCOMPLETE: Discrepancies found", "WARNING")
+            if zombie_secrets:
+                self.log(f"   - {len(zombie_secrets)} zombie secret(s) should be removed or added to manifest", "WARNING")
+            if missing_secrets:
+                self.log(f"   - {len(missing_secrets)} missing secret(s) must be added to GitHub", "WARNING")
+            return False
 
 
 def main():
@@ -211,12 +339,13 @@ Examples:
   python config/manage_env.py setup production
   python config/manage_env.py validate
   python config/manage_env.py generate-secrets
+  python config/manage_env.py audit
         """
     )
     
     parser.add_argument(
         'action',
-        choices=['setup', 'validate', 'generate-secrets'],
+        choices=['setup', 'validate', 'generate-secrets', 'audit'],
         help='Action to perform'
     )
     
@@ -244,6 +373,10 @@ Examples:
     elif args.action == 'generate-secrets':
         manager.generate_secrets()
         sys.exit(0)
+    
+    elif args.action == 'audit':
+        success = manager.audit_secrets()
+        sys.exit(0 if success else 1)
 
 
 if __name__ == '__main__':
