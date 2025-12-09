@@ -100,14 +100,29 @@ patterns:
 
 deployment:
   branch_workflow:
-    - "feature/* → development (via PR)"
-    - "development → UAT (automated PR)"
-    - "UAT → main (automated PR)"
-  never:
-    - "Push directly to UAT"
-    - "Push directly to main"
-    - "Skip development branch"
+    description: "ALWAYS create feature/fix branch first, then PR to development"
+    steps:
+      - "1. Create feature/fix branch from development"
+      - "2. Make changes and commit to feature branch"
+      - "3. Push feature branch to origin"
+      - "4. Create PR to development (with review)"
+      - "5. After merge to development, auto-deploy to dev"
+      - "6. Automated workflow creates PR from development → UAT"
+      - "7. After merge to UAT, auto-deploy to staging"
+      - "8. Automated workflow creates PR from UAT → main"
+      - "9. After merge to main, auto-deploy to production"
+    never_do:
+      - "NEVER commit directly to development branch"
+      - "NEVER push directly to development without PR"
+      - "NEVER push directly to UAT"
+      - "NEVER push directly to main"
+      - "NEVER skip the PR review process"
+    always_do:
+      - "ALWAYS create a feature/* or fix/* branch first"
+      - "ALWAYS create PR before merging to development"
+      - "ALWAYS wait for CI checks to pass"
+      - "ALWAYS follow the promotion workflow"
   environments:
-    development: "auto-deploy on merge"
-    uat: "auto-deploy on merge, requires testing"
-    production: "requires 2 approvals"
+    development: "auto-deploy on merge to development branch"
+    uat: "auto-deploy on merge to uat branch, requires testing"
+    production: "auto-deploy on merge to main, requires 2 approvals"
