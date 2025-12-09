@@ -5,7 +5,28 @@
 
 ## Multi-Tenancy: Shared Schema Only
 
-**ProjectMeats uses SHARED SCHEMA multi-tenancy. There is NO django-tenants schema-based isolation.**
+**⚠️ ARCHITECTURE DECISION CHANGE (December 2025):**
+**ProjectMeats has MIGRATED from schema-based isolation to SHARED SCHEMA multi-tenancy for AI scalability and simplified operations.**
+
+**CURRENT ARCHITECTURE (Active):**
+- Uses SHARED SCHEMA multi-tenancy (single PostgreSQL schema)
+- NO django-tenants schema-based isolation
+- NO separate schemas per tenant
+- Data isolation via `tenant_id` ForeignKey on all business models
+
+**DEPRECATED ARCHITECTURE (Do Not Use):**
+- ❌ Schema-based isolation patterns (django-tenants)
+- ❌ `migrate_schemas` commands
+- ❌ Separate public/tenant schemas
+- ❌ `schema_context()` or `connection.schema_name`
+
+**Migration Reason:** The architecture decision changed from Schema Isolation to Shared Schema for:
+1. **AI Scalability**: Single schema simplifies RAG/vector search and AI indexing
+2. **Operational Simplicity**: Standard Django migrations without schema complexity
+3. **Performance**: Reduced schema switching overhead
+4. **Maintenance**: Easier backup/restore and database operations
+
+**Historical Note:** If you find references to schema-based isolation in `docs/archive/` or `archived/` directories, these are outdated and explicitly excluded from AI indexing via `.cursorignore` and `.copilotignore`.
 
 ```mermaid
 flowchart LR

@@ -7,17 +7,35 @@
 
 ## ⚠️ CRITICAL RULES (READ FIRST)
 
-### Multi-Tenancy: SHARED SCHEMA ONLY
+### 🚨 ARCHITECTURAL GUARDRAILS (STRICT - DO NOT HALLUCINATE)
 
+**These rules are ABSOLUTE. Any violation indicates a hallucination or outdated knowledge:**
+
+#### 1. TENANCY: Shared Schema Isolation (tenant_id ForeignKey)
 **ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use or suggest django-tenants patterns:**
 
+- ❌ **NEVER** suggest `django-tenants`, `schema_context`, `pg_schemas`, or schema-based isolation
 - ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
 - ❌ **NEVER** use `schema_context()` or `connection.schema_name`
 - ❌ **NEVER** use `migrate_schemas` commands
 - ❌ **NEVER** suggest separate public/tenant schemas
 - ✅ **ALWAYS** use `tenant` ForeignKey on business models
-- ✅ **ALWAYS** filter querysets with `tenant=request.tenant`
+- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)`
 - ✅ **ALWAYS** use standard `python manage.py migrate`
+
+**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans that will confuse AI. These are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants`, you're reading archived material.
+
+#### 2. FRONTEND: Vite Build System
+**ProjectMeats is migrating to Vite. NEVER suggest legacy build tools:**
+
+- ❌ **NEVER** suggest `react-scripts`, `craco`, or `react-app-rewired`
+- ❌ **NEVER** reference `Create React App` (CRA) configurations
+- ❌ **NEVER** suggest `REACT_APP_*` environment variables
+- ✅ **ALWAYS** use Vite configuration patterns
+- ✅ **ALWAYS** use `VITE_*` environment variables
+- ✅ **ALWAYS** use `import.meta.env` for environment access
+
+**Why This Matters:** Legacy CRA patterns will break the build system. All frontend tooling has migrated to Vite.
 
 ### Deployment Rules
 
