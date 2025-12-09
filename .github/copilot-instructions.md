@@ -44,35 +44,35 @@ If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
 
 **Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans from a DEPRECATED architecture. These files will confuse AI and are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants` or schema isolation, you're reading ARCHIVED material from a REJECTED design.
 
-#### 2. FRONTEND: Vite Build System
-**ProjectMeats uses VITE for frontend builds. NEVER suggest legacy build tools:**
+#### 2. FRONTEND: Vite Build System (Migration In Progress)
+**ProjectMeats is MIGRATING to Vite for frontend builds. Current state uses react-app-rewired as a temporary bridge.**
 
-**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
-- ❌ **NEVER** suggest `react-scripts`, `craco`, or `react-app-rewired`
-- ❌ **NEVER** reference `Create React App` (CRA) configurations or patterns
-- ❌ **NEVER** suggest `REACT_APP_*` environment variables
-- ❌ **NEVER** reference `npm start` or `npm run eject` (CRA commands)
-- ❌ **NEVER** suggest `react-scripts` in package.json scripts
-- ❌ **NEVER** use `process.env.REACT_APP_*` in frontend code
-- ❌ **NEVER** suggest CRA-specific configuration files
+**🎯 CURRENT STATE (Temporary - DO NOT ENHANCE):**
+- Frontend currently uses `react-app-rewired` with CRA base
+- This is a TRANSITIONAL setup - DO NOT add new CRA-specific configurations
+- DO NOT enhance or extend react-app-rewired setup
+- DO NOT add new REACT_APP_* environment variables
 
-**✅ REQUIRED PATTERNS (MANDATORY):**
-- ✅ **ALWAYS** use Vite configuration patterns (vite.config.ts)
-- ✅ **ALWAYS** use `VITE_*` environment variables (e.g., `VITE_API_BASE_URL`)
-- ✅ **ALWAYS** use `import.meta.env` for environment access in frontend code
-- ✅ **ALWAYS** use Vite dev server (`npm run dev` with Vite)
-- ✅ **ALWAYS** use Vite build commands (`npm run build` with Vite)
-- ✅ **ALWAYS** reference Vite documentation for build configuration
+**🚫 PROHIBITED (NEVER SUGGEST):**
+- ❌ **NEVER** suggest migrating back to pure `react-scripts`
+- ❌ **NEVER** suggest removing react-app-rewired before Vite migration
+- ❌ **NEVER** suggest `craco` as alternative to react-app-rewired
+- ❌ **NEVER** reference `npm run eject`
+- ❌ **NEVER** add new CRA-specific webpack configurations
 
-**🔍 VERIFICATION TEST:**
-If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
-- Installing or using `react-scripts`
-- Using `REACT_APP_` prefixed environment variables
-- Referencing CRA documentation or patterns
-- Suggesting `npm run eject`
-- Any CRA-specific webpack configuration
+**✅ FUTURE STATE (Target Architecture - USE FOR NEW CODE):**
+- ✅ **ALWAYS** write new code compatible with Vite patterns
+- ✅ **ALWAYS** use `import.meta.env` for new environment variables (Vite-ready)
+- ✅ **ALWAYS** plan for VITE_* environment variable names
+- ✅ **ALWAYS** reference Vite documentation for build questions
+- ✅ **ALWAYS** use ES modules and modern import/export syntax
 
-**Why This Matters:** Legacy CRA patterns will BREAK the build system. All frontend tooling has migrated to Vite. Using CRA patterns will cause deployment failures.
+**🔄 MIGRATION STATUS:**
+- Backend: ✅ 100% - Using standard Django (NO django-tenants)
+- Frontend: 🔄 0% - Still on react-app-rewired (Vite migration pending)
+- Documentation: ✅ 100% - Updated to reflect target architecture
+
+**Why This Matters:** We are moving AWAY from CRA ecosystem. Don't invest in CRA-specific solutions. Write Vite-compatible code even if currently running on CRA.
 
 ### Deployment Rules
 

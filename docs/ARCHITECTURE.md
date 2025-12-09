@@ -123,7 +123,7 @@ Files in `docs/archive/legacy_2025/` reference the REJECTED schema-based design.
 | Backend | Django + DRF | 5.x |
 | Database | PostgreSQL | 15+ |
 | Frontend | React + TypeScript | 19 + 5.9 |
-| Build Tool | Vite | 5.x |
+| Build Tool | react-app-rewired (migrating to Vite) | 5.x |
 | UI Components | dnd-kit, TanStack Query | Latest |
 | Styling | Tailwind CSS | 3.x |
 
@@ -155,11 +155,11 @@ Files in `docs/archive/legacy_2025/` reference the REJECTED schema-based design.
 
 ## Golden Rules (MANDATORY COMPLIANCE)
 
-1. **Never use django-tenants** - All multi-tenancy is via tenant_id ForeignKeys (ZERO schema isolation)
-2. **Always filter by tenant** - ViewSets MUST filter querysets with `tenant=request.tenant`
-3. **Use standard migrate** - ONLY use `python manage.py migrate` (NO schema-based commands)
-4. **API via unified ingress** - All API calls go through `/api/v1/`
-5. **Vite for frontend** - ONLY use Vite build system (NO react-scripts or CRA patterns)
+1. **Never use django-tenants** - All multi-tenancy is via tenant_id ForeignKeys (ZERO schema isolation) ✅ ENFORCED
+2. **Always filter by tenant** - ViewSets MUST filter querysets with `tenant=request.tenant` ✅ ENFORCED
+3. **Use standard migrate** - ONLY use `python manage.py migrate` (NO schema-based commands) ✅ ENFORCED
+4. **API via unified ingress** - All API calls go through `/api/v1/` ✅ ENFORCED
+5. **Vite-ready code** - Write frontend code compatible with Vite patterns (migration in progress) 🔄 IN PROGRESS
 
 ## Migration Commands
 
