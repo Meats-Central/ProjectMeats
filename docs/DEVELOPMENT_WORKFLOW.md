@@ -451,7 +451,7 @@ LOG_LEVEL=INFO
 | `DEV_DJANGO_SETTINGS_MODULE` | Django settings module | `projectmeats.settings.production` | Dev backend |
 | `DEV_ALLOWED_HOSTS` | Allowed HTTP Host headers | `dev.meatscentral.com,10.17.0.13` | Dev backend |
 | `DEV_CORS_ALLOWED_ORIGINS` | CORS allowed origins | `https://dev.meatscentral.com` | Dev backend |
-| `REACT_APP_API_BASE_URL` | Frontend API base URL | `https://dev.meatscentral.com` | Dev frontend |
+| `VITE_API_BASE_URL` | Frontend API base URL (Vite build) | `https://dev.meatscentral.com` | Dev frontend |
 
 #### Optional Secrets
 

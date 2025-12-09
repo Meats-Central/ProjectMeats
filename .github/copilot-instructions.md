@@ -14,28 +14,65 @@
 #### 1. TENANCY: Shared Schema Isolation (tenant_id ForeignKey)
 **ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use or suggest django-tenants patterns:**
 
-- ❌ **NEVER** suggest `django-tenants`, `schema_context`, `pg_schemas`, or schema-based isolation
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
+- ❌ **NEVER** suggest `django-tenants` package or any schema-based isolation library
 - ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
-- ❌ **NEVER** use `schema_context()` or `connection.schema_name`
-- ❌ **NEVER** use `migrate_schemas` commands
-- ❌ **NEVER** suggest separate public/tenant schemas
-- ✅ **ALWAYS** use `tenant` ForeignKey on business models
-- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)`
-- ✅ **ALWAYS** use standard `python manage.py migrate`
+- ❌ **NEVER** use `schema_context()` or `connection.schema_name` or any schema switching
+- ❌ **NEVER** use `migrate_schemas`, `migrate --shared`, or `migrate --tenant` commands
+- ❌ **NEVER** suggest separate public/tenant schemas or schema-per-tenant patterns
+- ❌ **NEVER** reference PostgreSQL schemas for tenant isolation
+- ❌ **NEVER** use `DATABASE_ROUTERS` for tenant routing
+- ❌ **NEVER** suggest `TENANT_MODEL` or `TENANT_DOMAIN_MODEL` settings
+- ❌ **NEVER** implement schema-based multi-tenancy in any form
 
-**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans that will confuse AI. These are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants`, you're reading archived material.
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** use `tenant` ForeignKey on ALL business models
+- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)` in ALL ViewSets
+- ✅ **ALWAYS** use standard `python manage.py migrate` (ONLY this command)
+- ✅ **ALWAYS** use shared PostgreSQL `public` schema for all tenants
+- ✅ **ALWAYS** rely on `TenantMiddleware` for tenant resolution
+- ✅ **ALWAYS** assign `tenant=request.tenant` in `perform_create()` methods
+
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- "django-tenants" package installation
+- Schema creation or migration per tenant
+- Schema switching or routing logic
+- Separate database schemas for isolation
+- `migrate_schemas` or similar commands
+- Any reference to `docs/archive/` content as current practice
+
+**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans from a DEPRECATED architecture. These files will confuse AI and are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants` or schema isolation, you're reading ARCHIVED material from a REJECTED design.
 
 #### 2. FRONTEND: Vite Build System
-**ProjectMeats is migrating to Vite. NEVER suggest legacy build tools:**
+**ProjectMeats uses VITE for frontend builds. NEVER suggest legacy build tools:**
 
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
 - ❌ **NEVER** suggest `react-scripts`, `craco`, or `react-app-rewired`
-- ❌ **NEVER** reference `Create React App` (CRA) configurations
+- ❌ **NEVER** reference `Create React App` (CRA) configurations or patterns
 - ❌ **NEVER** suggest `REACT_APP_*` environment variables
-- ✅ **ALWAYS** use Vite configuration patterns
-- ✅ **ALWAYS** use `VITE_*` environment variables
-- ✅ **ALWAYS** use `import.meta.env` for environment access
+- ❌ **NEVER** reference `npm start` or `npm run eject` (CRA commands)
+- ❌ **NEVER** suggest `react-scripts` in package.json scripts
+- ❌ **NEVER** use `process.env.REACT_APP_*` in frontend code
+- ❌ **NEVER** suggest CRA-specific configuration files
 
-**Why This Matters:** Legacy CRA patterns will break the build system. All frontend tooling has migrated to Vite.
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** use Vite configuration patterns (vite.config.ts)
+- ✅ **ALWAYS** use `VITE_*` environment variables (e.g., `VITE_API_BASE_URL`)
+- ✅ **ALWAYS** use `import.meta.env` for environment access in frontend code
+- ✅ **ALWAYS** use Vite dev server (`npm run dev` with Vite)
+- ✅ **ALWAYS** use Vite build commands (`npm run build` with Vite)
+- ✅ **ALWAYS** reference Vite documentation for build configuration
+
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- Installing or using `react-scripts`
+- Using `REACT_APP_` prefixed environment variables
+- Referencing CRA documentation or patterns
+- Suggesting `npm run eject`
+- Any CRA-specific webpack configuration
+
+**Why This Matters:** Legacy CRA patterns will BREAK the build system. All frontend tooling has migrated to Vite. Using CRA patterns will cause deployment failures.
 
 ### Deployment Rules
 
