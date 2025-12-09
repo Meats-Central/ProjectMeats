@@ -1,0 +1,357 @@
+name: Automated Workflow Runs Deletion
+
+# Reusable workflow for deleting old or failed workflow runs
+# Integrates with GitHub Actions API and designed for extensibility
+# Future: Can integrate with Celery for async processing (Phase 6)
+
+on:
+  schedule:
+    # Run monthly on the first day at 4 AM UTC
+    - cron: '0 4 1 * *'
+  workflow_dispatch:
+    inputs:
+      status_filter:
+        description: 'Filter by status'
+        required: false
+        default: 'failed'
+        type: choice
+        options:
+          - failed
+          - cancelled
+          - success
+          - all
+      age_days:
+        description: 'Delete runs older than (days)'
+        required: false
+        default: '90'
+        type: string
+      actor_filter:
+        description: 'Filter by actor (e.g., dependabot[bot])'
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: 'Dry run mode (preview only)'
+        required: false
+        default: false
+        type: boolean
+      max_deletions:
+        description: 'Maximum number of runs to delete (safety limit)'
+        required: false
+        default: '1000'
+        type: string
+
+# Concurrency: Only one deletion job at a time
+concurrency:
+  group: workflow-deletion
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+env:
+  STATUS_FILTER: ${{ inputs.status_filter || 'failed' }}
+  AGE_DAYS: ${{ inputs.age_days || '90' }}
+  ACTOR_FILTER: ${{ inputs.actor_filter || '' }}
+  DRY_RUN: ${{ inputs.dry_run || false }}
+  MAX_DELETIONS: ${{ inputs.max_deletions || '1000' }}
+
+jobs:
+  delete-workflow-runs:
+    name: Delete Workflow Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    outputs:
+      deleted_count: ${{ steps.deletion.outputs.deleted_count }}
+      skipped_count: ${{ steps.deletion.outputs.skipped_count }}
+      error_count: ${{ steps.deletion.outputs.error_count }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Setup environment
+        id: setup
+        run: |
+          echo "RUN_ID=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          echo "CUTOFF_DATE=$(date -u -d '${{ env.AGE_DAYS }} days ago' '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          
+          mkdir -p logs
+          
+          echo "🔧 Configuration:"
+          echo "  • Status Filter: ${{ env.STATUS_FILTER }}"
+          echo "  • Age (days): ${{ env.AGE_DAYS }}"
+          echo "  • Actor Filter: ${{ env.ACTOR_FILTER }}"
+          echo "  • Dry Run: ${{ env.DRY_RUN }}"
+          echo "  • Max Deletions: ${{ env.MAX_DELETIONS }}"
+          echo "  • Cutoff Date: $(date -u -d '${{ env.AGE_DAYS }} days ago' '+%Y-%m-%d')"
+      
+      - name: Fetch workflow runs to delete
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Fetching workflow runs matching criteria..."
+          
+          CUTOFF_DATE="${{ steps.setup.outputs.CUTOFF_DATE }}"
+          
+          # Build JQ filter based on inputs
+          JQ_FILTER=".workflow_runs[] | select(.created_at < \"$CUTOFF_DATE\")"
+          
+          # Add status filter if not 'all'
+          if [[ "${{ env.STATUS_FILTER }}" != "all" ]]; then
+            JQ_FILTER="$JQ_FILTER | select(.conclusion == \"${{ env.STATUS_FILTER }}\")"
+          fi
+          
+          # Add actor filter if specified
+          if [[ -n "${{ env.ACTOR_FILTER }}" ]]; then
+            JQ_FILTER="$JQ_FILTER | select(.actor.login == \"${{ env.ACTOR_FILTER }}\")"
+          fi
+          
+          # Add output format
+          JQ_FILTER="$JQ_FILTER | {id: .id, name: .name, conclusion: .conclusion, created_at: .created_at, actor: .actor.login, run_number: .run_number}"
+          
+          # Fetch workflow runs
+          gh api \
+            --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/actions/runs?per_page=100" \
+            --jq "$JQ_FILTER" > logs/runs-to-delete.json || echo "[]" > logs/runs-to-delete.json
+          
+          # Count runs
+          RUN_COUNT=$(cat logs/runs-to-delete.json | jq -s 'length')
+          echo "runs_found=$RUN_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "📊 Found $RUN_COUNT workflow runs matching criteria"
+          
+          # Show summary (first 20 runs)
+          if [[ $RUN_COUNT -gt 0 ]]; then
+            echo ""
+            echo "Preview of runs to delete:"
+            cat logs/runs-to-delete.json | jq -r '"  • #\(.run_number) - \(.name) (\(.conclusion)) - Actor: \(.actor)"' | head -20
+            
+            if [[ $RUN_COUNT -gt 20 ]]; then
+              echo "  ... and $((RUN_COUNT - 20)) more"
+            fi
+          fi
+      
+      - name: Apply safety limit
+        id: limit
+        run: |
+          RUNS_FOUND=${{ steps.fetch.outputs.runs_found }}
+          MAX_DELETIONS=${{ env.MAX_DELETIONS }}
+          
+          if [[ $RUNS_FOUND -gt $MAX_DELETIONS ]]; then
+            echo "⚠️  Warning: Found $RUNS_FOUND runs, but safety limit is $MAX_DELETIONS"
+            echo "⚠️  Will process only the first $MAX_DELETIONS runs"
+            
+            # Trim to max deletions
+            cat logs/runs-to-delete.json | jq -s ".[:$MAX_DELETIONS] | .[]" > logs/runs-to-delete-limited.json
+            mv logs/runs-to-delete-limited.json logs/runs-to-delete.json
+            
+            echo "runs_to_process=$MAX_DELETIONS" >> $GITHUB_OUTPUT
+          else
+            echo "runs_to_process=$RUNS_FOUND" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Delete workflow runs
+        id: deletion
+        if: steps.fetch.outputs.runs_found > 0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🗑️  Processing workflow run deletions..."
+          
+          deleted_count=0
+          skipped_count=0
+          error_count=0
+          
+          RUNS_TO_PROCESS=${{ steps.limit.outputs.runs_to_process }}
+          
+          if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+            echo "🔍 DRY RUN MODE: No deletions will be performed"
+            echo ""
+          fi
+          
+          # Process each run
+          cat logs/runs-to-delete.json | jq -c '.' | while IFS= read -r run; do
+            run_id=$(echo "$run" | jq -r '.id')
+            run_name=$(echo "$run" | jq -r '.name')
+            run_number=$(echo "$run" | jq -r '.run_number')
+            run_conclusion=$(echo "$run" | jq -r '.conclusion')
+            run_actor=$(echo "$run" | jq -r '.actor')
+            
+            if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+              echo "  [DRY RUN] Would delete: #$run_number - $run_name ($run_conclusion) by $run_actor"
+              deleted_count=$((deleted_count + 1))
+            else
+              # Attempt deletion with retry logic
+              max_retries=3
+              retry_count=0
+              success=false
+              
+              while [[ $retry_count -lt $max_retries ]]; do
+                if gh api \
+                  --method DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  "/repos/${{ github.repository }}/actions/runs/$run_id" &> /dev/null; then
+                  echo "  ✓ Deleted: #$run_number - $run_name ($run_conclusion)"
+                  deleted_count=$((deleted_count + 1))
+                  success=true
+                  break
+                else
+                  retry_count=$((retry_count + 1))
+                  if [[ $retry_count -lt $max_retries ]]; then
+                    echo "  ⚠️  Retry $retry_count/$max_retries for run #$run_number"
+                    sleep 2
+                  fi
+                fi
+              done
+              
+              if [[ "$success" == "false" ]]; then
+                echo "  ✗ Failed: #$run_number - $run_name after $max_retries attempts"
+                error_count=$((error_count + 1))
+                echo "$run" >> logs/failed-deletions.json
+              fi
+            fi
+            
+            # Rate limiting: sleep between deletions
+            sleep 0.5
+          done
+          
+          # Save counts (write to file since loop runs in subshell)
+          echo "$deleted_count" > logs/deleted_count.txt
+          echo "$error_count" > logs/error_count.txt
+          
+          echo "deleted_count=$(cat logs/deleted_count.txt)" >> $GITHUB_OUTPUT
+          echo "skipped_count=$skipped_count" >> $GITHUB_OUTPUT
+          echo "error_count=$(cat logs/error_count.txt)" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "📊 Deletion Summary:"
+          echo "  • Deleted: $(cat logs/deleted_count.txt) runs"
+          echo "  • Errors: $(cat logs/error_count.txt) runs"
+      
+      - name: Generate audit log
+        if: always()
+        run: |
+          cat << 'EOF' > logs/deletion-audit-log.md
+          # Workflow Runs Deletion Audit Log
+          
+          **Run ID**: ${{ steps.setup.outputs.RUN_ID }}
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Triggered By**: ${{ github.actor }}
+          
+          ## Configuration
+          
+          - **Status Filter**: ${{ env.STATUS_FILTER }}
+          - **Age Threshold**: ${{ env.AGE_DAYS }} days
+          - **Cutoff Date**: ${{ steps.setup.outputs.CUTOFF_DATE }}
+          - **Actor Filter**: ${{ env.ACTOR_FILTER || 'None' }}
+          - **Dry Run**: ${{ env.DRY_RUN }}
+          - **Max Deletions**: ${{ env.MAX_DELETIONS }}
+          
+          ## Results
+          
+          - **Runs Found**: ${{ steps.fetch.outputs.runs_found }}
+          - **Runs Processed**: ${{ steps.limit.outputs.runs_to_process }}
+          - **Successfully Deleted**: ${{ steps.deletion.outputs.deleted_count || 0 }}
+          - **Errors**: ${{ steps.deletion.outputs.error_count || 0 }}
+          
+          ## Deletion Policy
+          
+          This workflow automatically deletes old workflow runs according to:
+          
+          1. **Age-based retention**: Runs older than configured days
+          2. **Status filtering**: Optional filtering by success/failure/cancelled
+          3. **Actor filtering**: Optional filtering by user (e.g., Dependabot)
+          4. **Safety limits**: Maximum deletions per run to prevent accidents
+          
+          ## Future Enhancements (Phase 6)
+          
+          - **Celery Integration**: Async task processing for large-scale deletions
+          - **Advanced Filtering**: Workflow-specific retention policies
+          - **Notification System**: Slack/email alerts for deletion reports
+          - **Storage Analytics**: Track storage savings over time
+          
+          ## Security & Compliance
+          
+          - **Token Scope**: Uses GITHUB_TOKEN with minimal `actions:write` permission
+          - **Audit Trail**: Complete log of all deletion operations
+          - **Rate Limiting**: Respects GitHub API rate limits
+          - **Error Handling**: Failed deletions logged for manual review
+          
+          ---
+          
+          *This is an automated deletion audit log*
+          EOF
+          
+          cat logs/deletion-audit-log.md
+      
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deletion-audit-${{ steps.setup.outputs.RUN_ID }}
+          path: logs/
+          retention-days: 365
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Workflow Runs Deletion Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run ID**: ${{ steps.setup.outputs.RUN_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Runs Found: ${{ steps.fetch.outputs.runs_found }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🗑️  Deleted: ${{ steps.deletion.outputs.deleted_count || 0 }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Errors: ${{ steps.deletion.outputs.error_count || 0 }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ env.DRY_RUN }}" == "true" ]]; then
+            echo "**Mode**: 🔍 Dry Run (no actual deletions)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode**: ✅ Live Deletion" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      # Optional: Send notification (uncomment when notification system is ready)
+      # - name: Send notification
+      #   if: success() && env.DRY_RUN == 'false'
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   run: |
+      #     curl -X POST "$SLACK_WEBHOOK_URL" \
+      #       -H 'Content-Type: application/json' \
+      #       -d '{
+      #         "text": "🗑️ Workflow Runs Cleanup Completed",
+      #         "blocks": [
+      #           {
+      #             "type": "section",
+      #             "text": {
+      #               "type": "mrkdwn",
+      #               "text": "*Workflow Deletion Report*\n\n• Deleted: ${{ steps.deletion.outputs.deleted_count }} runs\n• Errors: ${{ steps.deletion.outputs.error_count }}\n• Status: ${{ env.STATUS_FILTER }}\n• Age: ${{ env.AGE_DAYS }} days"
+      #             }
+      #           }
+      #         ]
+      #       }'
+
+  # Future: Celery async task integration (Phase 6)
+  # trigger-celery-cleanup:
+  #   if: needs.delete-workflow-runs.outputs.deleted_count > 5000
+  #   needs: delete-workflow-runs
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Trigger Celery async cleanup
+  #       run: |
+  #         # This will be implemented in Phase 6
+  #         # curl -X POST $CELERY_WEBHOOK_URL \
+  #         #   -H "Authorization: Bearer ${{ secrets.CELERY_API_TOKEN }}" \
+  #         #   -d '{"task": "cleanup_workflow_runs", "params": {...}}'
+  #         echo "Celery integration placeholder (Phase 6)"
