@@ -319,26 +319,26 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           # Use -T timeout to prevent hanging, continue on failure
-          ssh-keyscan -T 10 -H "${{ secrets.DEV_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
+          ssh-keyscan -T 10 -H "${{ secrets.DEV_FRONTEND_HOST }}" >> ~/.ssh/known_hosts 2>&1 || echo "Warning: ssh-keyscan failed, will try connection anyway"
           chmod 600 ~/.ssh/known_hosts || true
 
       - name: Test SSH connectivity with retry
         env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.DEV_FRONTEND_PASSWORD }}
           MAX_SSH_RETRIES: 5
           SSH_CONNECT_TIMEOUT: 30
         run: |
           chmod +x .github/scripts/ssh-connect-with-retry.sh
           ./.github/scripts/ssh-connect-with-retry.sh \
-            "${{ secrets.DEV_USER }}" \
-            "${{ secrets.DEV_HOST }}" \
+            "${{ secrets.DEV_FRONTEND_USER }}" \
+            "${{ secrets.DEV_FRONTEND_HOST }}" \
             "echo 'SSH connection successful'"
 
       - name: Deploy frontend container (8080 behind Nginx)
         env:
-          SSHPASS: ${{ secrets.DEV_SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.DEV_FRONTEND_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_USER }}@${{ secrets.DEV_HOST }} <<'DEPLOY_SCRIPT'
+          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.DEV_FRONTEND_USER }}@${{ secrets.DEV_FRONTEND_HOST }} <<'DEPLOY_SCRIPT'
           set -euo pipefail
 
           sudo mkdir -p /opt/pm/frontend/env
