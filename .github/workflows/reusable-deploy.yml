@@ -21,6 +21,16 @@ on:
         type: string
         description: "GitHub Environment name for frontend (e.g., dev-frontend)"
         default: ""
+      image_tag:
+        required: false
+        type: string
+        description: "Docker image tag (optional, for future Build Once Deploy Many pattern)"
+        default: ""
+      api_base_url:
+        required: false
+        type: string
+        description: "API base URL for frontend (optional, for future Build Once Deploy Many pattern)"
+        default: ""
     secrets:
       FRONTEND_SSH_KEY:
         required: true
