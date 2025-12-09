@@ -72,9 +72,6 @@ The `create_tenant` command creates a new tenant with optional domain for multi-
 **Environment:**
 - `--environment`: Environment context (`development`, `staging`, `uat`, `production`)
 
-**Migration:**
-- `--run-migrations`: Show migration instructions (ProjectMeats uses shared-schema)
-
 **Verbosity:**
 - `-v 0`: Silent output
 - `-v 1`: Normal output (default)
@@ -85,7 +82,6 @@ The `create_tenant` command creates a new tenant with optional domain for multi-
 The command provides:
 - ✅ Confirmation of tenant creation
 - ✅ Confirmation of domain creation (if domain provided)
-- ⚠️  Migration notes for django-tenants compatibility
 - 📋 Summary of created tenant with all details
 - 📝 Next steps for tenant setup
 
@@ -302,51 +298,31 @@ if __name__ == '__main__':
     setup_dev_tenants()
 ```
 
-## Migration Notes
+## Architecture Notes
 
-### ProjectMeats Architecture
+### ProjectMeats Multi-Tenancy
 
-ProjectMeats uses a **custom shared-schema multi-tenancy** approach:
+ProjectMeats uses a **shared-schema multi-tenancy** approach:
 
-- **Single PostgreSQL schema** for all tenants
-- **Application-level filtering** via `tenant_id`
-- **Compatible field names** with django-tenants (schema_name, Domain model)
-- **Standard Django ORM** (not `django_tenants.postgresql_backend`)
+- **Single PostgreSQL schema** (`public`) for all tenants
+- **Row-level isolation** via `tenant_id` foreign keys on business models
+- **Application-level filtering** in ViewSets: `queryset.filter(tenant=request.tenant)`
+- **Standard Django backend**: `django.db.backends.postgresql`
+- **Standard migrations**: `python manage.py migrate` (NOT `migrate_schemas`)
 
-### Schema Migration Commands
+### Database Migration
 
-The `--run-migrations` flag documents how to use true django-tenants if migrating:
+Tenant creation does NOT require schema-specific migrations. All tenants share the same database schema.
 
 ```bash
-# ProjectMeats (current): No schema-specific migrations needed
+# Create tenant (no schema migration needed)
 python manage.py create_tenant --schema-name=acme --name="ACME Corp"
 
-# If using true django-tenants (future):
-python manage.py migrate_schemas --schema=acme
+# Run standard Django migrations (applies to all tenants)
+python manage.py migrate --fake-initial --noinput
 ```
 
-### Migration Path to django-tenants
-
-If you plan to migrate to true PostgreSQL schema-based isolation:
-
-1. **Update database engine** in settings:
-   ```python
-   DATABASES = {
-       'default': {
-           'ENGINE': 'django_tenants.postgresql_backend',
-           ...
-       }
-   }
-   ```
-
-2. **Configure SHARED_APPS and TENANT_APPS**
-
-3. **Run schema migrations:**
-   ```bash
-   python manage.py migrate_schemas
-   ```
-
-4. All tenants created with `create_tenant` will have proper `schema_name` values ready for migration.
+**Note**: The `schema_name` field exists for administrative naming purposes only. ProjectMeats uses shared-schema multi-tenancy and does NOT use PostgreSQL schemas for tenant isolation.
 
 ## Environment-Specific Configurations
 
@@ -370,11 +346,12 @@ If you plan to migrate to true PostgreSQL schema-based isolation:
 
 ## Best Practices
 
-1. **Schema Naming:**
-   - Use descriptive, unique names
+1. **Schema Name Field:**
+   - Use descriptive, unique identifiers
    - Use underscores, not hyphens
    - Keep under 63 characters
    - Example: `acme_corp`, `test_tenant_01`
+   - **Note**: This is an administrative identifier, not a PostgreSQL schema
 
 2. **Slug Naming:**
    - URL-friendly
@@ -400,21 +377,23 @@ If you plan to migrate to true PostgreSQL schema-based isolation:
 
 ## Troubleshooting
 
-### Error: "Invalid schema name"
+### Error: "Invalid schema_name"
 
-**Problem:** Schema name doesn't meet PostgreSQL identifier rules
+**Problem:** schema_name field doesn't meet identifier rules
 
-**Solution:** Ensure schema name:
+**Solution:** Ensure schema_name:
 - Starts with letter or underscore
 - Contains only letters, digits, underscores
 - Is 63 characters or less
+
+**Note**: Despite the name, this is NOT a PostgreSQL schema - it's just an administrative identifier field.
 
 ### Error: "Tenant with schema_name already exists"
 
 **Problem:** Trying to create duplicate tenant
 
 **Solution:**
-- Choose a different schema_name
+- Choose a different schema_name value
 - Delete existing tenant if it's a test tenant
 - Check with: `python manage.py shell` → `Tenant.objects.filter(schema_name='...')`
 
