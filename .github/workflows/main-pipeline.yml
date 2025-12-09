@@ -34,8 +34,10 @@ jobs:
     with:
       environment: 'development'
       ref: ${{ github.ref }}
+      image_tag: 'development-${{ github.sha }}'
       backend_environment: 'dev-backend'
       frontend_environment: 'dev-frontend'
+      api_base_url: 'https://dev.meatscentral.com'
     secrets:
       FRONTEND_SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
       BACKEND_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
@@ -60,8 +62,10 @@ jobs:
     with:
       environment: 'uat'
       ref: ${{ github.ref }}
+      image_tag: 'uat-${{ github.sha }}'
       backend_environment: 'uat2-backend'
       frontend_environment: 'uat2-frontend'
+      api_base_url: 'https://uat.meatscentral.com'
     secrets:
       FRONTEND_SSH_KEY: ${{ secrets.UAT_FRONTEND_SSH_KEY }}
       BACKEND_SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}
@@ -86,8 +90,10 @@ jobs:
     with:
       environment: 'production'
       ref: ${{ github.ref }}
+      image_tag: 'production-${{ github.sha }}'
       backend_environment: 'prod2-backend'
       frontend_environment: 'prod2-frontend'
+      api_base_url: 'https://meatscentral.com'
     secrets:
       FRONTEND_SSH_KEY: ${{ secrets.PROD_FRONTEND_SSH_KEY }}
       BACKEND_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
