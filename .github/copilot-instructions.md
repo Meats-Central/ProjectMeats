@@ -1845,3 +1845,132 @@ Our deployment workflows use `--fake-initial` to ensure reliable redeployments w
 - Django Docs: https://docs.djangoproject.com/en/4.2/ref/django-admin/#cmdoption-migrate-fake-initial
 - Our Implementation: `.github/workflows/11-dev-deployment.yml` (deploy-backend job)
 
+---
+
+## 🔐 Secret Management
+
+### SOURCE OF TRUTH: `config/env.manifest.json`
+
+**All environment variables and GitHub secret mappings are defined in the Environment Manifest.**
+
+### Critical Rules
+
+#### 1. Strict Adherence
+- ✅ **ALWAYS** read `config/env.manifest.json` for secret names
+- ❌ **NEVER** guess or infer secret names from patterns
+- ❌ **NEVER** assume naming conventions are consistent
+- ✅ **ALWAYS** use exact `ci_secret_mapping` values in workflows
+
+#### 2. Legacy Naming Patterns
+ProjectMeats has **inconsistent naming** by design:
+- `SSH_PASSWORD` is **shared** between UAT and Production
+- `DEV_SSH_PASSWORD` is **unique** to Development
+- Frontend variables use **same name** across environments with different values
+
+**This is intentional and documented in the manifest.**
+
+#### 3. Secret Mapping Types
+
+**Explicit Mapping** (Preferred):
+```json
+"BASTION_HOST": {
+  "ci_secret_mapping": {
+    "dev-backend": "DEV_HOST",
+    "uat2-backend": "UAT_HOST",
+    "prod2-backend": "PROD_HOST"
+  }
+}
+```
+
+**Pattern-Based**:
+```json
+"SECRET_KEY": {
+  "ci_secret_pattern": "{PREFIX}_SECRET_KEY"
+}
+```
+Expands to: `DEV_SECRET_KEY`, `UAT_SECRET_KEY`, `PROD_SECRET_KEY`
+
+**Computed Values**:
+```json
+"DJANGO_SETTINGS_MODULE": {
+  "value_source": "environment_config"
+}
+```
+Derived from manifest's environment configuration.
+
+### Audit Command
+
+**Run before and after secret changes:**
+
+```bash
+python config/manage_env.py audit
+```
+
+**Output:**
+- 🧟 **Zombie Secrets**: In GitHub, NOT in manifest (should be removed or documented)
+- ❌ **Missing Secrets**: In manifest, NOT in GitHub (must be added)
+- ✅ **Audit Passed**: All secrets are in sync
+
+### Workflow Integration
+
+**❌ WRONG: Guessing Names**
+```yaml
+env:
+  SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}  # Does not exist!
+```
+
+**✅ CORRECT: Using Manifest**
+```yaml
+# For UAT/Prod (shared secret)
+env:
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+
+# For Dev (unique secret)
+env:
+  SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+```
+
+### Adding New Secrets
+
+1. **Update Manifest First**
+   ```bash
+   vim config/env.manifest.json
+   # Add to appropriate category with mapping
+   ```
+
+2. **Choose Mapping Type**
+   - Explicit mapping for inconsistent names
+   - Pattern-based for consistent naming
+   - Computed for derived values
+
+3. **Add to GitHub**
+   ```bash
+   gh secret set SECRET_NAME --body "value"
+   ```
+
+4. **Verify with Audit**
+   ```bash
+   python config/manage_env.py audit
+   ```
+
+### AI Context
+
+For detailed secret handling rules, see:
+- **`.github/ai-context/env-handling.md`** - Comprehensive guide for AI and developers
+- **`config/env.manifest.json`** - Single source of truth for all mappings
+
+### Troubleshooting
+
+**"Secret not found" in workflow:**
+1. Check manifest for environment (e.g., `uat2-backend`)
+2. Find variable (e.g., `BASTION_HOST`)
+3. Use exact name from `ci_secret_mapping` (e.g., `UAT_HOST`)
+
+**"Zombie secrets" in audit:**
+- Legacy secrets no longer in use
+- Add to manifest if still needed, or delete from GitHub
+
+**"Missing secrets" in audit:**
+- Required by manifest but not in GitHub
+- Add immediately to prevent deployment failures
+
