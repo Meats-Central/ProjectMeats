@@ -1,0 +1,123 @@
+name: "PoC: Bastion Mode Migration"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'dev-backend'
+        type: choice
+        options:
+          - dev-backend
+          - uat2-backend
+          - prod2-backend
+
+jobs:
+  bastion-migration-test:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+      
+      - name: Setup SSH Tunnel to Database
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          # Install sshpass for password-based SSH
+          sudo apt-get update -qq
+          sudo apt-get install -y sshpass
+          
+          # Create SSH tunnel in background
+          # Forward local port 5433 -> remote DB host:port
+          echo "Creating SSH tunnel: localhost:5433 -> ${{ secrets.DATABASE_HOST }}:${{ secrets.DATABASE_PORT }}"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -f -N \
+            -L 5433:${{ secrets.DATABASE_HOST }}:${{ secrets.DATABASE_PORT }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+          
+          # Wait for tunnel to establish
+          sleep 5
+          
+          # Verify tunnel is active
+          ps aux | grep ssh | grep -v grep
+      
+      - name: Test Database Connectivity
+        run: |
+          # Install PostgreSQL client
+          sudo apt-get install -y postgresql-client
+          
+          # Test connection through tunnel
+          PGPASSWORD="${{ secrets.DATABASE_PASSWORD }}" psql \
+            -h 127.0.0.1 \
+            -p 5433 \
+            -U "${{ secrets.DATABASE_USER }}" \
+            -d "${{ secrets.DATABASE_NAME }}" \
+            -c "SELECT version();"
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+      
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+      
+      - name: Run Migration Check (Read-Only)
+        working-directory: ./backend
+        env:
+          # Override DATABASE_URL to use tunnel
+          DATABASE_URL: "postgresql://${{ secrets.DATABASE_USER }}:${{ secrets.DATABASE_PASSWORD }}@127.0.0.1:5433/${{ secrets.DATABASE_NAME }}"
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: |
+          echo "Testing database access through SSH tunnel..."
+          
+          # Read-only check: Show migration status
+          python manage.py showmigrations
+          
+          echo "✅ Successfully connected to database through SSH tunnel!"
+      
+      - name: Run Actual Migration (Optional - Commented Out)
+        if: false  # Disabled for safety - enable manually if needed
+        working-directory: ./backend
+        env:
+          DATABASE_URL: "postgresql://${{ secrets.DATABASE_USER }}:${{ secrets.DATABASE_PASSWORD }}@127.0.0.1:5433/${{ secrets.DATABASE_NAME }}"
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: |
+          # CAUTION: This will actually run migrations
+          python manage.py migrate --fake-initial --noinput
+      
+      - name: Cleanup SSH Tunnel
+        if: always()
+        run: |
+          # Kill SSH tunnel process
+          pkill -f "ssh.*5433" || true
+      
+      - name: Report Results
+        if: success()
+        run: |
+          echo "================================"
+          echo "✅ BASTION MODE PoC SUCCESSFUL"
+          echo "================================"
+          echo ""
+          echo "The GitHub Runner successfully:"
+          echo "1. Created SSH tunnel to private database"
+          echo "2. Connected to database through tunnel"
+          echo "3. Executed Django migration check"
+          echo ""
+          echo "Next Steps:"
+          echo "- Review this workflow run"
+          echo "- If satisfied, integrate into reusable-deploy.yml"
+          echo "- Replace SSH-based migrations with tunnel-based approach"
