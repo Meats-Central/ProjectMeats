@@ -1,0 +1,96 @@
+name: Master Pipeline
+
+on:
+  push:
+    branches: [development, uat, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'archived/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - uat
+          - production
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================
+  # Route to Development
+  # ==========================================
+  deploy-dev:
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/development') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'development')
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: 'development'
+      ref: ${{ github.ref }}
+    secrets:
+      FRONTEND_SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
+      BACKEND_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+      FRONTEND_HOST: ${{ secrets.DEV_FRONTEND_HOST }}
+      FRONTEND_USER: ${{ secrets.DEV_FRONTEND_USER }}
+      BACKEND_HOST: ${{ secrets.DEV_HOST }}
+      BACKEND_USER: ${{ secrets.DEV_USER }}
+      BACKEND_IP: ${{ secrets.DEV_BACKEND_IP }}
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+
+  # ==========================================
+  # Route to UAT
+  # ==========================================
+  deploy-uat:
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/uat') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'uat')
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: 'uat'
+      ref: ${{ github.ref }}
+    secrets:
+      FRONTEND_SSH_KEY: ${{ secrets.UAT_FRONTEND_SSH_KEY }}
+      BACKEND_SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}
+      FRONTEND_HOST: ${{ secrets.UAT_FRONTEND_HOST }}
+      FRONTEND_USER: ${{ secrets.UAT_FRONTEND_USER }}
+      BACKEND_HOST: ${{ secrets.UAT_HOST }}
+      BACKEND_USER: ${{ secrets.UAT_USER }}
+      BACKEND_IP: ${{ secrets.UAT_BACKEND_IP }}
+      DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
+      SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+
+  # ==========================================
+  # Route to Production
+  # ==========================================
+  deploy-prod:
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: 'production'
+      ref: ${{ github.ref }}
+    secrets:
+      FRONTEND_SSH_KEY: ${{ secrets.PROD_FRONTEND_SSH_KEY }}
+      BACKEND_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+      FRONTEND_HOST: ${{ secrets.PROD_FRONTEND_HOST }}
+      FRONTEND_USER: ${{ secrets.PROD_FRONTEND_USER }}
+      BACKEND_HOST: ${{ secrets.PROD_HOST }}
+      BACKEND_USER: ${{ secrets.PROD_USER }}
+      BACKEND_IP: ${{ secrets.PROD_BACKEND_IP }}
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
