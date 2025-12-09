@@ -454,12 +454,53 @@ jobs:
           fi
 
           sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+          
+          # Perform health check from deployment server (internal network)
+          echo "=== Performing health checks ==="
+          echo "Waiting for application to initialize..."
+          sleep 10
+          
+          # Check container is still running
+          if ! sudo docker ps | grep -q pm-frontend; then
+            echo "✗ Container stopped unexpectedly"
+            sudo docker logs pm-frontend --tail 50 2>&1 || true
+            exit 1
+          fi
+          
+          # Perform HTTP health check with retries
+          echo "Checking frontend HTTP endpoint..."
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            # Check frontend via localhost (we're on the deployment server)
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ 2>/dev/null)
+            CURL_EXIT=$?
+            
+            if [ $CURL_EXIT -ne 0 ]; then
+              HTTP_CODE="000"
+            fi
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✓ Frontend health check passed (HTTP $HTTP_CODE)"
+              echo "=== Deployment completed successfully ==="
+              exit 0
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts (HTTP $HTTP_CODE)"
+              echo "=== Container logs ==="
+              sudo docker logs pm-frontend --tail 100 2>&1 || true
+              echo "=== Nginx logs ==="
+              sudo tail -50 /var/log/nginx/error.log 2>&1 || true
+              exit 1
+            fi
+            
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
+            sleep 5
+            ATTEMPT=$(($ATTEMPT + 1))
+          done
           DEPLOY_SCRIPT
-
-      - name: Health check (Frontend)
-        run: |
-          chmod +x .github/scripts/health-check.sh
-          ./.github/scripts/health-check.sh "${{ secrets.DEV_URL }}" 20 5
 
       - name: Notify deployment success
         if: success()
