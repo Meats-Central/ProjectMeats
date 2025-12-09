@@ -8,7 +8,7 @@ on:
 
 # Concurrency: Prevent multiple cleanup jobs from running simultaneously
 concurrency:
-  group: cleanup-branches-tags
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

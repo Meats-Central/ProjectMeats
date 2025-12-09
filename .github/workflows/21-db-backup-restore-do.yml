@@ -13,7 +13,7 @@ on:
 
 # Concurrency: Only one backup/restore operation at a time
 concurrency:
-  group: db-backup-restore
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

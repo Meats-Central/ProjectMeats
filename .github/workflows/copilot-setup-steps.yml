@@ -10,7 +10,7 @@ on:
 
 # Concurrency: Allow one setup per PR, cancel old runs
 concurrency:
-  group: copilot-setup-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

@@ -43,7 +43,7 @@ on:
 
 # Concurrency: Only one deletion job at a time
 concurrency:
-  group: workflow-deletion
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
