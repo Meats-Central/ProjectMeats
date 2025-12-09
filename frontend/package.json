@@ -79,7 +79,7 @@
     "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
     "prop-types": "^15.8.1",
-    "react-refresh": "^0.14.2",
+    "react-refresh": "^0.18.0",
     "serve": "^14.2.0",
     "storybook": "^10.1.4",
     "vite": "^6.4.1",
