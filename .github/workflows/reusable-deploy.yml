@@ -48,6 +48,16 @@ on:
         required: true
       DATABASE_URL:
         required: true
+      DB_HOST:
+        required: true
+      DB_PORT:
+        required: false
+      DB_USER:
+        required: true
+      DB_PASSWORD:
+        required: true
+      DB_NAME:
+        required: true
       SECRET_KEY:
         required: true
       DJANGO_SETTINGS_MODULE:
@@ -184,33 +194,123 @@ jobs:
   # NOTE: Runner-based approach doesn't work because GitHub runner can't reach private DB
   # ==========================================
   migrate:
-    needs: [test-backend]
+    needs: [test-backend, build-and-push]
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
+    timeout-minutes: 15
     steps:
-      - name: Run migrations via SSH
-        env:
-          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      
+      - name: Login to DigitalOcean Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DO_ACCESS_TOKEN }}
+          password: ${{ secrets.DO_ACCESS_TOKEN }}
+      
+      - name: Install SSH and PostgreSQL tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y openssh-client sshpass postgresql-client
+      
+      - name: Setup SSH tunnel to database
+        env:
+          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT || '5432' }}
+          BASTION_USER: ${{ secrets.BACKEND_USER }}
+          BASTION_HOST: ${{ secrets.BACKEND_HOST }}
+        run: |
+          echo "================================"
+          echo "Creating SSH Tunnel"
+          echo "================================"
+          echo "Target: $DB_HOST:$DB_PORT"
+          echo "Via Bastion: $BASTION_USER@$BASTION_HOST"
+          echo "Local Port: 5433"
+          echo ""
           
-          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH_END'
-          set -euo pipefail
+          # Create SSH tunnel in background
+          # Forward local port 5433 -> remote DB host:port
+          sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -f -N \
+            -L 5433:$DB_HOST:$DB_PORT \
+            $BASTION_USER@$BASTION_HOST
           
-          echo "=== Running migrations on deployment server ==="
-          cd /home/django/ProjectMeats/backend || exit 1
+          # Wait for tunnel to establish
+          sleep 5
           
-          # Activate venv if exists
-          [ -f "../venv/bin/activate" ] && source ../venv/bin/activate || true
-          [ -f "venv/bin/activate" ] && source venv/bin/activate || true
+          # Verify tunnel is active
+          echo "✓ SSH tunnel established"
+          ps aux | grep ssh | grep -v grep | grep 5433
+      
+      - name: Test tunnel connectivity
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          echo "================================"
+          echo "Testing Tunnel Connectivity"
+          echo "================================"
           
-          # Run standard Django migrations (NOT migrate_schemas)
-          python manage.py migrate --fake-initial --noinput
+          # Test connection through tunnel
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h 127.0.0.1 \
+            -p 5433 \
+            -U "$DB_USER" \
+            -d "$DB_NAME" \
+            -c "SELECT version();"
           
-          echo "✓ Migrations completed"
-          SSH_END
+          echo ""
+          echo "✓ Database accessible through tunnel"
+      
+      - name: Run migrations via Docker with tunnel
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "================================"
+          echo "Running Django Migrations"
+          echo "================================"
+          
+          # Construct DATABASE_URL pointing to tunnel
+          DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          
+          # Pull backend image
+          IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "Using image: $FULL_IMAGE"
+          docker pull "$FULL_IMAGE"
+          
+          echo ""
+          echo "Running migrations..."
+          
+          # Run migrations using Docker container with host networking
+          # This allows container to access tunnel on localhost:5433
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
+            -e SECRET_KEY="$SECRET_KEY" \
+            -e DB_ENGINE="django.db.backends.postgresql" \
+            "$FULL_IMAGE" \
+            python manage.py migrate --fake-initial --noinput
+          
+          echo ""
+          echo "✓ Migrations completed successfully"
+      
+      - name: Cleanup SSH tunnel
+        if: always()
+        run: |
+          echo "Cleaning up SSH tunnel..."
+          pkill -f "ssh.*5433" || true
+          echo "✓ Cleanup complete"
 
   # ==========================================
   # Stage 5: Deploy Backend

@@ -2,13 +2,15 @@
 
 **Last Updated:** 2025-12-09  
 **Status:** ✅ Production Ready  
-**Version:** 2.0.0
+**Version:** 3.0.0 (Bastion Tunnel Migration)
 
 ---
 
 ## 🎯 Overview
 
 This document is the **single source of truth** for the ProjectMeats development and deployment pipeline. All other documentation should reference this document or be considered deprecated.
+
+**Environment Manifest:** All secrets and environment variables are defined in [`config/env.manifest.json`](../config/env.manifest.json). See the [Secret Management](#secrets-configuration) section for details.
 
 **Quick Links:**
 - [Architecture](#architecture)
@@ -62,6 +64,44 @@ This document is the **single source of truth** for the ProjectMeats development
 | **Registry** | DigitalOcean Container Registry | N/A |
 | **Hosting** | DigitalOcean Droplets | Ubuntu 24.04 |
 
+### Database Access Architecture
+
+**Bastion Tunnel Mode (v3.0)**
+
+```
+┌─────────────────┐                ┌──────────────┐                ┌────────────────────┐
+│ GitHub Runner   │   SSH Tunnel   │ Bastion Host │   Private Net  │ Managed Database   │
+│                 │ ──────────────>│ (Droplet)    │ ──────────────>│ (Private Network)  │
+│ localhost:5433  │   Port Forward │              │   5432         │ PostgreSQL         │
+└─────────────────┘                └──────────────┘                └────────────────────┘
+        │
+        │ Docker --network host
+        ▼
+┌─────────────────┐
+│ Docker Container│
+│ (Backend Image) │
+│                 │
+│ DATABASE_URL=   │
+│ postgresql://   │
+│ user:pass@      │
+│ 127.0.0.1:5433  │
+└─────────────────┘
+```
+
+**Flow:**
+1. GitHub runner creates SSH tunnel: `127.0.0.1:5433 → bastion → database:5432`
+2. Runner pulls backend Docker image
+3. Runner runs container with `--network host` to access tunnel
+4. Container connects to `127.0.0.1:5433` (which tunnels to real database)
+5. Migrations execute inside container
+6. Tunnel cleaned up after completion
+
+**Why This Works:**
+- Database firewall only allows bastion host (not 5,462 GitHub IPs)
+- Migrations run in Docker (same environment as deployment)
+- Fully decoupled from deployment servers
+- No venv/Python setup needed on runners
+
 ---
 
 ## 🔄 Pipeline Stages
@@ -71,7 +111,7 @@ This document is the **single source of truth** for the ProjectMeats development
 ```
 Push to Branch (development/uat/main)
   ↓
-[main-pipeline.yml]
+[main-pipeline.yml] → [reusable-deploy.yml]
   ├─→ Build Once
   │    ├─ Frontend Image → DOCR (dev-SHA)
   │    └─ Backend Image → DOCR (dev-SHA)
@@ -80,8 +120,11 @@ Push to Branch (development/uat/main)
   │    ├─ Frontend Tests (SKIPPED - pending Vitest migration)
   │    └─ Backend Tests (pytest)
   │
-  ├─→ Migrate (SSH to Backend Server)
-  │    └─ python manage.py migrate --fake-initial --noinput
+  ├─→ Migrate (Bastion Tunnel Mode)
+  │    ├─ Create SSH tunnel: Runner → Bastion → Database
+  │    ├─ Pull backend Docker image
+  │    ├─ Run migrations in Docker container (--network host)
+  │    └─ Cleanup tunnel
   │
   └─→ Deploy (Sequential)
        ├─ Backend First
@@ -109,11 +152,13 @@ Push to Branch (development/uat/main)
 - No rebuild between environments
 - Frontend environment variables injected at runtime (not build-time)
 
-**✅ SSH-Based Migrations**
-- Migrations run on deployment server (not GitHub runner)
-- Database firewall restricts access to deployment servers only
+**✅ Bastion Tunnel Migrations (Runner-Based)**
+- Migrations run **on GitHub runner** using Docker container
+- SSH tunnel: `Runner → Bastion → Private Database`
+- Database firewall restricts access to bastion host only
 - No need to whitelist 5,462 GitHub Actions IP ranges
-- Uses server's existing `.env` configuration
+- Uses `--network host` for Docker container to access tunnel
+- Fully decoupled from deployment servers
 
 **✅ Idempotent Operations**
 - `--fake-initial` flag prevents duplicate migration errors
@@ -124,54 +169,130 @@ Push to Branch (development/uat/main)
 
 ## 🔒 Secrets Configuration
 
+### Environment Manifest (Single Source of Truth)
+
+**All secrets and environment variables are defined in [`config/env.manifest.json`](../config/env.manifest.json).**
+
+This manifest provides:
+- Explicit mapping of runtime variables to GitHub Secrets
+- Documentation of legacy naming inconsistencies
+- Frontend environment variable support
+- Automated secret auditing capabilities
+
+**Audit Command:**
+```bash
+python config/manage_env.py audit
+```
+
 ### GitHub Environment Secrets
 
 Secrets are **environment-scoped** using GitHub Environments:
 
-| Environment Name | Branch | Purpose |
-|------------------|--------|---------|
-| `dev-backend` | `development` | Development backend secrets |
-| `dev-frontend` | `development` | Development frontend secrets |
-| `uat2-backend` | `uat` | UAT backend secrets |
-| `uat2-frontend` | `uat` | UAT frontend secrets |
-| `prod2-backend` | `main` | Production backend secrets |
-| `prod2-frontend` | `main` | Production frontend secrets |
+| Environment Name | Branch | Purpose | Prefix |
+|------------------|--------|---------|--------|
+| `dev-backend` | `development` | Development backend secrets | `DEV` |
+| `dev-frontend` | `development` | Development frontend secrets | `DEV` |
+| `uat2-backend` | `uat` | UAT backend secrets | `UAT` |
+| `uat2-frontend` | `uat` | UAT frontend secrets | `UAT` |
+| `prod2-backend` | `main` | Production backend secrets | `PROD` |
+| `prod2-frontend` | `main` | Production frontend secrets | `PROD` |
 
 ### Required Secrets Per Environment
 
-#### Backend Environment Secrets
+**⚠️ Important:** All secret names below are defined in `config/env.manifest.json`. Never guess secret names—always reference the manifest.
+
+#### Backend Environment Secrets (from manifest)
+
+**Infrastructure:**
+```bash
+DEV_HOST              # Bastion/Droplet IP (from manifest: BASTION_HOST)
+DEV_USER              # SSH Username (from manifest: BASTION_USER)
+DEV_SSH_PASSWORD      # SSH Password (from manifest: BASTION_SSH_PASSWORD)
+DEV_DB_HOST           # Private Database Hostname (from manifest: DB_HOST pattern)
 ```
-DEV_DATABASE_URL          # PostgreSQL connection string
-DEV_SECRET_KEY            # Django secret key
-DEV_DJANGO_SETTINGS_MODULE # projectmeats.settings.production
-DEV_HOST                  # Backend server IP
-DEV_USER                  # SSH username
-DEV_SSH_PASSWORD          # SSH password
+
+**Application:**
+```bash
+DEV_DATABASE_URL      # PostgreSQL connection string (from manifest: DATABASE_URL)
+DEV_SECRET_KEY        # Django secret key (from manifest: SECRET_KEY pattern)
+DEV_DB_USER           # Database username
+DEV_DB_PASSWORD       # Database password
+DEV_DB_NAME           # Database name
+DEV_DB_PORT           # Database port (default: 5432)
+```
+
+**Computed Values (from environment config):**
+```bash
+# DJANGO_SETTINGS_MODULE is derived from manifest:
+# dev-backend → projectmeats.settings.development
+# uat2-backend → projectmeats.settings.staging
+# prod2-backend → projectmeats.settings.production
 ```
 
 #### Frontend Environment Secrets
-```
-DEV_FRONTEND_HOST         # Frontend server IP
-DEV_FRONTEND_USER         # SSH username
-DEV_FRONTEND_SSH_KEY      # SSH private key (Ed25519)
-DEV_BACKEND_IP            # Backend private IP (for nginx proxy)
-VITE_API_BASE_URL         # Runtime API URL (for env-config.js)
+
+```bash
+DEV_FRONTEND_HOST     # Frontend server IP
+DEV_FRONTEND_USER     # SSH username
+DEV_FRONTEND_SSH_KEY  # SSH private key (Ed25519)
+DEV_BACKEND_IP        # Backend private IP (for nginx proxy)
+REACT_APP_API_BASE_URL # Runtime API URL (same name, environment-scoped)
 ```
 
 #### Repository Secrets (Shared)
+```bash
+DO_ACCESS_TOKEN       # DigitalOcean API token
 ```
-DO_ACCESS_TOKEN           # DigitalOcean API token
-SLACK_WEBHOOK_URL         # (Optional) Deployment notifications
-```
+
+### Legacy Naming Patterns (Documented in Manifest)
+
+**SSH Password Inconsistency:**
+- Dev: `DEV_SSH_PASSWORD` (unique)
+- UAT: `SSH_PASSWORD` (shared with Prod)
+- Prod: `SSH_PASSWORD` (shared with UAT)
+
+**Reason:** UAT and Prod share infrastructure historically.
 
 ### Secret Naming Pattern
 
-**Format:** `{ENV}_{COMPONENT}_{SECRET_NAME}`
+**Format:** `{PREFIX}_{SECRET_NAME}`
 
-Examples:
-- Development: `DEV_DATABASE_URL`, `DEV_FRONTEND_HOST`
-- UAT: `UAT_DATABASE_URL`, `UAT_FRONTEND_HOST`
-- Production: `PROD_DATABASE_URL`, `PROD_FRONTEND_HOST`
+Where `{PREFIX}` comes from `config/env.manifest.json`:
+- `DEV` for development
+- `UAT` for uat2-backend/uat2-frontend
+- `PROD` for prod2-backend/prod2-frontend
+
+**Examples:**
+```bash
+# Pattern-based (from manifest ci_secret_pattern)
+{PREFIX}_SECRET_KEY → DEV_SECRET_KEY, UAT_SECRET_KEY, PROD_SECRET_KEY
+{PREFIX}_DB_HOST → DEV_DB_HOST, UAT_DB_HOST, PROD_DB_HOST
+
+# Explicit mapping (from manifest ci_secret_mapping)
+BASTION_HOST:
+  dev-backend → DEV_HOST
+  uat2-backend → UAT_HOST
+  prod2-backend → PROD_HOST
+```
+
+### Adding New Secrets
+
+1. **Update manifest first:**
+   ```bash
+   vim config/env.manifest.json
+   ```
+
+2. **Add to GitHub:**
+   ```bash
+   gh secret set DEV_NEW_SECRET --body "value" --env dev-backend
+   ```
+
+3. **Verify:**
+   ```bash
+   python config/manage_env.py audit
+   ```
+
+**See:** [`config/ENV_MANIFEST_README.md`](../config/ENV_MANIFEST_README.md) for complete guide.
 
 ---
 
@@ -261,7 +382,68 @@ docker run -d --name pm-backend \
 
 ### Common Issues
 
-#### 1. Health Check Fails
+#### 1. Migration Fails - SSH Tunnel Issues
+
+**Symptoms:**
+```
+django.db.utils.OperationalError: connection timeout
+Error: Could not establish SSH tunnel
+```
+
+**Diagnosis:**
+```bash
+# Check if bastion host is reachable
+ping $DEV_HOST
+
+# Test SSH access
+ssh -o StrictHostKeyChecking=no $DEV_USER@$DEV_HOST "echo 'SSH OK'"
+
+# Verify database host is accessible from bastion
+ssh $DEV_USER@$DEV_HOST "nc -zv $DEV_DB_HOST 5432"
+```
+
+**Common Causes:**
+- Incorrect SSH credentials in GitHub Secrets
+- Database hostname wrong in `DB_HOST` secret
+- Database port not 5432 (check `DB_PORT` secret)
+- Firewall blocking bastion → database connection
+
+**Fix:**
+```bash
+# Verify secrets in manifest
+cat config/env.manifest.json | jq '.variables.infrastructure'
+
+# Run audit to check secret names
+python config/manage_env.py audit
+
+# Update secrets in GitHub
+gh secret set DEV_DB_HOST --body "your-db-host" --env dev-backend
+gh secret set DEV_SSH_PASSWORD --body "your-password" --env dev-backend
+```
+
+#### 2. Docker Container Can't Access Tunnel
+
+**Symptoms:**
+```
+Error: Connection refused to 127.0.0.1:5433
+Docker container can't reach tunnel on runner
+```
+
+**Diagnosis:**
+```bash
+# Check if tunnel is active on runner
+ps aux | grep ssh | grep 5433
+
+# Test from runner (not container)
+PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -p 5433 -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;"
+```
+
+**Fix:**
+- Ensure Docker uses `--network host` mode
+- Check workflow uses correct port (5433)
+- Verify tunnel established before Docker run
+
+#### 3. Health Check Fails
 
 **Symptoms:**
 ```
@@ -287,7 +469,7 @@ docker restart pm-backend
 # Or check logs and redeploy
 ```
 
-#### 2. Frontend Shows 502 Bad Gateway
+#### 4. Frontend Shows 502 Bad Gateway
 
 **Symptoms:**
 ```
@@ -313,34 +495,32 @@ ping <backend-private-ip>
 curl http://<backend-private-ip>:8000/api/v1/health/
 ```
 
-#### 3. Migration Fails
+#### 5. Secret Not Found Error
 
 **Symptoms:**
 ```
-django.db.utils.OperationalError: connection timeout
+Error: Secret DB_HOST not found
+Error: Workflow failed to reference secrets.UAT_HOST
 ```
 
 **Diagnosis:**
 ```bash
-ssh django@backend-server
-cd /home/django/ProjectMeats/backend
-cat .env | grep DATABASE_URL
-psql "$DATABASE_URL" -c "SELECT 1;"
+# Check manifest for correct secret name
+cat config/env.manifest.json | jq '.variables.infrastructure.BASTION_HOST'
+
+# Run audit
+python config/manage_env.py audit
 ```
 
 **Fix:**
-```bash
-# Update DATABASE_URL if incorrect
-nano .env
+1. Find correct secret name in manifest
+2. Use exact name from `ci_secret_mapping`
+3. Add to GitHub if missing:
+   ```bash
+   gh secret set UAT_HOST --body "value" --env uat2-backend
+   ```
 
-# Test connection
-psql "$DATABASE_URL" -c "\\dt"
-
-# Re-run migrations manually
-python manage.py migrate --fake-initial --noinput
-```
-
-#### 4. Frontend Environment Variables Wrong
+#### 6. Frontend Environment Variables Wrong
 
 **Symptoms:**
 ```
