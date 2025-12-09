@@ -32,7 +32,8 @@
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-var-requires": "warn",
+    "@typescript-eslint/no-require-imports": "warn",
+    "@typescript-eslint/no-empty-object-type": "warn",
     "no-console": ["warn", { "allow": ["warn", "error"] }],
     "react/prop-types": "off",
     "react/react-in-jsx-scope": "off",
