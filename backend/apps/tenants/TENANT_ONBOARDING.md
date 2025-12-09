@@ -322,7 +322,7 @@ python manage.py create_tenant --schema-name=acme --name="ACME Corp"
 python manage.py migrate --fake-initial --noinput
 ```
 
-**Note**: The `schema_name` field exists for administrative naming purposes and potential future compatibility considerations, but ProjectMeats does NOT use PostgreSQL schemas for tenant isolation.
+**Note**: The `schema_name` field exists for administrative naming purposes only. ProjectMeats uses shared-schema multi-tenancy and does NOT use PostgreSQL schemas for tenant isolation.
 
 ## Environment-Specific Configurations
 
