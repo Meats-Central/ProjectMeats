@@ -372,6 +372,12 @@ jobs:
 
           if command -v nginx >/dev/null 2>&1; then
             echo "=== Configuring host nginx reverse proxy ==="
+            # Default to localhost if PROD_BACKEND_IP is not set
+            NGINX_BACKEND_HOST="${{ secrets.PROD_BACKEND_IP }}"
+            if [ -z "$NGINX_BACKEND_HOST" ]; then
+              NGINX_BACKEND_HOST="127.0.0.1"
+              echo "⚠️  PROD_BACKEND_IP not set, using localhost (127.0.0.1) for backend proxy"
+            fi
             {
               echo 'server {'
               echo '    listen 80;'
@@ -379,7 +385,7 @@ jobs:
               echo ''
               echo '    # 1. Route API, Admin, Static to Backend (Port 8000)'
               echo '    location ~ ^/(api|admin|static)/ {'
-              echo '        proxy_pass http://${{ secrets.PROD_BACKEND_IP }}:8000;'
+              echo "        proxy_pass http://$NGINX_BACKEND_HOST:8000;"
               echo '        proxy_set_header Host $host;'
               echo '        proxy_set_header X-Real-IP $remote_addr;'
               echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
