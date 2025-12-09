@@ -186,7 +186,6 @@ jobs:
   migrate:
     needs: [test-backend]
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}-backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -221,7 +220,6 @@ jobs:
   deploy-backend:
     needs: [migrate]
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}-backend
     steps:
       - name: Deploy backend container
         env:
@@ -277,7 +275,6 @@ jobs:
   deploy-frontend:
     needs: [deploy-backend, test-frontend]
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}-frontend
     steps:
       - name: Setup SSH
         run: |
