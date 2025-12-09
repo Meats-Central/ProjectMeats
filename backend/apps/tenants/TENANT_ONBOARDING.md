@@ -1,13 +1,13 @@
 # Tenant Onboarding Guide
 
-This guide explains how to onboard new tenants and domains using the `create_tenant` management command and batch utilities.
+This guide explains how to onboard new tenants and domains using ProjectMeats' **shared-schema multi-tenancy** architecture.
 
 ## Table of Contents
 - [Quick Start](#quick-start)
 - [Management Command: create_tenant](#management-command-create_tenant)
 - [Batch Utilities](#batch-utilities)
 - [Examples](#examples)
-- [Migration Notes](#migration-notes)
+- [Architecture Overview](#architecture-overview)
 
 ## Quick Start
 
@@ -46,11 +46,12 @@ The `create_tenant` command creates a new tenant with optional domain for multi-
 
 ### Required Parameters
 
-- `--schema-name`: Database schema name (unique identifier)
+- `--schema-name`: Tenant identifier (used as slug)
   - Must start with letter or underscore
   - Can contain letters, digits, underscores
   - Maximum 63 characters
   - Example: `acme_corp`, `test_tenant_01`
+  - **Note**: In shared-schema architecture, this is stored but all data lives in a single PostgreSQL schema
 
 - `--name`: Tenant organization name
   - Display name for the tenant
@@ -72,9 +73,6 @@ The `create_tenant` command creates a new tenant with optional domain for multi-
 **Environment:**
 - `--environment`: Environment context (`development`, `staging`, `uat`, `production`)
 
-**Migration:**
-- `--run-migrations`: Show migration instructions (ProjectMeats uses shared-schema)
-
 **Verbosity:**
 - `-v 0`: Silent output
 - `-v 1`: Normal output (default)
@@ -85,7 +83,6 @@ The `create_tenant` command creates a new tenant with optional domain for multi-
 The command provides:
 - ✅ Confirmation of tenant creation
 - ✅ Confirmation of domain creation (if domain provided)
-- ⚠️  Migration notes for django-tenants compatibility
 - 📋 Summary of created tenant with all details
 - 📝 Next steps for tenant setup
 
@@ -219,7 +216,7 @@ tenants = create_custom_tenants(configs)
 Low-level function to create a single tenant with full control.
 
 **Parameters:**
-- `schema_name` (str): Database schema name
+- `schema_name` (str): Tenant identifier
 - `name` (str): Tenant name
 - `slug` (str, optional): URL slug
 - `contact_email` (str, optional): Contact email
@@ -302,51 +299,55 @@ if __name__ == '__main__':
     setup_dev_tenants()
 ```
 
-## Migration Notes
+## Architecture Overview
 
-### ProjectMeats Architecture
+### ProjectMeats Shared-Schema Multi-Tenancy
 
-ProjectMeats uses a **custom shared-schema multi-tenancy** approach:
+ProjectMeats uses a **shared-schema multi-tenancy** approach:
 
-- **Single PostgreSQL schema** for all tenants
-- **Application-level filtering** via `tenant_id`
-- **Compatible field names** with django-tenants (schema_name, Domain model)
-- **Standard Django ORM** (not `django_tenants.postgresql_backend`)
+- ✅ **Single PostgreSQL schema** (`public`) for all tenants
+- ✅ **Application-level filtering** via `tenant_id` foreign keys
+- ✅ **TenantMiddleware** resolves tenant from domain/header/user
+- ✅ **Standard Django ORM** with normal migrations
+- ✅ **Row-Level Security (RLS)** for database-level isolation (optional)
 
-### Schema Migration Commands
+### Key Differences from Schema-Based Approaches
 
-The `--run-migrations` flag documents how to use true django-tenants if migrating:
+**Shared-Schema (ProjectMeats):**
+```python
+# Database configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',  # Standard PostgreSQL
+        # All tenants share one schema
+    }
+}
 
-```bash
-# ProjectMeats (current): No schema-specific migrations needed
-python manage.py create_tenant --schema-name=acme --name="ACME Corp"
-
-# If using true django-tenants (future):
-python manage.py migrate_schemas --schema=acme
+# Migrations
+python manage.py migrate  # Standard Django migrations
 ```
 
-### Migration Path to django-tenants
+**Tenant Resolution:**
+1. `X-Tenant-ID` header (API requests)
+2. Domain match via `TenantDomain` model
+3. Subdomain matching (tenant.slug)
+4. User's default tenant (fallback)
 
-If you plan to migrate to true PostgreSQL schema-based isolation:
+**Data Isolation:**
+- All business models have `tenant` ForeignKey
+- ViewSets filter querysets: `queryset.filter(tenant=request.tenant)`
+- PostgreSQL session variables enable optional RLS policies
 
-1. **Update database engine** in settings:
-   ```python
-   DATABASES = {
-       'default': {
-           'ENGINE': 'django_tenants.postgresql_backend',
-           ...
-       }
-   }
-   ```
+### Migration Commands
 
-2. **Configure SHARED_APPS and TENANT_APPS**
+```bash
+# Create tenant
+python manage.py create_tenant --schema-name=acme --name="ACME Corp"
 
-3. **Run schema migrations:**
-   ```bash
-   python manage.py migrate_schemas
-   ```
-
-4. All tenants created with `create_tenant` will have proper `schema_name` values ready for migration.
+# Standard Django migrations (shared schema)
+python manage.py makemigrations
+python manage.py migrate
+```
 
 ## Environment-Specific Configurations
 
@@ -402,7 +403,7 @@ If you plan to migrate to true PostgreSQL schema-based isolation:
 
 ### Error: "Invalid schema name"
 
-**Problem:** Schema name doesn't meet PostgreSQL identifier rules
+**Problem:** Schema name doesn't meet identifier rules
 
 **Solution:** Ensure schema name:
 - Starts with letter or underscore
@@ -430,15 +431,15 @@ If you plan to migrate to true PostgreSQL schema-based isolation:
 
 ## Additional Resources
 
-- [Multi-Tenancy Implementation Guide](../../MULTI_TENANCY_IMPLEMENTATION.md)
-- [Django-Tenants Alignment](../../DJANGO_TENANTS_ALIGNMENT.md)
-- [Domain Model Documentation](../models.py)
+- [Architecture Guide](../../docs/ARCHITECTURE.md)
+- [Auth Flow Guide](../../docs/AUTH_FLOW_GUIDE.md)
+- [RLS Implementation Guide](../../docs/RLS_IMPLEMENTATION.md)
 - [Tenant Model Documentation](../models.py)
 
 ## Support
 
 For issues or questions:
 1. Check existing tenants: `Tenant.objects.all()`
-2. Check existing domains: `Domain.objects.all()`
+2. Check existing domains: `TenantDomain.objects.all()`
 3. Review logs for detailed error messages
 4. Use `-v 2` for verbose output during debugging
