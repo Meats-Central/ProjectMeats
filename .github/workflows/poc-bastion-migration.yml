@@ -29,11 +29,11 @@ jobs:
       
       - name: Setup SSH Tunnel to Database
         env:
-          BACKEND_SSH_PASSWORD: ${{ secrets.BACKEND_SSH_PASSWORD }}
+          DEV_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
           DEV_DB_HOST: ${{ secrets.DEV_DB_HOST }}
           DEV_DB_PORT: ${{ secrets.DEV_DB_PORT }}
-          BACKEND_USER: ${{ secrets.BACKEND_USER }}
-          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+          DEV_USER: ${{ secrets.DEV_USER }}
+          DEV_HOST: ${{ secrets.DEV_HOST }}
         run: |
           # Install sshpass for password-based SSH
           sudo apt-get update -qq
@@ -42,9 +42,9 @@ jobs:
           # Create SSH tunnel in background
           # Forward local port 5433 -> remote DB host:port
           echo "Creating SSH tunnel: localhost:5433 -> $DEV_DB_HOST:$DEV_DB_PORT"
-          sshpass -p "$BACKEND_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -f -N \
+          sshpass -p "$DEV_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -f -N \
             -L 5433:$DEV_DB_HOST:$DEV_DB_PORT \
-            $BACKEND_USER@$BACKEND_HOST
+            $DEV_USER@$DEV_HOST
           
           # Wait for tunnel to establish
           sleep 5
@@ -54,22 +54,19 @@ jobs:
       
       - name: Test Database Connectivity
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEV_DB_USER: ${{ secrets.DEV_DB_USER }}
+          DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
         run: |
           # Install PostgreSQL client
           sudo apt-get install -y postgresql-client
           
-          # Parse DATABASE_URL to get credentials and database name
-          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-          
           # Test connection through tunnel
-          PGPASSWORD="$DB_PASSWORD" psql \
+          PGPASSWORD="$DEV_DB_PASSWORD" psql \
             -h 127.0.0.1 \
             -p 5433 \
-            -U "$DB_USER" \
-            -d "$DB_NAME" \
+            -U "$DEV_DB_USER" \
+            -d "$DEV_DB_NAME" \
             -c "SELECT version();"
       
       - name: Setup Python
@@ -87,19 +84,18 @@ jobs:
       - name: Run Migration Check (Read-Only)
         working-directory: ./backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEV_DB_USER: ${{ secrets.DEV_DB_USER }}
+          DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
+          DEV_DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+          DEV_SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
         run: |
           echo "Testing database access through SSH tunnel..."
           
-          # Parse DATABASE_URL to get credentials
-          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-          
           # Construct DATABASE_URL for tunnel (localhost:5433)
-          export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          export DATABASE_URL="postgresql://$DEV_DB_USER:$DEV_DB_PASSWORD@127.0.0.1:5433/$DEV_DB_NAME"
+          export DJANGO_SETTINGS_MODULE="$DEV_DJANGO_SETTINGS_MODULE"
+          export SECRET_KEY="$DEV_SECRET_KEY"
           
           # Read-only check: Show migration status
           python manage.py showmigrations
@@ -110,17 +106,16 @@ jobs:
         if: false  # Disabled for safety - enable manually if needed
         working-directory: ./backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEV_DB_USER: ${{ secrets.DEV_DB_USER }}
+          DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DEV_DB_NAME: ${{ secrets.DEV_DB_NAME }}
+          DEV_DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
+          DEV_SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
         run: |
-          # Parse DATABASE_URL to get credentials
-          DB_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-          DB_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-          DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-          
           # Construct DATABASE_URL for tunnel (localhost:5433)
-          export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          export DATABASE_URL="postgresql://$DEV_DB_USER:$DEV_DB_PASSWORD@127.0.0.1:5433/$DEV_DB_NAME"
+          export DJANGO_SETTINGS_MODULE="$DEV_DJANGO_SETTINGS_MODULE"
+          export SECRET_KEY="$DEV_SECRET_KEY"
           
           # CAUTION: This will actually run migrations
           python manage.py migrate --fake-initial --noinput
