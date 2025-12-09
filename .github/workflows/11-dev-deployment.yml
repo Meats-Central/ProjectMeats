@@ -68,7 +68,7 @@ jobs:
             ${{ runner.os }}-buildx-dev-${{ matrix.app }}-
 
       - name: Login to DOCR
-        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u doctl --password-stdin
+        run: echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
 
       - name: Login to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -346,7 +346,7 @@ jobs:
           # Docker login with retry logic
           MAX_RETRIES=3
           RETRY_COUNT=0
-          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u doctl --password-stdin; do
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login ${{ env.REGISTRY }} -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin; do
             RETRY_COUNT=$((RETRY_COUNT+1))
             if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
               echo "Failed to login after $MAX_RETRIES attempts"
@@ -527,7 +527,7 @@ jobs:
 
           # Docker login with retry logic
           RETRY_COUNT=0
-          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u doctl --password-stdin; do
+          until echo "${{ secrets.DO_ACCESS_TOKEN }}" | sudo docker login "$REG" -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin; do
             RETRY_COUNT=$((RETRY_COUNT+1))
             if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
               echo "Failed to login after $MAX_RETRIES attempts"
