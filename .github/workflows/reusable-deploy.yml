@@ -254,7 +254,7 @@ jobs:
         env:
           SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=yes ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH'
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH'
           set -euo pipefail
           
           REG="${{ env.REGISTRY }}"
