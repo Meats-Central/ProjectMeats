@@ -76,7 +76,23 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Step 1: Add tenant field via raw SQL (for existing production databases)
         migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
+        
+        # Step 2: Register the field with Django's ORM (state-only, no actual DB operation)
+        migrations.AddField(
+            model_name='customer',
+            name='tenant',
+            field=models.ForeignKey(
+                help_text='Tenant this customer belongs to',
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name='customers',
+                to='tenants.tenant'
+            ),
+            preserve_default=False,
+        ),
+        
+        # Step 3: Add index (now that Django knows the field exists)
         migrations.AddIndex(
             model_name="customer",
             index=models.Index(
