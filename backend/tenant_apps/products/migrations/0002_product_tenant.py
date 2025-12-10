@@ -73,6 +73,4 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
-        preserve_default=False,
-        ),
     ]

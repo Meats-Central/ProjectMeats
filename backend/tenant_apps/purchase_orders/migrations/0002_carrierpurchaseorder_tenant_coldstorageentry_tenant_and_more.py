@@ -76,14 +76,11 @@ class Migration(migrations.Migration):
         (
             "suppliers",
             "0003_rename_suppliers_s_tenant__idx_suppliers_s_tenant__566edc_idx",
-        ),
         ("tenants", "0001_initial"),
     ]
 
     operations = [
         migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
-        preserve_default=False,
-        ),
         migrations.AddField(
             model_name="coldstorageentry",
             name="tenant",
@@ -93,9 +90,6 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="cold_storage_entries",
                 to="tenants.tenant",
-            ),
-            preserve_default=False,
-        ),
         migrations.AddField(
             model_name="purchaseorder",
             name="tenant",
@@ -105,9 +99,6 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="purchase_orders",
                 to="tenants.tenant",
-            ),
-            preserve_default=False,
-        ),
         migrations.AddField(
             model_name="purchaseorderhistory",
             name="tenant",
@@ -117,33 +108,22 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="purchase_order_histories",
                 to="tenants.tenant",
-            ),
-            preserve_default=False,
-        ),
         migrations.AddIndex(
             model_name="carrierpurchaseorder",
             index=models.Index(
                 fields=["tenant", "our_carrier_po_num"],
                 name="purchase_or_tenant__6ab6fd_idx",
-            ),
-        ),
         migrations.AddIndex(
             model_name="coldstorageentry",
             index=models.Index(
                 fields=["tenant", "date_time_stamp_created"],
                 name="purchase_or_tenant__d5379c_idx",
-            ),
-        ),
         migrations.AddIndex(
             model_name="purchaseorder",
             index=models.Index(
                 fields=["tenant", "order_number"], name="purchase_or_tenant__e12583_idx"
-            ),
-        ),
         migrations.AddIndex(
             model_name="purchaseorder",
             index=models.Index(
                 fields=["tenant", "order_date"], name="purchase_or_tenant__e60062_idx"
-            ),
-        ),
     ]
