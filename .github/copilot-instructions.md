@@ -2019,3 +2019,85 @@ For detailed secret handling rules, see:
 - Required by manifest but not in GitHub
 - Add immediately to prevent deployment failures
 
+
+---
+
+## 🏆 GOLDEN PIPELINE RULES (ENFORCEMENT)
+
+**Authority**: [`docs/GOLDEN_PIPELINE.md`](../docs/GOLDEN_PIPELINE.md) is the definitive reference for all deployment practices.
+
+### Absolute Prohibitions for CI/CD
+
+#### Database Migrations
+❌ **NEVER** suggest SSH-based migrations from deployed containers  
+❌ **NEVER** run migrations as part of web server startup  
+❌ **NEVER** use direct database access from GitHub runners  
+❌ **NEVER** skip the bastion tunnel pattern  
+❌ **NEVER** omit --network host for migration containers  
+
+#### Health Checks
+❌ **NEVER** check frontend via reverse proxy (port 80)  
+❌ **NEVER** use more than 5 retry attempts  
+❌ **NEVER** omit the Host header when checking proxies  
+
+#### Image Tags
+❌ **NEVER** use :latest tag in production deployments  
+❌ **NEVER** skip SHA tagging for images  
+❌ **NEVER** deploy without immutable image tags  
+
+### Required Practices for CI/CD
+
+#### Database Migrations (Runner-Based)
+✅ **ALWAYS** use bastion tunnel pattern (SSH -L 5433)  
+✅ **ALWAYS** run migrations via Docker with --network host  
+✅ **ALWAYS** construct DATABASE_URL pointing to 127.0.0.1:5433  
+✅ **ALWAYS** cleanup tunnel after migration  
+✅ **ALWAYS** use migrate --fake-initial --noinput  
+
+#### Health Checks
+✅ **ALWAYS** check backend on localhost:8000/api/v1/health/  
+✅ **ALWAYS** check frontend on 127.0.0.1:8080/ (container direct)  
+✅ **ALWAYS** use exactly 5 retry attempts  
+✅ **ALWAYS** verify proxy status separately (non-blocking)  
+
+#### Image Management
+✅ **ALWAYS** tag images with {env}-{sha} format  
+✅ **ALWAYS** push to both DOCR and GHCR  
+✅ **ALWAYS** pull specific SHA tag for deployments  
+✅ **ALWAYS** use immutable references  
+
+### Verification Commands
+
+Before suggesting any deployment changes:
+
+```bash
+# 1. Verify manifest is authoritative
+cat config/env.manifest.json | jq '.version'
+
+# 2. Run secret audit
+python config/manage_env.py audit
+
+# 3. Check workflow has golden patterns
+grep "ssh -L 5433" .github/workflows/reusable-deploy.yml
+grep "127.0.0.1:8080" .github/workflows/reusable-deploy.yml
+
+# 4. Verify golden state
+bash scripts/verify_golden_state.sh
+```
+
+### Documentation Hierarchy
+
+When answering deployment questions:
+
+1. **PRIMARY**: docs/GOLDEN_PIPELINE.md
+2. **Secrets**: docs/CONFIGURATION_AND_SECRETS.md
+3. **Workflow**: .github/workflows/reusable-deploy.yml
+4. **Config**: config/env.manifest.json
+
+**DO NOT reference** docs/archive/ for current practices.
+
+---
+
+**Golden Pipeline Version**: 1.0  
+**Last Updated**: December 10, 2025  
+**Enforcement**: MANDATORY for all AI assistants and developers
