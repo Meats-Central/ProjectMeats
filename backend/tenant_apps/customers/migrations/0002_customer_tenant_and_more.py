@@ -4,6 +4,66 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+
+
+def add_tenant_field_if_not_exists(apps, schema_editor):
+    """Add tenant field only if it doesn't exist"""
+    from django.db import connection
+    
+    with connection.cursor() as cursor:
+        # Check if tenant_id column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name=%s 
+            AND column_name='tenant_id';
+        """, ['customers_customer'])
+        
+        if not cursor.fetchone():
+            # Check if any tenants exist
+            cursor.execute("SELECT id FROM tenants_tenant LIMIT 1;")
+            result = cursor.fetchone()
+            
+            if result:
+                # Production path: Tenant exists, use it as default
+                default_tenant_id = result[0]
+                cursor.execute("""
+                    ALTER TABLE customers_customer 
+                    ADD COLUMN tenant_id UUID NOT NULL DEFAULT %s 
+                    REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+                """, [default_tenant_id])
+                
+                # Remove the default after adding the column
+                cursor.execute("""
+                    ALTER TABLE customers_customer 
+                    ALTER COLUMN tenant_id DROP DEFAULT;
+                """)
+            else:
+                # Test/Fresh DB path: No tenants exist yet, add as nullable
+                cursor.execute("""
+                    ALTER TABLE customers_customer 
+                    ADD COLUMN tenant_id UUID NULL 
+                    REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+                """)
+
+
+def add_indexes_if_not_exist(apps, schema_editor):
+    """Add indexes only if they don't exist"""
+    from django.db import connection
+    
+    with connection.cursor() as cursor:
+        # Get all indexes that should exist
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename=%s AND indexname LIKE %s;
+        """, ['customers_customer', f'customers_%'])
+        
+        existing_indexes = {row[0] for row in cursor.fetchall()}
+        
+        # This will be filled with actual index creation SQL if we find any
+        # For now, we'll let Django's index management handle it
+        pass
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -15,17 +75,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="customer",
-            name="tenant",
-            field=models.ForeignKey(
-                default=1,
-                help_text="Tenant this customer belongs to",
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="customers",
-                to="tenants.tenant",
-            ),
-            preserve_default=False,
+        migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
+        preserve_default=False,
         ),
         migrations.AddIndex(
             model_name="customer",
