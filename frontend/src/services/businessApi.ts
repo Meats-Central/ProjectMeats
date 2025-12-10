@@ -19,6 +19,9 @@ const businessApiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Allow cookies for authentication
+  xsrfCookieName: 'csrftoken', // Django's CSRF cookie name
+  xsrfHeaderName: 'X-CSRFToken', // Django's expected CSRF header
 });
 
 // Request interceptor for authentication
