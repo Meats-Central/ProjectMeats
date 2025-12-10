@@ -171,7 +171,9 @@ Push to Branch (development/uat/main)
 
 ### Environment Manifest (Single Source of Truth)
 
-**All secrets and environment variables are defined in [`config/env.manifest.json`](../config/env.manifest.json).**
+**📖 Complete Documentation**: [`docs/CONFIGURATION_AND_SECRETS.md`](CONFIGURATION_AND_SECRETS.md)
+
+**All secrets and environment variables are defined in [`config/env.manifest.json`](../config/env.manifest.json) (v3.3).**
 
 This manifest provides:
 - Explicit mapping of runtime variables to GitHub Secrets
@@ -179,10 +181,20 @@ This manifest provides:
 - Frontend environment variable support
 - Automated secret auditing capabilities
 
-**Audit Command:**
+**Audit Command (Run Before Deployments):**
 ```bash
 python config/manage_env.py audit
 ```
+
+### Quick Reference
+
+For detailed information on:
+- How secrets are resolved (environment + global)
+- Legacy exceptions (STAGING_*, SSH_PASSWORD)
+- Adding new environment variables
+- Troubleshooting missing secrets
+
+**See**: [`docs/CONFIGURATION_AND_SECRETS.md`](CONFIGURATION_AND_SECRETS.md)
 
 ### GitHub Environment Secrets
 
@@ -193,13 +205,15 @@ Secrets are **environment-scoped** using GitHub Environments:
 | `dev-backend` | `development` | Development backend secrets | `DEV` |
 | `dev-frontend` | `development` | Development frontend secrets | `DEV` |
 | `uat2-backend` | `uat` | UAT backend secrets | `UAT` |
-| `uat2-frontend` | `uat` | UAT frontend secrets | `UAT` |
+| `uat2` | `uat` | UAT frontend secrets | `STAGING` ⚠️ |
 | `prod2-backend` | `main` | Production backend secrets | `PROD` |
 | `prod2-frontend` | `main` | Production frontend secrets | `PROD` |
 
+⚠️ **Note**: UAT frontend uses legacy `STAGING_*` prefix and environment name `uat2` (not `uat2-frontend`). See manifest for details.
+
 ### Required Secrets Per Environment
 
-**⚠️ Important:** All secret names below are defined in `config/env.manifest.json`. Never guess secret names—always reference the manifest.
+**⚠️ Important:** All secret names below are defined in `config/env.manifest.json`. Never guess secret names—always reference the manifest or run the audit tool.
 
 #### Backend Environment Secrets (from manifest)
 

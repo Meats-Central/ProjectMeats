@@ -74,6 +74,51 @@ If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
 
 **Why This Matters:** We are moving AWAY from CRA ecosystem. Don't invest in CRA-specific solutions. Write Vite-compatible code even if currently running on CRA.
 
+#### 3. SECRET MANAGEMENT: Environment Manifest (Single Source of Truth)
+**ProjectMeats uses a manifest-based configuration system. NEVER guess secret names or hardcode environment variables.**
+
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
+- ❌ **NEVER** hardcode secret names without checking `config/env.manifest.json`
+- ❌ **NEVER** assume secret naming patterns (e.g., "it's probably DEV_*")
+- ❌ **NEVER** create `.env.example` files with hardcoded values
+- ❌ **NEVER** document secrets in README files or comments
+- ❌ **NEVER** reference archived documentation for secret configuration
+- ❌ **NEVER** suggest creating secrets without running the audit first
+
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** read `config/env.manifest.json` first for secret names
+- ✅ **ALWAYS** run `python config/manage_env.py audit` before deployment changes
+- ✅ **ALWAYS** check both environment-specific AND global secrets
+- ✅ **ALWAYS** follow the manifest's `ci_secret_mapping` for exact names
+- ✅ **ALWAYS** reference `docs/CONFIGURATION_AND_SECRETS.md` for secret management
+
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- Guessing secret names like "DB_PASSWORD" without checking the manifest
+- Creating environment variables without manifest definition
+- Referencing `GITHUB_SECRETS_CONFIGURATION.md` (archived)
+- Suggesting secret names that don't match manifest patterns
+- Adding secrets to GitHub without audit validation
+
+**Authority**: `config/env.manifest.json` (v3.3) is the **Single Source of Truth** for:
+- All 6 environments (dev/uat/prod × backend/frontend)
+- Every environment variable and its GitHub Secret mapping
+- Legacy exceptions (STAGING_*, SSH_PASSWORD sharing)
+
+**Quick Reference:**
+```bash
+# Check for missing secrets BEFORE making changes
+python config/manage_env.py audit
+
+# View current manifest
+cat config/env.manifest.json | jq
+
+# List environment secrets
+gh secret list --env dev-backend
+```
+
+**Why This Matters:** Secret drift causes deployment failures. The manifest prevents inconsistencies by defining ALL secrets in one place. If documentation conflicts with the manifest, **the manifest is always correct**.
+
 ### Deployment Rules
 
 **NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
