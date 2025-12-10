@@ -1,8 +1,12 @@
-# TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-# Currently, these models do not have tenant isolation implemented.
+"""
+Plants models for ProjectMeats.
+
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
+"""
 
 from django.db import models
 from django.contrib.auth.models import User
+from apps.tenants.models import Tenant
 
 
 class Plant(models.Model):
@@ -13,6 +17,14 @@ class Plant(models.Model):
         ("retail", "Retail Location"),
         ("other", "Other"),
     ]
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="plants",
+        help_text="Tenant this plant belongs to"
+    )
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
@@ -47,6 +59,10 @@ class Plant(models.Model):
         ordering = ["name"]
         verbose_name = "Plant"
         verbose_name_plural = "Plants"
+        indexes = [
+            models.Index(fields=['tenant', 'code']),
+            models.Index(fields=['tenant', 'name']),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"

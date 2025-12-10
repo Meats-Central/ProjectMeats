@@ -3,11 +3,11 @@ Invoices models for ProjectMeats.
 
 Defines invoice entities and related business logic.
 
-TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-Currently, these models do not have tenant isolation implemented.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from decimal import Decimal
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import (
     EdibleInedibleChoices,
     TimestampModel,
@@ -27,6 +27,13 @@ class InvoiceStatus(models.TextChoices):
 
 class Invoice(TimestampModel):
     """Invoice model for customer invoices."""
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="invoices",
+        help_text="Tenant this invoice belongs to"
+    )
 
     # Invoice identification
     invoice_number = models.CharField(

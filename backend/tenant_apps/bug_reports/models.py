@@ -5,10 +5,18 @@ Provides internal bug tracking and user feedback.
 """
 from django.contrib.auth.models import User
 from django.db import models
+from apps.tenants.models import Tenant
 
 
 class BugReport(models.Model):
     """Bug report submitted by users."""
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="bug_reports",
+        help_text="Tenant this bugreport belongs to"
+    )
 
     SEVERITY_CHOICES = [
         ("low", "Low"),
