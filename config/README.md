@@ -1,27 +1,182 @@
 # ProjectMeats Environment Configuration
 
-## 🎯 Single Source of Truth: env.manifest.json
+## ⚠️ CRITICAL: Read This First
 
-**All environment variables for backend and frontend are defined in `env.manifest.json`.**
+**🎯 Single Source of Truth**: [`config/env.manifest.json`](env.manifest.json) (v3.3)
 
-### Quick Start (New Unified System)
+**📖 Complete Documentation**: [`docs/CONFIGURATION_AND_SECRETS.md`](../docs/CONFIGURATION_AND_SECRETS.md)
+
+---
+
+## Quick Command Reference
 
 ```bash
-# Generate backend .env
-python config/manage_env.py setup dev-backend
-python config/manage_env.py setup uat2-backend
-python config/manage_env.py setup prod2-backend
+# Check for missing secrets (RUN THIS FIRST)
+python config/manage_env.py audit
 
-# Generate frontend .env
-python config/manage_env.py setup dev-frontend
-python config/manage_env.py setup uat2-frontend
-python config/manage_env.py setup prod2-frontend
+# Expected output:
+# ✓ Fetched N Global Repository Secrets
+# Scanning Environment: dev-backend...
+#   ✅ All Clear (X env-specific secrets found)
 
-# Audit GitHub secrets
+# List secrets in GitHub
+gh secret list --env dev-backend    # Environment-specific
+gh secret list                       # Global repository secrets
+
+# View current manifest
+cat config/env.manifest.json | jq
+```
+
+---
+
+## What This Directory Contains
+
+```
+config/
+├── env.manifest.json          # ⭐ SINGLE SOURCE OF TRUTH (v3.3)
+├── manage_env.py              # 🔍 Audit tool
+└── README.md                  # This file
+```
+
+### The Manifest (`env.manifest.json`)
+**Authority**: Defines ALL environment variables and GitHub Secret mappings for all 6 environments:
+- `dev-backend`, `dev-frontend`
+- `uat2-backend`, `uat2` (frontend)
+- `prod2-backend`, `prod2-frontend`
+
+### The Audit Tool (`manage_env.py`)
+**Purpose**: Validates that required secrets exist in GitHub before deployment
+
+**Usage**:
+```bash
 python config/manage_env.py audit
 ```
 
-📖 **See [ENV_SETUP_GUIDE.md](ENV_SETUP_GUIDE.md) for complete documentation.**
+**What it checks**:
+1. Fetches global repository secrets
+2. For each environment:
+   - Fetches environment-specific secrets
+   - Combines with global secrets
+   - Compares against manifest requirements
+   - Reports missing secrets
+
+---
+
+## How to Use
+
+### Before Making Changes
+```bash
+# Always audit first
+python config/manage_env.py audit
+```
+
+### Adding a New Environment Variable
+
+1. **Update manifest**:
+   ```json
+   "variables": {
+     "application": {
+       "NEW_VAR": {
+         "ci_secret_pattern": "{PREFIX}_NEW_VAR",
+         "description": "What this does"
+       }
+     }
+   }
+   ```
+
+2. **Run audit** (will show missing):
+   ```bash
+   python config/manage_env.py audit
+   ```
+
+3. **Add secrets to GitHub**:
+   ```bash
+   gh secret set DEV_NEW_VAR --env dev-backend
+   gh secret set UAT_NEW_VAR --env uat2-backend
+   gh secret set PROD_NEW_VAR --env prod2-backend
+   ```
+
+4. **Verify**:
+   ```bash
+   python config/manage_env.py audit
+   # Should show ✅ All Clear
+   ```
+
+### Setting Up Secrets for New Environment
+
+1. **Create GitHub Environment** (repo Settings → Environments)
+2. **Run audit to see requirements**:
+   ```bash
+   python config/manage_env.py audit
+   ```
+3. **Add missing secrets** shown in audit output
+4. **Re-run audit** to verify
+
+---
+
+## Important Rules
+
+### ✅ DO
+- **Read the manifest first** before touching secrets
+- **Run audit before deployments**
+- **Use manifest-defined secret names** (no guessing)
+- **Check both environment AND global secrets**
+- **Consult `docs/CONFIGURATION_AND_SECRETS.md`** for details
+
+### ❌ DON'T
+- **Never guess secret names** ("it's probably DEV_*")
+- **Never hardcode secrets** in code or docs
+- **Never create `.env.example`** files with values
+- **Never reference archived docs** for secret info
+- **Never skip the audit** before deployment
+
+---
+
+## Legacy Exceptions (Documented in Manifest)
+
+### UAT Frontend (`uat2`)
+- Uses `STAGING_*` prefix (not `UAT_*`)
+- GitHub Environment named `uat2` (not `uat2-frontend`)
+- Reason: Legacy naming from pre-standardization
+
+### Shared SSH Password
+- UAT and Prod share `SSH_PASSWORD` (global secret)
+- Dev uses separate `DEV_SSH_PASSWORD`
+- Reason: Legacy infrastructure
+
+**See manifest v3.3 for complete legacy mappings**
+
+---
+
+## Complete Documentation
+
+**📖 START HERE**: [`docs/CONFIGURATION_AND_SECRETS.md`](../docs/CONFIGURATION_AND_SECRETS.md)
+
+**Topics covered**:
+- Complete environment list
+- Secret management architecture
+- Using the audit tool
+- Legacy exceptions explained
+- Developer workflows
+- Troubleshooting guide
+
+---
+
+## Archived/Deprecated Files
+
+**❌ DO NOT USE** (superseded by manifest system):
+- `environments/` directory → Use manifest
+- `shared/` directory → Use manifest  
+- `.env.example` files → Use manifest
+- `docs/GITHUB_SECRETS_CONFIGURATION.md` → Use `CONFIGURATION_AND_SECRETS.md`
+
+**If documentation conflicts with the manifest, the manifest is always correct.**
+
+---
+
+**Last Updated**: December 10, 2025  
+**Manifest Version**: 3.3  
+**Authority**: `config/env.manifest.json`
 
 ---
 
