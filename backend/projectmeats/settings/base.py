@@ -51,18 +51,18 @@ _PROJECT_APPS = [
     "apps.tenants",  # Tenant management (shared-schema approach)
     # Business apps (all use tenant_id for data isolation)
     "tenant_apps.accounts_receivables",
-    "tenant_apps.suppliers",
-    "tenant_apps.customers",
-    "tenant_apps.contacts",
-    "tenant_apps.purchase_orders",
-    "tenant_apps.plants",
-    "tenant_apps.carriers",
-    "tenant_apps.bug_reports",
     "tenant_apps.ai_assistant",
-    "tenant_apps.products",
-    "tenant_apps.sales_orders",
-    "tenant_apps.invoices",
+    "tenant_apps.bug_reports",
+    "tenant_apps.carriers",
     "tenant_apps.cockpit",
+    "tenant_apps.contacts",
+    "tenant_apps.customers",
+    "tenant_apps.invoices",
+    "tenant_apps.plants",
+    "tenant_apps.products",
+    "tenant_apps.purchase_orders",
+    "tenant_apps.sales_orders",
+    "tenant_apps.suppliers",
 ]
 
 # All apps in one shared schema
