@@ -33,11 +33,20 @@ const ENVIRONMENT_PATTERNS = {
 /**
  * Default API base URLs per environment
  * 
- * Note: These URLs are used when no explicit window.ENV.API_BASE_URL is set
- * and when tenant-specific API URLs cannot be determined.
+ * UNIFIED PROXY ARCHITECTURE:
+ * All environments use same-domain proxying to eliminate CORS issues.
+ * Nginx on frontend server proxies /api/ requests to backend server.
+ * 
+ * Benefits:
+ * - No CORS issues (browser sees same origin)
+ * - Simplified configuration
+ * - Better security (backend not exposed directly)
+ * 
+ * Note: For localhost, we still use direct backend connection since
+ * there's no nginx proxy in local development.
  */
 const DEFAULT_API_URLS = {
-  development: 'https://dev-backend.meatscentral.com/api/v1',
+  development: 'https://dev.meatscentral.com/api/v1',
   uat: 'https://uat.meatscentral.com/api/v1',
   production: 'https://meatscentral.com/api/v1',
 };
