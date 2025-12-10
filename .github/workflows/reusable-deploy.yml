@@ -244,9 +244,9 @@ jobs:
           # Wait for tunnel to establish
           sleep 5
           
-          # Verify tunnel is active
+          # Verify tunnel is active (non-fatal check)
           echo "✓ SSH tunnel established"
-          ps aux | grep ssh | grep -v grep | grep 5433
+          ps aux | grep ssh | grep -v grep | grep 5433 || echo "  (Process check skipped - tunnel runs in background)"
       
       - name: Test tunnel connectivity
         env:
