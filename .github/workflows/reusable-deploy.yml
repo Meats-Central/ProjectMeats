@@ -450,7 +450,7 @@ jobs:
           MAX_ATTEMPTS=20
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: localhost" http://localhost:80/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Frontend health check passed (HTTP $HTTP_CODE)"
               exit 0
