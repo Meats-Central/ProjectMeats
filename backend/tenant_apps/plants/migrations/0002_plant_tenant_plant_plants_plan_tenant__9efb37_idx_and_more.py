@@ -75,12 +75,4 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
-        migrations.AddIndex(
-            model_name="plant",
-            index=models.Index(
-                fields=["tenant", "code"], name="plants_plan_tenant__9efb37_idx"
-        migrations.AddIndex(
-            model_name="plant",
-            index=models.Index(
-                fields=["tenant", "name"], name="plants_plan_tenant__00c5a7_idx"
     ]

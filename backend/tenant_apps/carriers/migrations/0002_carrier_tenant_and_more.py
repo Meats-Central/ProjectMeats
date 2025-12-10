@@ -80,4 +80,6 @@ class Migration(migrations.Migration):
             model_name="carrier",
             index=models.Index(
                 fields=["tenant", "name"], name="carriers_ca_tenant__8e23de_idx"
+            ),
+        ),
     ]
