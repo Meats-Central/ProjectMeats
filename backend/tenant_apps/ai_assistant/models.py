@@ -10,6 +10,7 @@ import uuid
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django.db import models
+from apps.tenants.models import Tenant
 
 from apps.core.models import OwnedModel, StatusModel
 
@@ -123,6 +124,13 @@ class ChatMessage(OwnedModel):
 
 class AIConfiguration(models.Model):
     """Configuration settings for AI providers and models."""
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="ai_configurations",
+        help_text="Tenant this aiconfiguration belongs to"
+    )
 
     name = models.CharField(max_length=100, unique=True)
     provider = models.CharField(max_length=50, default="openai")

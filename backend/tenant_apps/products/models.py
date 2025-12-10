@@ -3,10 +3,10 @@ Products models for ProjectMeats.
 
 Master product list and related business logic.
 
-TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-Currently, these models do not have tenant isolation implemented.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import (
     CartonTypeChoices,
     EdibleInedibleChoices,
@@ -21,6 +21,14 @@ from apps.core.models import (
 
 class Product(TimestampModel):
     """Product model for master product list."""
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="products",
+        help_text="Tenant this product belongs to"
+    )
 
     # Product identification
     product_code = models.CharField(

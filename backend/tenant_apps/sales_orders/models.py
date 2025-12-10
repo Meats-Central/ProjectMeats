@@ -3,10 +3,10 @@ Sales Orders models for ProjectMeats.
 
 Defines sales order entities and related business logic.
 
-TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-Currently, these models do not have tenant isolation implemented.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import (
     TimestampModel,
     WeightUnitChoices,
@@ -25,6 +25,13 @@ class SalesOrderStatus(models.TextChoices):
 
 class SalesOrder(TimestampModel):
     """Sales Order model for managing customer sales orders."""
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="sales_orders",
+        help_text="Tenant this salesorder belongs to"
+    )
 
     # Order identification
     our_sales_order_num = models.CharField(

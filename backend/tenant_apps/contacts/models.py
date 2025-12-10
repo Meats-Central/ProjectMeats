@@ -3,15 +3,23 @@ Contacts models for ProjectMeats.
 
 Defines contact entities and related business logic.
 
-TODO: Add tenant ForeignKey field for shared-schema multi-tenancy.
-Currently, these models do not have tenant isolation implemented.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import ContactTypeChoices, StatusChoices, TimestampModel
 
 
 class Contact(TimestampModel):
     """Contact model for managing contact information."""
+    
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="contacts",
+        help_text="Tenant this contact belongs to"
+    )
     
     # Status field for tracking active/inactive contacts
     status = models.CharField(
@@ -75,6 +83,9 @@ class Contact(TimestampModel):
         ordering = ["last_name", "first_name"]
         verbose_name = "Contact"
         verbose_name_plural = "Contacts"
+        indexes = [
+            models.Index(fields=['tenant', 'last_name', 'first_name']),
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
