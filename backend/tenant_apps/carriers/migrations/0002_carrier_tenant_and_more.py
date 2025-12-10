@@ -76,12 +76,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
-        preserve_default=False,
-        ),
         migrations.AddIndex(
             model_name="carrier",
             index=models.Index(
                 fields=["tenant", "name"], name="carriers_ca_tenant__8e23de_idx"
-            ),
-        ),
     ]
