@@ -32,6 +32,7 @@ class EnvironmentManager:
         self.manifest = self._load_manifest()
         self.environments = self.manifest.get("environments", {})
         self.variables = self.manifest.get("variables", {})
+        self.project_root = Path(__file__).parent.parent
         
 
     def _load_manifest(self) -> Dict[str, Any]:
@@ -151,15 +152,130 @@ class EnvironmentManager:
         else:
             print(f"\n{Colors.GREEN}Audit Passed: All systems go.{Colors.END}")
 
+    def generate_backend_env(self, env_name: str, output_path: Path = None):
+        """
+        Generate backend/.env file from manifest for specified environment.
+        """
+        if env_name not in self.environments:
+            print(f"{Colors.RED}Error: Unknown environment '{env_name}'{Colors.END}")
+            print(f"Available: {', '.join(self.environments.keys())}")
+            sys.exit(1)
+        
+        env_config = self.environments[env_name]
+        if env_config.get("type") != "backend":
+            print(f"{Colors.RED}Error: '{env_name}' is not a backend environment{Colors.END}")
+            sys.exit(1)
+        
+        if output_path is None:
+            output_path = self.project_root / "backend" / ".env"
+        
+        print(f"{Colors.CYAN}Generating backend .env for {env_name}...{Colors.END}")
+        
+        lines = [
+            f"# Generated from env.manifest.json for {env_name}",
+            f"# DO NOT EDIT MANUALLY - Use manage_env.py",
+            ""
+        ]
+        
+        # Add infrastructure variables
+        for var_name, var_def in self.variables.get("infrastructure", {}).items():
+            secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+            if secret_name:
+                lines.append(f"{var_name}=<{secret_name}>")
+        
+        # Add application variables
+        for var_name, var_def in self.variables.get("application", {}).items():
+            if var_def.get("value_source") == "environment_config":
+                # Use value from environment config
+                value = env_config.get("django_settings", "")
+                lines.append(f"{var_name}={value}")
+            else:
+                secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+                if secret_name:
+                    lines.append(f"{var_name}=<{secret_name}>")
+        
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("\n".join(lines) + "\n")
+        print(f"{Colors.GREEN}✅ Generated: {output_path}{Colors.END}")
+        print(f"{Colors.YELLOW}Note: Replace <SECRET_NAME> placeholders with actual values{Colors.END}")
+
+    def generate_frontend_env(self, env_name: str, output_path: Path = None):
+        """
+        Generate frontend/.env file from manifest for specified environment.
+        """
+        if env_name not in self.environments:
+            print(f"{Colors.RED}Error: Unknown environment '{env_name}'{Colors.END}")
+            print(f"Available: {', '.join(self.environments.keys())}")
+            sys.exit(1)
+        
+        env_config = self.environments[env_name]
+        if env_config.get("type") != "frontend":
+            print(f"{Colors.RED}Error: '{env_name}' is not a frontend environment{Colors.END}")
+            sys.exit(1)
+        
+        if output_path is None:
+            output_path = self.project_root / "frontend" / ".env"
+        
+        print(f"{Colors.CYAN}Generating frontend .env for {env_name}...{Colors.END}")
+        
+        lines = [
+            f"# Generated from env.manifest.json for {env_name}",
+            f"# DO NOT EDIT MANUALLY - Use manage_env.py",
+            ""
+        ]
+        
+        # Add frontend runtime variables
+        for var_name, var_def in self.variables.get("frontend_runtime", {}).items():
+            # Check for direct values in manifest
+            if "values" in var_def and env_name in var_def["values"]:
+                value = var_def["values"][env_name]
+                lines.append(f"{var_name}={value}")
+            # Check for default value
+            elif "default" in var_def:
+                lines.append(f"{var_name}={var_def['default']}")
+            # Fallback to secret pattern
+            else:
+                secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+                if secret_name:
+                    lines.append(f"{var_name}=<{secret_name}>")
+        
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("\n".join(lines) + "\n")
+        print(f"{Colors.GREEN}✅ Generated: {output_path}{Colors.END}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Environment & Secret Manager")
-    parser.add_argument("command", choices=["audit"], help="Command to run")
+    parser.add_argument("command", choices=["audit", "setup"], help="Command to run")
+    parser.add_argument("environment", nargs="?", help="Target environment name (e.g., dev-backend, dev-frontend)")
+    parser.add_argument("--target", choices=["backend", "frontend"], help="Generate .env for backend or frontend")
+    parser.add_argument("--output", type=Path, help="Custom output path for .env file")
     args = parser.parse_args()
 
     manager = EnvironmentManager()
     
     if args.command == "audit":
         manager.audit_secrets()
+    elif args.command == "setup":
+        if not args.environment:
+            print(f"{Colors.RED}Error: environment argument required for setup{Colors.END}")
+            print("Example: python manage_env.py setup dev-backend --target=backend")
+            sys.exit(1)
+        
+        # Auto-detect target if not specified
+        if not args.target:
+            env_config = manager.environments.get(args.environment)
+            if env_config:
+                args.target = env_config.get("type", "backend")
+            else:
+                print(f"{Colors.RED}Error: Unknown environment '{args.environment}'{Colors.END}")
+                sys.exit(1)
+        
+        if args.target == "backend":
+            manager.generate_backend_env(args.environment, args.output)
+        elif args.target == "frontend":
+            manager.generate_frontend_env(args.environment, args.output)
+
 
 if __name__ == "__main__":
     main()
