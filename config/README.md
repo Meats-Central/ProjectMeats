@@ -1,88 +1,115 @@
 # ProjectMeats Environment Configuration
 
-This directory contains centralized environment configuration files for all deployment environments.
+## 🎯 Single Source of Truth: env.manifest.json
+
+**All environment variables for backend and frontend are defined in `env.manifest.json`.**
+
+### Quick Start (New Unified System)
+
+```bash
+# Generate backend .env
+python config/manage_env.py setup dev-backend
+python config/manage_env.py setup uat2-backend
+python config/manage_env.py setup prod2-backend
+
+# Generate frontend .env
+python config/manage_env.py setup dev-frontend
+python config/manage_env.py setup uat2-frontend
+python config/manage_env.py setup prod2-frontend
+
+# Audit GitHub secrets
+python config/manage_env.py audit
+```
+
+📖 **See [ENV_SETUP_GUIDE.md](ENV_SETUP_GUIDE.md) for complete documentation.**
+
+---
 
 ## Directory Structure
 
 ```
 config/
-├── README.md                    # This file
-├── environments/               # Environment-specific configurations
-│   ├── development.env        # Development environment
-│   ├── staging.env           # Staging environment  
-│   └── production.env        # Production environment
-└── shared/                    # Shared configuration templates
-    ├── backend.env.template  # Backend environment template
-    └── frontend.env.template # Frontend environment template
+├── README.md                      # This file
+├── env.manifest.json             # ⭐ SINGLE SOURCE OF TRUTH
+├── manage_env.py                 # Environment generator & auditor
+├── ENV_SETUP_GUIDE.md           # Complete usage guide
+├── ENV_MANIFEST_README.md       # Manifest documentation
+├── environments/                 # Legacy: Use manage_env.py instead
+│   ├── development.env          # DEPRECATED - Use manifest
+│   ├── staging.env             # DEPRECATED - Use manifest
+│   └── production.env          # DEPRECATED - Use manifest
+└── shared/                       # Legacy: Use manage_env.py instead
+    ├── backend.env.template    # DEPRECATED - Use manifest
+    └── frontend.env.template   # DEPRECATED - Use manifest
 ```
 
-**Note:** Docker-related deployment configurations have been archived to `archived/docker/`. See `archived/README.md` for details.
+**⚠️ Deprecation Notice**: `environments/` and `shared/` directories are superseded by the unified manifest system. Use `manage_env.py` for all environment management.
 
-## Environment Management
+---
 
-### Quick Start
-1. Copy the appropriate environment file to create `.env` files:
-   ```bash
-   # Development
-   cp config/environments/development.env backend/.env
-   cp config/shared/frontend.env.template frontend/.env.local
-   
-   # Staging
-   cp config/environments/staging.env backend/.env
-   cp config/shared/frontend.env.template frontend/.env.local
-   
-   # Production
-   cp config/environments/production.env backend/.env
-   cp config/shared/frontend.env.template frontend/.env.local
-   ```
+## Why Unified Manifest?
 
-2. Update environment-specific values in the copied files
+### Problems Solved
+✅ **No Configuration Drift**: Frontend and backend configs are guaranteed to be in sync  
+✅ **Automated Validation**: `audit` command catches missing secrets before deployment  
+✅ **Self-Documenting**: Every variable has a description and mapping  
+✅ **Easy Onboarding**: One command generates correct .env files  
+✅ **CI/CD Ready**: GitHub Actions workflows reference the same source  
 
-### Environment Variables
+### Old Way (Deprecated)
+```bash
+# ❌ Manual, error-prone, drift risk
+cp config/environments/development.env backend/.env
+cp config/shared/frontend.env.template frontend/.env.local
+# Manually edit both files, hope you didn't make mistakes
+```
 
-#### Backend Variables
-- **Django Settings**: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
-- **Database**: `DATABASE_URL`
-- **CORS**: `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`
-- **AI Services**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
-- **Email**: `EMAIL_*` settings
-- **Storage**: `MEDIA_ROOT`, `STATIC_ROOT`
-- **Security**: SSL and HSTS settings for production
+### New Way (Recommended)
+```bash
+# ✅ Automated, validated, drift-free
+python config/manage_env.py setup dev-backend
+python config/manage_env.py setup dev-frontend
+# Replace <SECRET_NAME> placeholders with actual values
+```
 
-#### Frontend Variables  
-- **API**: `REACT_APP_API_BASE_URL`
-- **Environment**: `REACT_APP_ENVIRONMENT`
-- **Features**: `REACT_APP_AI_ASSISTANT_ENABLED`
-- **Upload**: `REACT_APP_MAX_FILE_SIZE`, `REACT_APP_SUPPORTED_FILE_TYPES`
+### Environment Variables (Defined in Manifest)
 
-### Deployment Environments
+#### Backend Variables (Category: infrastructure, application)
+- **Infrastructure**: `BASTION_HOST`, `BASTION_USER`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- **Application**: `DATABASE_URL`, `SECRET_KEY`, `DJANGO_SETTINGS_MODULE`
 
-#### Development
-- Local development with PostgreSQL (for environment parity)
-- Debug mode enabled
-- CORS allows localhost
-- File uploads to local media directory
+#### Frontend Variables (Category: frontend_runtime)
+- **Runtime**: `REACT_APP_API_BASE_URL`, `REACT_APP_ENVIRONMENT`, `REACT_APP_AI_ASSISTANT_ENABLED`
 
-#### Staging  
-- Staging server with PostgreSQL
-- Debug mode disabled
-- CORS for staging domain
-- File uploads to staging storage
+**Note**: All variables are documented in `env.manifest.json` with descriptions and secret mappings.
 
-#### Production
-- Production server with PostgreSQL
-- Security features enabled
-- HTTPS enforced
-- CDN for static files
-- Production logging and monitoring
+### Deployment Environments (Defined in Manifest)
+
+#### Development (dev-backend, dev-frontend)
+- **Backend**: `projectmeats.settings.development`
+- **Frontend**: `https://dev.meatscentral.com/api/v1`
+- **Secrets Prefix**: `DEV_*`
+
+#### UAT/Staging (uat2-backend, uat2-frontend)
+- **Backend**: `projectmeats.settings.staging`
+- **Frontend**: `https://uat.meatscentral.com/api/v1`
+- **Secrets Prefix**: `UAT_*`
+
+#### Production (prod2-backend, prod2-frontend)
+- **Backend**: `projectmeats.settings.production`
+- **Frontend**: `https://meatscentral.com/api/v1`
+- **Secrets Prefix**: `PROD_*`
+
+**Note**: Environment definitions guarantee frontend API URLs match backend deployments.
 
 ### Best Practices
 
-1. **Never commit actual .env files** - only templates and examples
-2. **Use strong secrets** - generate unique keys for each environment
-3. **Validate configurations** - check all required variables are set
-4. **Document changes** - update this README when adding new variables
-5. **Test deployments** - validate each environment before go-live
+1. **Use the manifest system** - Run `manage_env.py` instead of manual .env editing
+2. **Audit secrets regularly** - Run `python config/manage_env.py audit` before deployments
+3. **Update manifest, not .env** - Edit `env.manifest.json`, then regenerate .env files
+4. **Document changes** - Add descriptions to new variables in manifest
+5. **Test generations** - Verify generated .env files match expectations
+6. **Never commit secrets** - Generated .env files contain `<SECRET_NAME>` placeholders
 
 ### Security Guidelines
 
@@ -96,14 +123,37 @@ config/
 ### Troubleshooting
 
 Common issues and solutions:
-- **CORS errors**: Check CORS_ALLOWED_ORIGINS matches frontend domain
-- **Database errors**: Verify DATABASE_URL format and credentials
-- **AI errors**: Ensure API keys are valid and have sufficient credits
-- **File upload errors**: Check file size limits and supported types
+- **"Environment not found"**: Check `env.manifest.json` for available environments
+- **"Secret not defined"**: Run `python config/manage_env.py audit` to see missing secrets
+- **"Type mismatch"**: Ensure environment type matches target (backend vs frontend)
+- **GitHub CLI errors**: Run `export GITHUB_TOKEN=...` if in Codespaces
+
+## Migration from Old System
+
+### Files to Delete (After Migration)
+- ❌ `frontend/.env.example`
+- ❌ `frontend/.env.production.example`
+- ❌ `backend/.env.example`
+
+### Replacement Commands
+```bash
+# Old: cp frontend/.env.example frontend/.env
+# New:
+python config/manage_env.py setup dev-frontend
+
+# Old: cp backend/.env.example backend/.env
+# New:
+python config/manage_env.py setup dev-backend
+```
 
 ## Additional Documentation
 
-For comprehensive environment configuration documentation, see:
-- **[Environment Guide](../docs/ENVIRONMENT_GUIDE.md)** - Complete environment configuration guide
+📚 **Primary Documentation**:
+- **[ENV_SETUP_GUIDE.md](ENV_SETUP_GUIDE.md)** - Complete usage guide (START HERE)
+- **[ENV_MANIFEST_README.md](ENV_MANIFEST_README.md)** - Manifest structure documentation
+- **[ENVIRONMENT_UNIFICATION_COMPLETE.md](../ENVIRONMENT_UNIFICATION_COMPLETE.md)** - Implementation summary
+
+📚 **Legacy Documentation** (deprecated):
+- **[Environment Guide](../docs/ENVIRONMENT_GUIDE.md)** - Old environment configuration guide
 - **[Documentation Hub](../docs/README.md)** - Central documentation navigation
 - **[User Deployment Guide](../USER_DEPLOYMENT_GUIDE.md)** - Deployment instructions
