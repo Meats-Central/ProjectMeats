@@ -29,8 +29,11 @@ urlpatterns = [
     path("api/v1/", include("tenant_apps.customers.urls")),
     path("api/v1/", include("tenant_apps.contacts.urls")),
     path("api/v1/", include("tenant_apps.purchase_orders.urls")),
+    path("api/v1/", include("tenant_apps.sales_orders.urls")),
     path("api/v1/", include("tenant_apps.plants.urls")),
     path("api/v1/", include("tenant_apps.carriers.urls")),
+    path("api/v1/", include("tenant_apps.products.urls")),
+    path("api/v1/", include("tenant_apps.invoices.urls")),
     path("api/v1/ai-assistant/", include("tenant_apps.ai_assistant.urls")),
     path("api/v1/", include("apps.core.urls")),  # Core shared utilities
     path("api/v1/bug-reports/", include("tenant_apps.bug_reports.urls")),
