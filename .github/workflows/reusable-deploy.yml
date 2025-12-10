@@ -397,7 +397,7 @@ jobs:
           mkdir -p /opt/pm/frontend/env
           cat > /opt/pm/frontend/env/env-config.js << 'ENVJS'
           window.ENV = {
-            API_BASE_URL: "https://${{ inputs.environment }}.meatscentral.com",
+            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
             ENVIRONMENT: "${{ inputs.environment }}"
           };
           ENVJS
