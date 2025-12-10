@@ -66,21 +66,21 @@ class EnvironmentManager:
         Logic:
         1. Check 'ci_secret_mapping' for an explicit override.
         2. Fallback to 'ci_secret_pattern' replacement.
+        3. Return None if variable doesn't apply to this environment.
         """
         # 1. Explicit Mapping (e.g., SSH_PASSWORD for UAT)
         if "ci_secret_mapping" in var_def:
-            if env_name in var_def["ci_secret_mapping"]:
-                return var_def["ci_secret_mapping"][env_name]
+            # Only return if this env is explicitly mapped
+            return var_def["ci_secret_mapping"].get(env_name)
         
         # 2. Pattern Mapping (e.g., {PREFIX}_DB_HOST)
-        env_config = self.environments[env_name]
-        prefix = env_config.get("prefix", "DEV") # Default to DEV if missing
-        
         pattern = var_def.get("ci_secret_pattern")
         if pattern:
+            env_config = self.environments[env_name]
+            prefix = env_config.get("prefix", "DEV")
             return pattern.replace("{PREFIX}", prefix)
             
-        return f"{prefix}_{var_name}" # Ultimate fallback
+        return None  # Variable doesn't apply to this environment
 
     def audit_secrets(self):
         """
@@ -99,17 +99,22 @@ class EnvironmentManager:
             env_type = env_config.get("type", "backend") # backend or frontend
             
             # Iterate through relevant variable categories
-            categories = ["infrastructure"] # Infra is needed for all
+            categories = []
             if env_type == "backend":
-                categories.append("application")
+                categories = ["infrastructure", "application"]
             elif env_type == "frontend":
-                categories.append("frontend_runtime")
+                categories = ["frontend_runtime"]
 
             for category in categories:
                 vars_in_cat = self.variables.get(category, {})
                 for var_name, var_def in vars_in_cat.items():
                     # Calculate expected secret name
                     secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+                    
+                    # Skip if variable doesn't apply to this environment
+                    if secret_name is None:
+                        continue
+                    
                     all_required_secrets.add(secret_name)
                     
                     if secret_name not in existing_secrets:
