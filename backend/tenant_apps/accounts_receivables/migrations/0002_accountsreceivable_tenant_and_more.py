@@ -15,7 +15,7 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
         cursor.execute("""
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name='accounts_receivables_accountsreceivable' 
+            WHERE table_schema='public' AND table_name='accounts_receivables_accountsreceivable' 
             AND column_name='tenant_id';
         """)
         
