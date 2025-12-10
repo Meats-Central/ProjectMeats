@@ -58,9 +58,15 @@ jobs:
         run: |
           HOST="${{ steps.context.outputs.HOST }}"
           USER="${{ steps.context.outputs.USER }}"
-          CMD="${{ inputs.command }}"
           
-          echo "🚀 Executing on $USER@$HOST..."
+          # Use heredoc to safely handle special characters in command
+          CMD=$(cat <<'EOF'
+          ${{ inputs.command }}
+          EOF
+          )
+          
+          echo "🚀 Executing: $CMD"
+          echo "📍 Target: $USER@$HOST"
           
           sshpass -e ssh -o StrictHostKeyChecking=no $USER@$HOST \
           "docker exec pm-backend python manage.py $CMD"
