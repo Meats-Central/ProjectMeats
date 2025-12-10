@@ -19,11 +19,24 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
         """)
         
         if not cursor.fetchone():
-            # Column doesn't exist, add it
+            # Get a default UUID from tenants_tenant (assumes at least one exists)
+            cursor.execute("SELECT id FROM tenants_tenant LIMIT 1;")
+            result = cursor.fetchone()
+            if not result:
+                raise Exception("No tenant exists. Please create a tenant first.")
+            default_tenant_id = result[0]
+            
+            # Column doesn't exist, add it with UUID type
             cursor.execute("""
                 ALTER TABLE accounts_receivables_accountsreceivable 
-                ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 
+                ADD COLUMN tenant_id UUID NOT NULL DEFAULT %s 
                 REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+            """, [default_tenant_id])
+            
+            # Remove the default after adding the column
+            cursor.execute("""
+                ALTER TABLE accounts_receivables_accountsreceivable 
+                ALTER COLUMN tenant_id DROP DEFAULT;
             """)
 
 
