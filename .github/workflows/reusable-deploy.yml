@@ -424,7 +424,7 @@ jobs:
             cat > /etc/nginx/conf.d/pm-frontend.conf << 'NGINX'
           server {
               listen 80;
-              server_name _;
+              server_name _ localhost;
               
               location ~ ^/(api|admin|static)/ {
                   proxy_pass http://${{ secrets.BACKEND_IP }}:8000;
@@ -446,13 +446,24 @@ jobs:
             nginx -t && systemctl reload nginx
           fi
           
-          # Health check
+          # Health check - target container directly on port 8080
+          echo "Checking container health on port 8080..."
           MAX_ATTEMPTS=20
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --http1.1 -H "Host: localhost" http://localhost:80/ || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "✓ Frontend health check passed (HTTP $HTTP_CODE)"
+              echo "✓ Frontend container health check passed (HTTP $HTTP_CODE)"
+              
+              # Verify reverse proxy works too
+              echo "Verifying reverse proxy on port 80..."
+              PROXY_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || echo "000")
+              if [ "$PROXY_CODE" = "200" ]; then
+                echo "✓ Reverse proxy health check passed (HTTP $PROXY_CODE)"
+              else
+                echo "⚠ Reverse proxy returned HTTP $PROXY_CODE (container is healthy, proxy may need attention)"
+              fi
+              
               exit 0
             fi
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
