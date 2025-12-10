@@ -421,9 +421,13 @@ jobs:
           
           # Configure nginx reverse proxy
           if command -v nginx >/dev/null 2>&1; then
+            # Remove conflicting default Nginx config
+            rm -f /etc/nginx/sites-enabled/default
+            
+            # Create config as default_server to handle all port 80 traffic
             cat > /etc/nginx/conf.d/pm-frontend.conf << 'NGINX'
           server {
-              listen 80;
+              listen 80 default_server;
               server_name _ localhost;
               
               location ~ ^/(api|admin|static)/ {
