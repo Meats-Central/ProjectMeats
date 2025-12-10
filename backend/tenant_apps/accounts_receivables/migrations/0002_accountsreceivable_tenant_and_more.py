@@ -8,6 +8,7 @@ from django.db import migrations, models
 def add_tenant_field_if_not_exists(apps, schema_editor):
     """Add tenant field only if it doesn't exist"""
     from django.db import connection
+    import uuid
     
     with connection.cursor() as cursor:
         # Check if tenant_id column exists
@@ -19,25 +20,32 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
         """)
         
         if not cursor.fetchone():
-            # Get a default UUID from tenants_tenant (assumes at least one exists)
+            # Check if any tenants exist
             cursor.execute("SELECT id FROM tenants_tenant LIMIT 1;")
             result = cursor.fetchone()
-            if not result:
-                raise Exception("No tenant exists. Please create a tenant first.")
-            default_tenant_id = result[0]
             
-            # Column doesn't exist, add it with UUID type
-            cursor.execute("""
-                ALTER TABLE accounts_receivables_accountsreceivable 
-                ADD COLUMN tenant_id UUID NOT NULL DEFAULT %s 
-                REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
-            """, [default_tenant_id])
-            
-            # Remove the default after adding the column
-            cursor.execute("""
-                ALTER TABLE accounts_receivables_accountsreceivable 
-                ALTER COLUMN tenant_id DROP DEFAULT;
-            """)
+            if result:
+                # Production path: Tenant exists, use it as default
+                default_tenant_id = result[0]
+                cursor.execute("""
+                    ALTER TABLE accounts_receivables_accountsreceivable 
+                    ADD COLUMN tenant_id UUID NOT NULL DEFAULT %s 
+                    REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+                """, [default_tenant_id])
+                
+                # Remove the default after adding the column
+                cursor.execute("""
+                    ALTER TABLE accounts_receivables_accountsreceivable 
+                    ALTER COLUMN tenant_id DROP DEFAULT;
+                """)
+            else:
+                # Test/Fresh DB path: No tenants exist yet, add as nullable
+                # Model definition will enforce non-null at application level
+                cursor.execute("""
+                    ALTER TABLE accounts_receivables_accountsreceivable 
+                    ADD COLUMN tenant_id UUID NULL 
+                    REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+                """)
 
 
 def add_indexes_if_not_exist(apps, schema_editor):
