@@ -80,4 +80,6 @@ class Migration(migrations.Migration):
             model_name="customer",
             index=models.Index(
                 fields=["tenant", "name"], name="customers_c_tenant__5b0286_idx"
+            ),
+        ),
     ]
