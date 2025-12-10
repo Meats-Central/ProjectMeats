@@ -5,6 +5,60 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def add_tenant_field_if_not_exists(apps, schema_editor):
+    """Add tenant field only if it doesn't exist"""
+    from django.db import connection
+    
+    with connection.cursor() as cursor:
+        # Check if tenant_id column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='accounts_receivables_accountsreceivable' 
+            AND column_name='tenant_id';
+        """)
+        
+        if not cursor.fetchone():
+            # Column doesn't exist, add it
+            cursor.execute("""
+                ALTER TABLE accounts_receivables_accountsreceivable 
+                ADD COLUMN tenant_id INTEGER NOT NULL DEFAULT 1 
+                REFERENCES tenants_tenant(id) DEFERRABLE INITIALLY DEFERRED;
+            """)
+
+
+def add_indexes_if_not_exist(apps, schema_editor):
+    """Add indexes only if they don't exist"""
+    from django.db import connection
+    
+    with connection.cursor() as cursor:
+        # Check and add first index
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename='accounts_receivables_accountsreceivable' 
+            AND indexname='accounts_re_tenant__f66a87_idx';
+        """)
+        
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE INDEX accounts_re_tenant__f66a87_idx 
+                ON accounts_receivables_accountsreceivable (tenant_id, invoice_number);
+            """)
+        
+        # Check and add second index
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename='accounts_receivables_accountsreceivable' 
+            AND indexname='accounts_re_tenant__60de31_idx';
+        """)
+        
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE INDEX accounts_re_tenant__60de31_idx 
+                ON accounts_receivables_accountsreceivable (tenant_id, status);
+            """)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -15,29 +69,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="accountsreceivable",
-            name="tenant",
-            field=models.ForeignKey(
-                default=1,
-                help_text="Tenant this accounts receivable belongs to",
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="accounts_receivables",
-                to="tenants.tenant",
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddIndex(
-            model_name="accountsreceivable",
-            index=models.Index(
-                fields=["tenant", "invoice_number"],
-                name="accounts_re_tenant__f66a87_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="accountsreceivable",
-            index=models.Index(
-                fields=["tenant", "status"], name="accounts_re_tenant__60de31_idx"
-            ),
-        ),
+        migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
+        migrations.RunPython(add_indexes_if_not_exist, migrations.RunPython.noop),
     ]
