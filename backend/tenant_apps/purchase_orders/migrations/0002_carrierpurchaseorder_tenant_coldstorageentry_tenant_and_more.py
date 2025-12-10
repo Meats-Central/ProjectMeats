@@ -23,7 +23,7 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
-                WHERE table_name=%s 
+                WHERE table_schema='public' AND table_name=%s 
                 AND column_name='tenant_id';
             """, [table])
             

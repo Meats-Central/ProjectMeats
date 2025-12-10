@@ -11,11 +11,12 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
     from django.db import connection
     
     with connection.cursor() as cursor:
-        # Check if tenant_id column exists
+        # Check if table and tenant_id column exist
         cursor.execute("""
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name=%s 
+            WHERE table_schema='public'
+            AND table_name=%s 
             AND column_name='tenant_id';
         """, ['customers_customer'])
         
