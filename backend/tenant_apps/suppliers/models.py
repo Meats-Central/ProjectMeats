@@ -24,6 +24,7 @@ from apps.core.models import (
     Protein,
     ProteinTypeChoices,
     ShippingOfferedChoices,
+    TenantManager,
     TimestampModel,
 )
 from tenant_apps.plants.models import Plant
@@ -31,6 +32,9 @@ from tenant_apps.plants.models import Plant
 
 class Supplier(TimestampModel):
     """Supplier model for managing supplier information."""
+
+    # Use the custom TenantManager to support .for_tenant() queries
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(
