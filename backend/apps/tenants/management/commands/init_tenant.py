@@ -386,11 +386,12 @@ class Command(BaseCommand):
 
         invitation = TenantInvitation.objects.create(
             tenant=tenant,
-            email=f"invite@{domain}",
+            email=f"team@{domain}",  # Generic email placeholder
             role="user",
             invited_by=invited_by,
             expires_at=timezone.now() + timedelta(days=days_valid),
             message=f"Welcome to {tenant.name}! Use this link to join our organization.",
+            is_reusable=True,  # ENABLE REUSABILITY
         )
 
         # Generate invitation URL
@@ -400,6 +401,7 @@ class Command(BaseCommand):
         if verbosity >= 1:
             self.stdout.write(self.style.SUCCESS("   ✅ Invitation created"))
             self.stdout.write(f"   📎 URL: {invitation_url}")
+            self.stdout.write(f"   🔄 Reusable: Yes (can be used by multiple team members)")
 
         return invitation, invitation_url
 
