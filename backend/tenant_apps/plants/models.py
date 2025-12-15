@@ -5,11 +5,14 @@ Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 
 from django.db import models
+from apps.core.models import TenantManager
 from django.contrib.auth.models import User
 from apps.tenants.models import Tenant
 
 
 class Plant(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     PLANT_TYPE_CHOICES = [
         ("processing", "Processing Plant"),
         ("distribution", "Distribution Center"),

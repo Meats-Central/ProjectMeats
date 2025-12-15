@@ -23,6 +23,7 @@ from apps.core.models import (
     ProteinTypeChoices,
     TimestampModel,
     WeightUnitChoices,
+    TenantManager,
 )
 
 
@@ -37,6 +38,8 @@ class PurchaseOrderStatus(models.TextChoices):
 
 class PurchaseOrder(TimestampModel):
     """Purchase Order model for managing purchase orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(
@@ -166,6 +169,8 @@ class PurchaseOrder(TimestampModel):
 
 class CarrierPurchaseOrder(TimestampModel):
     """Carrier Purchase Order model for managing carrier-specific purchase orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     
     # Multi-tenancy
     tenant = models.ForeignKey(
@@ -346,6 +351,8 @@ class CarrierPurchaseOrder(TimestampModel):
 
 class ColdStorageEntry(TimestampModel):
     """Cold Storage Entry model for tracking boxing and cold storage operations."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(
@@ -465,6 +472,8 @@ class ColdStorageEntry(TimestampModel):
 
 class PurchaseOrderHistory(TimestampModel):
     """Version history for Purchase Order modifications."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(

@@ -19,12 +19,15 @@ from apps.core.models import (
     OriginChoices,
     Protein,
     TimestampModel,
+    TenantManager,
 )
 from tenant_apps.plants.models import Plant
 
 
 class Customer(TimestampModel):
     """Customer model for managing customer information."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(

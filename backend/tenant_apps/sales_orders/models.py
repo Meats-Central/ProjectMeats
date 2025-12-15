@@ -10,6 +10,7 @@ from apps.tenants.models import Tenant
 from apps.core.models import (
     TimestampModel,
     WeightUnitChoices,
+    TenantManager,
 )
 
 
@@ -25,6 +26,8 @@ class SalesOrderStatus(models.TextChoices):
 
 class SalesOrder(TimestampModel):
     """Sales Order model for managing customer sales orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     # Multi-tenancy
     tenant = models.ForeignKey(
         Tenant,

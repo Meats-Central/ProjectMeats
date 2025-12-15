@@ -12,6 +12,7 @@ from apps.core.models import (
     EdibleInedibleChoices,
     TimestampModel,
     WeightUnitChoices,
+    TenantManager,
 )
 
 
@@ -27,6 +28,8 @@ class InvoiceStatus(models.TextChoices):
 
 class Invoice(TimestampModel):
     """Invoice model for customer invoices."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     # Multi-tenancy
     tenant = models.ForeignKey(
         Tenant,

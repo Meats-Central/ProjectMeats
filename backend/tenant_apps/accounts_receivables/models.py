@@ -5,11 +5,14 @@ Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from decimal import Decimal
 from django.db import models
+from apps.core.models import TenantManager
 from django.contrib.auth.models import User
 from apps.tenants.models import Tenant
 
 
 class AccountsReceivable(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("paid", "Paid"),

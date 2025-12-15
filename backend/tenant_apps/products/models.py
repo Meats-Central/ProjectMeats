@@ -16,11 +16,14 @@ from apps.core.models import (
     PackageTypeChoices,
     ProteinTypeChoices,
     TimestampModel,
+    TenantManager,
 )
 
 
 class Product(TimestampModel):
     """Product model for master product list."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
 
     # Multi-tenancy
     tenant = models.ForeignKey(
