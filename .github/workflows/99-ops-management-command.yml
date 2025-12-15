@@ -13,7 +13,7 @@ on:
           - uat
           - prod
       command:
-        description: 'Django Command (e.g., seed_tenants --count=5)'
+        description: 'Django Command (ONLY the subcommand, e.g., "seed_tenants" NOT "python manage.py ...")'
         required: true
         default: 'check'
 
@@ -58,15 +58,17 @@ jobs:
         run: |
           HOST="${{ steps.context.outputs.HOST }}"
           USER="${{ steps.context.outputs.USER }}"
-          
-          # Use heredoc to safely handle special characters in command
-          CMD=$(cat <<'EOF'
-          ${{ inputs.command }}
-          EOF
-          )
+          CMD="${{ inputs.command }}"
           
           echo "🚀 Executing: $CMD"
           echo "📍 Target: $USER@$HOST"
           
+          # SAFETY CHECK: Strip 'python manage.py' if user accidentally included it
+          CLEAN_CMD=$(echo "$CMD" | sed 's/^python manage.py //')
+          
+          if [ "$CMD" != "$CLEAN_CMD" ]; then
+            echo "⚠️  Auto-corrected command input (removed redundant prefix)"
+          fi
+          
           sshpass -e ssh -o StrictHostKeyChecking=no $USER@$HOST \
-          "docker exec pm-backend python manage.py $CMD"
+          "docker exec pm-backend python manage.py $CLEAN_CMD"
