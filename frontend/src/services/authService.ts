@@ -94,7 +94,8 @@ export class AuthService {
 
       const response = await axios.post(endpoint, payload);
 
-      const { token, user } = response.data;
+      // EXTRACT TENANT INFO HERE
+      const { token, user, tenant } = response.data;
 
       this.token = token;
       this.user = user;
@@ -102,6 +103,13 @@ export class AuthService {
       // Store in localStorage
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
+
+      // CRITICAL FIX: Store the new tenant context immediately
+      if (tenant) {
+        localStorage.setItem('tenantId', tenant.id);
+        localStorage.setItem('tenantName', tenant.name);
+        localStorage.setItem('tenantSlug', tenant.slug);
+      }
 
       return user;
     } catch (error) {
