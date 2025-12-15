@@ -291,6 +291,16 @@ class TenantInvitation(models.Model):
     # Optional personal message
     message = models.TextField(blank=True, help_text="Optional message from inviter")
 
+    # NEW FIELDS for Reusability
+    is_reusable = models.BooleanField(
+        default=False,
+        help_text="Allow multiple users to sign up with this token"
+    )
+    usage_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of times this invitation has been used"
+    )
+
     class Meta:
         db_table = "tenants_invitation"
         ordering = ["-created_at"]
@@ -331,7 +341,12 @@ class TenantInvitation(models.Model):
     @property
     def is_valid(self):
         """Check if invitation is valid (pending and not expired)."""
-        return self.status == "pending" and not self.is_expired
+        # Valid if pending, OR (reusable and not expired)
+        if self.is_expired:
+            return False
+        if self.is_reusable:
+            return self.status != 'revoked'
+        return self.status == "pending"
 
     def accept(self, user):
         """
@@ -343,9 +358,14 @@ class TenantInvitation(models.Model):
         if not self.is_valid:
             raise ValueError("Invitation is not valid")
 
-        self.status = "accepted"
-        self.accepted_at = timezone.now()
-        self.accepted_by = user
+        self.usage_count += 1
+
+        # Only close the invite if it's NOT reusable
+        if not self.is_reusable:
+            self.status = "accepted"
+            self.accepted_at = timezone.now()
+            self.accepted_by = user
+
         self.save()
 
     def revoke(self):
