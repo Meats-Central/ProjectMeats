@@ -19,6 +19,7 @@ export interface SignUpCredentials {
   firstName: string;
   lastName: string;
   company?: string;
+  token?: string;
 }
 
 export interface AuthResponse {
@@ -75,12 +76,18 @@ export class AuthService {
 
   async signUp(credentials: SignUpCredentials): Promise<UserProfile> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup/`, {
+      // Determine endpoint based on presence of token
+      const endpoint = credentials.token 
+        ? `${API_BASE_URL}/auth/signup-with-invitation/` 
+        : `${API_BASE_URL}/auth/signup/`;
+
+      const response = await axios.post(endpoint, {
         username: credentials.username,
         email: credentials.email,
         password: credentials.password,
         firstName: credentials.firstName,
         lastName: credentials.lastName,
+        token: credentials.token,
       });
 
       const { token, user } = response.data;
