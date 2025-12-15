@@ -49,23 +49,6 @@ def add_tenant_field_if_not_exists(apps, schema_editor):
                 """)
 
 
-def add_indexes_if_not_exist(apps, schema_editor):
-    """Add indexes only if they don't exist"""
-    from django.db import connection
-    
-    with connection.cursor() as cursor:
-        # Get all indexes that should exist
-        cursor.execute("""
-            SELECT indexname FROM pg_indexes 
-            WHERE tablename=%s AND indexname LIKE %s;
-        """, ['carriers_carrier', f'carriers_%'])
-        
-        existing_indexes = {row[0] for row in cursor.fetchall()}
-        
-        # This will be filled with actual index creation SQL if we find any
-        # For now, we'll let Django's index management handle it
-        pass
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -76,23 +59,29 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Step 1: Add tenant field via raw SQL (for existing production databases)
-        migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
-        
-        # Step 2: Register the field with Django's ORM (state-only, no actual DB operation)
-        migrations.AddField(
-            model_name='carrier',
-            name='tenant',
-            field=models.ForeignKey(
-                help_text='Tenant this carrier belongs to',
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name='carriers',
-                to='tenants.tenant'
-            ),
-            preserve_default=False,
+        # CRITICAL FIX: Separate State (Django) from Database (SQL)
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                # Tell Django the field exists so models validate
+                migrations.AddField(
+                    model_name='carrier',
+                    name='tenant',
+                    field=models.ForeignKey(
+                        help_text='Tenant this carrier belongs to',
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='carriers',
+                        to='tenants.tenant'
+                    ),
+                    preserve_default=False,
+                ),
+            ],
+            database_operations=[
+                # Actually create the column safely using our custom script
+                migrations.RunPython(add_tenant_field_if_not_exists, migrations.RunPython.noop),
+            ],
         ),
         
-        # Step 3: Add index (now that Django knows the field exists)
+        # Add index (Safe to run after column is ensured)
         migrations.AddIndex(
             model_name="carrier",
             index=models.Index(
