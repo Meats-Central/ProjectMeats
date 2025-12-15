@@ -7,11 +7,13 @@ Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
 from apps.tenants.models import Tenant
-from apps.core.models import ContactTypeChoices, StatusChoices, TimestampModel
+from apps.core.models import ContactTypeChoices, StatusChoices, TimestampModel, TenantManager
 
 
 class Contact(TimestampModel):
     """Contact model for managing contact information."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     
     # Multi-tenancy
     tenant = models.ForeignKey(

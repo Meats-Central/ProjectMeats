@@ -12,11 +12,14 @@ from apps.core.models import (
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
     CreditLimitChoices,
+    TenantManager,
 )
 from tenant_apps.contacts.models import Contact
 
 
 class Carrier(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     CARRIER_TYPE_CHOICES = [
         ("truck", "Truck"),
         ("rail", "Rail"),
