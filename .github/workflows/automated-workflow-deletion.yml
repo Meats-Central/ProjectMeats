@@ -294,7 +294,7 @@ jobs:
       
       - name: Upload audit logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: deletion-audit-${{ steps.setup.outputs.RUN_ID }}
           path: logs/

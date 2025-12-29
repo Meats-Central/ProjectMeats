@@ -243,7 +243,7 @@ jobs:
       
       - name: Upload retention report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: retention-report-${{ steps.setup.outputs.RUN_ID }}
           path: logs/
