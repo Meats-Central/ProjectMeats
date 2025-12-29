@@ -76,19 +76,54 @@ class EnvironmentManager:
             
         return f"{prefix}_{var_name}"
 
-    def audit_secrets(self):
+    def audit_secrets(self, exit_on_error: bool = True):
+        """
+        Comprehensive audit of GitHub Secrets against manifest requirements.
+        
+        Args:
+            exit_on_error: If True, exits with code 1 on missing secrets. 
+                          If False, returns audit results for programmatic use.
+        
+        Returns:
+            dict: Audit results with structure:
+                {
+                    'passed': bool,
+                    'global_secrets': set,
+                    'environments': {
+                        'env-name': {
+                            'env_secrets': set,
+                            'available_secrets': set,
+                            'missing': list,
+                            'required': list
+                        }
+                    }
+                }
+        """
         print(f"{Colors.BOLD}Starting Environment-Aware Audit (Manifest v{self.manifest.get('version', '?.?')})...{Colors.END}\n")
         
         # 1. Fetch Global Secrets (Available to all)
         global_secrets = self._get_secrets(None)
         print(f"{Colors.CYAN}✓ Fetched {len(global_secrets)} Global Repository Secrets{Colors.END}")
+        
+        if global_secrets:
+            print(f"{Colors.CYAN}  Global Secrets:{Colors.END}")
+            for secret in sorted(global_secrets):
+                print(f"    - {secret}")
 
-        all_required_secrets = set()
+        audit_results = {
+            'passed': True,
+            'global_secrets': global_secrets,
+            'environments': {}
+        }
+        
         has_missing = False
+        all_missing_secrets = []
 
         # 2. Audit Each Environment
         for env_name, env_config in self.environments.items():
-            print(f"\nScanning Environment: {Colors.BOLD}{env_name}{Colors.END}...")
+            print(f"\n{Colors.BOLD}Environment: {env_name}{Colors.END}")
+            print(f"  Type: {env_config.get('type', 'backend')}")
+            print(f"  Prefix: {env_config.get('prefix', 'N/A')}")
             
             # Fetch Env-Specific Secrets
             env_secrets = self._get_secrets(env_name)
@@ -96,6 +131,7 @@ class EnvironmentManager:
             available_secrets = env_secrets.union(global_secrets)
             
             missing_in_this_env = []
+            required_in_this_env = []
             env_type = env_config.get("type", "backend")
             
             categories = ["infrastructure"]
@@ -104,41 +140,81 @@ class EnvironmentManager:
             elif env_type == "frontend":
                 categories.append("frontend_runtime")
 
+            print(f"  Checking categories: {', '.join(categories)}")
+            
             for category in categories:
                 vars_in_cat = self.variables.get(category, {})
                 for var_name, var_def in vars_in_cat.items():
-                    secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+                    # Skip if value comes from config (not a secret)
+                    if var_def.get("value_source") == "environment_config":
+                        continue
                     
-                    # Track for Zombie check (only if strictly required, simplified logic here)
-                    # Note: We technically can't track "all required" globally easily because of overlaps,
-                    # but we can track what we looked for.
+                    secret_name = self._resolve_secret_name(env_name, var_name, var_def)
+                    required_in_this_env.append(secret_name)
                     
                     if secret_name not in available_secrets:
-                        missing_in_this_env.append(f"{var_name} -> {secret_name}")
+                        missing_entry = {
+                            'var_name': var_name,
+                            'secret_name': secret_name,
+                            'category': category,
+                            'environment': env_name
+                        }
+                        missing_in_this_env.append(missing_entry)
+                        all_missing_secrets.append(missing_entry)
+
+            # Store results for this environment
+            audit_results['environments'][env_name] = {
+                'env_secrets': env_secrets,
+                'available_secrets': available_secrets,
+                'missing': missing_in_this_env,
+                'required': required_in_this_env
+            }
 
             if missing_in_this_env:
                 has_missing = True
-                print(f"{Colors.RED}  ❌ MISSING:{Colors.END}")
+                audit_results['passed'] = False
+                print(f"\n  {Colors.RED}❌ MISSING SECRETS ({len(missing_in_this_env)}):{Colors.END}")
                 for item in missing_in_this_env:
-                    print(f"     - {item}")
+                    print(f"     {Colors.RED}•{Colors.END} {item['var_name']} → {Colors.BOLD}{item['secret_name']}{Colors.END}")
+                    print(f"       Category: {item['category']}")
             else:
-                print(f"{Colors.GREEN}  ✅ All Clear ({len(env_secrets)} env-specific secrets found){Colors.END}")
+                print(f"\n  {Colors.GREEN}✅ All Required Secrets Present{Colors.END}")
+                print(f"     Environment-specific: {len(env_secrets)}")
+                print(f"     Total available: {len(available_secrets)}")
 
-        # 3. Zombie Report (Global Only)
-        # It's hard to definitively call an Environment secret a zombie without querying ALL envs perfectly,
-        # so we focus on Global Zombies which are most dangerous/confusing.
-        print(f"\n{Colors.BOLD}--- GLOBAL ZOMBIE SECRETS (Repo-level, potentially unused) ---{Colors.END}")
-        # A simple heuristic: If it's in global but looks like a specific env secret (e.g. DEV_DB_HOST), warn.
-        # For now, just listing globals that might be superseded by env secrets is complex.
-        # We will list globals that definitely don't match our naming conventions? 
-        # Let's just print the count to be safe, or skip zombie check to avoid false positives in this version.
-        # User asked for accuracy on "Missing", so let's focus on that.
+        # 3. Summary Report
+        print(f"\n{Colors.BOLD}{'=' * 70}{Colors.END}")
+        print(f"{Colors.BOLD}AUDIT SUMMARY{Colors.END}")
+        print(f"{Colors.BOLD}{'=' * 70}{Colors.END}")
         
         if has_missing:
-            print(f"\n{Colors.RED}Audit Failed: Required secrets are missing from their environments.{Colors.END}")
-            sys.exit(1)
+            print(f"\n{Colors.RED}❌ AUDIT FAILED{Colors.END}")
+            print(f"\n{Colors.RED}Total Missing Secrets: {len(all_missing_secrets)}{Colors.END}\n")
+            
+            # Group by environment for clarity
+            for env_name, env_results in audit_results['environments'].items():
+                if env_results['missing']:
+                    print(f"{Colors.BOLD}{env_name}:{Colors.END}")
+                    for item in env_results['missing']:
+                        print(f"  • {Colors.BOLD}{item['secret_name']}{Colors.END}")
+                    print()
+            
+            print(f"{Colors.YELLOW}ACTION REQUIRED:{Colors.END}")
+            print(f"  1. Add missing secrets to GitHub:")
+            print(f"     {Colors.CYAN}https://github.com/Meats-Central/ProjectMeats/settings/secrets/actions{Colors.END}")
+            print(f"  2. Ensure secrets are added to the correct environment scope")
+            print(f"  3. Re-run audit: {Colors.CYAN}python config/manage_env.py audit{Colors.END}\n")
+            
+            if exit_on_error:
+                sys.exit(1)
         else:
-            print(f"\n{Colors.GREEN}Audit Passed: All environments have access to required secrets.{Colors.END}")
+            print(f"\n{Colors.GREEN}✅ AUDIT PASSED{Colors.END}")
+            print(f"\nAll required secrets are properly configured:")
+            for env_name, env_results in audit_results['environments'].items():
+                print(f"  • {env_name}: {len(env_results['required'])} secrets validated")
+            print()
+        
+        return audit_results
 
 def main():
     parser = argparse.ArgumentParser(description="Environment & Secret Manager")

@@ -55,6 +55,20 @@ jobs:
       - name: Execute Remote Command
         env:
           SSHPASS: ${{ steps.context.outputs.PASS }}
+          # Django standard environment variables (if provided)
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+          # Core Django settings
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          # Database configuration
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
         run: |
           HOST="${{ steps.context.outputs.HOST }}"
           USER="${{ steps.context.outputs.USER }}"
@@ -62,6 +76,7 @@ jobs:
           
           echo "🚀 Executing: $CMD"
           echo "📍 Target: $USER@$HOST"
+          echo "🌍 Environment: ${{ inputs.environment }}-backend"
           
           # SAFETY CHECK: Strip 'python manage.py' if user accidentally included it
           CLEAN_CMD=$(echo "$CMD" | sed 's/^python manage.py //')
@@ -70,5 +85,50 @@ jobs:
             echo "⚠️  Auto-corrected command input (removed redundant prefix)"
           fi
           
+          # Build environment variable injection string for docker exec
+          ENV_VARS=""
+          
+          # Add Django superuser variables if provided (for init_tenant, createsuperuser, etc.)
+          if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then
+            ENV_VARS="$ENV_VARS -e DJANGO_SUPERUSER_USERNAME=\"$DJANGO_SUPERUSER_USERNAME\""
+          fi
+          if [ -n "$DJANGO_SUPERUSER_EMAIL" ]; then
+            ENV_VARS="$ENV_VARS -e DJANGO_SUPERUSER_EMAIL=\"$DJANGO_SUPERUSER_EMAIL\""
+          fi
+          if [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
+            ENV_VARS="$ENV_VARS -e DJANGO_SUPERUSER_PASSWORD=\"$DJANGO_SUPERUSER_PASSWORD\""
+          fi
+          
+          # Add core Django settings
+          if [ -n "$SECRET_KEY" ]; then
+            ENV_VARS="$ENV_VARS -e SECRET_KEY=\"$SECRET_KEY\""
+          fi
+          if [ -n "$DJANGO_SETTINGS_MODULE" ]; then
+            ENV_VARS="$ENV_VARS -e DJANGO_SETTINGS_MODULE=\"$DJANGO_SETTINGS_MODULE\""
+          fi
+          
+          # Add database configuration
+          if [ -n "$DATABASE_URL" ]; then
+            ENV_VARS="$ENV_VARS -e DATABASE_URL=\"$DATABASE_URL\""
+          fi
+          if [ -n "$DB_NAME" ]; then
+            ENV_VARS="$ENV_VARS -e DB_NAME=\"$DB_NAME\""
+          fi
+          if [ -n "$DB_USER" ]; then
+            ENV_VARS="$ENV_VARS -e DB_USER=\"$DB_USER\""
+          fi
+          if [ -n "$DB_PASSWORD" ]; then
+            ENV_VARS="$ENV_VARS -e DB_PASSWORD=\"$DB_PASSWORD\""
+          fi
+          if [ -n "$DB_HOST" ]; then
+            ENV_VARS="$ENV_VARS -e DB_HOST=\"$DB_HOST\""
+          fi
+          if [ -n "$DB_PORT" ]; then
+            ENV_VARS="$ENV_VARS -e DB_PORT=\"$DB_PORT\""
+          fi
+          
+          echo "📦 Injecting environment variables into container..."
+          
+          # Execute command with environment variables
           sshpass -e ssh -o StrictHostKeyChecking=no $USER@$HOST \
-          "docker exec pm-backend python manage.py $CLEAN_CMD"
+          "docker exec $ENV_VARS pm-backend python manage.py $CLEAN_CMD"
