@@ -47,8 +47,8 @@ const ENVIRONMENT_PATTERNS = {
  */
 const DEFAULT_API_URLS = {
   development: 'https://dev.meatscentral.com/api/v1',
-  uat: 'https://uat.meatscentral.com/api/v1',
-  production: 'https://meatscentral.com/api/v1',
+  uat: 'https://api.uat.meatscentral.com/api/v1',
+  production: 'https://api.meatscentral.com/api/v1',
 };
 
 /**
