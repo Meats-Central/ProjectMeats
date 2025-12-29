@@ -105,6 +105,12 @@ _DEFAULT_TRUSTED_ORIGINS = [
     "https://prod-backend.meatscentral.com",
 ]
 
+# Regex patterns for dynamic subdomain support
+# This allows any subdomain of meatscentral.com without explicit enumeration
+_CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://([a-zA-Z0-9-]+\.)?meatscentral\.com$",  # Matches *.meatscentral.com
+]
+
 
 def _merge_origins(default_origins: list, env_var_name: str) -> list:
     """
@@ -122,6 +128,7 @@ def _merge_origins(default_origins: list, env_var_name: str) -> list:
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = _merge_origins(_DEFAULT_TRUSTED_ORIGINS, "CORS_ALLOWED_ORIGINS")
+CORS_ALLOWED_ORIGIN_REGEXES = _CORS_ALLOWED_ORIGIN_REGEXES
 CORS_ALLOW_CREDENTIALS = True
 # Allow all origins if explicitly set via environment variable (useful for debugging)
 # In production, prefer setting CORS_ALLOWED_ORIGINS instead
