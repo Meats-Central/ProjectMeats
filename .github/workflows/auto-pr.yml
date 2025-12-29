@@ -1,0 +1,38 @@
+name: 🤖 Auto-Draft Release PR
+
+on:
+  workflow_run:
+    workflows: ["Master Pipeline"]
+    types:
+      - completed
+    branches:
+      - development
+
+jobs:
+  draft-uat-pr:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Pull Request to UAT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if a PR already exists from development -> uat
+          EXISTING_PR=$(gh pr list --base uat --head development --json url --jq '.[0].url')
+          
+          if [ -z "$EXISTING_PR" ]; then
+            echo "🚀 Creating new PR: Development -> UAT"
+            gh pr create \
+              --base uat \
+              --head development \
+              --title "🚀 Promote Dev to UAT" \
+              --body "Automated PR created after successful deployment to Development. Review changes and merge to deploy to UAT."
+          else
+            echo "✅ PR already exists: $EXISTING_PR"
+          fi
