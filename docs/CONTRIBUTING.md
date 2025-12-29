@@ -31,6 +31,54 @@ Welcome to ProjectMeats! This guide will help you contribute effectively to our 
 
 **Before creating branches or PRs, please review the [Branch Workflow Checklist](branch-workflow-checklist.md).**
 
+### Branch Hygiene Policy
+
+**CRITICAL: Feature branches MUST be deleted immediately after merging to development.**
+
+**Policy:**
+- ✅ Delete feature branches within 24 hours of merge
+- ✅ Use GitHub's "Delete branch" button after PR merge
+- ✅ Run `git fetch --all --prune` regularly to clean local references
+- ❌ Never leave merged branches in the repository
+- ❌ Never create new branches from old feature branches
+
+**Why This Matters:**
+- Reduces repository clutter (we had 254 stale branches!)
+- Prevents confusion about which branches are active
+- Reduces technical debt
+- Improves repository performance
+- Makes it easier to find relevant work
+
+**Automated Cleanup:**
+The repository includes automated workflows that:
+- Delete merged branches after 7 days
+- Prune stale branch references
+- Monitor branch health
+
+**Manual Cleanup:**
+```bash
+# List merged branches
+git branch -r --merged origin/development | grep -v "HEAD\|development\|main\|uat"
+
+# Delete a remote branch
+git push origin --delete <branch-name>
+
+# Prune local references
+git fetch --all --prune
+
+# Delete local merged branches
+git branch --merged development | grep -v "development\|main\|uat" | xargs git branch -d
+```
+
+**Best Practice Workflow:**
+1. Create feature branch from `development`
+2. Make changes and commit
+3. Push and create PR
+4. Get review and approval
+5. Merge PR to `development`
+6. **✅ Immediately delete feature branch** (via GitHub UI or CLI)
+7. Update local repository: `git fetch --all --prune`
+
 ### Branch Naming Convention
 
 All branches **must** follow this format: `<type>/<description>`
