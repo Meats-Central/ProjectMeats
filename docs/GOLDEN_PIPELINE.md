@@ -16,8 +16,9 @@
 6. [Frontend Strategy: Dockerized Nginx](#frontend-strategy-dockerized-nginx)
 7. [Environment Map](#environment-map)
 8. [Deployment Workflow](#deployment-workflow)
-9. [Golden Rules](#golden-rules)
-10. [Verification](#verification)
+9. [Tenant Onboarding](#tenant-onboarding)
+10. [Golden Rules](#golden-rules)
+11. [Verification](#verification)
 
 ---
 
@@ -524,6 +525,215 @@ window.ENV = {
 |------|---------|
 | `.github/workflows/main-pipeline.yml` | Orchestrates per-branch deployments |
 | `.github/workflows/reusable-deploy.yml` | Reusable deployment worker |
+
+---
+
+## Tenant Onboarding
+
+### Overview
+
+The `init_tenant` management command provides a streamlined way to initialize new tenants with all required components: tenant record, domain, admin user, and invitation link.
+
+### Using init_tenant Command
+
+#### Basic Usage
+
+```bash
+# Via GitHub Actions Ops Workflow
+# 1. Go to Actions > Ops - Run Management Command
+# 2. Select environment (dev, uat, prod)
+# 3. Enter command:
+
+init_tenant \
+  --schema-name=acme_corp \
+  --name="ACME Corporation" \
+  --domain=acme.meatscentral.com \
+  --admin-email=admin@acme.com \
+  --admin-password=secure_password
+```
+
+#### Command Parameters
+
+| Parameter | Required | Description | Example |
+|-----------|----------|-------------|---------|
+| `--schema-name` | ✅ Yes | PostgreSQL-compatible identifier | `acme_corp` |
+| `--name` | ✅ Yes | Organization display name | `ACME Corporation` |
+| `--domain` | ✅ Yes | Primary domain for tenant | `acme.meatscentral.com` |
+| `--admin-email` | ✅ Yes | Initial admin user email | `admin@acme.com` |
+| `--admin-password` | ✅ Yes | Initial admin password | `secure_password` |
+| `--admin-username` | ⚠️ Optional | Admin username (defaults to email prefix) | `admin` |
+| `--slug` | ⚠️ Optional | URL-friendly identifier | `acme-corp` |
+| `--on-trial` | ⚠️ Optional | Mark as trial account | (flag) |
+| `--trial-days` | ⚠️ Optional | Trial duration in days | `30` |
+| `--skip-invitation` | ⚠️ Optional | Skip invitation link creation | (flag) |
+
+#### What Gets Created
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Tenant Record                                            │
+│    - Name: ACME Corporation                                 │
+│    - Schema: acme_corp (shared schema isolation)            │
+│    - Slug: acme-corp                                        │
+│    - Status: Active                                         │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. Primary Domain                                           │
+│    - Domain: acme.meatscentral.com                          │
+│    - Type: Primary                                          │
+│    - SSL: Auto (via Let's Encrypt)                          │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. Admin User                                               │
+│    - Username: admin                                        │
+│    - Email: admin@acme.com                                  │
+│    - Role: Owner                                            │
+│    - Staff Access: Yes                                      │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. Reusable Invitation Link (Optional)                     │
+│    - Token: auto-generated                                  │
+│    - Expires: 7 days (configurable)                         │
+│    - Reusable: Yes (multiple team members)                  │
+│    - URL: https://acme.meatscentral.com/signup/?token=...  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Environment Variables
+
+The Ops workflow automatically injects required environment variables:
+
+```yaml
+# Automatically provided by workflow
+DJANGO_SUPERUSER_USERNAME  # For Django admin access
+DJANGO_SUPERUSER_EMAIL     # For Django admin access
+DJANGO_SUPERUSER_PASSWORD  # For Django admin access
+SECRET_KEY                 # Django secret key
+DJANGO_SETTINGS_MODULE     # Settings module path
+DATABASE_URL               # Database connection string
+```
+
+**No manual configuration required** - the workflow handles all variable injection.
+
+### Troubleshooting Dev Onboarding
+
+#### Issue: Dev Domain SSL Certificate Errors
+
+**Problem**: Development environment (`dev.meatscentral.com`) uses self-signed SSL certificates which browsers reject, preventing tenant onboarding and login.
+
+**Solution: Domain Swap Trick**
+
+Use `localhost` with port forwarding to bypass SSL validation:
+
+```bash
+# 1. Forward dev backend to localhost
+ssh -L 8000:localhost:8000 user@dev-droplet-ip
+
+# 2. Access via localhost (no SSL errors)
+http://localhost:8000
+
+# 3. Use localhost domain for tenant creation
+init_tenant \
+  --schema-name=test_tenant \
+  --name="Test Tenant" \
+  --domain=localhost \
+  --admin-email=admin@test.localhost \
+  --admin-password=testpass123
+```
+
+**Why This Works**:
+- Browsers don't enforce HTTPS on `localhost`
+- SSH tunnel maintains secure connection to droplet
+- Bypasses self-signed certificate validation
+- Admin can log in without certificate warnings
+
+**Alternative: Accept Certificate**
+
+For persistent development access:
+
+```bash
+# 1. Visit https://dev.meatscentral.com in browser
+# 2. Click "Advanced" or "Show Details"
+# 3. Click "Proceed to dev.meatscentral.com (unsafe)"
+# 4. Certificate accepted for current browser session
+```
+
+**Production Note**: This issue **only affects development**. UAT and Production use valid Let's Encrypt certificates.
+
+### Best Practices
+
+#### Schema Naming
+- Use lowercase with underscores: `acme_corp` ✅
+- Avoid spaces: `acme corp` ❌
+- Max 63 characters (PostgreSQL limit)
+- Start with letter or underscore
+
+#### Domain Configuration
+- Use subdomains: `tenant.meatscentral.com` ✅
+- Configure DNS A record pointing to droplet IP
+- SSL certificates auto-generated via Let's Encrypt
+- Allow 5-10 minutes for DNS propagation
+
+#### Password Security
+- Minimum 12 characters recommended
+- Include uppercase, lowercase, numbers, symbols
+- Avoid common passwords
+- Use password manager for generation
+
+#### Trial Accounts
+```bash
+# Create 30-day trial
+init_tenant \
+  --schema-name=trial_co \
+  --name="Trial Company" \
+  --domain=trial.meatscentral.com \
+  --admin-email=admin@trial.com \
+  --admin-password=secure123 \
+  --on-trial \
+  --trial-days=30
+```
+
+### Verification
+
+After running `init_tenant`, verify the setup:
+
+```bash
+# 1. Check tenant record
+python manage.py shell
+>>> from apps.tenants.models import Tenant
+>>> tenant = Tenant.objects.get(slug='acme-corp')
+>>> print(f"Tenant: {tenant.name}, Active: {tenant.is_active}")
+
+# 2. Check domain
+>>> from apps.tenants.models import TenantDomain
+>>> domain = TenantDomain.objects.get(tenant=tenant, is_primary=True)
+>>> print(f"Domain: {domain.domain}")
+
+# 3. Check admin user
+>>> from django.contrib.auth.models import User
+>>> admin = User.objects.get(email='admin@acme.com')
+>>> print(f"Admin: {admin.username}, Staff: {admin.is_staff}")
+
+# 4. Test login
+# Visit: https://acme.meatscentral.com/admin/
+# Login with: admin@acme.com / secure_password
+```
+
+### Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Tenant with slug "acme-corp" already exists` | Duplicate tenant | Choose different schema-name |
+| `Domain "acme.meatscentral.com" already exists` | Domain in use | Check existing tenants |
+| `User with email "admin@acme.com" already exists` | Email already registered | Use different admin email |
+| `Invalid schema name` | Invalid characters | Use letters, numbers, underscores only |
+| `Environment variables not found` | Workflow misconfiguration | Check GitHub Secrets setup |
 
 ---
 
