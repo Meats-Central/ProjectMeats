@@ -11,7 +11,7 @@ on:
 jobs:
   draft-uat-pr:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     permissions:
       contents: write
       pull-requests: write
