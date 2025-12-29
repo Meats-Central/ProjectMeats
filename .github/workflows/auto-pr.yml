@@ -21,7 +21,7 @@ jobs:
 
       - name: Create Pull Request to UAT
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           # Check if a PR already exists from development -> uat
           EXISTING_PR=$(gh pr list --base uat --head development --json url --jq '.[0].url')
