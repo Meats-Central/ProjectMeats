@@ -123,22 +123,20 @@ jobs:
       frontend_environment: 'dev-frontend'
       api_base_url: 'https://dev.meatscentral.com'
     secrets:
-      FRONTEND_SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
-      BACKEND_SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
-      FRONTEND_HOST: ${{ secrets.DEV_FRONTEND_HOST }}
-      FRONTEND_USER: ${{ secrets.DEV_FRONTEND_USER }}
-      BACKEND_HOST: ${{ secrets.DEV_HOST }}
-      BACKEND_USER: ${{ secrets.DEV_USER }}
-      BACKEND_IP: ${{ secrets.DEV_BACKEND_IP }}
-      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+      SSH_HOST: ${{ secrets.DEV_HOST }}
+      SSH_USER: ${{ secrets.DEV_USER }}
+      SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+      SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
       DB_HOST: ${{ secrets.DEV_DB_HOST }}
       DB_PORT: ${{ secrets.DEV_DB_PORT }}
+      DB_NAME: ${{ secrets.DEV_DB_NAME }}
       DB_USER: ${{ secrets.DEV_DB_USER }}
       DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DEV_DB_NAME }}
-      SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
+      DJANGO_SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
       DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
-      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+      REACT_APP_API_BASE_URL: ${{ secrets.DEV_API_BASE_URL }}
+      BACKEND_HOST: ${{ secrets.DEV_BACKEND_IP }}
 
   # ==========================================
   # Route to UAT
