@@ -88,7 +88,7 @@ jobs:
             FAILED=1
           fi
           
-          # Check for hardcoded :latest in Docker run commands
+          # Check for hardcoded forbidden tag in Docker run commands
           if grep -v '^\s*#' .github/workflows/reusable-deploy.yml | grep -q "docker run.*:${FORBIDDEN_TAG}" 2>/dev/null; then
             echo "❌ ERROR: reusable-deploy.yml uses ':${FORBIDDEN_TAG}' tag in docker run"
             echo "   Deploy steps must use SHA-tagged images only"
