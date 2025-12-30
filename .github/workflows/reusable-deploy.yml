@@ -32,38 +32,9 @@ on:
         description: "API base URL for frontend (optional, for future Build Once Deploy Many pattern)"
         default: ""
     secrets:
-      FRONTEND_SSH_KEY:
-        required: true
-      BACKEND_SSH_PASSWORD:
-        required: true
-      FRONTEND_HOST:
-        required: true
-      FRONTEND_USER:
-        required: true
-      BACKEND_HOST:
-        required: true
-      BACKEND_USER:
-        required: true
-      BACKEND_IP:
-        required: true
-      DATABASE_URL:
-        required: true
-      DB_HOST:
-        required: true
-      DB_PORT:
-        required: false
-      DB_USER:
-        required: true
-      DB_PASSWORD:
-        required: true
-      DB_NAME:
-        required: true
-      SECRET_KEY:
-        required: true
-      DJANGO_SETTINGS_MODULE:
-        required: true
       DO_ACCESS_TOKEN:
         required: true
+        description: "DigitalOcean access token (shared across all environments)"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
@@ -221,11 +192,11 @@ jobs:
       
       - name: Setup SSH tunnel to database
         env:
-          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT || '5432' }}
-          BASTION_USER: ${{ secrets.BACKEND_USER }}
-          BASTION_HOST: ${{ secrets.BACKEND_HOST }}
+          BASTION_USER: ${{ secrets.SSH_USER }}
+          BASTION_HOST: ${{ secrets.SSH_HOST }}
         run: |
           echo "================================"
           echo "Creating SSH Tunnel"
@@ -274,7 +245,7 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
         run: |
           echo "================================"
@@ -300,7 +271,7 @@ jobs:
             --network host \
             -e DATABASE_URL="$DATABASE_URL" \
             -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
-            -e SECRET_KEY="$SECRET_KEY" \
+            -e SECRET_KEY="$DJANGO_SECRET_KEY" \
             -e DB_ENGINE="django.db.backends.postgresql" \
             "$FULL_IMAGE" \
             python manage.py migrate --fake-initial --noinput
@@ -325,9 +296,9 @@ jobs:
     steps:
       - name: Deploy backend container
         env:
-          SSHPASS: ${{ secrets.BACKEND_SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.BACKEND_USER }}@${{ secrets.BACKEND_HOST }} << 'SSH'
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
           set -euo pipefail
           
           REG="${{ env.REGISTRY }}"
@@ -383,13 +354,13 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.FRONTEND_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.FRONTEND_HOST }}" >> ~/.ssh/known_hosts 2>&1
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>&1
 
       - name: Deploy frontend container
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.FRONTEND_USER }}@${{ secrets.FRONTEND_HOST }} << 'SSH'
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
           set -euo pipefail
           
           REG="${{ env.REGISTRY }}"
@@ -418,7 +389,7 @@ jobs:
           docker run -d --name pm-frontend \
             --restart unless-stopped \
             -p 8080:80 \
-            --add-host backend:${{ secrets.BACKEND_IP }} \
+            --add-host backend:${{ secrets.BACKEND_HOST }} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$TAG"
           
@@ -434,7 +405,7 @@ jobs:
               server_name _ localhost;
               
               location ~ ^/(api|admin|static)/ {
-                  proxy_pass http://${{ secrets.BACKEND_IP }}:8000;
+                  proxy_pass http://${{ secrets.BACKEND_HOST }}:8000;
                   proxy_set_header Host \$host;
                   proxy_set_header X-Real-IP \$remote_addr;
                   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

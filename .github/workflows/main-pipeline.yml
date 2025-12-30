@@ -153,26 +153,10 @@ jobs:
       environment: 'uat'
       ref: ${{ github.ref }}
       image_tag: 'uat-${{ github.sha }}'
-      backend_environment: 'uat2-backend'
-      frontend_environment: 'uat2-frontend'
+      backend_environment: 'uat-backend'
+      frontend_environment: 'uat-frontend'
       api_base_url: 'https://uat.meatscentral.com'
-    secrets:
-      FRONTEND_SSH_KEY: ${{ secrets.UAT_FRONTEND_SSH_KEY }}
-      BACKEND_SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}
-      FRONTEND_HOST: ${{ secrets.UAT_FRONTEND_HOST }}
-      FRONTEND_USER: ${{ secrets.UAT_FRONTEND_USER }}
-      BACKEND_HOST: ${{ secrets.UAT_HOST }}
-      BACKEND_USER: ${{ secrets.UAT_USER }}
-      BACKEND_IP: ${{ secrets.UAT_BACKEND_IP }}
-      DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
-      DB_HOST: ${{ secrets.UAT_DB_HOST }}
-      DB_PORT: ${{ secrets.UAT_DB_PORT }}
-      DB_USER: ${{ secrets.UAT_DB_USER }}
-      DB_PASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
-      DB_NAME: ${{ secrets.UAT_DB_NAME }}
-      SECRET_KEY: ${{ secrets.UAT_SECRET_KEY }}
-      DJANGO_SETTINGS_MODULE: ${{ secrets.UAT_DJANGO_SETTINGS_MODULE }}
-      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+    secrets: inherit
 
   # ==========================================
   # Route to Production
@@ -187,23 +171,7 @@ jobs:
       environment: 'production'
       ref: ${{ github.ref }}
       image_tag: 'production-${{ github.sha }}'
-      backend_environment: 'prod2-backend'
-      frontend_environment: 'prod2-frontend'
+      backend_environment: 'production-backend'
+      frontend_environment: 'production-frontend'
       api_base_url: 'https://meatscentral.com'
-    secrets:
-      FRONTEND_SSH_KEY: ${{ secrets.PROD_FRONTEND_SSH_KEY }}
-      BACKEND_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
-      FRONTEND_HOST: ${{ secrets.PROD_FRONTEND_HOST }}
-      FRONTEND_USER: ${{ secrets.PROD_FRONTEND_USER }}
-      BACKEND_HOST: ${{ secrets.PROD_HOST }}
-      BACKEND_USER: ${{ secrets.PROD_USER }}
-      BACKEND_IP: ${{ secrets.PROD_BACKEND_IP }}
-      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-      DB_HOST: ${{ secrets.PROD_DB_HOST }}
-      DB_PORT: ${{ secrets.PROD_DB_PORT }}
-      DB_USER: ${{ secrets.PROD_DB_USER }}
-      DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
-      DB_NAME: ${{ secrets.PROD_DB_NAME }}
-      SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
-      DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
-      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+    secrets: inherit
