@@ -59,9 +59,7 @@ jobs:
   check-docker-tags:
     name: Validate Docker Tags
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request' && 
-      contains(github.event.pull_request.changed_files, '.github/workflows/')
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: write
