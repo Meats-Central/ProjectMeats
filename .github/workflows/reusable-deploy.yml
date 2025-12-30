@@ -132,7 +132,6 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-latest
             ${{ env.GHCR_REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
