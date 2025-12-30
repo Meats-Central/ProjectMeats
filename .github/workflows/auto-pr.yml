@@ -24,6 +24,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch all branches
+        run: git fetch --all
+
       - name: Close Existing PR (Force Fresh Release)
         env:
           GH_TOKEN: ${{ secrets.PAT }}
@@ -52,8 +55,8 @@ jobs:
         run: |
           echo "🚀 Creating fresh PR: development -> uat"
           
-          COMMIT_COUNT=$(git rev-list --count uat..development)
-          RECENT_COMMITS=$(git log uat..development --oneline --max-count=10)
+          COMMIT_COUNT=$(git rev-list --count origin/uat..origin/development)
+          RECENT_COMMITS=$(git log origin/uat..origin/development --oneline --max-count=10)
           
           cat > /tmp/pr-body.md <<'PRBODY'
           ## 🚀 Automated Release PR: Development → UAT
@@ -102,6 +105,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch all branches
+        run: git fetch --all
+
       - name: Close Existing PR (Force Fresh Release)
         env:
           GH_TOKEN: ${{ secrets.PAT }}
@@ -130,8 +136,8 @@ jobs:
         run: |
           echo "🚀 Creating fresh PR: uat -> main"
           
-          COMMIT_COUNT=$(git rev-list --count main..uat)
-          RECENT_COMMITS=$(git log main..uat --oneline --max-count=10)
+          COMMIT_COUNT=$(git rev-list --count origin/main..origin/uat)
+          RECENT_COMMITS=$(git log origin/main..origin/uat --oneline --max-count=10)
           
           cat > /tmp/pr-body.md <<'PRBODY'
           ## 🚀 Automated Release PR: UAT → Production
