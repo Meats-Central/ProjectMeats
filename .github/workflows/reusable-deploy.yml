@@ -35,6 +35,45 @@ on:
       DO_ACCESS_TOKEN:
         required: true
         description: "DigitalOcean access token (shared across all environments)"
+      SSH_HOST:
+        required: true
+        description: "SSH host for deployment"
+      SSH_USER:
+        required: true
+        description: "SSH username for deployment"
+      SSH_PASSWORD:
+        required: false
+        description: "SSH password for backend deployment (backend uses password auth)"
+      SSH_KEY:
+        required: false
+        description: "SSH private key for frontend deployment (frontend uses key auth)"
+      DB_HOST:
+        required: true
+        description: "Database host (for SSH tunnel)"
+      DB_PORT:
+        required: false
+        description: "Database port (defaults to 5432)"
+      DB_NAME:
+        required: true
+        description: "Database name"
+      DB_USER:
+        required: true
+        description: "Database user"
+      DB_PASSWORD:
+        required: true
+        description: "Database password"
+      DJANGO_SECRET_KEY:
+        required: true
+        description: "Django secret key"
+      DJANGO_SETTINGS_MODULE:
+        required: true
+        description: "Django settings module path"
+      REACT_APP_API_BASE_URL:
+        required: true
+        description: "API base URL for frontend runtime config"
+      BACKEND_HOST:
+        required: true
+        description: "Backend host IP/hostname for nginx proxy and Docker networking"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
