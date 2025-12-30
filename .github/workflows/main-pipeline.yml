@@ -75,13 +75,22 @@ jobs:
           echo "=== Validating immutable Docker image tagging ==="
           
           FAILED=0
+          FORBIDDEN_TAG="latest"
           
           # Check reusable-deploy.yml for immutable tagging patterns
           echo "Checking reusable-deploy.yml..."
           
-          # Deploy jobs must use SHA-tagged images, not -latest
-          if grep -q "docker pull.*:.*-latest" .github/workflows/reusable-deploy.yml 2>/dev/null; then
-            echo "❌ ERROR: reusable-deploy.yml uses '-latest' tag in docker pull"
+          # Deploy jobs must use SHA-tagged images, not the forbidden tag
+          # Exclude comments and this validation file itself from search
+          if grep -v '^\s*#' .github/workflows/reusable-deploy.yml | grep -q "docker pull.*:.*-${FORBIDDEN_TAG}" 2>/dev/null; then
+            echo "❌ ERROR: reusable-deploy.yml uses '-${FORBIDDEN_TAG}' tag in docker pull"
+            echo "   Deploy steps must use SHA-tagged images only"
+            FAILED=1
+          fi
+          
+          # Check for hardcoded :latest in Docker run commands
+          if grep -v '^\s*#' .github/workflows/reusable-deploy.yml | grep -q "docker run.*:${FORBIDDEN_TAG}" 2>/dev/null; then
+            echo "❌ ERROR: reusable-deploy.yml uses ':${FORBIDDEN_TAG}' tag in docker run"
             echo "   Deploy steps must use SHA-tagged images only"
             FAILED=1
           fi
@@ -98,9 +107,9 @@ jobs:
             echo "Deploy steps must pull images using SHA tags only."
             echo "Example: \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-\${{ github.sha }}"
             echo ""
-            echo "Build steps can push both SHA and -latest tags for caching:"
+            echo "Build steps can push both SHA and -${FORBIDDEN_TAG} tags for caching:"
             echo "  - \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-\${{ github.sha }}"
-            echo "  - \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-latest"
+            echo "  - \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-${FORBIDDEN_TAG}"
             exit 1
           fi
           
