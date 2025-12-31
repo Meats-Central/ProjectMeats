@@ -13,6 +13,17 @@ on:
       - uat
 
 jobs:
+  # No-op job to prevent "0 jobs = failure" when triggered by non-workflow_run events
+  noop:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run'
+    steps:
+      - name: Skip - wrong trigger
+        run: |
+          echo "ℹ️  Auto-PR workflow only runs on workflow_run events"
+          echo "Current event: ${{ github.event_name }}"
+          echo "This workflow will skip execution."
+
   draft-uat-pr:
     runs-on: ubuntu-latest
     if: |
