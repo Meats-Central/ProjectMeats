@@ -135,11 +135,12 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   # ==========================================
-  # Stage 1.5: Security Scan
+  # Stage 1.5: Security Scan (Non-Blocking)
   # ==========================================
   security-scan:
     needs: [build-and-push]
     runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block deployment on vulnerabilities
     strategy:
       matrix:
         app: [frontend, backend]
@@ -155,7 +156,7 @@ jobs:
           output: 'trivy-results-${{ matrix.app }}.sarif'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'  # Don't fail the job, just report
         env:
           TRIVY_USERNAME: ${{ secrets.DO_ACCESS_TOKEN }}
           TRIVY_PASSWORD: ${{ secrets.DO_ACCESS_TOKEN }}

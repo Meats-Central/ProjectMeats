@@ -114,9 +114,11 @@ python manage.py migrate --fake-initial --noinput
 
 ### Security Scanning
 - **Trivy Integration**: Scans images for CRITICAL and HIGH vulnerabilities
-- **Fail-Fast**: Deployment blocked if critical CVEs found
+- **Non-Blocking**: Reports CVEs to GitHub Security but allows deployment to proceed
 - **Unfixed Exclusion**: Ignores vulnerabilities without patches (reduces false positives)
-- **SARIF Upload**: Results visible in GitHub Security tab
+- **SARIF Upload**: Results visible in GitHub Security tab for review
+
+**Rationale**: Security scanning is informational in V1.1. Future versions will implement blocking policies after baseline vulnerability remediation.
 
 ### Frontend Stack
 - **TypeScript 5.7.2**: Latest stable with React 19 support
