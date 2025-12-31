@@ -35,7 +35,9 @@ ATTEMPT=1
 
 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
   # Perform health check with timeout
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  # Use -L to follow redirects (e.g., HTTP 301 to HTTPS from load balancer)
+  # Still outputs only the FINAL HTTP code after following redirects
+  HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" \
     --max-time 15 \
     --retry 0 \
     --fail-early \
