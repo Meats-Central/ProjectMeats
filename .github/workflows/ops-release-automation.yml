@@ -1,10 +1,10 @@
-name: 🤖 Ops: Release & Sync
+name: "Ops Release Automation"
 
 run-name: >-
   ${{ 
-    github.event_name == 'workflow_run' && format('🚀 Auto-Promote: {0} → {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production') ||
-    github.event_name == 'schedule' && '🔄 Daily Branch Sync Check' ||
-    format('🕹️ Manual Ops: {0}', inputs.task)
+    github.event_name == 'workflow_run' && format('Auto-Promote: {0} to {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production') ||
+    github.event_name == 'schedule' && 'Daily Branch Sync Check' ||
+    format('Manual Ops: {0}', inputs.task)
   }}
 
 on:
@@ -35,17 +35,20 @@ permissions:
 
 jobs:
   monitor-drift:
-    name: 🔍 Monitor Branch Drift
+    name: "Monitor Branch Drift"
     runs-on: ubuntu-latest
-    if: |
+    if: >-
       github.event_name == 'schedule' || 
       (github.event_name == 'workflow_dispatch' && inputs.task == 'check-sync')
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - name: ⬇️ Fetch all branches
+        with:
+          fetch-depth: 0
+      
+      - name: Fetch all branches
         run: git fetch --all
-      - name: 📉 Check Development → UAT
+      
+      - name: Check Development to UAT
         id: dev_uat
         run: |
           COMMITS=$(git rev-list --count origin/uat..origin/development)
@@ -55,35 +58,39 @@ jobs:
           else
             echo "needs_sync=false" >> $GITHUB_OUTPUT
           fi
-      - name: 📝 Create Dev->UAT Sync PR
+      
+      - name: Create Dev to UAT Sync PR
         if: steps.dev_uat.outputs.needs_sync == 'true' || inputs.force_sync_pr
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
           EXISTING=$(gh pr list --base uat --head development --json number -q '.[0].number')
           if [ -n "$EXISTING" ]; then
-            echo "✅ Sync PR already exists: #$EXISTING"
+            echo "Sync PR already exists: #$EXISTING"
             exit 0
           fi
           gh pr create \
             --base uat \
             --head development \
-            --title "🔄 Sync: Development → UAT ($(date +%Y-%m-%d))" \
+            --title "Sync: Development to UAT ($(date +%Y-%m-%d))" \
             --body "Automated sync. Development is ${{ steps.dev_uat.outputs.commits }} commits ahead." \
             --label "sync,automated"
 
   draft-release:
-    name: 🚀 Draft Release PR
+    name: "Draft Release PR"
     runs-on: ubuntu-latest
-    if: |
+    if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       (github.event_name == 'workflow_dispatch' && contains(inputs.task, 'force-draft'))
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - name: ⬇️ Fetch all branches
+        with:
+          fetch-depth: 0
+      
+      - name: Fetch all branches
         run: git fetch --all
-      - name: 🎯 Set Release Context
+      
+      - name: Set Release Context
         id: context
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -108,24 +115,28 @@ jobs:
               echo "LABEL=release,automated,production" >> $GITHUB_OUTPUT
             fi
           fi
-      - name: 🧹 Clean Previous PRs
-        env: { GH_TOKEN: ${{ secrets.PAT }} }
+      
+      - name: Clean Previous PRs
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           SOURCE=${{ steps.context.outputs.SOURCE }}
           TARGET=${{ steps.context.outputs.TARGET }}
           EXISTING=$(gh pr list --base $TARGET --head $SOURCE --state open --json number -q '.[0].number')
           if [ -n "$EXISTING" ]; then
-            gh pr close "$EXISTING" --comment "🔄 Closing in favor of fresh release PR."
+            gh pr close "$EXISTING" --comment "Closing in favor of fresh release PR."
           fi
-      - name: ⚔️ Check Conflicts & Resolve
+
+      - name: Check Conflicts and Resolve
         id: conflicts
-        env: { GH_TOKEN: ${{ secrets.PAT }} }
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           SOURCE=${{ steps.context.outputs.SOURCE }}
           TARGET=${{ steps.context.outputs.TARGET }}
           git checkout $SOURCE
           if ! git merge origin/$TARGET --no-commit --no-ff; then
-            echo "⚠️ Conflicts detected. Creating auto-resolution branch..."
+            echo "Conflicts detected. Creating auto-resolution branch..."
             git merge --abort
             RES_BRANCH="auto-resolve-${TARGET}-$(date +%s)"
             git checkout -b "$RES_BRANCH"
@@ -138,19 +149,21 @@ jobs:
             echo "HEAD_BRANCH=$SOURCE" >> $GITHUB_OUTPUT
             echo "HAS_CONFLICTS=false" >> $GITHUB_OUTPUT
           fi
-      - name: 📝 Create Pull Request
-        env: { GH_TOKEN: ${{ secrets.PAT }} }
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           SOURCE=${{ steps.context.outputs.SOURCE }}
           TARGET=${{ steps.context.outputs.TARGET }}
           HEAD=${{ steps.conflicts.outputs.HEAD_BRANCH }}
-          echo "## 🚀 Release: ${SOURCE^^} → ${TARGET^^}" > pr_body.md
+          echo "## Release: ${SOURCE^^} to ${TARGET^^}" > pr_body.md
           if [[ "${{ steps.conflicts.outputs.HAS_CONFLICTS }}" == "true" ]]; then
-             echo "⚠️ **Conflicts Auto-Resolved**: Used 'ours' strategy ($SOURCE)." >> pr_body.md
+             echo "**Conflicts Auto-Resolved**: Used 'ours' strategy ($SOURCE)." >> pr_body.md
           fi
           gh pr create \
             --base $TARGET \
             --head "$HEAD" \
-            --title "🚀 Release: Promote $SOURCE to $TARGET" \
+            --title "Release: Promote $SOURCE to $TARGET" \
             --body-file pr_body.md \
             --label "${{ steps.context.outputs.LABEL }}"
