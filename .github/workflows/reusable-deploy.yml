@@ -428,77 +428,26 @@ jobs:
           # Stop old container
           docker rm -f pm-frontend || true
           
-          # Start new container
+          # Ensure port 80 is free (stop any service using it)
+          sudo fuser -k 80/tcp 2>/dev/null || true
+          sleep 2
+          
+          # Start new container on port 80 (container handles all routing)
           docker run -d --name pm-frontend \
             --restart unless-stopped \
-            -p 8080:80 \
+            -p 80:80 \
             --add-host backend:${{ secrets.BACKEND_HOST }} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$TAG"
           
-          # Configure nginx reverse proxy
-          if command -v nginx >/dev/null 2>&1; then
-            # Remove conflicting default Nginx config
-            rm -f /etc/nginx/sites-enabled/default
-            
-            # Create config as default_server to handle all port 80 traffic
-            cat > /etc/nginx/conf.d/pm-frontend.conf << 'NGINX'
-          server {
-              listen 80 default_server;
-              server_name _ localhost;
-              
-              location ~ ^/(api|admin|static)/ {
-                  proxy_pass http://${{ secrets.BACKEND_HOST }}:8000;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-              
-              location / {
-                  proxy_pass http://127.0.0.1:8080;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-          }
-          NGINX
-            
-            # Test and reload nginx (non-fatal if service doesn't exist)
-            if nginx -t; then
-              # Try systemctl first (systemd), fall back to service command, or just start nginx
-              if systemctl is-active nginx >/dev/null 2>&1; then
-                systemctl reload nginx
-              elif service nginx status >/dev/null 2>&1; then
-                service nginx reload
-              else
-                # Service not running, try to start it
-                nginx || echo "⚠ Nginx config created but service not running (container will handle traffic)"
-              fi
-            else
-              echo "⚠ Nginx configuration test failed, skipping reload"
-            fi
-          fi
-          
-          # Health check - target container directly on port 8080
-          echo "Checking container health on port 8080..."
+          # Health check - container serves directly on port 80
+          echo "Checking frontend health on port 80..."
           MAX_ATTEMPTS=5
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:80/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "✓ Frontend container health check passed (HTTP $HTTP_CODE)"
-              
-              # Verify reverse proxy works too
-              echo "Verifying reverse proxy on port 80..."
-              PROXY_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/ || echo "000")
-              if [ "$PROXY_CODE" = "200" ]; then
-                echo "✓ Reverse proxy health check passed (HTTP $PROXY_CODE)"
-              else
-                echo "⚠ Reverse proxy returned HTTP $PROXY_CODE (container is healthy, proxy may need attention)"
-              fi
-              
+              echo "✓ Frontend health check passed (HTTP $HTTP_CODE)"
               exit 0
             fi
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
