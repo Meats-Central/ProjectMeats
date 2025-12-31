@@ -155,6 +155,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/uat') ||
       (github.event_name == 'workflow_dispatch' && inputs.environment == 'uat')
     needs: []  # Runs independently for push events
+    environment: uat-backend  # Required to access environment-scoped secrets
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       environment: 'uat'
@@ -163,7 +164,21 @@ jobs:
       backend_environment: 'uat-backend'
       frontend_environment: 'uat-frontend'
       api_base_url: 'https://uat.meatscentral.com'
-    secrets: inherit
+    secrets:
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+      REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+      BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
 
   # ==========================================
   # Route to Production
@@ -173,6 +188,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
     needs: []  # Runs independently for push events
+    environment: production-backend  # Required to access environment-scoped secrets
     uses: ./.github/workflows/reusable-deploy.yml
     with:
       environment: 'production'
@@ -181,4 +197,18 @@ jobs:
       backend_environment: 'production-backend'
       frontend_environment: 'production-frontend'
       api_base_url: 'https://meatscentral.com'
-    secrets: inherit
+    secrets:
+      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+      REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+      BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
