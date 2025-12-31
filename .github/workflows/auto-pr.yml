@@ -138,7 +138,7 @@ jobs:
           - [ ] Check for any breaking changes
           - [ ] Confirm all tests passed in development
           
-          PRBODY
+PRBODY
           
           if [ "$HAS_CONFLICTS" = "true" ]; then
             cat >> /tmp/pr-body.md <<'CONFLICT'
@@ -152,7 +152,7 @@ jobs:
           
           Please review the conflict resolution before merging.
           
-          CONFLICT
+CONFLICT
           fi
           
           cat >> /tmp/pr-body.md <<'PRBODY'
@@ -161,7 +161,7 @@ jobs:
           
           ---
           _This PR was automatically created after successful development deployment._
-          PRBODY
+PRBODY
           
           echo "" >> /tmp/pr-body.md
           echo "**Commits included:** $COMMIT_COUNT commits" >> /tmp/pr-body.md
@@ -319,7 +319,7 @@ jobs:
           
           **⚠️ PRODUCTION DEPLOYMENT** - Requires additional approval
           
-          PRBODY
+PRBODY
           
           if [ "$HAS_CONFLICTS" = "true" ]; then
             cat >> /tmp/pr-body.md <<'CONFLICT'
@@ -333,7 +333,7 @@ jobs:
           
           Please review the conflict resolution before merging to production.
           
-          CONFLICT
+CONFLICT
           fi
           
           cat >> /tmp/pr-body.md <<'PRBODY'
@@ -342,7 +342,7 @@ jobs:
           
           ---
           _This PR was automatically created after successful UAT deployment._
-          PRBODY
+PRBODY
           
           echo "" >> /tmp/pr-body.md
           echo "**Commits included:** $COMMIT_COUNT commits" >> /tmp/pr-body.md

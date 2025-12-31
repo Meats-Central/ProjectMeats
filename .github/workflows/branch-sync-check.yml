@@ -89,7 +89,7 @@ jobs:
           
           ### Sync Status
           
-          PRBODY
+PRBODY
           
           echo "- **Commits to sync:** $COMMITS" >> /tmp/sync-pr-body.md
           echo "- **File differences:** ${{ steps.check_drift.outputs.file_diff }} lines" >> /tmp/sync-pr-body.md
@@ -105,7 +105,7 @@ jobs:
           
           ---
           _This PR was automatically created by the branch sync monitor._
-          PRBODY
+PRBODY
           
           gh pr create \
             --base uat \
