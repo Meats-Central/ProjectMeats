@@ -9,7 +9,8 @@ echo "🔍 Checking heredoc syntax in workflow files..."
 FAILED=0
 
 # Check all YAML workflow files
-for file in .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null; do
+shopt -s nullglob
+for file in .github/workflows/*.yml .github/workflows/*.yaml; do
   if [ ! -f "$file" ]; then
     continue
   fi
