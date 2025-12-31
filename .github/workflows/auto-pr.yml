@@ -83,13 +83,21 @@ jobs:
           echo "$RECENT_COMMITS" >> /tmp/pr-body.md
           echo '```' >> /tmp/pr-body.md
           
-          gh pr create \
+          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          PR_URL=$(gh pr create \
             --base uat \
             --head development \
             --title "🚀 Release: Promote Development to UAT ($(date +%Y-%m-%d))" \
-            --body-file /tmp/pr-body.md \
-            --label "release,automated" \
-            || echo "⚠️  PR creation failed"
+            --body-file /tmp/pr-body.md) || {
+            echo "⚠️  PR creation failed"
+            exit 1
+          }
+          
+          echo "✅ PR created: $PR_URL"
+          
+          # Add labels (non-fatal if labels don't exist)
+          PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "release,automated" || echo "⚠️  Could not add labels (labels may not exist)"
 
   draft-production-pr:
     runs-on: ubuntu-latest
@@ -167,10 +175,18 @@ jobs:
           echo "$RECENT_COMMITS" >> /tmp/pr-body.md
           echo '```' >> /tmp/pr-body.md
           
-          gh pr create \
+          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          PR_URL=$(gh pr create \
             --base main \
             --head uat \
             --title "🚀 Release: Promote UAT to Production ($(date +%Y-%m-%d))" \
-            --body-file /tmp/pr-body.md \
-            --label "release,automated,production" \
-            || echo "⚠️  PR creation failed"
+            --body-file /tmp/pr-body.md) || {
+            echo "⚠️  PR creation failed"
+            exit 1
+          }
+          
+          echo "✅ PR created: $PR_URL"
+          
+          # Add labels (non-fatal if labels don't exist)
+          PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "release,automated,production" || echo "⚠️  Could not add labels (labels may not exist)"
