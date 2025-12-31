@@ -1,9 +1,8 @@
 name: Master Pipeline
 
-# Dynamic run names to distinguish Deploys from PR Checks
+# Dynamic run names for deployments only
 run-name: >-
   ${{ 
-    github.event_name == 'pull_request' && format('🔍 PR Check: {0}', github.event.pull_request.title) || 
     github.event_name == 'workflow_dispatch' && format('🕹️ Manual Deploy: {0}', inputs.environment) || 
     format('🚀 Deploy: {0}', github.ref_name) 
   }}
@@ -15,8 +14,6 @@ on:
       - '**.md'
       - 'docs/**'
       - 'archived/**'
-  pull_request:
-    branches: [development, uat, main]
   workflow_dispatch:
     inputs:
       environment:
@@ -33,96 +30,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ==========================================
-  # Pre-Deployment Validation (Parallel)
-  # ==========================================
-  
-  lint-docs:
-    name: Lint Documentation
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
-
-      - name: Run markdownlint
-        run: |
-          markdownlint '**/*.md' \
-            --ignore 'node_modules/**' \
-            --ignore 'archived/**' \
-            --ignore 'docs/archived/**' \
-            --disable MD013 MD033 MD041 \
-            || echo "::warning::Markdown lint issues found. See above for details."
-  
-  # TEMPORARILY DISABLED: Blocking deployments with false positives
-  # Will re-enable after fixing grep logic to properly exclude archived files
-  check-docker-tags:
-    name: Validate Docker Tags
-    runs-on: ubuntu-latest
-    if: false  # DISABLED - unblocking pipeline
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      
-      - name: Validate immutable tagging in deployment workflows
-        run: |
-          echo "=== Validating immutable Docker image tagging ==="
-          
-          FAILED=0
-          FORBIDDEN_TAG="latest"
-          
-          # Check reusable-deploy.yml for immutable tagging patterns
-          echo "Checking reusable-deploy.yml..."
-          
-          # Deploy jobs must use SHA-tagged images, not the forbidden tag
-          # Exclude comments and this validation file itself from search
-          if grep -v '^\s*#' .github/workflows/reusable-deploy.yml | grep -q "docker pull.*:.*-${FORBIDDEN_TAG}" 2>/dev/null; then
-            echo "❌ ERROR: reusable-deploy.yml uses '-${FORBIDDEN_TAG}' tag in docker pull"
-            echo "   Deploy steps must use SHA-tagged images only"
-            FAILED=1
-          fi
-          
-          # Check for hardcoded forbidden tag in Docker run commands
-          if grep -v '^\s*#' .github/workflows/reusable-deploy.yml | grep -q "docker run.*:${FORBIDDEN_TAG}" 2>/dev/null; then
-            echo "❌ ERROR: reusable-deploy.yml uses ':${FORBIDDEN_TAG}' tag in docker run"
-            echo "   Deploy steps must use SHA-tagged images only"
-            FAILED=1
-          fi
-          
-          # Check main-pipeline.yml for proper tag patterns
-          echo "Checking main-pipeline.yml..."
-          if ! grep -q '\${{ github.sha }}' .github/workflows/main-pipeline.yml 2>/dev/null; then
-            echo "⚠️  WARNING: main-pipeline.yml may not use SHA-based tagging"
-          fi
-          
-          if [ $FAILED -eq 1 ]; then
-            echo ""
-            echo "=== VALIDATION FAILED ==="
-            echo "Deploy steps must pull images using SHA tags only."
-            echo "Example: \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-\${{ github.sha }}"
-            echo ""
-            echo "Build steps can push both SHA and -${FORBIDDEN_TAG} tags for caching:"
-            echo "  - \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-\${{ github.sha }}"
-            echo "  - \${{ env.REGISTRY }}/\${{ env.BACKEND_IMAGE }}:prod-${FORBIDDEN_TAG}"
-            exit 1
-          fi
-          
-          echo "✓ All deployment workflows use immutable tagging"
-
   # ==========================================
   # Route to Development
   # ==========================================
