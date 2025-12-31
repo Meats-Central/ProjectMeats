@@ -412,6 +412,18 @@ jobs:
           export REG="${{ env.REGISTRY }}"
           export IMG="${{ env.FRONTEND_IMAGE }}"
           
+          # Debug: Show what we're deploying
+          echo "==================================="
+          echo "Frontend Deployment Debug Info"
+          echo "==================================="
+          echo "Registry: $REG"
+          echo "Image: $IMG"
+          echo "Tag: $IMAGE_TAG"
+          echo "Full Image: $REG/$IMG:$IMAGE_TAG"
+          echo "Environment: $ENVIRONMENT"
+          echo "Backend Host: $BACKEND_HOST"
+          echo "==================================="
+          
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             "BACKEND_HOST='${BACKEND_HOST}' \
              DO_TOKEN='${DO_TOKEN}' \
@@ -423,6 +435,11 @@ jobs:
              bash -s" << 'SSH'
           set -euo pipefail
           
+          echo "==================================="
+          echo "Remote Deployment Started"
+          echo "==================================="
+          echo "Image: $REG/$IMG:$IMAGE_TAG"
+          
           # Create runtime config
           mkdir -p /opt/pm/frontend/env
           cat > /opt/pm/frontend/env/env-config.js << ENVJS
@@ -432,26 +449,45 @@ jobs:
           };
           ENVJS
           
+          echo "✓ Runtime config created"
+          
           # Login to registry
           echo "${DO_TOKEN}" | docker login registry.digitalocean.com -u "${DO_TOKEN}" --password-stdin
+          echo "✓ Docker login successful"
           
           # Pull new image
+          echo "Pulling image: $REG/$IMG:$IMAGE_TAG"
           docker pull "$REG/$IMG:$IMAGE_TAG"
+          echo "✓ Image pulled successfully"
           
           # Stop old container
+          echo "Stopping old container..."
           docker rm -f pm-frontend || true
           
-          # Ensure port 80 is free (stop any service using it)
+          # Ensure port 80 is free - allowed-privileged
+          echo "Freeing port 80..."
           sudo fuser -k 80/tcp 2>/dev/null || true
           sleep 2
           
           # Start new container on port 80 (container handles all routing)
+          echo "Starting new container..."
           docker run -d --name pm-frontend \
             --restart unless-stopped \
-            -p 80:80 \  # allowed-privileged - port explicitly freed above
+            -p 80:80 \
             --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$IMAGE_TAG"
+          
+          echo "✓ Container started successfully"
+          
+          # Verify container is running
+          if docker ps | grep pm-frontend > /dev/null; then
+            echo "✓ Container pm-frontend is running"
+          else
+            echo "✗ Container pm-frontend is not running"
+            docker ps -a | grep pm-frontend || echo "No container found"
+            exit 1
+          fi
           
           # Health check - container serves directly on port 80
           echo "Checking frontend health on port 80..."
