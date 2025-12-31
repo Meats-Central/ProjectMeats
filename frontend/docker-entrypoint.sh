@@ -30,7 +30,7 @@ fi
 
 echo "=== Validating nginx configuration ==="
 # Test nginx configuration before starting
-if nginx -t 2>&1; then
+if nginx -t; then
     echo "✓ Nginx configuration is valid"
 else
     echo "✗ Nginx configuration validation failed!"
