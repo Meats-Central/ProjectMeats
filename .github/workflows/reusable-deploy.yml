@@ -390,15 +390,20 @@ jobs:
     steps:
       - name: Setup SSH
         run: |
+          # Install sshpass for password-based SSH (same as backend)
+          sudo apt-get update -qq
+          sudo apt-get install -y sshpass
+          
+          # Add SSH host to known_hosts
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>&1
 
       - name: Deploy frontend container
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
           set -euo pipefail
           
           REG="${{ env.REGISTRY }}"
