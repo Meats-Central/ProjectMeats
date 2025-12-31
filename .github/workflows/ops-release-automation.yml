@@ -1,0 +1,156 @@
+name: 🤖 Ops: Release & Sync
+
+run-name: >-
+  ${{ 
+    github.event_name == 'workflow_run' && format('🚀 Auto-Promote: {0} → {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production') ||
+    github.event_name == 'schedule' && '🔄 Daily Branch Sync Check' ||
+    format('🕹️ Manual Ops: {0}', inputs.task)
+  }}
+
+on:
+  workflow_run:
+    workflows: ["Master Pipeline"]
+    types: [completed]
+    branches: [development, uat]
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Operation to perform'
+        required: true
+        type: choice
+        options:
+          - 'check-sync'
+          - 'force-draft-uat'
+          - 'force-draft-prod'
+      force_sync_pr:
+        description: 'Force Sync PR creation (for check-sync)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  monitor-drift:
+    name: 🔍 Monitor Branch Drift
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'schedule' || 
+      (github.event_name == 'workflow_dispatch' && inputs.task == 'check-sync')
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: ⬇️ Fetch all branches
+        run: git fetch --all
+      - name: 📉 Check Development → UAT
+        id: dev_uat
+        run: |
+          COMMITS=$(git rev-list --count origin/uat..origin/development)
+          echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+          if [ "$COMMITS" -gt 0 ]; then
+            echo "needs_sync=true" >> $GITHUB_OUTPUT
+          else
+            echo "needs_sync=false" >> $GITHUB_OUTPUT
+          fi
+      - name: 📝 Create Dev->UAT Sync PR
+        if: steps.dev_uat.outputs.needs_sync == 'true' || inputs.force_sync_pr
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          EXISTING=$(gh pr list --base uat --head development --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "✅ Sync PR already exists: #$EXISTING"
+            exit 0
+          fi
+          gh pr create \
+            --base uat \
+            --head development \
+            --title "🔄 Sync: Development → UAT ($(date +%Y-%m-%d))" \
+            --body "Automated sync. Development is ${{ steps.dev_uat.outputs.commits }} commits ahead." \
+            --label "sync,automated"
+
+  draft-release:
+    name: 🚀 Draft Release PR
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && contains(inputs.task, 'force-draft'))
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: ⬇️ Fetch all branches
+        run: git fetch --all
+      - name: 🎯 Set Release Context
+        id: context
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.task }}" == "force-draft-uat" ]]; then
+              echo "SOURCE=development" >> $GITHUB_OUTPUT
+              echo "TARGET=uat" >> $GITHUB_OUTPUT
+              echo "LABEL=release,automated" >> $GITHUB_OUTPUT
+            else
+              echo "SOURCE=uat" >> $GITHUB_OUTPUT
+              echo "TARGET=main" >> $GITHUB_OUTPUT
+              echo "LABEL=release,automated,production" >> $GITHUB_OUTPUT
+            fi
+          else
+            HEAD="${{ github.event.workflow_run.head_branch }}"
+            if [[ "$HEAD" == "development" ]]; then
+              echo "SOURCE=development" >> $GITHUB_OUTPUT
+              echo "TARGET=uat" >> $GITHUB_OUTPUT
+              echo "LABEL=release,automated" >> $GITHUB_OUTPUT
+            elif [[ "$HEAD" == "uat" ]]; then
+              echo "SOURCE=uat" >> $GITHUB_OUTPUT
+              echo "TARGET=main" >> $GITHUB_OUTPUT
+              echo "LABEL=release,automated,production" >> $GITHUB_OUTPUT
+            fi
+          fi
+      - name: 🧹 Clean Previous PRs
+        env: { GH_TOKEN: ${{ secrets.PAT }} }
+        run: |
+          SOURCE=${{ steps.context.outputs.SOURCE }}
+          TARGET=${{ steps.context.outputs.TARGET }}
+          EXISTING=$(gh pr list --base $TARGET --head $SOURCE --state open --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh pr close "$EXISTING" --comment "🔄 Closing in favor of fresh release PR."
+          fi
+      - name: ⚔️ Check Conflicts & Resolve
+        id: conflicts
+        env: { GH_TOKEN: ${{ secrets.PAT }} }
+        run: |
+          SOURCE=${{ steps.context.outputs.SOURCE }}
+          TARGET=${{ steps.context.outputs.TARGET }}
+          git checkout $SOURCE
+          if ! git merge origin/$TARGET --no-commit --no-ff; then
+            echo "⚠️ Conflicts detected. Creating auto-resolution branch..."
+            git merge --abort
+            RES_BRANCH="auto-resolve-${TARGET}-$(date +%s)"
+            git checkout -b "$RES_BRANCH"
+            git merge origin/$TARGET -X ours --no-edit -m "Auto-resolve: Keep $SOURCE changes"
+            git push origin "$RES_BRANCH"
+            echo "HEAD_BRANCH=$RES_BRANCH" >> $GITHUB_OUTPUT
+            echo "HAS_CONFLICTS=true" >> $GITHUB_OUTPUT
+          else
+            git merge --abort
+            echo "HEAD_BRANCH=$SOURCE" >> $GITHUB_OUTPUT
+            echo "HAS_CONFLICTS=false" >> $GITHUB_OUTPUT
+          fi
+      - name: 📝 Create Pull Request
+        env: { GH_TOKEN: ${{ secrets.PAT }} }
+        run: |
+          SOURCE=${{ steps.context.outputs.SOURCE }}
+          TARGET=${{ steps.context.outputs.TARGET }}
+          HEAD=${{ steps.conflicts.outputs.HEAD_BRANCH }}
+          echo "## 🚀 Release: ${SOURCE^^} → ${TARGET^^}" > pr_body.md
+          if [[ "${{ steps.conflicts.outputs.HAS_CONFLICTS }}" == "true" ]]; then
+             echo "⚠️ **Conflicts Auto-Resolved**: Used 'ours' strategy ($SOURCE)." >> pr_body.md
+          fi
+          gh pr create \
+            --base $TARGET \
+            --head "$HEAD" \
+            --title "🚀 Release: Promote $SOURCE to $TARGET" \
+            --body-file pr_body.md \
+            --label "${{ steps.context.outputs.LABEL }}"
