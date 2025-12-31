@@ -53,14 +53,60 @@ jobs:
             echo "✅ No existing PR found - will create new one"
           fi
 
+      - name: Check for conflicts and create resolution branch if needed
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🔍 Checking for merge conflicts between development and uat..."
+          
+          # Try to detect conflicts
+          git checkout development
+          git checkout -b test-merge-uat
+          
+          if git merge origin/uat --no-commit --no-ff 2>&1 | grep -q "CONFLICT"; then
+            echo "⚠️  Conflicts detected! Creating auto-resolution branch..."
+            git merge --abort
+            
+            # Create resolution branch
+            TIMESTAMP=$(date +%s)
+            RESOLUTION_BRANCH="auto-resolve-uat-${TIMESTAMP}"
+            git checkout -b "$RESOLUTION_BRANCH"
+            
+            # Merge with conflict resolution (keep development version)
+            git merge origin/uat --no-edit -X ours || {
+              echo "Manual merge needed - keeping development version"
+              git checkout --ours .
+              git add .
+              git commit -m "Auto-resolve conflicts (keep development version)"
+            }
+            
+            git push origin "$RESOLUTION_BRANCH"
+            
+            echo "✅ Created resolution branch: $RESOLUTION_BRANCH"
+            echo "RESOLUTION_BRANCH=$RESOLUTION_BRANCH" >> $GITHUB_ENV
+            echo "HAS_CONFLICTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ No conflicts detected"
+            git merge --abort || true
+            echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
+          fi
+          
+          git checkout development
+
       - name: Create Fresh Pull Request to UAT
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          echo "🚀 Creating fresh PR: development -> uat"
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            echo "🚀 Creating PR with conflict resolution: $RESOLUTION_BRANCH -> uat"
+            HEAD_BRANCH="$RESOLUTION_BRANCH"
+          else
+            echo "🚀 Creating fresh PR: development -> uat"
+            HEAD_BRANCH="development"
+          fi
           
-          COMMIT_COUNT=$(git rev-list --count origin/uat..origin/development)
-          RECENT_COMMITS=$(git log origin/uat..origin/development --oneline --max-count=10)
+          COMMIT_COUNT=$(git rev-list --count origin/uat..origin/$HEAD_BRANCH)
+          RECENT_COMMITS=$(git log origin/uat..origin/$HEAD_BRANCH --oneline --max-count=10)
           
           cat > /tmp/pr-body.md <<'PRBODY'
           ## 🚀 Automated Release PR: Development → UAT
@@ -72,6 +118,25 @@ jobs:
           - [ ] Verify dev environment is stable
           - [ ] Check for any breaking changes
           - [ ] Confirm all tests passed in development
+          
+          PRBODY
+          
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            cat >> /tmp/pr-body.md <<'CONFLICT'
+          
+          ### ⚠️ Conflicts Auto-Resolved
+          
+          This PR uses an auto-resolution branch because conflicts were detected.
+          **Resolution strategy**: Kept development version (ours) for all conflicts.
+          
+          **Branch**: `$RESOLUTION_BRANCH`
+          
+          Please review the conflict resolution before merging.
+          
+          CONFLICT
+          fi
+          
+          cat >> /tmp/pr-body.md <<'PRBODY'
           
           **Note:** This is a fresh PR containing all accumulated changes. Previous PR was auto-closed to ensure this is the single source of truth.
           
@@ -87,10 +152,10 @@ jobs:
           echo "$RECENT_COMMITS" >> /tmp/pr-body.md
           echo '```' >> /tmp/pr-body.md
           
-          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          # Create PR
           PR_URL=$(gh pr create \
             --base uat \
-            --head development \
+            --head "$HEAD_BRANCH" \
             --title "🚀 Release: Promote Development to UAT ($(date +%Y-%m-%d))" \
             --body-file /tmp/pr-body.md) || {
             echo "⚠️  PR creation failed"
@@ -99,9 +164,13 @@ jobs:
           
           echo "✅ PR created: $PR_URL"
           
-          # Add labels (non-fatal if labels don't exist)
+          # Add labels
           PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
-          gh pr edit "$PR_NUMBER" --add-label "release,automated" || echo "⚠️  Could not add labels (labels may not exist)"
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            gh pr edit "$PR_NUMBER" --add-label "release,automated,auto-resolved" || echo "⚠️  Could not add labels"
+          else
+            gh pr edit "$PR_NUMBER" --add-label "release,automated" || echo "⚠️  Could not add labels"
+          fi
 
   draft-production-pr:
     runs-on: ubuntu-latest
@@ -143,14 +212,60 @@ jobs:
             echo "✅ No existing PR found - will create new one"
           fi
 
+      - name: Check for conflicts and create resolution branch if needed
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🔍 Checking for merge conflicts between uat and main..."
+          
+          # Try to detect conflicts
+          git checkout uat
+          git checkout -b test-merge-main
+          
+          if git merge origin/main --no-commit --no-ff 2>&1 | grep -q "CONFLICT"; then
+            echo "⚠️  Conflicts detected! Creating auto-resolution branch..."
+            git merge --abort
+            
+            # Create resolution branch
+            TIMESTAMP=$(date +%s)
+            RESOLUTION_BRANCH="auto-resolve-prod-${TIMESTAMP}"
+            git checkout -b "$RESOLUTION_BRANCH"
+            
+            # Merge with conflict resolution (keep uat version)
+            git merge origin/main --no-edit -X ours || {
+              echo "Manual merge needed - keeping uat version"
+              git checkout --ours .
+              git add .
+              git commit -m "Auto-resolve conflicts (keep uat version)"
+            }
+            
+            git push origin "$RESOLUTION_BRANCH"
+            
+            echo "✅ Created resolution branch: $RESOLUTION_BRANCH"
+            echo "RESOLUTION_BRANCH=$RESOLUTION_BRANCH" >> $GITHUB_ENV
+            echo "HAS_CONFLICTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ No conflicts detected"
+            git merge --abort || true
+            echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
+          fi
+          
+          git checkout uat
+
       - name: Create Fresh Pull Request to Production
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          echo "🚀 Creating fresh PR: uat -> main"
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            echo "🚀 Creating PR with conflict resolution: $RESOLUTION_BRANCH -> main"
+            HEAD_BRANCH="$RESOLUTION_BRANCH"
+          else
+            echo "🚀 Creating fresh PR: uat -> main"
+            HEAD_BRANCH="uat"
+          fi
           
-          COMMIT_COUNT=$(git rev-list --count origin/main..origin/uat)
-          RECENT_COMMITS=$(git log origin/main..origin/uat --oneline --max-count=10)
+          COMMIT_COUNT=$(git rev-list --count origin/main..origin/$HEAD_BRANCH)
+          RECENT_COMMITS=$(git log origin/main..origin/$HEAD_BRANCH --oneline --max-count=10)
           
           cat > /tmp/pr-body.md <<'PRBODY'
           ## 🚀 Automated Release PR: UAT → Production
@@ -166,6 +281,25 @@ jobs:
           
           **⚠️ PRODUCTION DEPLOYMENT** - Requires additional approval
           
+          PRBODY
+          
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            cat >> /tmp/pr-body.md <<'CONFLICT'
+          
+          ### ⚠️ Conflicts Auto-Resolved
+          
+          This PR uses an auto-resolution branch because conflicts were detected.
+          **Resolution strategy**: Kept UAT version (ours) for all conflicts.
+          
+          **Branch**: `$RESOLUTION_BRANCH`
+          
+          Please review the conflict resolution before merging to production.
+          
+          CONFLICT
+          fi
+          
+          cat >> /tmp/pr-body.md <<'PRBODY'
+          
           **Note:** This is a fresh PR containing all accumulated changes. Previous PR was auto-closed to ensure this is the single source of truth.
           
           ---
@@ -180,10 +314,10 @@ jobs:
           echo "$RECENT_COMMITS" >> /tmp/pr-body.md
           echo '```' >> /tmp/pr-body.md
           
-          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          # Create PR
           PR_URL=$(gh pr create \
             --base main \
-            --head uat \
+            --head "$HEAD_BRANCH" \
             --title "🚀 Release: Promote UAT to Production ($(date +%Y-%m-%d))" \
             --body-file /tmp/pr-body.md) || {
             echo "⚠️  PR creation failed"
@@ -192,6 +326,10 @@ jobs:
           
           echo "✅ PR created: $PR_URL"
           
-          # Add labels (non-fatal if labels don't exist)
+          # Add labels
           PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
-          gh pr edit "$PR_NUMBER" --add-label "release,automated,production" || echo "⚠️  Could not add labels (labels may not exist)"
+          if [ "$HAS_CONFLICTS" = "true" ]; then
+            gh pr edit "$PR_NUMBER" --add-label "release,automated,production,auto-resolved" || echo "⚠️  Could not add labels"
+          else
+            gh pr edit "$PR_NUMBER" --add-label "release,automated,production" || echo "⚠️  Could not add labels"
+          fi
