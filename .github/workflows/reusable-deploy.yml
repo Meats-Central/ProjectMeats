@@ -260,9 +260,9 @@ jobs:
             -L 5433:$DB_HOST:$DB_PORT \
             $BASTION_USER@$BASTION_HOST
           
-          # Wait and verify tunnel is ready
+          # Wait and verify tunnel is ready (faster with shorter intervals)
           echo "Waiting for tunnel to establish..."
-          MAX_ATTEMPTS=10
+          MAX_ATTEMPTS=6
           ATTEMPT=1
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
@@ -277,7 +277,7 @@ jobs:
             fi
             
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - tunnel not ready, waiting..."
-            sleep 3
+            sleep 2
             ATTEMPT=$((ATTEMPT + 1))
           done
           
@@ -298,26 +298,27 @@ jobs:
           echo "Testing Tunnel Connectivity"
           echo "================================"
           
-          # Retry connection test with backoff
-          MAX_ATTEMPTS=5
+          # Faster retry with connection timeout
+          MAX_ATTEMPTS=3
           ATTEMPT=1
           
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Connection attempt $ATTEMPT/$MAX_ATTEMPTS..."
             
-            if PGPASSWORD="$DB_PASSWORD" psql \
+            # Use connection timeout to fail fast (10 seconds)
+            if timeout 10 bash -c "PGPASSWORD='$DB_PASSWORD' psql \
               -h 127.0.0.1 \
               -p 5433 \
-              -U "$DB_USER" \
-              -d "$DB_NAME" \
-              -c "SELECT version();" 2>&1; then
+              -U '$DB_USER' \
+              -d '$DB_NAME' \
+              -c 'SELECT version();'" 2>&1; then
               echo ""
               echo "✓ Database accessible through tunnel"
               exit 0
             fi
             
             echo "Connection failed, waiting before retry..."
-            sleep 5
+            sleep 3
             ATTEMPT=$((ATTEMPT + 1))
           done
           
