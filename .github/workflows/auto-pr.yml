@@ -4,6 +4,8 @@ name: 🤖 Auto-Draft Release PR
 run-name: "📋 Draft Promotion: ${{ github.event.workflow_run.head_branch }} → ${{ github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production' }}"
 
 on:
+  push:  # Must be explicit so status-check job can run
+    branches: ['**']
   workflow_run:
     workflows: ["Master Pipeline"]
     types:

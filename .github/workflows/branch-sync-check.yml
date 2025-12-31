@@ -4,6 +4,8 @@ name: 🔄 Branch Sync Monitor
 run-name: "🔍 Sync Check: ${{ github.event_name == 'schedule' && 'Daily' || 'Manual' }}"
 
 on:
+  push:  # Must be explicit so status-check job can run
+    branches: ['**']
   schedule:
     # Run daily at 00:00 UTC
     - cron: '0 0 * * *'
