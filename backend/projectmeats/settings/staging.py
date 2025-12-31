@@ -21,6 +21,12 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 env_allowed_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
 ALLOWED_HOSTS = [host.strip() for host in env_allowed_hosts.split(",") if host.strip()]
 
+# Always include localhost for Docker health checks
+if "localhost" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("localhost")
+if "127.0.0.1" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("127.0.0.1")
+
 # Add UAT hosts (primary) and legacy staging hosts (deprecated)
 STAGING_HOSTS = [
     "uat.meatscentral.com",  # PRIMARY - Use this for UAT/staging
