@@ -1,8 +1,9 @@
 name: Master Pipeline
 
-# Dynamic run names for deployments only
+# Dynamic run names to distinguish Deploys from PR Checks
 run-name: >-
   ${{ 
+    github.event_name == 'pull_request' && format('🔍 PR Check: {0}', github.event.pull_request.title) || 
     github.event_name == 'workflow_dispatch' && format('🕹️ Manual Deploy: {0}', inputs.environment) || 
     format('🚀 Deploy: {0}', github.ref_name) 
   }}
