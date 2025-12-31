@@ -425,7 +425,7 @@ jobs:
           MAX_ATTEMPTS=5
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
               exit 0
@@ -570,7 +570,7 @@ jobs:
           MAX_ATTEMPTS=5
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:80/ || echo "000")
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://127.0.0.1:80/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Frontend health check passed (HTTP $HTTP_CODE)"
               exit 0
