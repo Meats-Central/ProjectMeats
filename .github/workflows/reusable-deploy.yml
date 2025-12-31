@@ -403,27 +403,40 @@ jobs:
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
-          set -euo pipefail
+          # Export variables that will be used in the SSH session
+          export BACKEND_HOST="${{ secrets.BACKEND_HOST }}"
+          export DO_TOKEN="${{ secrets.DO_ACCESS_TOKEN }}"
+          export API_BASE_URL="${{ secrets.REACT_APP_API_BASE_URL }}"
+          export ENVIRONMENT="${{ inputs.environment }}"
+          export IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          export REG="${{ env.REGISTRY }}"
+          export IMG="${{ env.FRONTEND_IMAGE }}"
           
-          REG="${{ env.REGISTRY }}"
-          IMG="${{ env.FRONTEND_IMAGE }}"
-          TAG="${{ inputs.environment }}-${{ github.sha }}"
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "BACKEND_HOST='${BACKEND_HOST}' \
+             DO_TOKEN='${DO_TOKEN}' \
+             API_BASE_URL='${API_BASE_URL}' \
+             ENVIRONMENT='${ENVIRONMENT}' \
+             IMAGE_TAG='${IMAGE_TAG}' \
+             REG='${REG}' \
+             IMG='${IMG}' \
+             bash -s" << 'SSH'
+          set -euo pipefail
           
           # Create runtime config
           mkdir -p /opt/pm/frontend/env
-          cat > /opt/pm/frontend/env/env-config.js << 'ENVJS'
+          cat > /opt/pm/frontend/env/env-config.js << ENVJS
           window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "${{ inputs.environment }}"
+            API_BASE_URL: "${API_BASE_URL}",
+            ENVIRONMENT: "${ENVIRONMENT}"
           };
           ENVJS
           
           # Login to registry
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
+          echo "${DO_TOKEN}" | docker login registry.digitalocean.com -u "${DO_TOKEN}" --password-stdin
           
           # Pull new image
-          docker pull "$REG/$IMG:$TAG"
+          docker pull "$REG/$IMG:$IMAGE_TAG"
           
           # Stop old container
           docker rm -f pm-frontend || true
@@ -436,9 +449,9 @@ jobs:
           docker run -d --name pm-frontend \
             --restart unless-stopped \
             -p 80:80 \  # allowed-privileged - port explicitly freed above
-            --add-host backend:${{ secrets.BACKEND_HOST }} \
+            --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            "$REG/$IMG:$TAG"
+            "$REG/$IMG:$IMAGE_TAG"
           
           # Health check - container serves directly on port 80
           echo "Checking frontend health on port 80..."
