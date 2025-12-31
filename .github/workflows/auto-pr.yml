@@ -57,6 +57,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
+          echo "🔍 Checking if there are commits to promote..."
+          
+          # Check if there are any commits to promote
+          COMMIT_COUNT=$(git rev-list --count origin/uat..origin/development)
+          
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "✅ UAT is already up to date with development (no commits to promote)"
+            echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
+            echo "NO_COMMITS=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          echo "📊 Found $COMMIT_COUNT commits to promote"
+          echo "NO_COMMITS=false" >> $GITHUB_ENV
+          
           echo "🔍 Checking for merge conflicts between development and uat..."
           
           # Try to detect conflicts
@@ -87,13 +102,17 @@ jobs:
             echo "HAS_CONFLICTS=true" >> $GITHUB_ENV
           else
             echo "✅ No conflicts detected"
-            git merge --abort || true
+            # Abort merge only if there's actually a merge in progress
+            if [ -f .git/MERGE_HEAD ]; then
+              git merge --abort
+            fi
             echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
           fi
           
           git checkout development
 
       - name: Create Fresh Pull Request to UAT
+        if: env.NO_COMMITS != 'true'
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
@@ -216,6 +235,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
+          echo "🔍 Checking if there are commits to promote..."
+          
+          # Check if there are any commits to promote
+          COMMIT_COUNT=$(git rev-list --count origin/main..origin/uat)
+          
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "✅ Production is already up to date with UAT (no commits to promote)"
+            echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
+            echo "NO_COMMITS=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          echo "📊 Found $COMMIT_COUNT commits to promote"
+          echo "NO_COMMITS=false" >> $GITHUB_ENV
+          
           echo "🔍 Checking for merge conflicts between uat and main..."
           
           # Try to detect conflicts
@@ -246,13 +280,17 @@ jobs:
             echo "HAS_CONFLICTS=true" >> $GITHUB_ENV
           else
             echo "✅ No conflicts detected"
-            git merge --abort || true
+            # Abort merge only if there's actually a merge in progress
+            if [ -f .git/MERGE_HEAD ]; then
+              git merge --abort
+            fi
             echo "HAS_CONFLICTS=false" >> $GITHUB_ENV
           fi
           
           git checkout uat
 
       - name: Create Fresh Pull Request to Production
+        if: env.NO_COMMITS != 'true'
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
