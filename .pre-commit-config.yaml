@@ -57,3 +57,11 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      
+      - id: lint-docker-ports
+        name: Lint Docker Port Bindings
+        description: Prevent privileged port bindings (< 1024) in Docker deployments
+        entry: ./scripts/lint-docker-ports.sh
+        language: script
+        files: ^(\.github/workflows/.*\.(yml|yaml)|docker-compose.*\.(yml|yaml))$
+        pass_filenames: false

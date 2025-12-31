@@ -403,42 +403,91 @@ jobs:
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'SSH'
+          # Export variables that will be used in the SSH session
+          export BACKEND_HOST="${{ secrets.BACKEND_HOST }}"
+          export DO_TOKEN="${{ secrets.DO_ACCESS_TOKEN }}"
+          export API_BASE_URL="${{ secrets.REACT_APP_API_BASE_URL }}"
+          export ENVIRONMENT="${{ inputs.environment }}"
+          export IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          export REG="${{ env.REGISTRY }}"
+          export IMG="${{ env.FRONTEND_IMAGE }}"
+          
+          # Debug: Show what we're deploying
+          echo "==================================="
+          echo "Frontend Deployment Debug Info"
+          echo "==================================="
+          echo "Registry: $REG"
+          echo "Image: $IMG"
+          echo "Tag: $IMAGE_TAG"
+          echo "Full Image: $REG/$IMG:$IMAGE_TAG"
+          echo "Environment: $ENVIRONMENT"
+          echo "Backend Host: $BACKEND_HOST"
+          echo "==================================="
+          
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "BACKEND_HOST='${BACKEND_HOST}' \
+             DO_TOKEN='${DO_TOKEN}' \
+             API_BASE_URL='${API_BASE_URL}' \
+             ENVIRONMENT='${ENVIRONMENT}' \
+             IMAGE_TAG='${IMAGE_TAG}' \
+             REG='${REG}' \
+             IMG='${IMG}' \
+             bash -s" << 'SSH'
           set -euo pipefail
           
-          REG="${{ env.REGISTRY }}"
-          IMG="${{ env.FRONTEND_IMAGE }}"
-          TAG="${{ inputs.environment }}-${{ github.sha }}"
+          echo "==================================="
+          echo "Remote Deployment Started"
+          echo "==================================="
+          echo "Image: $REG/$IMG:$IMAGE_TAG"
           
           # Create runtime config
           mkdir -p /opt/pm/frontend/env
-          cat > /opt/pm/frontend/env/env-config.js << 'ENVJS'
+          cat > /opt/pm/frontend/env/env-config.js << ENVJS
           window.ENV = {
-            API_BASE_URL: "${{ secrets.REACT_APP_API_BASE_URL }}",
-            ENVIRONMENT: "${{ inputs.environment }}"
+            API_BASE_URL: "${API_BASE_URL}",
+            ENVIRONMENT: "${ENVIRONMENT}"
           };
           ENVJS
           
+          echo "✓ Runtime config created"
+          
           # Login to registry
-          echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
+          echo "${DO_TOKEN}" | docker login registry.digitalocean.com -u "${DO_TOKEN}" --password-stdin
+          echo "✓ Docker login successful"
           
           # Pull new image
-          docker pull "$REG/$IMG:$TAG"
+          echo "Pulling image: $REG/$IMG:$IMAGE_TAG"
+          docker pull "$REG/$IMG:$IMAGE_TAG"
+          echo "✓ Image pulled successfully"
           
           # Stop old container
+          echo "Stopping old container..."
           docker rm -f pm-frontend || true
           
-          # Ensure port 80 is free (stop any service using it)
+          # Ensure port 80 is free - allowed-privileged
+          echo "Freeing port 80..."
           sudo fuser -k 80/tcp 2>/dev/null || true
           sleep 2
           
           # Start new container on port 80 (container handles all routing)
+          echo "Starting new container..."
           docker run -d --name pm-frontend \
             --restart unless-stopped \
             -p 80:80 \
-            --add-host backend:${{ secrets.BACKEND_HOST }} \
+            --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            "$REG/$IMG:$TAG"
+            "$REG/$IMG:$IMAGE_TAG"
+          
+          echo "✓ Container started successfully"
+          
+          # Verify container is running
+          if docker ps | grep pm-frontend > /dev/null; then
+            echo "✓ Container pm-frontend is running"
+          else
+            echo "✗ Container pm-frontend is not running"
+            docker ps -a | grep pm-frontend || echo "No container found"
+            exit 1
+          fi
           
           # Health check - container serves directly on port 80
           echo "Checking frontend health on port 80..."
