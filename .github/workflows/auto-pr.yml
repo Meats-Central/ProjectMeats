@@ -4,6 +4,10 @@ name: 🤖 Auto-Draft Release PR
 run-name: "📋 Draft Promotion: ${{ github.event.workflow_run.head_branch }} → ${{ github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production' }}"
 
 on:
+  push:
+    # Explicit push trigger to prevent GitHub from treating "no matching jobs" as failure
+    # This ensures the noop job runs when push events occur
+    branches: ['**']
   workflow_run:
     workflows: ["Master Pipeline"]
     types:
