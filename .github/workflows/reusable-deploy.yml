@@ -43,10 +43,10 @@ on:
         description: "SSH username for deployment (from job environment)"
       SSH_PASSWORD:
         required: false
-        description: "SSH password for backend deployment (backend uses password auth)"
+        description: "SSH password for deployment (primary method - used by all deployments)"
       SSH_KEY:
         required: false
-        description: "SSH private key for frontend deployment (frontend uses key auth)"
+        description: "SSH private key (legacy/alternative - NOT CURRENTLY USED)"
       DB_HOST:
         required: false
         description: "Database host (for SSH tunnel, from job environment)"
