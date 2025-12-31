@@ -103,7 +103,9 @@ health_check() {
     log_info "Performing health check on $url"
     
     while [[ $retries -lt $MAX_RETRIES ]]; do
-        if curl -f -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$url" | grep -q "200"; then
+        # Use -L to follow redirects (e.g., HTTP 301 to HTTPS)
+        # Still outputs only final HTTP code for validation
+        if curl -L -f -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$url" | grep -q "200"; then
             log_info "✓ Health check passed (attempt $((retries + 1)))"
             return 0
         fi
