@@ -32,11 +32,23 @@ const ENVIRONMENT_PATTERNS = {
 
 /**
  * Default API base URLs per environment
+ * 
+ * UNIFIED PROXY ARCHITECTURE:
+ * All environments use same-domain proxying to eliminate CORS issues.
+ * Nginx on frontend server proxies /api/ requests to backend server.
+ * 
+ * Benefits:
+ * - No CORS issues (browser sees same origin)
+ * - Simplified configuration
+ * - Better security (backend not exposed directly)
+ * 
+ * Note: For localhost, we still use direct backend connection since
+ * there's no nginx proxy in local development.
  */
 const DEFAULT_API_URLS = {
-  development: 'http://localhost:8000/api/v1',
-  uat: 'https://uat-api.projectmeats.com/api/v1',
-  production: 'https://api.projectmeats.com/api/v1',
+  development: 'https://dev.meatscentral.com/api/v1',
+  uat: 'https://api.uat.meatscentral.com/api/v1',
+  production: 'https://api.meatscentral.com/api/v1',
 };
 
 /**
@@ -111,12 +123,18 @@ function extractTenant(hostname: string, environment: string): string | null {
  * 
  * Priority:
  * 1. Tenant-specific API URL (if tenant detected)
- * 2. Default API URL for environment
+ * 2. Localhost for local development
+ * 3. Default API URL for environment
  * 
  * Note: window.ENV.API_BASE_URL is checked in runtime.ts, not here,
  * to maintain proper configuration priority chain.
  */
-function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'uat' | 'production'): string {
+function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'uat' | 'production', hostname: string): string {
+  // For localhost, always use local backend
+  if (hostname.includes('localhost')) {
+    return 'http://localhost:8000/api/v1';
+  }
+  
   // For tenant-specific domains, construct the API URL
   if (tenant) {
     const protocol = environment === 'development' ? 'http' : 'https';
@@ -136,7 +154,7 @@ function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'ua
     return `${protocol}://${tenant}${envPrefix}-api.projectmeats.com/api/v1`;
   }
   
-  // Fall back to default API URLs
+  // Fall back to default API URLs for deployed environments
   return DEFAULT_API_URLS[environment];
 }
 
@@ -147,7 +165,7 @@ export function getTenantContext(): TenantInfo {
   const hostname = window.location.hostname;
   const environment = extractEnvironment(hostname);
   const tenant = extractTenant(hostname, environment);
-  const apiBaseUrl = buildApiBaseUrl(tenant, environment);
+  const apiBaseUrl = buildApiBaseUrl(tenant, environment, hostname);
   
   return {
     tenant,

@@ -1,68 +1,28 @@
+"""
+Tenant models for shared-schema multi-tenancy in ProjectMeats.
+
+Architecture Decision: Shared Schema Multi-Tenancy
+===================================================
+ProjectMeats uses a **shared schema** approach where all tenants share the same
+PostgreSQL schema, with tenant isolation enforced via `tenant_id` foreign keys
+on business models.
+
+Key Points:
+- NO django-tenants schema-based isolation
+- NO Client/Domain models (removed in refactor)
+- All business models use `tenant` ForeignKey for data isolation
+- TenantMiddleware resolves tenant from domain/subdomain/header
+- TenantDomain maps custom domains to Tenant instances
+
+See docs/ARCHITECTURE.md for the full multi-tenancy design.
+"""
+
 import secrets
 import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django_tenants.models import TenantMixin, DomainMixin
-
-
-class Client(TenantMixin):
-    """
-    Client model for django-tenants schema-based multi-tenancy.
-
-    This model represents a tenant in the schema-based multi-tenancy approach
-    where each client gets its own PostgreSQL schema for complete data isolation.
-
-    Inherits from TenantMixin which provides:
-    - schema_name: PostgreSQL schema name
-    - auto_create_schema: Whether to automatically create schema
-    - auto_drop_schema: Whether to automatically drop schema on delete
-    """
-
-    name = models.CharField(max_length=255, help_text="Client organization name")
-    description = models.TextField(
-        blank=True, help_text="Optional description of the client"
-    )
-
-    # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    # Enable automatic schema management
-    auto_create_schema = True
-    auto_drop_schema = False  # Safety: don't auto-drop schemas
-
-    class Meta:
-        db_table = "tenants_client"
-
-    def __str__(self):
-        return f"{self.name} ({self.schema_name})"
-
-
-class Domain(DomainMixin):
-    """
-    Domain model for django-tenants schema-based multi-tenancy.
-
-    Maps domain names to Client tenants for schema-based routing.
-    This is the django-tenants DomainMixin-based model used for
-    schema-based multi-tenancy.
-
-    Inherits from DomainMixin which provides:
-    - domain: Domain name field
-    - tenant: ForeignKey to Client
-    - is_primary: Whether this is the primary domain
-
-    This is separate from TenantDomain which is used for shared-schema
-    multi-tenancy routing (deprecated).
-    """
-
-    class Meta:
-        db_table = "tenants_domain"
-
-    def __str__(self):
-        primary = " (primary)" if self.is_primary else ""
-        return f"{self.domain} -> {self.tenant.name}{primary}"
 
 
 class Tenant(models.Model):
@@ -331,6 +291,16 @@ class TenantInvitation(models.Model):
     # Optional personal message
     message = models.TextField(blank=True, help_text="Optional message from inviter")
 
+    # NEW FIELDS for Reusability
+    is_reusable = models.BooleanField(
+        default=False,
+        help_text="Allow multiple users to sign up with this token"
+    )
+    usage_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of times this invitation has been used"
+    )
+
     class Meta:
         db_table = "tenants_invitation"
         ordering = ["-created_at"]
@@ -371,7 +341,12 @@ class TenantInvitation(models.Model):
     @property
     def is_valid(self):
         """Check if invitation is valid (pending and not expired)."""
-        return self.status == "pending" and not self.is_expired
+        # Valid if pending, OR (reusable and not expired)
+        if self.is_expired:
+            return False
+        if self.is_reusable:
+            return self.status != 'revoked'
+        return self.status == "pending"
 
     def accept(self, user):
         """
@@ -383,9 +358,14 @@ class TenantInvitation(models.Model):
         if not self.is_valid:
             raise ValueError("Invitation is not valid")
 
-        self.status = "accepted"
-        self.accepted_at = timezone.now()
-        self.accepted_by = user
+        self.usage_count += 1
+
+        # Only close the invite if it's NOT reusable
+        if not self.is_reusable:
+            self.status = "accepted"
+            self.accepted_at = timezone.now()
+            self.accepted_by = user
+
         self.save()
 
     def revoke(self):

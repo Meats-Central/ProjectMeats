@@ -8,7 +8,10 @@ import { config } from '../config/runtime';
 
 // API Configuration
 const API_BASE_URL = config.API_BASE_URL;
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
+// Check for development mode (Vite or legacy)
+const IS_DEVELOPMENT = typeof import.meta !== 'undefined'
+  ? import.meta.env?.MODE === 'development'
+  : typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
 
 const businessApiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,6 +19,9 @@ const businessApiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Allow cookies for authentication
+  xsrfCookieName: 'csrftoken', // Django's CSRF cookie name
+  xsrfHeaderName: 'X-CSRFToken', // Django's expected CSRF header
 });
 
 // Request interceptor for authentication

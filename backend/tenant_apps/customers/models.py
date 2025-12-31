@@ -3,11 +3,11 @@ Customers models for ProjectMeats.
 
 Defines customer entities and related business logic.
 
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
 
+from apps.tenants.models import Tenant
 from tenant_apps.contacts.models import Contact
 from apps.core.models import (
     AccountingPaymentTermsChoices,
@@ -19,12 +19,23 @@ from apps.core.models import (
     OriginChoices,
     Protein,
     TimestampModel,
+    TenantManager,
 )
 from tenant_apps.plants.models import Plant
 
 
 class Customer(TimestampModel):
     """Customer model for managing customer information."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="customers",
+        help_text="Tenant this customer belongs to"
+    )
 
     # Basic information - keeping existing fields with same names
     name = models.CharField(max_length=255, help_text="Customer company name")
@@ -172,6 +183,9 @@ class Customer(TimestampModel):
         ordering = ["name"]
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
+        indexes = [
+            models.Index(fields=['tenant', 'name']),
+        ]
 
     def __str__(self):
         return self.name

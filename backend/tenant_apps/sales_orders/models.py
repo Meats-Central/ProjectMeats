@@ -3,14 +3,14 @@ Sales Orders models for ProjectMeats.
 
 Defines sales order entities and related business logic.
 
-
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import (
     TimestampModel,
     WeightUnitChoices,
+    TenantManager,
 )
 
 
@@ -26,6 +26,15 @@ class SalesOrderStatus(models.TextChoices):
 
 class SalesOrder(TimestampModel):
     """Sales Order model for managing customer sales orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="sales_orders",
+        help_text="Tenant this salesorder belongs to"
+    )
 
     # Order identification
     our_sales_order_num = models.CharField(

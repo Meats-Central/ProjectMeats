@@ -1,0 +1,128 @@
+# ProjectMeats AI Agent Configuration
+# Version: 1.0.0 | December 2025
+
+# =============================================================================
+# CRITICAL RULES FOR ALL AI AGENTS
+# =============================================================================
+
+rules:
+  # Multi-Tenancy Architecture
+  multi_tenancy:
+    architecture: "shared-schema"
+    never_use:
+      - "django-tenants"
+      - "TenantMixin"
+      - "DomainMixin"
+      - "schema_context()"
+      - "connection.schema_name"
+      - "migrate_schemas"
+    always_use:
+      - "tenant ForeignKey on business models"
+      - "filter(tenant=request.tenant)"
+      - "python manage.py migrate"
+    description: >
+      ProjectMeats uses SHARED SCHEMA multi-tenancy. All tenants share one
+      PostgreSQL schema. Tenant isolation is via tenant_id foreign keys.
+
+  # Code Standards
+  code_standards:
+    backend:
+      framework: "Django 5.x + DRF"
+      linting: "black, isort, flake8"
+      max_line_length: 100
+    frontend:
+      framework: "React 19 + TypeScript 5.9"
+      linting: "ESLint (Airbnb config) + Prettier"
+      max_line_length: 120
+
+  # Ethical AI Guidelines
+  ethical_ai:
+    - "Never generate content that could be harmful"
+    - "Respect copyright and intellectual property"
+    - "Do not generate sensitive data (PII, credentials)"
+    - "Maintain security best practices"
+    - "Follow OWASP guidelines for security"
+
+  # Prompt Limits
+  prompt_limits:
+    max_file_changes: 10
+    max_lines_per_change: 200
+    require_tests: true
+    require_documentation_update: true
+
+# =============================================================================
+# PROJECT OVERVIEW
+# =============================================================================
+
+project:
+  name: "ProjectMeats"
+  description: "Meat sales broker management system"
+  tech_stack:
+    backend: "Django 5.x + DRF + PostgreSQL"
+    frontend: "React 19 + TypeScript 5.9 + Vite"
+    mobile: "React Native"
+  architecture:
+    multi_tenancy: "Shared schema with tenant_id ForeignKeys"
+    api: "REST via /api/v1/"
+    auth: "Token + Session authentication"
+
+# =============================================================================
+# WORKFLOW PATTERNS
+# =============================================================================
+
+patterns:
+  viewset_tenant_isolation: |
+    class MyViewSet(viewsets.ModelViewSet):
+        def get_queryset(self):
+            return super().get_queryset().filter(tenant=self.request.tenant)
+        
+        def perform_create(self, serializer):
+            serializer.save(tenant=self.request.tenant)
+
+  model_with_tenant: |
+    class MyModel(models.Model):
+        tenant = models.ForeignKey(
+            'tenants.Tenant',
+            on_delete=models.CASCADE,
+            related_name='my_models'
+        )
+        # ... other fields
+
+  migration_commands: |
+    # Standard Django migrations (NO migrate_schemas)
+    python manage.py makemigrations
+    python manage.py migrate
+    python manage.py makemigrations --check
+
+# =============================================================================
+# DEPLOYMENT RULES
+# =============================================================================
+
+deployment:
+  branch_workflow:
+    description: "ALWAYS create feature/fix branch first, then PR to development"
+    steps:
+      - "1. Create feature/fix branch from development"
+      - "2. Make changes and commit to feature branch"
+      - "3. Push feature branch to origin"
+      - "4. Create PR to development (with review)"
+      - "5. After merge to development, auto-deploy to dev"
+      - "6. Automated workflow creates PR from development → UAT"
+      - "7. After merge to UAT, auto-deploy to staging"
+      - "8. Automated workflow creates PR from UAT → main"
+      - "9. After merge to main, auto-deploy to production"
+    never_do:
+      - "NEVER commit directly to development branch"
+      - "NEVER push directly to development without PR"
+      - "NEVER push directly to UAT"
+      - "NEVER push directly to main"
+      - "NEVER skip the PR review process"
+    always_do:
+      - "ALWAYS create a feature/* or fix/* branch first"
+      - "ALWAYS create PR before merging to development"
+      - "ALWAYS wait for CI checks to pass"
+      - "ALWAYS follow the promotion workflow"
+  environments:
+    development: "auto-deploy on merge to development branch"
+    uat: "auto-deploy on merge to uat branch, requires testing"
+    production: "auto-deploy on merge to main, requires 2 approvals"

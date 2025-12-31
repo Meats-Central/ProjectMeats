@@ -3,11 +3,11 @@ Suppliers models for ProjectMeats.
 
 Defines supplier entities and related business logic.
 
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
 
+from apps.tenants.models import Tenant
 from tenant_apps.contacts.models import Contact
 from apps.core.models import (
     AccountingPaymentTermsChoices,
@@ -24,6 +24,7 @@ from apps.core.models import (
     Protein,
     ProteinTypeChoices,
     ShippingOfferedChoices,
+    TenantManager,
     TimestampModel,
 )
 from tenant_apps.plants.models import Plant
@@ -31,6 +32,17 @@ from tenant_apps.plants.models import Plant
 
 class Supplier(TimestampModel):
     """Supplier model for managing supplier information."""
+
+    # Use the custom TenantManager to support .for_tenant() queries
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="suppliers",
+        help_text="Tenant this supplier belongs to"
+    )
 
     # Basic information - keeping existing fields with same names
     name = models.CharField(max_length=255, help_text="Supplier company name")
@@ -201,6 +213,9 @@ class Supplier(TimestampModel):
         ordering = ["name"]
         verbose_name = "Supplier"
         verbose_name_plural = "Suppliers"
+        indexes = [
+            models.Index(fields=['tenant', 'name']),
+        ]
 
     def __str__(self):
         return self.name

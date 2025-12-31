@@ -1,0 +1,194 @@
+name: 🤖 Auto-Draft Release PR
+
+on:
+  workflow_run:
+    workflows: ["Master Pipeline"]
+    types:
+      - completed
+    branches:
+      - development
+      - uat
+
+jobs:
+  draft-uat-pr:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'development' &&
+      github.event.workflow_run.event == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Close Existing PR (Force Fresh Release)
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🔍 Checking for existing PR: development -> uat"
+          
+          EXISTING_PR=$(gh pr list --base uat --head development --state open --json number,url --jq '.[0]')
+          
+          if [ -n "$EXISTING_PR" ]; then
+            PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+            PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
+            
+            echo "🗑️  Found existing PR #$PR_NUMBER: $PR_URL"
+            echo "🔄 Closing to create fresh PR with latest changes..."
+            
+            gh pr close "$PR_NUMBER" --comment "🔄 Auto-closing to create fresh release PR with all accumulated changes from development."
+            
+            echo "✅ Closed PR #$PR_NUMBER"
+          else
+            echo "✅ No existing PR found - will create new one"
+          fi
+
+      - name: Create Fresh Pull Request to UAT
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🚀 Creating fresh PR: development -> uat"
+          
+          COMMIT_COUNT=$(git rev-list --count origin/uat..origin/development)
+          RECENT_COMMITS=$(git log origin/uat..origin/development --oneline --max-count=10)
+          
+          cat > /tmp/pr-body.md <<'PRBODY'
+          ## 🚀 Automated Release PR: Development → UAT
+          
+          **Triggered by:** Successful deployment to Development
+          
+          ### Review Checklist
+          - [ ] Review all changes since last UAT deployment
+          - [ ] Verify dev environment is stable
+          - [ ] Check for any breaking changes
+          - [ ] Confirm all tests passed in development
+          
+          **Note:** This is a fresh PR containing all accumulated changes. Previous PR was auto-closed to ensure this is the single source of truth.
+          
+          ---
+          _This PR was automatically created after successful development deployment._
+          PRBODY
+          
+          echo "" >> /tmp/pr-body.md
+          echo "**Commits included:** $COMMIT_COUNT commits" >> /tmp/pr-body.md
+          echo "" >> /tmp/pr-body.md
+          echo "### Recent Changes" >> /tmp/pr-body.md
+          echo '```' >> /tmp/pr-body.md
+          echo "$RECENT_COMMITS" >> /tmp/pr-body.md
+          echo '```' >> /tmp/pr-body.md
+          
+          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          PR_URL=$(gh pr create \
+            --base uat \
+            --head development \
+            --title "🚀 Release: Promote Development to UAT ($(date +%Y-%m-%d))" \
+            --body-file /tmp/pr-body.md) || {
+            echo "⚠️  PR creation failed"
+            exit 1
+          }
+          
+          echo "✅ PR created: $PR_URL"
+          
+          # Add labels (non-fatal if labels don't exist)
+          PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "release,automated" || echo "⚠️  Could not add labels (labels may not exist)"
+
+  draft-production-pr:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'uat' &&
+      github.event.workflow_run.event == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Close Existing PR (Force Fresh Release)
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🔍 Checking for existing PR: uat -> main"
+          
+          EXISTING_PR=$(gh pr list --base main --head uat --state open --json number,url --jq '.[0]')
+          
+          if [ -n "$EXISTING_PR" ]; then
+            PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+            PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
+            
+            echo "🗑️  Found existing PR #$PR_NUMBER: $PR_URL"
+            echo "🔄 Closing to create fresh PR with latest changes..."
+            
+            gh pr close "$PR_NUMBER" --comment "🔄 Auto-closing to create fresh release PR with all accumulated changes from UAT."
+            
+            echo "✅ Closed PR #$PR_NUMBER"
+          else
+            echo "✅ No existing PR found - will create new one"
+          fi
+
+      - name: Create Fresh Pull Request to Production
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          echo "🚀 Creating fresh PR: uat -> main"
+          
+          COMMIT_COUNT=$(git rev-list --count origin/main..origin/uat)
+          RECENT_COMMITS=$(git log origin/main..origin/uat --oneline --max-count=10)
+          
+          cat > /tmp/pr-body.md <<'PRBODY'
+          ## 🚀 Automated Release PR: UAT → Production
+          
+          **Triggered by:** Successful deployment to UAT
+          
+          ### Production Release Checklist
+          - [ ] UAT environment verified and stable
+          - [ ] All acceptance tests passed
+          - [ ] Stakeholder sign-off obtained
+          - [ ] Rollback plan confirmed
+          - [ ] On-call engineer notified
+          
+          **⚠️ PRODUCTION DEPLOYMENT** - Requires additional approval
+          
+          **Note:** This is a fresh PR containing all accumulated changes. Previous PR was auto-closed to ensure this is the single source of truth.
+          
+          ---
+          _This PR was automatically created after successful UAT deployment._
+          PRBODY
+          
+          echo "" >> /tmp/pr-body.md
+          echo "**Commits included:** $COMMIT_COUNT commits" >> /tmp/pr-body.md
+          echo "" >> /tmp/pr-body.md
+          echo "### Recent Changes" >> /tmp/pr-body.md
+          echo '```' >> /tmp/pr-body.md
+          echo "$RECENT_COMMITS" >> /tmp/pr-body.md
+          echo '```' >> /tmp/pr-body.md
+          
+          # Create PR (without labels first, then add labels separately to handle missing labels gracefully)
+          PR_URL=$(gh pr create \
+            --base main \
+            --head uat \
+            --title "🚀 Release: Promote UAT to Production ($(date +%Y-%m-%d))" \
+            --body-file /tmp/pr-body.md) || {
+            echo "⚠️  PR creation failed"
+            exit 1
+          }
+          
+          echo "✅ PR created: $PR_URL"
+          
+          # Add labels (non-fatal if labels don't exist)
+          PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+          gh pr edit "$PR_NUMBER" --add-label "release,automated,production" || echo "⚠️  Could not add labels (labels may not exist)"

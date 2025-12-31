@@ -39,7 +39,13 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
     --max-time 15 \
     --retry 0 \
     --fail-early \
-    "$HEALTH_URL" 2>/dev/null || echo "$CURL_FAILURE_CODE")
+    "$HEALTH_URL" 2>/dev/null)
+  CURL_EXIT=$?
+  
+  # If curl failed (exit code != 0), set to failure code
+  if [ $CURL_EXIT -ne 0 ]; then
+    HTTP_CODE="$CURL_FAILURE_CODE"
+  fi
   
   # Success condition
   if [ "$HTTP_CODE" = "$EXPECTED_CODE" ]; then

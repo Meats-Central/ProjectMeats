@@ -1,15 +1,32 @@
+"""
+Accounts Receivables models for ProjectMeats.
+
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
+"""
 from decimal import Decimal
 from django.db import models
+from apps.core.models import TenantManager
 from django.contrib.auth.models import User
+from apps.tenants.models import Tenant
 
 
 class AccountsReceivable(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("paid", "Paid"),
         ("overdue", "Overdue"),
         ("cancelled", "Cancelled"),
     ]
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="accounts_receivables",
+        help_text="Tenant this accounts receivable belongs to"
+    )
 
     customer = models.ForeignKey(
         "customers.Customer",
@@ -30,6 +47,10 @@ class AccountsReceivable(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Accounts Receivable"
         verbose_name_plural = "Accounts Receivables"
+        indexes = [
+            models.Index(fields=['tenant', 'invoice_number']),
+            models.Index(fields=['tenant', 'status']),
+        ]
 
     def __str__(self):
         return f"{self.invoice_number} - {self.customer.name} - ${self.amount}"

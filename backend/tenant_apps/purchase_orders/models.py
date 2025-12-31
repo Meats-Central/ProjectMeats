@@ -3,15 +3,14 @@ Purchase Orders models for ProjectMeats.
 
 Defines purchase order entities and related business logic.
 
-
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from apps.tenants.models import Tenant
 from apps.core.models import (
     AccountingPaymentTermsChoices,
     AppointmentMethodChoices,
@@ -24,6 +23,7 @@ from apps.core.models import (
     ProteinTypeChoices,
     TimestampModel,
     WeightUnitChoices,
+    TenantManager,
 )
 
 
@@ -38,6 +38,16 @@ class PurchaseOrderStatus(models.TextChoices):
 
 class PurchaseOrder(TimestampModel):
     """Purchase Order model for managing purchase orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="purchase_orders",
+        help_text="Tenant this purchase order belongs to"
+    )
 
     order_number = models.CharField(max_length=50, unique=True, help_text="Unique order number")
     supplier = models.ForeignKey(
@@ -148,6 +158,10 @@ class PurchaseOrder(TimestampModel):
         ordering = ["-order_date", "-created_on"]
         verbose_name = "Purchase Order"
         verbose_name_plural = "Purchase Orders"
+        indexes = [
+            models.Index(fields=['tenant', 'order_number']),
+            models.Index(fields=['tenant', 'order_date']),
+        ]
 
     def __str__(self):
         return f"PO-{self.order_number}"
@@ -155,6 +169,16 @@ class PurchaseOrder(TimestampModel):
 
 class CarrierPurchaseOrder(TimestampModel):
     """Carrier Purchase Order model for managing carrier-specific purchase orders."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+    
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="carrier_purchase_orders",
+        help_text="Tenant this carrier purchase order belongs to"
+    )
 
     # Generated timestamp
     date_time_stamp_created = models.DateTimeField(
@@ -317,6 +341,9 @@ class CarrierPurchaseOrder(TimestampModel):
         ordering = ["-date_time_stamp_created", "-created_on"]
         verbose_name = "Carrier Purchase Order"
         verbose_name_plural = "Carrier Purchase Orders"
+        indexes = [
+            models.Index(fields=['tenant', 'our_carrier_po_num']),
+        ]
 
     def __str__(self):
         return f"Carrier PO-{self.our_carrier_po_num or self.id}"
@@ -324,6 +351,16 @@ class CarrierPurchaseOrder(TimestampModel):
 
 class ColdStorageEntry(TimestampModel):
     """Cold Storage Entry model for tracking boxing and cold storage operations."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="cold_storage_entries",
+        help_text="Tenant this cold storage entry belongs to"
+    )
 
     # Generated timestamp
     date_time_stamp_created = models.DateTimeField(
@@ -425,11 +462,26 @@ class ColdStorageEntry(TimestampModel):
         ordering = ["-date_time_stamp_created", "-created_on"]
         verbose_name = "Cold Storage Entry"
         verbose_name_plural = "Cold Storage Entries"
+        indexes = [
+            models.Index(fields=['tenant', 'date_time_stamp_created']),
+        ]
 
     def __str__(self):
         return f"Cold Storage Entry-{self.id} ({self.status_of_load})"
+
+
 class PurchaseOrderHistory(TimestampModel):
     """Version history for Purchase Order modifications."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="purchase_order_histories",
+        help_text="Tenant this history entry belongs to"
+    )
 
     purchase_order = models.ForeignKey(
         PurchaseOrder,

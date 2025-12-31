@@ -1,18 +1,25 @@
-# Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-# Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+"""
+Carriers models for ProjectMeats.
+
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
+"""
 
 from django.db import models
 from django.contrib.auth.models import User
+from apps.tenants.models import Tenant
 from apps.core.models import (
     AccountingPaymentTermsChoices,
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
     CreditLimitChoices,
+    TenantManager,
 )
 from tenant_apps.contacts.models import Contact
 
 
 class Carrier(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     CARRIER_TYPE_CHOICES = [
         ("truck", "Truck"),
         ("rail", "Rail"),
@@ -20,6 +27,14 @@ class Carrier(models.Model):
         ("sea", "Sea"),
         ("other", "Other"),
     ]
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="carriers",
+        help_text="Tenant this carrier belongs to"
+    )
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
@@ -138,6 +153,9 @@ class Carrier(models.Model):
         ordering = ["name"]
         verbose_name = "Carrier"
         verbose_name_plural = "Carriers"
+        indexes = [
+            models.Index(fields=['tenant', 'name']),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"
