@@ -1,11 +1,18 @@
-# Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-# Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+"""
+Plants models for ProjectMeats.
+
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
+"""
 
 from django.db import models
+from apps.core.models import TenantManager
 from django.contrib.auth.models import User
+from apps.tenants.models import Tenant
 
 
 class Plant(models.Model):
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
     PLANT_TYPE_CHOICES = [
         ("processing", "Processing Plant"),
         ("distribution", "Distribution Center"),
@@ -13,6 +20,14 @@ class Plant(models.Model):
         ("retail", "Retail Location"),
         ("other", "Other"),
     ]
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="plants",
+        help_text="Tenant this plant belongs to"
+    )
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
@@ -47,6 +62,10 @@ class Plant(models.Model):
         ordering = ["name"]
         verbose_name = "Plant"
         verbose_name_plural = "Plants"
+        indexes = [
+            models.Index(fields=['tenant', 'code']),
+            models.Index(fields=['tenant', 'name']),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"

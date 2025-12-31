@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,6 +29,8 @@ const SignUp: React.FC = () => {
 
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
 
   const validateForm = (): string | null => {
     if (!formData.username.trim()) return 'Username is required';
@@ -74,6 +76,7 @@ const SignUp: React.FC = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         company: formData.company,
+        token: token || undefined,
       });
 
       // Show success and redirect to dashboard (user is already logged in)

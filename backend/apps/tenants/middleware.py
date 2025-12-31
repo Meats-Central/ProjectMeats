@@ -1,11 +1,20 @@
 """
-Middleware for multi-tenancy support in ProjectMeats.
+Middleware for shared-schema multi-tenancy support in ProjectMeats.
 
+Architecture: Shared Schema Multi-Tenancy with PostgreSQL RLS
+==============================================================
 This middleware sets the current tenant in the request context based on:
 1. X-Tenant-ID header (for API requests) - HIGHEST PRIORITY
-2. Full domain name match (via TenantDomain model) - NEW
+2. Full domain name match (via TenantDomain model)
 3. Subdomain (if configured)
 4. Authenticated user's default tenant association - FALLBACK
+
+All tenant isolation is enforced via:
+- tenant_id foreign keys on business models (application-level)
+- PostgreSQL Row-Level Security (RLS) policies (database-level)
+
+The middleware sets the PostgreSQL session variable 'app.current_tenant_id'
+which is used by RLS policies to enforce tenant isolation at the database level.
 
 Tenant Resolution Order:
 -----------------------
@@ -14,7 +23,7 @@ Tenant Resolution Order:
    - Validates user has access to requested tenant
    - Returns 403 Forbidden if user lacks permission
    
-2. **Domain Match**: For multi-tenant domain routing (shared-schema pattern)
+2. **Domain Match**: For multi-tenant domain routing
    - Matches full domain against TenantDomain model entries
    - Example: tenant.example.com → TenantDomain.objects.get(domain="tenant.example.com")
    
@@ -33,6 +42,7 @@ ViewSets should handle None tenant by returning empty querysets or raising valid
 """
 
 from django.http import HttpRequest, HttpResponseForbidden
+from django.db import connection
 from .models import Tenant, TenantUser, TenantDomain
 import logging
 
@@ -172,7 +182,7 @@ class TenantMiddleware:
                     )
 
         # 4. Get user's default tenant if authenticated
-        if not tenant and request.user.is_authenticated:
+        if not tenant and hasattr(request, 'user') and request.user.is_authenticated:
             if is_debug_host:
                 logger.info(f"{debug_prefix} Attempting default tenant lookup for user: {request.user.username}")
             
@@ -226,6 +236,33 @@ class TenantMiddleware:
         # Set tenant in request
         request.tenant = tenant
         request.tenant_user = None
+        
+        # Set PostgreSQL session variable for Row-Level Security (RLS)
+        # This allows RLS policies to filter data by tenant_id automatically
+        if tenant:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SET LOCAL app.current_tenant_id = %s",
+                        [str(tenant.id)]
+                    )
+                logger.debug(
+                    f"RLS: Set current_tenant_id={tenant.id} for tenant={tenant.slug}"
+                )
+            except Exception as e:
+                # Log but don't fail the request if RLS setup fails
+                # Application-level filtering will still work
+                logger.warning(
+                    f"Failed to set RLS session variable for tenant={tenant.slug}: "
+                    f"{type(e).__name__}: {str(e)}"
+                )
+        else:
+            # Clear the session variable if no tenant is resolved
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("RESET app.current_tenant_id")
+            except Exception:
+                pass  # Silently fail for RESET
 
         # Set tenant_user if we have both tenant and authenticated user
         if tenant and request.user.is_authenticated:

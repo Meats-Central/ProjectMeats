@@ -8,7 +8,7 @@
  * Configuration priority for API_BASE_URL and ENVIRONMENT:
  * 1. Runtime config from window.ENV (set via env-config.js) - explicit override
  * 2. Tenant context from domain detection (via tenantContext.ts) - automatic
- * 3. Build-time environment variables (process.env.REACT_APP_*) - legacy fallback
+ * 3. Build-time environment variables (import.meta.env.VITE_* for Vite, process.env.REACT_APP_* legacy fallback)
  * 4. Default values - last resort
  */
 
@@ -31,9 +31,14 @@ declare global {
   }
 }
 
+// Helper to detect if we're running in development mode
+const isDevelopment = typeof import.meta !== 'undefined' 
+  ? import.meta.env?.MODE === 'development'
+  : typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
+
 /**
  * Get runtime configuration value
- * Priority: window.ENV > tenant context > process.env > default
+ * Priority: window.ENV > tenant context > import.meta.env (Vite) > process.env (legacy) > default
  * 
  * Note: For API_BASE_URL and ENVIRONMENT, we check window.ENV first
  * to allow explicit override, then fall back to tenant context.
@@ -64,10 +69,22 @@ function getRuntimeConfig(key: string, defaultValue: string = ''): string {
   }
   
   // Fall back to build-time environment variables
-  const envKey = `REACT_APP_${key}`;
-  const envValue = process.env[envKey];
-  if (envValue !== undefined && envValue !== null && envValue !== '') {
-    return envValue;
+  // Try Vite's import.meta.env first (VITE_ prefix)
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    const viteKey = `VITE_${key}`;
+    const viteValue = import.meta.env[viteKey];
+    if (viteValue !== undefined && viteValue !== null && viteValue !== '') {
+      return String(viteValue);
+    }
+  }
+  
+  // Legacy fallback for CRA (REACT_APP_ prefix)
+  if (typeof process !== 'undefined' && process.env) {
+    const envKey = `REACT_APP_${key}`;
+    const envValue = process.env[envKey];
+    if (envValue !== undefined && envValue !== null && envValue !== '') {
+      return envValue;
+    }
   }
   
   // Use default value
@@ -103,8 +120,8 @@ export const config = {
   AI_ASSISTANT_ENABLED: getRuntimeConfigBoolean('AI_ASSISTANT_ENABLED', true),
   ENABLE_DOCUMENT_UPLOAD: getRuntimeConfigBoolean('ENABLE_DOCUMENT_UPLOAD', true),
   ENABLE_CHAT_EXPORT: getRuntimeConfigBoolean('ENABLE_CHAT_EXPORT', true),
-  ENABLE_DEBUG: getRuntimeConfigBoolean('ENABLE_DEBUG', process.env.NODE_ENV === 'development'),
-  ENABLE_DEVTOOLS: getRuntimeConfigBoolean('ENABLE_DEVTOOLS', process.env.NODE_ENV === 'development'),
+  ENABLE_DEBUG: getRuntimeConfigBoolean('ENABLE_DEBUG', isDevelopment),
+  ENABLE_DEVTOOLS: getRuntimeConfigBoolean('ENABLE_DEVTOOLS', isDevelopment),
   
   // UI Configuration
   MAX_FILE_SIZE: getRuntimeConfigNumber('MAX_FILE_SIZE', 10485760), // 10MB
@@ -129,10 +146,10 @@ export { getRuntimeConfig, getRuntimeConfigBoolean, getRuntimeConfigNumber };
 
 // Log configuration source in development
 // Note: This only runs once when the module is first imported
-if (process.env.NODE_ENV === 'development') {
+if (isDevelopment) {
   // eslint-disable-next-line no-console
   console.log('[Runtime Config] Loaded from:', 
-    window.ENV ? 'window.ENV (runtime)' : 'process.env (build-time)'
+    window.ENV ? 'window.ENV (runtime)' : 'import.meta.env (build-time)'
   );
   
   try {

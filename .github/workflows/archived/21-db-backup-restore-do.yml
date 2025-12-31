@@ -1,0 +1,166 @@
+# =============================================================================
+# DATABASE BACKUP AND RESTORE USING DIGITALOCEAN API
+# =============================================================================
+# This workflow uses DigitalOcean's managed backup features
+# =============================================================================
+
+name: 21-Weekly DB Backup - Using DigitalOcean Backups
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+  workflow_dispatch:
+
+# Concurrency: Only one backup/restore operation at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  restore-from-do-backup:
+    name: Restore Production Backup to Staging
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📦 Install doctl (DigitalOcean CLI)
+      run: |
+        cd ~
+        wget https://github.com/digitalocean/doctl/releases/download/v1.104.0/doctl-1.104.0-linux-amd64.tar.gz
+        tar xf doctl-1.104.0-linux-amd64.tar.gz
+        sudo mv doctl /usr/local/bin
+
+    - name: 🔐 Authenticate with DigitalOcean
+      env:
+        DO_API_TOKEN: ${{ secrets.DO_API_TOKEN }}
+      run: |
+        doctl auth init --access-token "$DO_API_TOKEN"
+
+    - name: 🔍 Verify Cluster ID and Token
+      run: |
+        echo "🔍 Verifying configuration..."
+        echo "Cluster ID: ${{ secrets.PROD_DB_CLUSTER_ID }}"
+        echo "Cluster ID length: ${#PROD_DB_CLUSTER_ID}"
+
+        # List all databases to verify access
+        echo "📋 Listing all databases..."
+        doctl databases list
+      env:
+        PROD_DB_CLUSTER_ID: ${{ secrets.PROD_DB_CLUSTER_ID }}
+
+    - name: 📋 List Production Database Backups
+      run: |
+        echo "📊 Listing available backups for cluster: ${{ secrets.PROD_DB_CLUSTER_ID }}"
+        doctl databases backups list ${{ secrets.PROD_DB_CLUSTER_ID }} || echo "⚠️ Failed to list backups"
+
+    - name: 🔄 Trigger Production Database Backup
+      run: |
+        echo "🔄 Creating new production backup..."
+        # DigitalOcean creates automatic daily backups
+        # This step is optional as backups are automatic
+        echo "✅ Daily backups are automatic on DigitalOcean"
+
+    - name: 📊 Get Latest Backup Information
+      id: get_backup
+      run: |
+        echo "📊 Getting latest production backup..."
+        LATEST_BACKUP=$(doctl databases backups list ${{ secrets.PROD_DB_CLUSTER_ID }} --format CreatedAt,Size --no-header | head -n1)
+        echo "Latest backup: $LATEST_BACKUP"
+        echo "latest_backup=$LATEST_BACKUP" >> $GITHUB_OUTPUT
+
+    - name: 📥 Backup Production to Local File
+      env:
+        PROD_DB_URL: ${{ secrets.PRODUCTION_DB_URL }}
+      run: |
+        echo "📥 Creating local backup of production database..."
+
+        # Install PostgreSQL 17 client to match server version
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+        sudo apt-get update
+
+        # Remove old version and install PostgreSQL 17 client
+        sudo apt-get remove -y postgresql-client postgresql-client-16 || true
+        sudo apt-get install -y postgresql-client-17
+
+        # Verify PostgreSQL version - use explicit path
+        /usr/lib/postgresql/17/bin/pg_dump --version
+
+        # Create backup file with timestamp
+        BACKUP_FILE="prod_backup_$(date +%Y%m%d_%H%M%S).sql"
+
+        # Use explicit path to pg_dump version 17
+        /usr/lib/postgresql/17/bin/pg_dump "$PROD_DB_URL" \
+          --no-owner \
+          --no-privileges \
+          --clean \
+          --if-exists \
+          -f "$BACKUP_FILE"
+
+        BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+        echo "✅ Backup created: $BACKUP_FILE (Size: $BACKUP_SIZE)"
+        echo "BACKUP_FILE=$BACKUP_FILE" >> $GITHUB_ENV
+
+    - name: 🗑️ Clean Staging Database
+      env:
+        STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+      run: |
+        echo "🗑️ Cleaning staging database..."
+
+        /usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+        echo "✅ Staging database cleaned"
+
+    - name: 📤 Restore Backup to Staging
+      env:
+        STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+      run: |
+        echo "📤 Restoring production backup to staging..."
+
+        /usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" < "$BACKUP_FILE"
+
+        echo "✅ Backup restored to staging"
+
+    - name: 🧪 Verify Staging Database
+      env:
+        STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+      run: |
+        echo "🧪 Verifying staging database..."
+
+        TABLE_COUNT=$(/usr/lib/postgresql/17/bin/psql "$STAGING_DB_URL" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
+
+        echo "📊 Tables in staging: $TABLE_COUNT"
+
+        if [ "$TABLE_COUNT" -gt 0 ]; then
+          echo "✅ Staging database verified successfully"
+        else
+          echo "⚠️ Warning: No tables found in staging"
+          exit 1
+        fi
+
+    - name: 🧹 Cleanup
+      if: always()
+      run: |
+        rm -f prod_backup_*.sql
+        echo "✅ Cleanup completed"
+
+    - name: 📧 Notification
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "🎉 Production database successfully backed up and restored to staging!"
+          echo "📅 Backup date: $(date)"
+          echo "🔄 Next scheduled backup: Next Sunday at 2:00 AM UTC"
+          echo "📊 Latest DO backup: ${{ steps.get_backup.outputs.latest_backup }}"
+        else
+          echo "❌ Database backup/restore failed!"
+          echo "📅 Failed at: $(date)"
+          echo "⚠️ Please check logs"
+        fi
+
+    - name: 📦 Upload Backup Artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: production-db-backup-${{ github.run_number }}
+        path: prod_backup_*.sql
+        retention-days: 30

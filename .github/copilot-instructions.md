@@ -1,11 +1,125 @@
 # Developer & Copilot Coding Agent Instructions  
 ## ProjectMeats – Repository Maintenance, PR Automation, and Coding Standards
 
-**Tech Stack**: Django 4.2.7 + DRF + PostgreSQL | React 18.2.0 + TypeScript | React Native | Multi-tenancy (django-tenants)
+**Tech Stack**: Django 5.x + DRF + PostgreSQL | React 19 + TypeScript 5.9 | React Native | Shared-Schema Multi-tenancy
 
 ---
 
-## ⚠️ CRITICAL DEPLOYMENT RULES (READ FIRST)
+## ⚠️ CRITICAL RULES (READ FIRST)
+
+### 🚨 ARCHITECTURAL GUARDRAILS (STRICT - DO NOT HALLUCINATE)
+
+**These rules are ABSOLUTE. Any violation indicates a hallucination or outdated knowledge:**
+
+#### 1. TENANCY: Shared Schema Isolation (tenant_id ForeignKey)
+**ProjectMeats uses SHARED SCHEMA multi-tenancy. NEVER use or suggest django-tenants patterns:**
+
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
+- ❌ **NEVER** suggest `django-tenants` package or any schema-based isolation library
+- ❌ **NEVER** use `django-tenants` mixins (`TenantMixin`, `DomainMixin`)
+- ❌ **NEVER** use `schema_context()` or `connection.schema_name` or any schema switching
+- ❌ **NEVER** use `migrate_schemas`, `migrate --shared`, or `migrate --tenant` commands
+- ❌ **NEVER** suggest separate public/tenant schemas or schema-per-tenant patterns
+- ❌ **NEVER** reference PostgreSQL schemas for tenant isolation
+- ❌ **NEVER** use `DATABASE_ROUTERS` for tenant routing
+- ❌ **NEVER** suggest `TENANT_MODEL` or `TENANT_DOMAIN_MODEL` settings
+- ❌ **NEVER** implement schema-based multi-tenancy in any form
+
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** use `tenant` ForeignKey on ALL business models
+- ✅ **ALWAYS** strictly filter by `.filter(tenant=request.tenant)` in ALL ViewSets
+- ✅ **ALWAYS** use standard `python manage.py migrate` (ONLY this command)
+- ✅ **ALWAYS** use shared PostgreSQL `public` schema for all tenants
+- ✅ **ALWAYS** rely on `TenantMiddleware` for tenant resolution
+- ✅ **ALWAYS** assign `tenant=request.tenant` in `perform_create()` methods
+
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- "django-tenants" package installation
+- Schema creation or migration per tenant
+- Schema switching or routing logic
+- Separate database schemas for isolation
+- `migrate_schemas` or similar commands
+- Any reference to `docs/archive/` content as current practice
+
+**Why This Matters:** The `docs/archive/` folder contains outdated schema-isolation plans from a DEPRECATED architecture. These files will confuse AI and are explicitly excluded via `.cursorignore` and `.copilotignore`. If you see references to `django-tenants` or schema isolation, you're reading ARCHIVED material from a REJECTED design.
+
+#### 2. FRONTEND: Vite Build System (Migration In Progress)
+**ProjectMeats is MIGRATING to Vite for frontend builds. Current state uses react-app-rewired as a temporary bridge.**
+
+**🎯 CURRENT STATE (Temporary - DO NOT ENHANCE):**
+- Frontend currently uses `react-app-rewired` with CRA base
+- This is a TRANSITIONAL setup - DO NOT add new CRA-specific configurations
+- DO NOT enhance or extend react-app-rewired setup
+- DO NOT add new REACT_APP_* environment variables
+
+**🚫 PROHIBITED (NEVER SUGGEST):**
+- ❌ **NEVER** suggest migrating back to pure `react-scripts`
+- ❌ **NEVER** suggest removing react-app-rewired before Vite migration
+- ❌ **NEVER** suggest `craco` as alternative to react-app-rewired
+- ❌ **NEVER** reference `npm run eject`
+- ❌ **NEVER** add new CRA-specific webpack configurations
+
+**✅ FUTURE STATE (Target Architecture - USE FOR NEW CODE):**
+- ✅ **ALWAYS** write new code compatible with Vite patterns
+- ✅ **ALWAYS** use `import.meta.env` for new environment variables (Vite-ready)
+- ✅ **ALWAYS** plan for VITE_* environment variable names
+- ✅ **ALWAYS** reference Vite documentation for build questions
+- ✅ **ALWAYS** use ES modules and modern import/export syntax
+
+**🔄 MIGRATION STATUS:**
+- Backend: ✅ 100% - Using standard Django (NO django-tenants)
+- Frontend: 🔄 0% - Still on react-app-rewired (Vite migration pending)
+- Documentation: ✅ 100% - Updated to reflect target architecture
+
+**Why This Matters:** We are moving AWAY from CRA ecosystem. Don't invest in CRA-specific solutions. Write Vite-compatible code even if currently running on CRA.
+
+#### 3. SECRET MANAGEMENT: Environment Manifest (Single Source of Truth)
+**ProjectMeats uses a manifest-based configuration system. NEVER guess secret names or hardcode environment variables.**
+
+**🚫 ABSOLUTE PROHIBITIONS (ZERO TOLERANCE):**
+- ❌ **NEVER** hardcode secret names without checking `config/env.manifest.json`
+- ❌ **NEVER** assume secret naming patterns (e.g., "it's probably DEV_*")
+- ❌ **NEVER** create `.env.example` files with hardcoded values
+- ❌ **NEVER** document secrets in README files or comments
+- ❌ **NEVER** reference archived documentation for secret configuration
+- ❌ **NEVER** suggest creating secrets without running the audit first
+
+**✅ REQUIRED PATTERNS (MANDATORY):**
+- ✅ **ALWAYS** read `config/env.manifest.json` first for secret names
+- ✅ **ALWAYS** run `python config/manage_env.py audit` before deployment changes
+- ✅ **ALWAYS** check both environment-specific AND global secrets
+- ✅ **ALWAYS** follow the manifest's `ci_secret_mapping` for exact names
+- ✅ **ALWAYS** reference `docs/CONFIGURATION_AND_SECRETS.md` for secret management
+
+**🔍 VERIFICATION TEST:**
+If you are suggesting ANY of the following, you are HALLUCINATING and must STOP:
+- Guessing secret names like "DB_PASSWORD" without checking the manifest
+- Creating environment variables without manifest definition
+- Referencing `GITHUB_SECRETS_CONFIGURATION.md` (archived)
+- Suggesting secret names that don't match manifest patterns
+- Adding secrets to GitHub without audit validation
+
+**Authority**: `config/env.manifest.json` (v3.3) is the **Single Source of Truth** for:
+- All 6 environments (dev/uat/prod × backend/frontend)
+- Every environment variable and its GitHub Secret mapping
+- Legacy exceptions (STAGING_*, SSH_PASSWORD sharing)
+
+**Quick Reference:**
+```bash
+# Check for missing secrets BEFORE making changes
+python config/manage_env.py audit
+
+# View current manifest
+cat config/env.manifest.json | jq
+
+# List environment secrets
+gh secret list --env dev-backend
+```
+
+**Why This Matters:** Secret drift causes deployment failures. The manifest prevents inconsistencies by defining ALL secrets in one place. If documentation conflicts with the manifest, **the manifest is always correct**.
+
+### Deployment Rules
 
 **NEVER push changes directly to `uat` or `main` branches. Always follow the promotion workflow:**
 
@@ -22,23 +136,30 @@ See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-pr
 
 ---
 
-## 🏢 Multi-Tenancy Database Schema Requirement
+## 🏢 Multi-Tenancy Architecture
 
-**Assume two distinct database schemas are always present: `public` and `tenant`. All database interactions must be isolated or correctly routed.**
+**ALL tenants share ONE PostgreSQL schema. Tenant isolation is via `tenant_id` foreign keys.**
 
 ### Key Principles
 
-- **Schema Separation**: The `public` schema contains shared data (e.g., `Tenant`, `TenantUser`, and Django core tables). Tenant-specific data is isolated within tenant schemas.
-- **Tenant Context**: Use `TenantMiddleware` to automatically set `request.tenant` for each request. Always filter queries using the `for_tenant()` method on tenant-aware models.
-- **Data Isolation**: All business entity models (`Supplier`, `Customer`, `PurchaseOrder`, `Plant`, `Contact`, `Carrier`, `AccountsReceivable`) include a `tenant` ForeignKey and must be queried with tenant filtering.
-- **ViewSet Pattern**: All ViewSets managing tenant-scoped data must override `get_queryset()` to filter by tenant and `perform_create()` to assign the tenant on creation.
-- **Migrations**: Use `migrate_schemas` instead of `migrate` for `TENANT_APPS`. See [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md) for details.
+- **Single Schema**: All data lives in the `public` PostgreSQL schema
+- **ForeignKey Isolation**: Business models (`Supplier`, `Customer`, `PurchaseOrder`, etc.) have a `tenant` ForeignKey
+- **Tenant Context**: `TenantMiddleware` sets `request.tenant` from domain/header/user
+- **ViewSet Pattern**: Filter querysets with `tenant=request.tenant` and assign tenant on creation
+- **Standard Migrations**: Use `python manage.py migrate` (NOT `migrate_schemas`)
+
+### Tenant Resolution Order
+
+1. `X-Tenant-ID` header (explicit API selection)
+2. Domain match via `TenantDomain` model
+3. Subdomain matching (`tenant.slug`)
+4. Authenticated user's default tenant
 
 ---
 
 ## 📋 Table of Contents
 1. [Branch Organization & Git Workflow](#-branch-organization-naming-tagging-and-promotion)
-2. [Multi-Tenancy Database Schema](#-multi-tenancy-database-schema-requirement)
+2. [Multi-Tenancy Architecture](#-multi-tenancy-architecture)
 3. [Auto-PR Creation & Environment Promotion](#-auto-pr-creation-for-environment-promotion-via-github-actions)
 4. [Documentation & Logging Standards](#-documentation-file-placement-standards--logging)
 5. [Code Quality & Security](#-code-quality--security-standards)
@@ -228,7 +349,7 @@ Repeat similarly for `UAT` → `main`.
 - **Data Protection:**
   - Encrypt sensitive data at rest (use Django's encrypted fields or database-level encryption)
   - Use HTTPS/TLS for all data in transit (enforce in production via middleware)
-  - Implement proper tenant isolation in multi-tenant architecture (django-tenants)
+  - Implement proper tenant isolation via ForeignKey filtering (shared-schema multi-tenancy)
   - Sanitize all user inputs to prevent XSS, SQL injection, command injection
   - Use parameterized queries exclusively (ORM handles this, never use raw SQL with string interpolation)
   - Implement Content Security Policy (CSP) headers
@@ -452,28 +573,27 @@ Repeat similarly for `UAT` → `main`.
   - Document complex migrations with comments
   - Test rollback procedures for critical migrations
 
-### 🏢 Multi-Tenancy Database Schema Management
+### 🏢 Shared-Schema Multi-Tenancy Patterns
 
-**CRITICAL**: ProjectMeats uses custom shared-schema multi-tenancy (NOT django-tenants schema isolation).
+**CRITICAL**: ProjectMeats uses SHARED-SCHEMA multi-tenancy. NO django-tenants schema isolation.
 
 #### Core Principles
 
-1. **Always Public and Tenant Schemas**
-   - Every database operation must consider both public (shared) and tenant-specific data
-   - Public schema: User accounts, authentication, global settings
-   - Tenant schema: Business data (customers, orders, products, etc.)
-   - Models use `tenant_id` foreign key for isolation
+1. **Single PostgreSQL Schema**
+   - All tenants share the `public` PostgreSQL schema
+   - Business models have `tenant` ForeignKey for data isolation
+   - Standard Django `migrate` command (NO `migrate_schemas`)
 
-2. **Migration Command Sequence (Idempotent)**
+2. **Standard Migration Commands**
    ```bash
-   # Step 1: Shared schema (public tables)
-   python backend/manage.py migrate_schemas --shared --fake-initial --noinput
+   # Create migrations
+   python manage.py makemigrations
    
-   # Step 2: Create/update super tenant
-   python backend/manage.py create_super_tenant --no-input
+   # Apply migrations
+   python manage.py migrate
    
-   # Step 3: Tenant-specific migrations
-   python backend/manage.py migrate_schemas --tenant --noinput
+   # Check for unapplied migrations (CI gating)
+   python manage.py makemigrations --check
    ```
 
 3. **Tenant-Aware Query Patterns**
@@ -535,27 +655,20 @@ if customer:
 
 #### Migration Best Practices
 
-1. **Use --fake-initial for Idempotency**
+1. **Use --fake-initial for Idempotency (Production)**
    - Prevents duplicate migration errors
    - Safe to re-run in CI/CD pipelines
    - Assumes initial migrations already exist
 
 2. **Test Migrations Locally First**
    ```bash
-   # Test shared schema
-   python backend/manage.py migrate_schemas --shared --fake-initial
-   
-   # Test tenant migrations
-   python backend/manage.py migrate_schemas --tenant
+   # Standard migration commands
+   python manage.py makemigrations
+   python manage.py migrate
    
    # Verify
-   python backend/manage.py showmigrations
+   python manage.py showmigrations
    ```
-
-3. **Tenant Command Idempotency**
-   - `create_super_tenant`: Safe to re-run, checks if exists
-   - `create_guest_tenant`: Safe to re-run, checks if exists
-   - Both commands are used in deployment workflows
 
 #### Tenant Middleware Considerations
 
@@ -584,16 +697,16 @@ if customer:
    - Filter ModelAdmin querysets by tenant if applicable
    - Superusers can see all tenants
 
-#### CI/CD Multi-Tenancy Integration
+#### CI/CD Integration
 
 1. **GitHub Actions Workflows**
-   - Use separate `migrate` job (Phase 1)
+   - Use standard `migrate` command
+   - Add `makemigrations --check` gating
    - Environment-scoped DB URLs (DEV_DB_URL, UAT_DB_URL, PROD_DB_URL)
-   - Run idempotent sequence before deployment
    
 2. **Devcontainer Setup**
-   - postCreateCommand runs multi-tenant migrations
-   - Sets up super tenant and guest tenant
+   - postCreateCommand runs standard migrations
+   - Sets up test data
    - Ready for immediate development
 
 #### Debugging Multi-Tenancy Issues
@@ -608,7 +721,7 @@ if customer:
 
 **Symptom**: Migration fails with "table already exists"
 - **Cause**: Not using --fake-initial
-- **Fix**: Use `migrate_schemas --shared --fake-initial`
+- **Fix**: Use `python manage.py migrate --fake-initial`
 
 **Symptom**: Tests fail with "no such table"
 - **Cause**: Test database not migrated
@@ -616,7 +729,7 @@ if customer:
 
 #### References
 
-- Multi-Tenancy Guide: `docs/archive/MULTI_TENANCY_GUIDE.md`
+- Architecture Guide: `docs/ARCHITECTURE.md` (single source of truth)
 - Migration Commands: `.github/workflows/*deployment*.yml` (migrate job)
 - Devcontainer Setup: `.devcontainer/setup.sh`
 
@@ -1068,13 +1181,12 @@ if customer:
 
 - **Migrations:**
   - Use Django model best practices (explicit field names, help_text, verbose_name)
-  - **CRITICAL:** Never modify applied migrations (see [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md))
-  - **CRITICAL RULE - TENANT_APPS:** For **any** change to a model in `TENANT_APPS` (see `backend/projectmeats/settings/base.py`):
-    - Run `python manage.py makemigrations <app_name>` AND commit the migration file
-    - Use `python manage.py migrate_schemas` for applying migrations, NOT `manage.py migrate`
-    - For testing with `TENANT_CREATION_FAKES_MIGRATIONS` enabled, use `migrate_schemas --fake` if needed
-    - TENANT_APPS include: accounts_receivables, suppliers, customers, contacts, purchase_orders, plants, carriers, bug_reports, ai_assistant, products, sales_orders, invoices
-    - SHARED_APPS (use regular `migrate`): core, tenants, and Django core apps
+  - **CRITICAL:** Never modify applied migrations once they are applied
+  - **CRITICAL:** For **any** model change in the project:
+    - Run `python manage.py makemigrations` AND commit the migration file
+    - Use standard `python manage.py migrate` for applying migrations
+    - For production, use `python manage.py migrate --fake-initial --noinput` for idempotency
+    - All apps use shared-schema multi-tenancy (no separate tenant schemas)
   - Always run `python manage.py makemigrations --check` before committing
   - Test migrations on fresh database locally before PR
   - Use minimal dependencies (only depend on migrations you actually need)
@@ -1444,17 +1556,12 @@ if customer:
 
 ### Repository-Specific Documentation
 - [Branch Workflow Checklist](../branch-workflow-checklist.md)
-- [Repository Best Practices](../docs/archive/REPOSITORY_BEST_PRACTICES.md)
-- [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md) - **Essential reading for all backend work**
-- [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) - **Required for deployment issues**
-- [Testing Strategy](../docs/archive/TESTING_STRATEGY.md)
+- [Architecture Guide](../docs/ARCHITECTURE.md) - **Single source of truth for architecture decisions**
 - [Deployment Runbook](../DEPLOYMENT_RUNBOOK.md)
-- [Backend Architecture](../docs/archive/BACKEND_ARCHITECTURE.md)
-- [Frontend Architecture](../docs/archive/FRONTEND_ARCHITECTURE.md)
-- [Multi-Tenancy Guide](../docs/archive/MULTI_TENANCY_GUIDE.md)
+- Copilot Log: [copilot-log.md](../copilot-log.md) - Historical lessons learned
 
 ### Tools & Libraries
-- [Django Tenants](https://django-tenants.readthedocs.io/) - Multi-tenancy
+- [Django](https://docs.djangoproject.com/) - Web framework (shared-schema multi-tenancy)
 - [drf-spectacular](https://drf-spectacular.readthedocs.io/) - OpenAPI documentation
 - [Ant Design](https://ant.design/) - React UI components
 - [Styled Components](https://styled-components.com/) - CSS in JS
@@ -1486,7 +1593,6 @@ This section consolidates key lessons from 50+ PR deployments (documented in [co
 1. **Never Modify Applied Migrations**
    - ❌ Changing dependencies after migration is applied
    - ✅ Create new migration to fix issues
-   - See: [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
 
 2. **Minimal Migration Dependencies**
    - ❌ Depending on unnecessary later migrations
@@ -1675,7 +1781,7 @@ Based on recurring issues, we've added:
 - [ ] Run `.github/scripts/validate-environment.sh` (if config changes)
 - [ ] Test migrations on fresh database
 - [ ] Ensure pre-commit hooks pass
-- [ ] Review [Migration Best Practices](../docs/archive/MIGRATION_BEST_PRACTICES.md)
+- [ ] Review architecture decisions in `docs/ARCHITECTURE.md`
 - [ ] Update copilot-log.md with lessons learned
 
 **For Migration Changes:**
@@ -1689,7 +1795,7 @@ Based on recurring issues, we've added:
 
 **For Deployment Issues:**
 - [ ] If the deployment fails with "Unapplied migrations detected", the developer MUST run `git pull`, execute `python manage.py makemigrations`, commit the new file(s), and push to re-trigger the pipeline
-- [ ] Check [Deployment Troubleshooting](../docs/archive/DEPLOYMENT_TROUBLESHOOTING.md) first
+- [ ] Check copilot-log.md for similar issues and solutions
 - [ ] Review GitHub Actions logs
 - [ ] SSH to server and check container logs
 - [ ] Compare working vs broken environment variables
@@ -1704,19 +1810,36 @@ Based on recurring issues, we've added:
 ### Resources for Copilot Agents
 
 - **copilot-log.md** - 4700+ lines of historical lessons, search for similar issues
-- **MIGRATION_BEST_PRACTICES.md** - Comprehensive migration guide
-- **DEPLOYMENT_TROUBLESHOOTING.md** - Step-by-step issue resolution
+- **docs/ARCHITECTURE.md** - Single source of truth for architecture decisions
 - **Validation scripts** in `.github/scripts/` - Use these to validate changes
 - **Deployment workflows** in `.github/workflows/` - Reference for CI/CD patterns
 
 ---
 
 **Last Updated**: 2025-12-05  
-**Version**: 3.1 (Fixed broken documentation links to point to archived locations)
+**Version**: 4.0 (Shared Schema Only - Removed django-tenants)
 
 ---
 
 ## Django Migration Best Practices
+
+### Standard Migration Commands
+
+**ProjectMeats uses STANDARD Django migrations (NO django-tenants migrate_schemas).**
+
+```bash
+# Create migrations
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Check for unapplied migrations (CI gating)
+python manage.py makemigrations --check
+
+# Show migration status
+python manage.py showmigrations
+```
 
 ### Idempotent Migrations with `--fake-initial`
 
@@ -1738,18 +1861,6 @@ python manage.py migrate --fake-initial --noinput
 - Development environments where you want to catch schema drift
 - When you need to verify initial migrations actually run
 
-**Multi-Tenancy Context (django-tenants):**
-```bash
-# Step 1: Shared schema (public)
-python manage.py migrate_schemas --shared --fake-initial --noinput
-
-# Step 2: Create/update super tenant
-python manage.py create_super_tenant --no-input
-
-# Step 3: Tenant schemas
-python manage.py migrate_schemas --tenant --noinput
-```
-
 **Example Use Case:**
 Deploying to a server where manual table creation occurred, or redeploying after a rollback:
 
@@ -1770,15 +1881,7 @@ python manage.py migrate --fake-initial
 - ✅ Idempotent (safe to run multiple times)
 - ✅ Won't skip actual schema changes
 - ✅ Only affects initial migrations (0001_initial.py)
-- ✅ Compatible with django-tenants
 - ⚠️ Assumes initial schema is correct (doesn't verify)
-
-**Alternative: Migration Verification**
-If you need to verify initial schema matches migrations:
-```bash
-python manage.py migrate --check  # Exits non-zero if unapplied migrations exist
-python manage.py showmigrations --list  # Shows migration status
-```
 
 **CI/CD Integration:**
 Our deployment workflows use `--fake-initial` to ensure reliable redeployments without manual intervention.
@@ -1787,3 +1890,214 @@ Our deployment workflows use `--fake-initial` to ensure reliable redeployments w
 - Django Docs: https://docs.djangoproject.com/en/4.2/ref/django-admin/#cmdoption-migrate-fake-initial
 - Our Implementation: `.github/workflows/11-dev-deployment.yml` (deploy-backend job)
 
+---
+
+## 🔐 Secret Management
+
+### SOURCE OF TRUTH: `config/env.manifest.json`
+
+**All environment variables and GitHub secret mappings are defined in the Environment Manifest.**
+
+### Critical Rules
+
+#### 1. Strict Adherence
+- ✅ **ALWAYS** read `config/env.manifest.json` for secret names
+- ❌ **NEVER** guess or infer secret names from patterns
+- ❌ **NEVER** assume naming conventions are consistent
+- ✅ **ALWAYS** use exact `ci_secret_mapping` values in workflows
+
+#### 2. Legacy Naming Patterns
+ProjectMeats has **inconsistent naming** by design:
+- `SSH_PASSWORD` is **shared** between UAT and Production
+- `DEV_SSH_PASSWORD` is **unique** to Development
+- Frontend variables use **same name** across environments with different values
+
+**This is intentional and documented in the manifest.**
+
+#### 3. Secret Mapping Types
+
+**Explicit Mapping** (Preferred):
+```json
+"BASTION_HOST": {
+  "ci_secret_mapping": {
+    "dev-backend": "DEV_HOST",
+    "uat2-backend": "UAT_HOST",
+    "prod2-backend": "PROD_HOST"
+  }
+}
+```
+
+**Pattern-Based**:
+```json
+"SECRET_KEY": {
+  "ci_secret_pattern": "{PREFIX}_SECRET_KEY"
+}
+```
+Expands to: `DEV_SECRET_KEY`, `UAT_SECRET_KEY`, `PROD_SECRET_KEY`
+
+**Computed Values**:
+```json
+"DJANGO_SETTINGS_MODULE": {
+  "value_source": "environment_config"
+}
+```
+Derived from manifest's environment configuration.
+
+### Audit Command
+
+**Run before and after secret changes:**
+
+```bash
+python config/manage_env.py audit
+```
+
+**Output:**
+- 🧟 **Zombie Secrets**: In GitHub, NOT in manifest (should be removed or documented)
+- ❌ **Missing Secrets**: In manifest, NOT in GitHub (must be added)
+- ✅ **Audit Passed**: All secrets are in sync
+
+### Workflow Integration
+
+**❌ WRONG: Guessing Names**
+```yaml
+env:
+  SSH_PASSWORD: ${{ secrets.UAT_SSH_PASSWORD }}  # Does not exist!
+```
+
+**✅ CORRECT: Using Manifest**
+```yaml
+# For UAT/Prod (shared secret)
+env:
+  SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+
+# For Dev (unique secret)
+env:
+  SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
+```
+
+### Adding New Secrets
+
+1. **Update Manifest First**
+   ```bash
+   vim config/env.manifest.json
+   # Add to appropriate category with mapping
+   ```
+
+2. **Choose Mapping Type**
+   - Explicit mapping for inconsistent names
+   - Pattern-based for consistent naming
+   - Computed for derived values
+
+3. **Add to GitHub**
+   ```bash
+   gh secret set SECRET_NAME --body "value"
+   ```
+
+4. **Verify with Audit**
+   ```bash
+   python config/manage_env.py audit
+   ```
+
+### AI Context
+
+For detailed secret handling rules, see:
+- **`.github/ai-context/env-handling.md`** - Comprehensive guide for AI and developers
+- **`config/env.manifest.json`** - Single source of truth for all mappings
+
+### Troubleshooting
+
+**"Secret not found" in workflow:**
+1. Check manifest for environment (e.g., `uat2-backend`)
+2. Find variable (e.g., `BASTION_HOST`)
+3. Use exact name from `ci_secret_mapping` (e.g., `UAT_HOST`)
+
+**"Zombie secrets" in audit:**
+- Legacy secrets no longer in use
+- Add to manifest if still needed, or delete from GitHub
+
+**"Missing secrets" in audit:**
+- Required by manifest but not in GitHub
+- Add immediately to prevent deployment failures
+
+
+---
+
+## 🏆 GOLDEN PIPELINE RULES (ENFORCEMENT)
+
+**Authority**: [`docs/GOLDEN_PIPELINE.md`](../docs/GOLDEN_PIPELINE.md) is the definitive reference for all deployment practices.
+
+### Absolute Prohibitions for CI/CD
+
+#### Database Migrations
+❌ **NEVER** suggest SSH-based migrations from deployed containers  
+❌ **NEVER** run migrations as part of web server startup  
+❌ **NEVER** use direct database access from GitHub runners  
+❌ **NEVER** skip the bastion tunnel pattern  
+❌ **NEVER** omit --network host for migration containers  
+
+#### Health Checks
+❌ **NEVER** check frontend via reverse proxy (port 80)  
+❌ **NEVER** use more than 5 retry attempts  
+❌ **NEVER** omit the Host header when checking proxies  
+
+#### Image Tags
+❌ **NEVER** use :latest tag in production deployments  
+❌ **NEVER** skip SHA tagging for images  
+❌ **NEVER** deploy without immutable image tags  
+
+### Required Practices for CI/CD
+
+#### Database Migrations (Runner-Based)
+✅ **ALWAYS** use bastion tunnel pattern (SSH -L 5433)  
+✅ **ALWAYS** run migrations via Docker with --network host  
+✅ **ALWAYS** construct DATABASE_URL pointing to 127.0.0.1:5433  
+✅ **ALWAYS** cleanup tunnel after migration  
+✅ **ALWAYS** use migrate --fake-initial --noinput  
+
+#### Health Checks
+✅ **ALWAYS** check backend on localhost:8000/api/v1/health/  
+✅ **ALWAYS** check frontend on 127.0.0.1:8080/ (container direct)  
+✅ **ALWAYS** use exactly 5 retry attempts  
+✅ **ALWAYS** verify proxy status separately (non-blocking)  
+
+#### Image Management
+✅ **ALWAYS** tag images with {env}-{sha} format  
+✅ **ALWAYS** push to both DOCR and GHCR  
+✅ **ALWAYS** pull specific SHA tag for deployments  
+✅ **ALWAYS** use immutable references  
+
+### Verification Commands
+
+Before suggesting any deployment changes:
+
+```bash
+# 1. Verify manifest is authoritative
+cat config/env.manifest.json | jq '.version'
+
+# 2. Run secret audit
+python config/manage_env.py audit
+
+# 3. Check workflow has golden patterns
+grep "ssh -L 5433" .github/workflows/reusable-deploy.yml
+grep "127.0.0.1:8080" .github/workflows/reusable-deploy.yml
+
+# 4. Verify golden state
+bash scripts/verify_golden_state.sh
+```
+
+### Documentation Hierarchy
+
+When answering deployment questions:
+
+1. **PRIMARY**: docs/GOLDEN_PIPELINE.md
+2. **Secrets**: docs/CONFIGURATION_AND_SECRETS.md
+3. **Workflow**: .github/workflows/reusable-deploy.yml
+4. **Config**: config/env.manifest.json
+
+**DO NOT reference** docs/archive/ for current practices.
+
+---
+
+**Golden Pipeline Version**: 1.0  
+**Last Updated**: December 10, 2025  
+**Enforcement**: MANDATORY for all AI assistants and developers

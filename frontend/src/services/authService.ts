@@ -19,6 +19,7 @@ export interface SignUpCredentials {
   firstName: string;
   lastName: string;
   company?: string;
+  token?: string;
 }
 
 export interface AuthResponse {
@@ -75,15 +76,26 @@ export class AuthService {
 
   async signUp(credentials: SignUpCredentials): Promise<UserProfile> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup/`, {
+      // Determine endpoint based on presence of token
+      const endpoint = credentials.token 
+        ? `${API_BASE_URL}/auth/signup-with-invitation/` 
+        : `${API_BASE_URL}/auth/signup/`;
+
+      // Construct payload with correct field mapping
+      // Backend expects snake_case and 'invitation_token'
+      const payload = {
         username: credentials.username,
         email: credentials.email,
         password: credentials.password,
-        firstName: credentials.firstName,
-        lastName: credentials.lastName,
-      });
+        first_name: credentials.firstName,      // Fix: Map to snake_case
+        last_name: credentials.lastName,        // Fix: Map to snake_case
+        ...(credentials.token ? { invitation_token: credentials.token } : {}), // Fix: Map 'token' to 'invitation_token'
+      };
 
-      const { token, user } = response.data;
+      const response = await axios.post(endpoint, payload);
+
+      // EXTRACT TENANT INFO HERE
+      const { token, user, tenant } = response.data;
 
       this.token = token;
       this.user = user;
@@ -92,10 +104,32 @@ export class AuthService {
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
 
+      // CRITICAL FIX: Store the new tenant context immediately
+      if (tenant) {
+        localStorage.setItem('tenantId', tenant.id);
+        localStorage.setItem('tenantName', tenant.name);
+        localStorage.setItem('tenantSlug', tenant.slug);
+      }
+
       return user;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.error || 'Sign up failed');
+        // Enhanced error handling to capture validation errors
+        const serverData = error.response?.data;
+        let errorMessage = 'Sign up failed';
+        
+        if (serverData) {
+            if (serverData.error) {
+                errorMessage = serverData.error;
+            } else if (typeof serverData === 'object') {
+                // Combine validation errors into a string
+                // e.g. {"invitation_token": ["This field is required."]}
+                errorMessage = Object.entries(serverData)
+                    .map(([key, msgs]) => `${key}: ${(Array.isArray(msgs) ? msgs : [msgs]).join(' ')}`)
+                    .join(' | ');
+            }
+        }
+        throw new Error(errorMessage);
       }
       throw new Error('Sign up failed');
     }

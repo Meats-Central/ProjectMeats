@@ -3,11 +3,10 @@ Products models for ProjectMeats.
 
 Master product list and related business logic.
 
-
-Schema-based multi-tenancy active – tenant isolation is handled automatically by django-tenants.
-Data is isolated by PostgreSQL schemas, NOT by tenant_id columns.
+Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 from django.db import models
+from apps.tenants.models import Tenant
 from apps.core.models import (
     CartonTypeChoices,
     EdibleInedibleChoices,
@@ -17,11 +16,22 @@ from apps.core.models import (
     PackageTypeChoices,
     ProteinTypeChoices,
     TimestampModel,
+    TenantManager,
 )
 
 
 class Product(TimestampModel):
     """Product model for master product list."""
+    # Use custom manager for multi-tenancy
+    objects = TenantManager()
+
+    # Multi-tenancy
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name="products",
+        help_text="Tenant this product belongs to"
+    )
 
     # Product identification
     product_code = models.CharField(

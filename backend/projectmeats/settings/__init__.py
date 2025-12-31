@@ -15,5 +15,7 @@ if "production" in environment:
     from .production import *
 elif "staging" in environment:
     from .staging import *
+elif "test" in environment:
+    from .test import *
 else:
     from .development import *

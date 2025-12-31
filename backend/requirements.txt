@@ -5,13 +5,13 @@
 
 # Core Django and DRF
 Django>=5.0
-djangorestframework==3.14.0
+djangorestframework>=3.15.0  # 3.15.0+ required for Django 6.0 compatibility
 django-cors-headers==4.3.1
 django-environ==0.11.2
-django-filter==23.3
+django-filter>=23.3  # Ensure latest compatible with Django 5.x
 
-# Multi-tenancy
-django-tenants>=3.5
+# Multi-tenancy: Uses shared-schema approach (NO django-tenants)
+# All tenant isolation is via tenant_id foreign keys on business models
 
 # Database
 psycopg[binary]>=3.2.0  # Modern PostgreSQL adapter (psycopg3)

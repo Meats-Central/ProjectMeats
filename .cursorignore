@@ -1,0 +1,52 @@
+# Cursor AI Ignore File
+# This file prevents Cursor AI from indexing specified directories and files
+# to avoid confusion from outdated or contradictory documentation
+
+# Archive directory (contains old schema isolation plans and zombie knowledge)
+# CRITICAL: These files reference deprecated django-tenants and schema isolation
+docs/archive/**
+
+# Archived infrastructure and old configs
+archived/**
+
+# Legacy documentation with outdated patterns
+docs/archive/legacy_2025/**
+
+# Build artifacts and dependencies
+node_modules/**
+dist/**
+build/**
+staticfiles/**
+media/**
+
+# Virtual environments
+venv/**
+env/**
+.venv/**
+backend/venv/**
+
+# Database files
+*.db
+*.sqlite3
+
+# Logs
+logs/**
+*.log
+
+# Temporary files
+tmp/**
+temp/**
+*.tmp
+*.backup
+
+# Test coverage
+coverage/**
+htmlcov/**
+.nyc_output/**
+
+# Large data dumps and SQL files
+*.sql
+*.dump
+*.dmp
+data/**
+backups/**

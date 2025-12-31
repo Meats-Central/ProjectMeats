@@ -107,6 +107,12 @@ class InvitationSignupSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     
+    # NEW: Accept email from frontend form
+    email = serializers.EmailField(
+        required=True,
+        help_text="User's email address"
+    )
+    
     def validate_invitation_token(self, value):
         """Validate that invitation exists and is valid."""
         try:
@@ -114,19 +120,9 @@ class InvitationSignupSerializer(serializers.Serializer):
         except TenantInvitation.DoesNotExist:
             raise serializers.ValidationError("Invalid invitation token")
         
-        # Check if already accepted
-        if invitation.status == 'accepted':
-            raise serializers.ValidationError("This invitation has already been accepted")
-        
-        # Check if expired
-        if invitation.is_expired:
-            invitation.status = 'expired'
-            invitation.save()
-            raise serializers.ValidationError("This invitation has expired")
-        
-        # Check if revoked
-        if invitation.status == 'revoked':
-            raise serializers.ValidationError("This invitation has been revoked")
+        # Check validity (using updated model logic)
+        if not invitation.is_valid:
+            raise serializers.ValidationError("This invitation is no longer valid")
         
         # Store for later use
         self.invitation = invitation
@@ -140,13 +136,25 @@ class InvitationSignupSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         """Additional validation."""
-        # Ensure email from invitation doesn't already have a user account
-        if hasattr(self, 'invitation'):
-            existing_user = User.objects.filter(email=self.invitation.email).first()
-            if existing_user:
-                raise serializers.ValidationError({
-                    'invitation_token': 'A user account with this email already exists'
-                })
+        invitation = self.invitation
+        input_email = attrs.get('email')
+
+        # Determine which email to use for the new account
+        # If reusable: use Input Email. If 1:1: use Invite Email.
+        target_email = input_email if invitation.is_reusable else invitation.email
+
+        # 1. Validation: If 1:1, input email must match invite email (security check)
+        if not invitation.is_reusable and input_email != invitation.email:
+            raise serializers.ValidationError({
+                'email': f"This invitation is exclusive to {invitation.email}. Please use that email or request a new invite."
+            })
+
+        # 2. Validation: Check if user already exists
+        if User.objects.filter(email=target_email).exists():
+            raise serializers.ValidationError({
+                'email': 'A user account with this email already exists'
+            })
+            
         return attrs
     
     def create(self, validated_data):
@@ -160,11 +168,13 @@ class InvitationSignupSerializer(serializers.Serializer):
         
         invitation_token = validated_data.pop('invitation_token')
         invitation = self.invitation
+        # Use input email if reusable, otherwise enforce invite email
+        email = validated_data['email'] if invitation.is_reusable else invitation.email
         
         # Create user
         user = User.objects.create_user(
             username=validated_data['username'],
-            email=invitation.email,  # Use email from invitation
+            email=email,
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
