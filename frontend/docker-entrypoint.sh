@@ -30,10 +30,13 @@ fi
 
 echo "=== Validating nginx configuration ==="
 # Test nginx configuration before starting
-if nginx -t -c /etc/nginx/nginx.conf 2>&1; then
+if nginx -t 2>&1; then
     echo "✓ Nginx configuration is valid"
 else
     echo "✗ Nginx configuration validation failed!"
+    echo ""
+    echo "Nginx test output:"
+    nginx -t 2>&1 || true
     echo ""
     echo "Configuration files:"
     echo "===================="
@@ -46,4 +49,5 @@ else
 fi
 
 echo "=== Starting nginx ==="
+echo "Nginx will listen on ports 80 and 443"
 exec nginx -g 'daemon off;'
