@@ -194,7 +194,11 @@ PRBODY
 
   status-check:
     runs-on: ubuntu-latest
-    if: always()
+    # This job always runs to prevent "0 jobs = FAILURE" status
+    # It runs on ANY trigger event (push, schedule, workflow_dispatch)
     steps:
       - name: Validate Workflow Trigger
-        run: echo "✅ Workflow triggered successfully (This job prevents false-positive failures)"
+        run: |
+          echo "✅ Workflow triggered successfully"
+          echo "Event: ${{ github.event_name }}"
+          echo "This job prevents false-positive failures when main jobs skip"
