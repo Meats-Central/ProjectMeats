@@ -100,3 +100,26 @@ jobs:
           fi
           
           echo "✓ All deployment workflows use immutable tagging"
+  
+  validate-heredocs:
+    name: Validate Heredoc Syntax
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Make validation script executable
+        run: chmod +x .github/hooks/check-heredoc-syntax.sh
+      
+      - name: Run heredoc syntax validation
+        run: .github/hooks/check-heredoc-syntax.sh
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "## ✅ Heredoc Syntax Validation Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All workflow files have valid heredoc syntax." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Closing delimiters are properly unindented" >> $GITHUB_STEP_SUMMARY
+          echo "- No syntax errors detected" >> $GITHUB_STEP_SUMMARY
