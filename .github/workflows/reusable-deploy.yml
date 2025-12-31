@@ -36,11 +36,11 @@ on:
         required: true
         description: "DigitalOcean access token (shared across all environments)"
       SSH_HOST:
-        required: true
-        description: "SSH host for deployment"
+        required: false
+        description: "SSH host for deployment (from job environment)"
       SSH_USER:
-        required: true
-        description: "SSH username for deployment"
+        required: false
+        description: "SSH username for deployment (from job environment)"
       SSH_PASSWORD:
         required: false
         description: "SSH password for backend deployment (backend uses password auth)"
@@ -48,32 +48,32 @@ on:
         required: false
         description: "SSH private key for frontend deployment (frontend uses key auth)"
       DB_HOST:
-        required: true
-        description: "Database host (for SSH tunnel)"
+        required: false
+        description: "Database host (for SSH tunnel, from job environment)"
       DB_PORT:
         required: false
         description: "Database port (defaults to 5432)"
       DB_NAME:
-        required: true
-        description: "Database name"
+        required: false
+        description: "Database name (from job environment)"
       DB_USER:
-        required: true
-        description: "Database user"
+        required: false
+        description: "Database user (from job environment)"
       DB_PASSWORD:
-        required: true
-        description: "Database password"
+        required: false
+        description: "Database password (from job environment)"
       DJANGO_SECRET_KEY:
-        required: true
-        description: "Django secret key"
+        required: false
+        description: "Django secret key (from job environment)"
       DJANGO_SETTINGS_MODULE:
-        required: true
-        description: "Django settings module path"
+        required: false
+        description: "Django settings module path (from job environment)"
       REACT_APP_API_BASE_URL:
-        required: true
-        description: "API base URL for frontend runtime config"
+        required: false
+        description: "API base URL for frontend runtime config (from job environment)"
       BACKEND_HOST:
-        required: true
-        description: "Backend host IP/hostname for nginx proxy and Docker networking"
+        required: false
+        description: "Backend host IP/hostname for nginx proxy and Docker networking (from job environment)"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
