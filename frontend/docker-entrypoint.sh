@@ -17,20 +17,25 @@ else
     HAS_SSL=false
 fi
 
+# Clear any existing configs in conf.d to ensure a clean slate
+echo "→ Cleaning existing nginx configs"
+rm -f /etc/nginx/conf.d/*.conf
+
 # Choose nginx config based on SSL availability
-if [ "$HAS_SSL" = true ] && [ -f "/etc/nginx/conf.d/frontend-ssl.conf" ]; then
+if [ "$HAS_SSL" = true ] && [ -f "/etc/nginx/templates/frontend-ssl.conf" ]; then
     echo "→ Using SSL-enabled configuration"
-    cp /etc/nginx/conf.d/frontend-ssl.conf /etc/nginx/conf.d/default.conf
-elif [ -f "/etc/nginx/conf.d/frontend-http.conf" ]; then
+    cp /etc/nginx/templates/frontend-ssl.conf /etc/nginx/conf.d/default.conf
+elif [ -f "/etc/nginx/templates/frontend-http.conf" ]; then
     echo "→ Using HTTP-only configuration"
-    cp /etc/nginx/conf.d/frontend-http.conf /etc/nginx/conf.d/default.conf
+    cp /etc/nginx/templates/frontend-http.conf /etc/nginx/conf.d/default.conf
 else
-    echo "→ Using default configuration"
+    echo "✗ No valid configuration template found!"
+    exit 1
 fi
 
 echo "=== Validating nginx configuration ==="
 # Test nginx configuration before starting
-if nginx -t; then
+if nginx -t 2>&1; then
     echo "✓ Nginx configuration is valid"
 else
     echo "✗ Nginx configuration validation failed!"
