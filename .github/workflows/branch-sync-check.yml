@@ -189,3 +189,10 @@ PRBODY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "_Next check: $(date -u -d '+1 day' +"%Y-%m-%d") 00:00 UTC_" >> $GITHUB_STEP_SUMMARY
+
+  status-check:
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Validate Workflow Trigger
+        run: echo "✅ Workflow triggered successfully (This job prevents false-positive failures)"

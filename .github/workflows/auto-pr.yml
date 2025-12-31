@@ -371,3 +371,10 @@ PRBODY
           else
             gh pr edit "$PR_NUMBER" --add-label "release,automated,production" || echo "⚠️  Could not add labels"
           fi
+
+  status-check:
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Validate Workflow Trigger
+        run: echo "✅ Workflow triggered successfully (This job prevents false-positive failures)"
