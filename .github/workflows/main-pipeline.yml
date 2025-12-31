@@ -133,19 +133,19 @@ jobs:
       api_base_url: 'https://dev.meatscentral.com'
     secrets:
       DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
-      SSH_HOST: ${{ secrets.DEV_HOST }}
-      SSH_USER: ${{ secrets.DEV_USER }}
-      SSH_PASSWORD: ${{ secrets.DEV_SSH_PASSWORD }}
-      SSH_KEY: ${{ secrets.DEV_FRONTEND_SSH_KEY }}
-      DB_HOST: ${{ secrets.DEV_DB_HOST }}
-      DB_PORT: ${{ secrets.DEV_DB_PORT }}
-      DB_NAME: ${{ secrets.DEV_DB_NAME }}
-      DB_USER: ${{ secrets.DEV_DB_USER }}
-      DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
-      DJANGO_SECRET_KEY: ${{ secrets.DEV_SECRET_KEY }}
-      DJANGO_SETTINGS_MODULE: ${{ secrets.DEV_DJANGO_SETTINGS_MODULE }}
-      REACT_APP_API_BASE_URL: ${{ secrets.DEV_API_BASE_URL }}
-      BACKEND_HOST: ${{ secrets.DEV_BACKEND_IP }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+      REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+      BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
 
   # ==========================================
   # Route to UAT
