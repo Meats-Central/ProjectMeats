@@ -529,16 +529,30 @@ jobs:
           sudo fuser -k 80/tcp 2>/dev/null || true
           sleep 2
           
-          # Start new container with HTTPS support
+          # Start new container
           echo "Starting new container..."
-          docker run -d --name pm-frontend \
+          
+          # Build docker run command with conditional SSL mount
+          DOCKER_CMD="docker run -d --name pm-frontend \
             --restart unless-stopped \
             -p 80:80 \
             -p 443:443 \
             --add-host backend:${BACKEND_HOST} \
-            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
-            -v /etc/nginx/ssl:/etc/nginx/ssl:ro \
-            "$REG/$IMG:$IMAGE_TAG"
+            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro"
+          
+          # Only mount SSL directory for production environment
+          if [ "${ENVIRONMENT}" = "production" ]; then
+            echo "→ Production environment: mounting SSL certificates"
+            DOCKER_CMD="${DOCKER_CMD} -v /etc/nginx/ssl:/etc/nginx/ssl:ro"
+          else
+            echo "→ Non-production environment: skipping SSL mount"
+          fi
+          
+          # Complete the command with image
+          DOCKER_CMD="${DOCKER_CMD} $REG/$IMG:$IMAGE_TAG"
+          
+          # Execute the command
+          eval "$DOCKER_CMD"
           
           echo "✓ Container started successfully"
           
