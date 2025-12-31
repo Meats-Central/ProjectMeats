@@ -529,13 +529,15 @@ jobs:
           sudo fuser -k 80/tcp 2>/dev/null || true
           sleep 2
           
-          # Start new container on port 80 (container handles all routing)
+          # Start new container with HTTPS support
           echo "Starting new container..."
           docker run -d --name pm-frontend \
             --restart unless-stopped \
             -p 80:80 \
+            -p 443:443 \
             --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
+            -v /etc/nginx/ssl:/etc/nginx/ssl:ro \
             "$REG/$IMG:$IMAGE_TAG"
           
           echo "✓ Container started successfully"
