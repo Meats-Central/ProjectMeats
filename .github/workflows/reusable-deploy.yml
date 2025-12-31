@@ -428,6 +428,10 @@ jobs:
           # Stop old container
           docker rm -f pm-frontend || true
           
+          # Ensure port 80 is free (stop any service using it)
+          sudo fuser -k 80/tcp 2>/dev/null || true
+          sleep 2
+          
           # Start new container on port 80 (container handles all routing)
           docker run -d --name pm-frontend \
             --restart unless-stopped \
