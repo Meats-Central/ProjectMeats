@@ -253,7 +253,11 @@ class TenantInvitation(models.Model):
         related_name="invitations",
         help_text="Tenant extending the invitation",
     )
-    email = models.EmailField(help_text="Email address of the person being invited")
+    email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Email address (optional for reusable links)"
+    )
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
@@ -291,14 +295,18 @@ class TenantInvitation(models.Model):
     # Optional personal message
     message = models.TextField(blank=True, help_text="Optional message from inviter")
 
-    # NEW FIELDS for Reusability
+    # NEW FIELDS for Reusability ("Golden Tickets")
     is_reusable = models.BooleanField(
         default=False,
-        help_text="Allow multiple users to sign up with this token"
+        help_text="If true, this token can be used by multiple people"
+    )
+    max_uses = models.PositiveIntegerField(
+        default=1,
+        help_text="Maximum number of times this token can be used"
     )
     usage_count = models.PositiveIntegerField(
         default=0,
-        help_text="Number of times this invitation has been used"
+        help_text="Current number of times used"
     )
 
     class Meta:
@@ -311,10 +319,11 @@ class TenantInvitation(models.Model):
             models.Index(fields=["expires_at"]),
         ]
         # Prevent duplicate pending invitations for same email in same tenant
+        # Only enforce uniqueness if email is present (not for reusable links)
         constraints = [
             models.UniqueConstraint(
                 fields=["tenant", "email"],
-                condition=models.Q(status="pending"),
+                condition=models.Q(status="pending") & models.Q(email__isnull=False),
                 name="unique_pending_invitation_per_tenant_email",
             )
         ]
@@ -341,16 +350,20 @@ class TenantInvitation(models.Model):
     @property
     def is_valid(self):
         """Check if invitation is valid (pending and not expired)."""
-        # Valid if pending, OR (reusable and not expired)
-        if self.is_expired:
-            return False
+        is_active = self.status == "pending" and not self.is_expired
+        
         if self.is_reusable:
-            return self.status != 'revoked'
-        return self.status == "pending"
+            # Reusable invitations are valid until max_uses is reached
+            return is_active and (self.usage_count < self.max_uses)
+        
+        return is_active
 
     def accept(self, user):
         """
         Mark invitation as accepted by a user.
+        
+        For reusable invitations, increments use count.
+        For single-use invitations, marks as accepted.
 
         Args:
             user: The User instance that accepted the invitation
@@ -358,15 +371,24 @@ class TenantInvitation(models.Model):
         if not self.is_valid:
             raise ValueError("Invitation is not valid")
 
-        self.usage_count += 1
-
-        # Only close the invite if it's NOT reusable
-        if not self.is_reusable:
+        if self.is_reusable:
+            # Increment use count for reusable invitations
+            self.usage_count += 1
+            
+            # If we've reached max uses, mark as accepted (effectively closed)
+            if self.usage_count >= self.max_uses:
+                self.status = "accepted"
+            
+            # Don't set accepted_by/accepted_at for reusable links
+            # as multiple people use them
+            self.save()
+        else:
+            # Single-use invitation: mark as accepted immediately
             self.status = "accepted"
             self.accepted_at = timezone.now()
             self.accepted_by = user
-
-        self.save()
+            self.usage_count += 1
+            self.save()
 
     def revoke(self):
         """Revoke the invitation."""
