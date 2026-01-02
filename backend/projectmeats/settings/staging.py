@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 DEBUG = config("DEBUG", default=False, cast=bool)
 
 # Staging-specific allowed hosts - read from environment
-env_allowed_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1")
+# Default includes wildcards for UAT subdomain and all meatscentral.com subdomains
+env_allowed_hosts = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,.uat.meatscentral.com,.meatscentral.com")
 ALLOWED_HOSTS = [host.strip() for host in env_allowed_hosts.split(",") if host.strip()]
 
 # Always include localhost for Docker health checks
@@ -26,6 +27,15 @@ if "localhost" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("localhost")
 if "127.0.0.1" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("127.0.0.1")
+
+# Ensure wildcard patterns are included for UAT
+WILDCARD_HOSTS = [
+    ".uat.meatscentral.com",  # Wildcard for *.uat.meatscentral.com
+    ".meatscentral.com",  # Wildcard for *.meatscentral.com
+]
+for wildcard in WILDCARD_HOSTS:
+    if wildcard not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(wildcard)
 
 # Add UAT hosts (primary) and legacy staging hosts (deprecated)
 STAGING_HOSTS = [
