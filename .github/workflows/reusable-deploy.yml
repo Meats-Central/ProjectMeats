@@ -411,6 +411,48 @@ jobs:
           echo ""
           echo "✓ Migrations completed successfully"
       
+      - name: Setup Superuser
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+        run: |
+          echo "================================"
+          echo "Setting up Django Superuser"
+          echo "================================"
+          
+          # Construct DATABASE_URL pointing to tunnel
+          DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          
+          # Use same image as migrations
+          IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "Using image: $FULL_IMAGE"
+          echo ""
+          echo "Creating/updating superuser..."
+          
+          # Run setup_superuser management command
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
+            -e SECRET_KEY="$DJANGO_SECRET_KEY" \
+            -e DB_ENGINE="django.db.backends.postgresql" \
+            -e DJANGO_SUPERUSER_USERNAME="$DJANGO_SUPERUSER_USERNAME" \
+            -e DJANGO_SUPERUSER_PASSWORD="$DJANGO_SUPERUSER_PASSWORD" \
+            -e DJANGO_SUPERUSER_EMAIL="$DJANGO_SUPERUSER_EMAIL" \
+            "$FULL_IMAGE" \
+            python manage.py setup_superuser
+          
+          echo ""
+          echo "✓ Superuser setup completed"
+      
       - name: Cleanup SSH tunnel
         if: always()
         run: |

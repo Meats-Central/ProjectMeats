@@ -31,38 +31,47 @@ class Command(BaseCommand):
         
         logger.info(f'Running setup_superuser for environment: {django_env} (test_context={is_test_context})')
         
-        # Load environment-specific credentials with improved error handling
+        # Load credentials from DJANGO_SUPERUSER_* variables (used by workflows)
+        # Fall back to environment-specific variables for backward compatibility
         try:
-            if django_env == 'development':
-                # Development: Allow defaults for convenience
-                username = os.getenv('DEVELOPMENT_SUPERUSER_USERNAME', 'admin')
-                email = os.getenv('DEVELOPMENT_SUPERUSER_EMAIL', 'admin@meatscentral.com')
-                password = os.getenv('DEVELOPMENT_SUPERUSER_PASSWORD')
-                logger.info(f'Development mode: loaded DEVELOPMENT_SUPERUSER_USERNAME: {"set" if os.getenv("DEVELOPMENT_SUPERUSER_USERNAME") else "using default"}')
-                logger.info(f'Development mode: loaded DEVELOPMENT_SUPERUSER_EMAIL: {"set" if os.getenv("DEVELOPMENT_SUPERUSER_EMAIL") else "using default"}')
-                logger.info(f'Development mode: loaded DEVELOPMENT_SUPERUSER_PASSWORD: {"set" if password else "missing"}')
-            elif django_env in ['staging', 'uat']:
-                # Staging/UAT: Require all variables (no defaults for security)
-                username = os.getenv('STAGING_SUPERUSER_USERNAME')
-                email = os.getenv('STAGING_SUPERUSER_EMAIL')
-                password = os.getenv('STAGING_SUPERUSER_PASSWORD')
-                logger.info(f'Staging/UAT mode: loaded STAGING_SUPERUSER_USERNAME: {"set" if username else "missing"}')
-                logger.info(f'Staging/UAT mode: loaded STAGING_SUPERUSER_EMAIL: {"set" if email else "missing"}')
-                logger.info(f'Staging/UAT mode: loaded STAGING_SUPERUSER_PASSWORD: {"set" if password else "missing"}')
-            elif django_env == 'production':
-                # Production: Require all variables (no defaults for security)
-                username = os.getenv('PRODUCTION_SUPERUSER_USERNAME')
-                email = os.getenv('PRODUCTION_SUPERUSER_EMAIL')
-                password = os.getenv('PRODUCTION_SUPERUSER_PASSWORD')
-                logger.info(f'Production mode: loaded PRODUCTION_SUPERUSER_USERNAME: {"set" if username else "missing"}')
-                logger.info(f'Production mode: loaded PRODUCTION_SUPERUSER_EMAIL: {"set" if email else "missing"}')
-                logger.info(f'Production mode: loaded PRODUCTION_SUPERUSER_PASSWORD: {"set" if password else "missing"}')
+            username = os.getenv('DJANGO_SUPERUSER_USERNAME')
+            email = os.getenv('DJANGO_SUPERUSER_EMAIL')
+            password = os.getenv('DJANGO_SUPERUSER_PASSWORD')
+            
+            # If DJANGO_SUPERUSER_* not set, try environment-specific variables
+            if not username or not email or not password:
+                if django_env == 'development':
+                    # Development: Allow defaults for convenience
+                    username = username or os.getenv('DEVELOPMENT_SUPERUSER_USERNAME', 'admin')
+                    email = email or os.getenv('DEVELOPMENT_SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                    password = password or os.getenv('DEVELOPMENT_SUPERUSER_PASSWORD')
+                    logger.info(f'Development mode: loaded username: {"set" if username else "using default"}')
+                    logger.info(f'Development mode: loaded email: {"set" if email else "using default"}')
+                    logger.info(f'Development mode: loaded password: {"set" if password else "missing"}')
+                elif django_env in ['staging', 'uat']:
+                    # Staging/UAT: Require all variables (no defaults for security)
+                    username = username or os.getenv('STAGING_SUPERUSER_USERNAME')
+                    email = email or os.getenv('STAGING_SUPERUSER_EMAIL')
+                    password = password or os.getenv('STAGING_SUPERUSER_PASSWORD')
+                    logger.info(f'Staging/UAT mode: loaded username: {"set" if username else "missing"}')
+                    logger.info(f'Staging/UAT mode: loaded email: {"set" if email else "missing"}')
+                    logger.info(f'Staging/UAT mode: loaded password: {"set" if password else "missing"}')
+                elif django_env == 'production':
+                    # Production: Require all variables (no defaults for security)
+                    username = username or os.getenv('PRODUCTION_SUPERUSER_USERNAME')
+                    email = email or os.getenv('PRODUCTION_SUPERUSER_EMAIL')
+                    password = password or os.getenv('PRODUCTION_SUPERUSER_PASSWORD')
+                    logger.info(f'Production mode: loaded username: {"set" if username else "missing"}')
+                    logger.info(f'Production mode: loaded email: {"set" if email else "missing"}')
+                    logger.info(f'Production mode: loaded password: {"set" if password else "missing"}')
+                else:
+                    # Fallback for unknown environments (allow defaults)
+                    username = username or os.getenv('SUPERUSER_USERNAME', 'admin')
+                    email = email or os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
+                    password = password or os.getenv('SUPERUSER_PASSWORD')
+                    logger.warning(f'Unknown environment "{django_env}", using fallback credentials')
             else:
-                # Fallback for unknown environments (allow defaults)
-                username = os.getenv('SUPERUSER_USERNAME', 'admin')
-                email = os.getenv('SUPERUSER_EMAIL', 'admin@meatscentral.com')
-                password = os.getenv('SUPERUSER_PASSWORD')
-                logger.warning(f'Unknown environment "{django_env}", using fallback credentials')
+                logger.info(f'Using DJANGO_SUPERUSER_* variables: username={"set" if username else "missing"}, email={"set" if email else "missing"}, password={"set" if password else "missing"}')
         except Exception as e:
             logger.error(f'Error loading environment variables: {e}')
             # Provide safe defaults for test context
