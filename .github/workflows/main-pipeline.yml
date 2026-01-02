@@ -61,6 +61,9 @@ jobs:
       DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
       REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
       BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+      DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+      DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+      DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
 
   # ==========================================
   # Route to UAT
