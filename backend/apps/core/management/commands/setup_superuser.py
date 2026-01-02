@@ -135,9 +135,40 @@ class Command(BaseCommand):
                 password = 'defaultpass123'
         
         # Try to get or create superuser
+        # First, try to find by username
+        user = None
+        user_existed = False
+        found_by = None
+        
         try:
             user = User.objects.get(username=username)
             user_existed = True
+            found_by = 'username'
+            logger.info(f'Found existing user by username: {username}')
+        except User.DoesNotExist:
+            # Username not found, try to find by email
+            try:
+                user = User.objects.get(email=email)
+                user_existed = True
+                found_by = 'email'
+                logger.warning(
+                    f'User not found by username "{username}", but found by email "{email}". '
+                    f'Current username: "{user.username}". Will update username to match.'
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'⚠️  Found user by email with different username: "{user.username}" → "{username}"'
+                    )
+                )
+            except User.DoesNotExist:
+                # User doesn't exist at all
+                pass
+        
+        if user_existed:
+            # Update existing user
+            if found_by == 'email' and user.username != username:
+                logger.info(f'Updating username from "{user.username}" to "{username}"')
+                user.username = username
             
             # Check for email mismatch and log a warning
             if user.email != email:
@@ -151,16 +182,34 @@ class Command(BaseCommand):
                     )
                 )
             
+            # Ensure user has superuser privileges
+            if not user.is_superuser:
+                logger.warning(f'User {username} exists but is not a superuser. Promoting to superuser.')
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'⚠️  User exists but is not superuser. Promoting to superuser.'
+                    )
+                )
+                user.is_superuser = True
+            
+            if not user.is_staff:
+                logger.warning(f'User {username} exists but is not staff. Granting staff access.')
+                user.is_staff = True
+            
+            if not user.is_active:
+                logger.warning(f'User {username} exists but is not active. Activating user.')
+                user.is_active = True
+            
             # Always update the password
             user.set_password(password)
             # Update email in case it changed
             user.email = email
             user.save()
             
-            logger.info(f'Superuser password synced for: {username}')
+            logger.info(f'Superuser updated: {username} ({email})')
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Superuser password synced/updated for: {email}'
+                    f'✅ Superuser updated: {email}'
                 )
             )
             
@@ -200,8 +249,8 @@ class Command(BaseCommand):
                 )
             )
             
-        except User.DoesNotExist:
-            # Create new superuser
+        else:
+            # User doesn't exist, create new superuser
             user = User.objects.create_superuser(
                 username=username,
                 email=email,
