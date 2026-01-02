@@ -74,6 +74,15 @@ on:
       BACKEND_HOST:
         required: false
         description: "Backend host IP/hostname for nginx proxy and Docker networking (from job environment)"
+      DJANGO_SUPERUSER_USERNAME:
+        required: false
+        description: "Django superuser username (from job environment)"
+      DJANGO_SUPERUSER_PASSWORD:
+        required: false
+        description: "Django superuser password (from job environment)"
+      DJANGO_SUPERUSER_EMAIL:
+        required: false
+        description: "Django superuser email (from job environment)"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
