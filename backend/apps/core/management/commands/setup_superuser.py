@@ -148,21 +148,45 @@ class Command(BaseCommand):
         self.stdout.write(f'  Username: {username}')
         self.stdout.write(f'  Email: {email}')
         
-        # Check for conflicting users
-        conflicting_username = None
-        conflicting_email = None
+        # Check for conflicting users - handle multiple matches
+        conflicting_username_users = User.objects.filter(username=username)
+        conflicting_email_users = User.objects.filter(email=email)
         
-        try:
-            conflicting_username = User.objects.get(username=username)
+        conflicting_username = conflicting_username_users.first() if conflicting_username_users.exists() else None
+        conflicting_email = conflicting_email_users.first() if conflicting_email_users.exists() else None
+        
+        # Log if we found multiple users
+        if conflicting_username_users.count() > 1:
+            logger.warning(f'Found {conflicting_username_users.count()} users with username: {username}')
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⚠️  Found {conflicting_username_users.count()} users with username: {username}'
+                )
+            )
+            # Delete all but keep the first one
+            for extra_user in conflicting_username_users[1:]:
+                logger.info(f'Deleting duplicate user: {extra_user.username} (id={extra_user.id}, email={extra_user.email})')
+                self.stdout.write(f'   Deleting duplicate: {extra_user.username} (id={extra_user.id}, email={extra_user.email})')
+                extra_user.delete()
+        elif conflicting_username:
             logger.info(f'Found existing user with username: {username}')
-        except User.DoesNotExist:
-            pass
         
-        try:
-            conflicting_email = User.objects.get(email=email)
+        if conflicting_email_users.count() > 1:
+            logger.warning(f'Found {conflicting_email_users.count()} users with email: {email}')
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⚠️  Found {conflicting_email_users.count()} users with email: {email}'
+                )
+            )
+            # Delete all but keep the first one
+            for extra_user in conflicting_email_users[1:]:
+                logger.info(f'Deleting duplicate user: {extra_user.username} (id={extra_user.id}, email={extra_user.email})')
+                self.stdout.write(f'   Deleting duplicate: {extra_user.username} (id={extra_user.id}, email={extra_user.email})')
+                extra_user.delete()
+            # Re-fetch after deletion
+            conflicting_email = User.objects.filter(email=email).first()
+        elif conflicting_email:
             logger.info(f'Found existing user with email: {email}')
-        except User.DoesNotExist:
-            pass
         
         # Determine if we have a match or conflict
         if conflicting_username and conflicting_email and conflicting_username.id == conflicting_email.id:
