@@ -630,6 +630,8 @@ jobs:
             --restart unless-stopped \
             -p 80:80 \
             -p 443:443 \
+            -e BACKEND_HOST=${BACKEND_HOST} \
+            -e ENVIRONMENT=${ENVIRONMENT} \
             --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro"
           

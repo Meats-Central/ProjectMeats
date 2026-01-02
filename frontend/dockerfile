@@ -43,7 +43,7 @@ RUN npm run build
 
 # Runtime with nginx and npm installed
 FROM nginx:alpine
-RUN apk add --no-cache nodejs npm bash  # Install npm, nodejs, and bash here
+RUN apk add --no-cache nodejs npm bash gettext  # Install npm, nodejs, bash, and gettext (for envsubst)
 
 # Copy configs to 'templates' directory (NOT conf.d) to prevent auto-loading
 # This prevents Nginx from automatically including them
