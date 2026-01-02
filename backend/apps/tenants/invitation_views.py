@@ -258,6 +258,8 @@ def validate_invitation(request):
         'valid': True,
         'email': invitation.email,
         'role': invitation.role,
+        'is_reusable': invitation.is_reusable,
+        'uses_remaining': invitation.max_uses - invitation.usage_count if invitation.is_reusable else 1,
         'tenant': {
             'name': invitation.tenant.name,
             'slug': invitation.tenant.slug,

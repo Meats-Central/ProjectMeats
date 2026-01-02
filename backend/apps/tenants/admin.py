@@ -1,4 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.utils.html import format_html
+from django.conf import settings
 from apps.core.admin import TenantFilteredAdmin
 from .models import Tenant, TenantUser, TenantInvitation, TenantDomain
 
@@ -25,6 +27,8 @@ class TenantAdmin(admin.ModelAdmin):
     list_filter = ["is_active", "is_trial", "created_at"]
     search_fields = ["name", "slug", "domain", "contact_email"]
     readonly_fields = ["id", "created_at", "updated_at"]
+    
+    actions = ['generate_team_invite']
 
     fieldsets = [
         ("Basic Information", {"fields": ("name", "slug", "schema_name", "domain")}),
@@ -62,6 +66,61 @@ class TenantAdmin(admin.ModelAdmin):
         
         # Filter to only show associated tenants
         return qs.filter(id__in=tenant_ids)
+    
+    @admin.action(description="⚡ Generate Team Invite Link (Reusable)")
+    def generate_team_invite(self, request, queryset):
+        """Generate a reusable Golden Ticket invitation link."""
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                "Please select exactly one tenant.",
+                level=messages.ERROR
+            )
+            return
+
+        tenant = queryset.first()
+        
+        # Create the Golden Ticket
+        invitation = TenantInvitation.objects.create(
+            tenant=tenant,
+            email=None,  # No specific email
+            role='user',  # Default role
+            invited_by=request.user,
+            is_reusable=True,
+            max_uses=50,  # Default limit
+            status='pending'
+        )
+
+        # Determine environment URL
+        base_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        
+        # Fallback: detect from request host if setting not available
+        if not base_url or base_url == 'http://localhost:3000':
+            host = request.get_host()
+            if 'dev' in host or 'localhost' in host:
+                base_url = "https://dev.meatscentral.com"
+            elif 'uat' in host:
+                base_url = "https://uat.meatscentral.com"
+            else:
+                base_url = "https://meatscentral.com"
+            
+        link = f"{base_url}/signup?token={invitation.token}"
+
+        # Show the link to the Superuser immediately
+        self.message_user(
+            request,
+            format_html(
+                '<strong>✅ Success!</strong> Reusable team invite created (50 uses max).<br><br>'
+                '<div style="background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0;">'
+                '<strong>Copy this link:</strong><br>'
+                '<input type="text" value="{}" style="width: 500px; padding: 8px; margin-top: 5px; '
+                'font-family: monospace; font-size: 12px;" readonly onclick="this.select();">'
+                '</div>'
+                '<small>💡 Users can share this link with team members. Each use will be tracked.</small>',
+                link
+            ),
+            level=messages.SUCCESS
+        )
 
 
 @admin.register(TenantUser)
@@ -90,23 +149,28 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
     """Admin interface for TenantInvitation model with tenant filtering."""
 
     list_display = [
-        "email",
+        "email_or_type",
         "tenant",
         "role",
         "status",
+        "usage_info",
         "invited_by",
         "created_at",
         "expires_at",
         "is_expired",
         "is_valid",
     ]
-    list_filter = ["status", "role", "tenant", "created_at"]
+    list_filter = ["status", "role", "is_reusable", "tenant", "created_at"]
     search_fields = ["email", "tenant__name", "invited_by__username"]
     readonly_fields = ["id", "token", "created_at", "accepted_at", "accepted_by"]
     
     fieldsets = [
         ("Invitation Details", {
             "fields": ("tenant", "email", "role", "message")
+        }),
+        ("Reusability Settings", {
+            "fields": ("is_reusable", "max_uses", "uses_count"),
+            "classes": ["collapse"]
         }),
         ("Status", {
             "fields": ("status", "token", "expires_at")
@@ -116,6 +180,30 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             "classes": ["collapse"]
         }),
     ]
+    
+    def email_or_type(self, obj):
+        """Display email or 'Reusable Link' label."""
+        if obj.is_reusable:
+            return format_html(
+                '<strong style="color: #0066cc;">🔗 Reusable Link</strong>'
+            )
+        return obj.email or "—"
+    email_or_type.short_description = "Email / Type"
+    
+    def usage_info(self, obj):
+        """Display usage statistics for reusable links."""
+        if obj.is_reusable:
+            percentage = (obj.usage_count / obj.max_uses * 100) if obj.max_uses > 0 else 0
+            color = "#28a745" if percentage < 80 else "#ffc107" if percentage < 100 else "#dc3545"
+            return format_html(
+                '<span style="color: {};">{} / {} uses ({:.0f}%)</span>',
+                color,
+                obj.usage_count,
+                obj.max_uses,
+                percentage
+            )
+        return "—"
+    usage_info.short_description = "Usage"
     
     def get_queryset(self, request):
         # Get base queryset from TenantFilteredAdmin (which filters by tenant)
