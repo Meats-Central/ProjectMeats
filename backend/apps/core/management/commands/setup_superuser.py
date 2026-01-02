@@ -135,9 +135,98 @@ class Command(BaseCommand):
                 password = 'defaultpass123'
         
         # Try to get or create superuser
+        # First, try to find by username
+        user = None
+        user_existed = False
+        found_by = None
+        
+        # Log the credentials we're looking for (safe to log username/email, not password)
+        logger.info(f'Setting up superuser with credentials:')
+        logger.info(f'  Username: {username}')
+        logger.info(f'  Email: {email}')
+        self.stdout.write(f'Target superuser credentials:')
+        self.stdout.write(f'  Username: {username}')
+        self.stdout.write(f'  Email: {email}')
+        
+        # Check for conflicting users
+        conflicting_username = None
+        conflicting_email = None
+        
         try:
-            user = User.objects.get(username=username)
+            conflicting_username = User.objects.get(username=username)
+            logger.info(f'Found existing user with username: {username}')
+        except User.DoesNotExist:
+            pass
+        
+        try:
+            conflicting_email = User.objects.get(email=email)
+            logger.info(f'Found existing user with email: {email}')
+        except User.DoesNotExist:
+            pass
+        
+        # Determine if we have a match or conflict
+        if conflicting_username and conflicting_email and conflicting_username.id == conflicting_email.id:
+            # Same user - perfect match, just update it
+            user = conflicting_username
             user_existed = True
+            found_by = 'both'
+            logger.info(f'User found by both username and email: {username} ({email})')
+            self.stdout.write(self.style.SUCCESS(f'✓ Found existing user: {username} ({email})'))
+        elif conflicting_username and not conflicting_email:
+            # Username matches but different email - update email
+            user = conflicting_username
+            user_existed = True
+            found_by = 'username'
+            logger.info(f'User found by username, will update email: {conflicting_username.email} → {email}')
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⚠️  Found user by username with different email: {conflicting_username.email} → {email}'
+                )
+            )
+        elif conflicting_email and not conflicting_username:
+            # Email matches but different username - DELETE and recreate
+            logger.warning(
+                f'User with email {email} exists with different username: {conflicting_email.username}. '
+                f'Deleting old user and creating new one with username: {username}'
+            )
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⚠️  Deleting existing user: {conflicting_email.username} ({email})'
+                )
+            )
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⚠️  Will create new user: {username} ({email})'
+                )
+            )
+            conflicting_email.delete()
+            user = None
+            user_existed = False
+        elif conflicting_username and conflicting_email and conflicting_username.id != conflicting_email.id:
+            # Both exist but as DIFFERENT users - delete both and recreate
+            logger.warning(
+                f'Conflict: username "{username}" belongs to {conflicting_username.email}, '
+                f'email "{email}" belongs to {conflicting_email.username}. '
+                f'Deleting both and creating fresh superuser.'
+            )
+            self.stdout.write(
+                self.style.ERROR(
+                    f'❌ CONFLICT: Username and email belong to different users!'
+                )
+            )
+            self.stdout.write(f'   Existing user 1: {conflicting_username.username} ({conflicting_username.email})')
+            self.stdout.write(f'   Existing user 2: {conflicting_email.username} ({conflicting_email.email})')
+            self.stdout.write(self.style.WARNING(f'⚠️  Deleting both users and creating fresh superuser'))
+            conflicting_username.delete()
+            conflicting_email.delete()
+            user = None
+            user_existed = False
+        
+        if user_existed:
+            # Update existing user
+            if found_by == 'email' and user.username != username:
+                logger.info(f'Updating username from "{user.username}" to "{username}"')
+                user.username = username
             
             # Check for email mismatch and log a warning
             if user.email != email:
@@ -151,16 +240,34 @@ class Command(BaseCommand):
                     )
                 )
             
+            # Ensure user has superuser privileges
+            if not user.is_superuser:
+                logger.warning(f'User {username} exists but is not a superuser. Promoting to superuser.')
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'⚠️  User exists but is not superuser. Promoting to superuser.'
+                    )
+                )
+                user.is_superuser = True
+            
+            if not user.is_staff:
+                logger.warning(f'User {username} exists but is not staff. Granting staff access.')
+                user.is_staff = True
+            
+            if not user.is_active:
+                logger.warning(f'User {username} exists but is not active. Activating user.')
+                user.is_active = True
+            
             # Always update the password
             user.set_password(password)
             # Update email in case it changed
             user.email = email
             user.save()
             
-            logger.info(f'Superuser password synced for: {username}')
+            logger.info(f'Superuser updated: {username} ({email})')
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Superuser password synced/updated for: {email}'
+                    f'✅ Superuser updated: {username} ({email})'
                 )
             )
             
@@ -182,6 +289,11 @@ class Command(BaseCommand):
                 auth_user = authenticate(username=username, password=password)
                 if auth_user:
                     logger.info(f'✅ Full authentication successful for user: {username}')
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'✅ Login test passed for: {username}'
+                        )
+                    )
                 else:
                     logger.warning(
                         f'⚠️  Password verified but authenticate() returned None for user: {username}. '
@@ -194,14 +306,21 @@ class Command(BaseCommand):
                 )
             
             logger.info(f'✅ Password verification successful for user: {username}')
+            self.stdout.write('='*60)
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Password verified - user can login successfully'
+                    f'🎉 Superuser ready to use!'
                 )
             )
+            self.stdout.write(f'   Username: {username}')
+            self.stdout.write(f'   Email: {email}')
+            self.stdout.write(f'   Superuser: Yes')
+            self.stdout.write(f'   Staff: Yes')
+            self.stdout.write(f'   Active: Yes')
+            self.stdout.write('='*60)
             
-        except User.DoesNotExist:
-            # Create new superuser
+        else:
+            # User doesn't exist, create new superuser
             user = User.objects.create_superuser(
                 username=username,
                 email=email,
@@ -212,7 +331,7 @@ class Command(BaseCommand):
             logger.info(f'Superuser created: {username} ({email})')
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Superuser created: {email}'
+                    f'✅ Superuser created: {username} ({email})'
                 )
             )
             
@@ -234,6 +353,11 @@ class Command(BaseCommand):
                 auth_user = authenticate(username=username, password=password)
                 if auth_user:
                     logger.info(f'✅ Full authentication successful for newly created user: {username}')
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f'✅ Login test passed for: {username}'
+                        )
+                    )
                 else:
                     logger.warning(
                         f'⚠️  Password verified but authenticate() returned None for user: {username}. '
@@ -246,8 +370,15 @@ class Command(BaseCommand):
                 )
             
             logger.info(f'✅ Password verification successful for newly created user: {username}')
+            self.stdout.write('='*60)
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Password verified - user can login successfully'
+                    f'🎉 Superuser ready to use!'
                 )
             )
+            self.stdout.write(f'   Username: {username}')
+            self.stdout.write(f'   Email: {email}')
+            self.stdout.write(f'   Superuser: Yes')
+            self.stdout.write(f'   Staff: Yes')
+            self.stdout.write(f'   Active: Yes')
+            self.stdout.write('='*60)
