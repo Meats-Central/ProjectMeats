@@ -3,6 +3,7 @@ set -e
 
 echo "=== Frontend Container Entrypoint ==="
 echo "Environment: ${ENVIRONMENT:-development}"
+echo "Backend Host: ${BACKEND_HOST:-backend}"
 
 # Check if SSL certificates exist
 SSL_CERT="/etc/nginx/ssl/fullchain.pem"
@@ -21,13 +22,19 @@ fi
 echo "→ Cleaning existing nginx configs"
 rm -f /etc/nginx/conf.d/*.conf
 
-# Choose nginx config based on SSL availability
+# Set default backend host if not provided
+export BACKEND_HOST="${BACKEND_HOST:-backend}"
+echo "→ Using backend host: $BACKEND_HOST"
+
+# Choose nginx config based on SSL availability and substitute variables
 if [ "$HAS_SSL" = true ] && [ -f "/etc/nginx/templates/frontend-ssl.conf" ]; then
     echo "→ Using SSL-enabled configuration"
-    cp /etc/nginx/templates/frontend-ssl.conf /etc/nginx/conf.d/default.conf
+    echo "→ Substituting environment variables..."
+    envsubst '${BACKEND_HOST}' < /etc/nginx/templates/frontend-ssl.conf > /etc/nginx/conf.d/default.conf
 elif [ -f "/etc/nginx/templates/frontend-http.conf" ]; then
     echo "→ Using HTTP-only configuration"
-    cp /etc/nginx/templates/frontend-http.conf /etc/nginx/conf.d/default.conf
+    echo "→ Substituting environment variables..."
+    envsubst '${BACKEND_HOST}' < /etc/nginx/templates/frontend-http.conf > /etc/nginx/conf.d/default.conf
 else
     echo "✗ No valid configuration template found!"
     exit 1
@@ -55,4 +62,5 @@ fi
 
 echo "=== Starting nginx ==="
 echo "Nginx will listen on ports 80 and 443"
+echo "Backend proxied to: $BACKEND_HOST:8000"
 exec nginx -g 'daemon off;'
