@@ -83,6 +83,9 @@ on:
       DJANGO_SUPERUSER_EMAIL:
         required: false
         description: "Django superuser email (from job environment)"
+      DOMAIN_NAME:
+        required: false
+        description: "Domain name for SSL certificates (e.g., dev.meatscentral.com)"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
@@ -564,6 +567,7 @@ jobs:
           export IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
           export REG="${{ env.REGISTRY }}"
           export IMG="${{ env.FRONTEND_IMAGE }}"
+          export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
           
           # Debug: Show what we're deploying
           echo "==================================="
@@ -585,6 +589,7 @@ jobs:
              IMAGE_TAG='${IMAGE_TAG}' \
              REG='${REG}' \
              IMG='${IMG}' \
+             DOMAIN_NAME='${DOMAIN_NAME}' \
              bash -s" << 'SSH'
           set -euo pipefail
           
@@ -635,12 +640,19 @@ jobs:
             --add-host backend:${BACKEND_HOST} \
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro"
           
-          # Only mount SSL directory for production environment
-          if [ "${ENVIRONMENT}" = "production" ]; then
-            echo "→ Production environment: mounting SSL certificates"
-            DOCKER_CMD="${DOCKER_CMD} -v /etc/nginx/ssl:/etc/nginx/ssl:ro"
+          # Mount SSL certificates if DOMAIN_NAME is set and certs exist
+          if [ -n "${DOMAIN_NAME}" ] && [ -d "/etc/letsencrypt/live/${DOMAIN_NAME}" ]; then
+            echo "→ SSL certificates found for domain: ${DOMAIN_NAME}"
+            echo "→ Mounting SSL certificates from Let's Encrypt"
+            DOCKER_CMD="${DOCKER_CMD} -v /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro"
+            DOCKER_CMD="${DOCKER_CMD} -v /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem:/etc/nginx/certs/privkey.pem:ro"
           else
-            echo "→ Non-production environment: skipping SSL mount"
+            if [ -z "${DOMAIN_NAME}" ]; then
+              echo "→ DOMAIN_NAME not set, skipping SSL mount"
+            else
+              echo "→ SSL certificates not found at /etc/letsencrypt/live/${DOMAIN_NAME}"
+            fi
+            echo "→ Container will run in HTTP-only mode"
           fi
           
           # Complete the command with image
