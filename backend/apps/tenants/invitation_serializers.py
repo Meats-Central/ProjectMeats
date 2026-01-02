@@ -12,10 +12,13 @@ class TenantInvitationCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TenantInvitation
-        fields = ['email', 'role', 'message', 'expires_at']
+        fields = ['email', 'role', 'message', 'expires_at', 'is_reusable', 'max_uses']
         extra_kwargs = {
             'expires_at': {'required': False},
             'message': {'required': False},
+            'email': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'is_reusable': {'required': False},
+            'max_uses': {'required': False},
         }
     
     def validate_email(self, value):
@@ -23,6 +26,16 @@ class TenantInvitationCreateSerializer(serializers.ModelSerializer):
         tenant = self.context.get('tenant')
         if not tenant:
             raise serializers.ValidationError("Tenant context is required")
+        
+        # Skip email validation for reusable invitations
+        # (checked via initial_data to avoid needing email field to be passed)
+        is_reusable = self.initial_data.get('is_reusable', False)
+        if is_reusable:
+            return value  # Allow None/blank for reusable
+        
+        # For regular invitations, email is required
+        if not value:
+            raise serializers.ValidationError("Email is required for non-reusable invitations")
         
         # Check if user with this email already exists in the tenant
         existing_user = User.objects.filter(email=value).first()
@@ -78,13 +91,15 @@ class TenantInvitationListSerializer(serializers.ModelSerializer):
             'id', 'email', 'role', 'status', 'message',
             'created_at', 'expires_at', 'accepted_at',
             'tenant_name', 'invited_by_username',
-            'is_expired_status', 'is_valid_status'
+            'is_expired_status', 'is_valid_status',
+            'is_reusable', 'max_uses', 'usage_count'
         ]
         read_only_fields = (
             'id', 'email', 'role', 'status', 'message',
             'created_at', 'expires_at', 'accepted_at',
             'tenant_name', 'invited_by_username',
-            'is_expired_status', 'is_valid_status'
+            'is_expired_status', 'is_valid_status',
+            'is_reusable', 'max_uses', 'usage_count'
         )
 
 
