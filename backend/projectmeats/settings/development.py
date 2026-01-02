@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "testserver",
     "0.0.0.0",
+    ".dev.meatscentral.com",  # Wildcard for *.dev.meatscentral.com
     ".meatscentral.com",  # Wildcard for all subdomains
     "dev.meatscentral.com",
     "dev-backend.meatscentral.com",
