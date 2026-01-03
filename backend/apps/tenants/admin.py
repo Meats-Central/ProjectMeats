@@ -29,6 +29,31 @@ class OnboardOwnerForm(forms.Form):
     email = forms.EmailField(label="Owner Email", required=True)
 
 
+class FullOnboardForm(forms.Form):
+    """Form to create Tenant + Owner Invite simultaneously from scratch."""
+    tenant_name = forms.CharField(label="Company Name", max_length=255, required=True)
+    slug = forms.SlugField(
+        label="URL Slug (e.g. acme-corp)", 
+        help_text="Unique identifier for the tenant URL",
+        required=True
+    )
+    contact_email = forms.EmailField(label="Company Contact Email", required=True)
+    
+    owner_email = forms.EmailField(
+        label="Owner Email", 
+        help_text="We will send the invitation here immediately.",
+        required=True
+    )
+    owner_first_name = forms.CharField(label="Owner First Name", required=True)
+    owner_last_name = forms.CharField(label="Owner Last Name", required=True)
+    
+    on_trial = forms.BooleanField(
+        label="Start 30-Day Trial?", 
+        initial=True, 
+        required=False
+    )
+
+
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
     """
@@ -39,6 +64,9 @@ class TenantAdmin(admin.ModelAdmin):
     2. Onboard Owner (Superuser Only): Invite specific owner with personalized message.
     3. Send Individual Invite (Tenant Admin+): Invite specific email.
     """
+    
+    # Custom template with "Onboard New Tenant Wizard" button
+    change_list_template = "admin/tenants/tenant/change_list.html"
 
     list_display = [
         "name",
@@ -253,6 +281,77 @@ class TenantAdmin(admin.ModelAdmin):
                 base_url = "https://meatscentral.com"
             
         return f"{base_url}/signup?token={invitation.token}"
+    
+    def get_urls(self):
+        """Add custom URL for onboard wizard."""
+        urls = super().get_urls()
+        custom_urls = [
+            path('onboard/', self.admin_site.admin_view(self.onboard_view), name='tenant-onboard'),
+        ]
+        return custom_urls + urls
+    
+    def onboard_view(self, request):
+        """
+        Onboard New Tenant from Scratch wizard.
+        Creates Tenant + Domain + Owner Invitation in one flow.
+        """
+        from django.utils import timezone
+        
+        if request.method == 'POST':
+            form = FullOnboardForm(request.POST)
+            if form.is_valid():
+                try:
+                    # 1. Create Tenant
+                    tenant = Tenant.objects.create(
+                        name=form.cleaned_data['tenant_name'],
+                        slug=form.cleaned_data['slug'],
+                        contact_email=form.cleaned_data['contact_email'],
+                        is_trial=form.cleaned_data['on_trial'],
+                        trial_ends_at=timezone.now() + timezone.timedelta(days=30) if form.cleaned_data['on_trial'] else None,
+                        created_by=request.user
+                    )
+                    
+                    # 2. Create Default Domain
+                    TenantDomain.objects.create(
+                        tenant=tenant,
+                        domain=f"{tenant.slug}.localhost",  # Adjust based on environment
+                        is_primary=True
+                    )
+
+                    # 3. Create Owner Invitation (Signal will handle Email)
+                    first_name = form.cleaned_data['owner_first_name']
+                    last_name = form.cleaned_data['owner_last_name']
+                    owner_email = form.cleaned_data['owner_email']
+                    
+                    invitation = TenantInvitation.objects.create(
+                        tenant=tenant,
+                        email=owner_email,
+                        role='owner',
+                        invited_by=request.user,
+                        message=f"Welcome {first_name} {last_name}, your new workspace '{tenant.name}' is ready! Click the link to set up your account."
+                    )
+
+                    self.message_user(
+                        request, 
+                        f"✅ Tenant '{tenant.name}' created and invite sent to {owner_email}!", 
+                        messages.SUCCESS
+                    )
+                    return redirect('admin:tenants_tenant_changelist')
+                    
+                except Exception as e:
+                    self.message_user(request, f"❌ Error: {str(e)}", messages.ERROR)
+        else:
+            form = FullOnboardForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': '🚀 Onboard New Tenant From Scratch',
+            'form': form,
+            'opts': self.model._meta,
+            'action': 'onboard',
+            'objects': [],  # No selected objects for this wizard
+        }
+        return render(request, 'admin/form_intermediate.html', context)
 
 
 @admin.register(TenantUser)
