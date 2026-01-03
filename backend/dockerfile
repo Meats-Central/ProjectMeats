@@ -79,10 +79,17 @@ HEALTHCHECK --interval=30s --timeout=5s \
 
 # Start Gunicorn with debug logging, preload, and error handling
 # Use exec form for proper signal handling
+# CRITICAL: setup_superuser and collectstatic run on EVERY container start
 CMD ["sh", "-c", "set -x && \
     echo \"Starting container at $(date)\" && \
     python manage.py check && \
     echo \"Django check passed\" && \
+    echo \"Collecting static files...\" && \
+    python manage.py collectstatic --noinput --clear && \
+    echo \"Static files collected\" && \
+    echo \"Setting up superuser...\" && \
+    python manage.py setup_superuser && \
+    echo \"Superuser setup complete\" && \
     exec gunicorn projectmeats.wsgi:application \
       --bind 0.0.0.0:8000 \
       --workers ${GUNICORN_WORKERS:-3} \
