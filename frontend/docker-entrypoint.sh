@@ -3,15 +3,16 @@ set -e
 
 echo "=== Frontend Container Entrypoint ==="
 echo "Environment: ${ENVIRONMENT:-development}"
+echo "Domain: ${DOMAIN_NAME:-localhost}"
 echo "Backend Host: ${BACKEND_HOST:-backend}"
 
-# Check if SSL certificates exist
-SSL_CERT="/etc/nginx/ssl/fullchain.pem"
-SSL_KEY="/etc/nginx/ssl/privkey.pem"
+# Check if SSL certificates exist for this domain
+SSL_CERT="/etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem"
+SSL_KEY="/etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem"
 HAS_SSL=false
 
 if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
-    echo "✓ SSL certificates found"
+    echo "✓ SSL certificates found for ${DOMAIN_NAME}"
     HAS_SSL=true
 else
     echo "ℹ SSL certificates not found (dev environment)"
@@ -22,15 +23,17 @@ fi
 echo "→ Cleaning existing nginx configs"
 rm -f /etc/nginx/conf.d/*.conf
 
-# Set default backend host if not provided
+# Set defaults if not provided
 export BACKEND_HOST="${BACKEND_HOST:-backend}"
+export DOMAIN_NAME="${DOMAIN_NAME:-localhost}"
 echo "→ Using backend host: $BACKEND_HOST"
+echo "→ Using domain: $DOMAIN_NAME"
 
 # Choose nginx config based on SSL availability and substitute variables
 if [ "$HAS_SSL" = true ] && [ -f "/etc/nginx/templates/frontend-ssl.conf" ]; then
     echo "→ Using SSL-enabled configuration"
     echo "→ Substituting environment variables..."
-    envsubst '${BACKEND_HOST}' < /etc/nginx/templates/frontend-ssl.conf > /etc/nginx/conf.d/default.conf
+    envsubst '${BACKEND_HOST} ${DOMAIN_NAME}' < /etc/nginx/templates/frontend-ssl.conf > /etc/nginx/conf.d/default.conf
 elif [ -f "/etc/nginx/templates/frontend-http.conf" ]; then
     echo "→ Using HTTP-only configuration"
     echo "→ Substituting environment variables..."
