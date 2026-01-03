@@ -26,6 +26,7 @@
 
 # Use Node 20 for the build stage
 FROM node:20-alpine AS build
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 WORKDIR /project
 
 # 1) Install deps
