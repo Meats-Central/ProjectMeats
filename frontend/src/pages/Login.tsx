@@ -88,6 +88,7 @@ const Login: React.FC = () => {
               disabled={loading}
               required
             />
+            <HintText>Note: Username is case-sensitive</HintText>
           </FormGroup>
 
           <FormGroup>
@@ -322,6 +323,13 @@ const SuccessMessage = styled.div`
 
 const SuccessIcon = styled.span`
   font-size: 16px;
+`;
+
+const HintText = styled.p`
+  color: #6c757d;
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  font-style: italic;
 `;
 
 export default Login;
