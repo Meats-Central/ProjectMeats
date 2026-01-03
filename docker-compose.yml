@@ -46,7 +46,9 @@ services:
 
   # React frontend
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/dockerfile
     container_name: projectmeats-frontend
     ports:
       - "3000:80"
@@ -55,7 +57,7 @@ services:
       - backend
     environment:
       - REACT_APP_API_BASE_URL=http://localhost:8000
-      - BACKEND_HOST=backend
+      - BACKEND_HOST=${BACKEND_HOST:-backend}
       - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
     volumes:
       # Mount Let's Encrypt certificates (read-only to preserve symlinks)
