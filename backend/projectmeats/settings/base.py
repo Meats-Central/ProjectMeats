@@ -91,7 +91,7 @@ ROOT_URLCONF = "projectmeats.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -237,27 +237,27 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        "apps.suppliers.views": {
+        "tenant_apps.suppliers.views": {
             "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "apps.customers.views": {
+        "tenant_apps.customers.views": {
             "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "apps.contacts.views": {
+        "tenant_apps.contacts.views": {
             "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "apps.purchase_orders.views": {
+        "tenant_apps.purchase_orders.views": {
             "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,
         },
-        "apps.accounts_receivables.views": {
+        "tenant_apps.accounts_receivables.views": {
             "handlers": ["console", "debug_file"],
             "level": "DEBUG",
             "propagate": False,

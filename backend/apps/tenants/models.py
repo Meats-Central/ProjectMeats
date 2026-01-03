@@ -78,8 +78,11 @@ class Tenant(models.Model):
     )
 
     # Configuration (JSON field for settings)
+    # Made blank=True to make it optional in forms
     settings = models.JSONField(
-        default=dict, help_text="Tenant-specific configuration settings"
+        default=dict,
+        blank=True,
+        help_text="Tenant-specific configuration settings"
     )
 
     # Tenant branding
@@ -118,6 +121,20 @@ class Tenant(models.Model):
             # Auto-generate schema_name from slug if not provided
             if not self.schema_name:
                 self.schema_name = self.slug.replace("-", "_")
+        
+        # Auto-generate default settings if logo is present but settings are empty
+        if not self.settings and self.logo:
+            self.settings = {
+                "theme": {
+                    "primary_color": "#4F46E5",  # Default Indigo
+                    "logo_url": self.logo.url if hasattr(self.logo, 'url') else "",
+                    "layout": "sidebar-light"
+                },
+                "features": {
+                    "beta_access": False
+                }
+            }
+        
         super().save(*args, **kwargs)
 
     def get_theme_settings(self):
