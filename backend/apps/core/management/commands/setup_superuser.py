@@ -8,6 +8,7 @@ Security Features:
 - Comprehensive logging (no password logging per OWASP guidelines)
 - Environment-specific validation (required in UAT/prod, defaults in dev)
 - Follows Django authentication best practices
+- Handles duplicate user cleanup automatically
 """
 import os
 import logging
