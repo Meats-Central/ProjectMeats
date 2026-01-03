@@ -71,6 +71,7 @@ class TenantAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "slug",
+        "test_account_info",  # NEW: Show test credentials in list
         "domain",
         "is_active",
         "is_trial",
@@ -79,12 +80,13 @@ class TenantAdmin(admin.ModelAdmin):
     ]
     list_filter = ["is_active", "is_trial", "created_at"]
     search_fields = ["name", "slug", "domain", "contact_email"]
-    readonly_fields = ["id", "created_at", "updated_at"]
+    readonly_fields = ["id", "created_at", "updated_at", "test_credentials_display"]  # NEW: Added test_credentials_display
     
     actions = ['generate_team_invite', 'onboard_tenant_owner', 'send_individual_invite']
 
     fieldsets = [
         ("Basic Information", {"fields": ("name", "slug", "schema_name", "domain")}),
+        ("Test Access (Dev/UAT Only)", {"fields": ("test_credentials_display",)}),  # NEW: Test credentials section
         ("Contact Information", {"fields": ("contact_email", "contact_phone")}),
         ("Branding", {"fields": ("logo",)}),
         ("Status & Trial", {"fields": ("is_active", "is_trial", "trial_ends_at")}),
@@ -352,6 +354,71 @@ class TenantAdmin(admin.ModelAdmin):
             'objects': [],  # No selected objects for this wizard
         }
         return render(request, 'admin/form_intermediate.html', context)
+    
+    def test_account_info(self, obj):
+        """
+        Show quick login info in list view for superusers on test tenants.
+        Only displays for tenants with schema_name starting with 'test_'.
+        """
+        if not obj.schema_name or not obj.schema_name.startswith('test_'):
+            return "—"
+            
+        # Try to find the admin user for this tenant
+        admin_user = User.objects.filter(
+            tenants__tenant=obj, 
+            tenants__role='admin',
+            tenants__is_active=True
+        ).first()
+        
+        if admin_user:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">U: {}</span><br>'
+                '<span style="font-family: monospace; font-size: 11px;">P: password123!</span>',
+                admin_user.username
+            )
+        return "No Admin"
+    test_account_info.short_description = "Test Creds"
+    
+    def test_credentials_display(self, obj):
+        """
+        Detailed read-only field for object view showing test credentials.
+        Only displays for test tenants (schema_name starts with 'test_').
+        """
+        if not obj.schema_name or not obj.schema_name.startswith('test_'):
+            return format_html(
+                '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">'
+                '<p style="color: #666;"><em>Not a test tenant. This section only applies to tenants '
+                'created via the seed_tenants management command.</em></p>'
+                '</div>'
+            )
+            
+        admin_user = User.objects.filter(
+            tenants__tenant=obj, 
+            tenants__role='admin',
+            tenants__is_active=True
+        ).first()
+        
+        if admin_user:
+            return format_html(
+                '<div style="background: #e8f5e9; padding: 15px; border-radius: 5px; border: 1px solid #c8e6c9;">'
+                '<h3 style="margin-top: 0;">🧪 Test Account Credentials</h3>'
+                '<table style="width: 100%; border-collapse: collapse;">'
+                '<tr><td style="padding: 8px 0; font-weight: bold;">Username:</td><td style="padding: 8px 0; font-family: monospace;">{}</td></tr>'
+                '<tr><td style="padding: 8px 0; font-weight: bold;">Password:</td><td style="padding: 8px 0; font-family: monospace;">password123!</td></tr>'
+                '<tr><td style="padding: 8px 0; font-weight: bold;">Role:</td><td style="padding: 8px 0;">Tenant Admin</td></tr>'
+                '<tr><td style="padding: 8px 0; font-weight: bold;">Email:</td><td style="padding: 8px 0;">{}</td></tr>'
+                '</table>'
+                '<p style="margin-bottom: 0; margin-top: 10px; color: #2e7d32;"><em><strong>Note:</strong> This user has full Tenant Admin privileges.</em></p>'
+                '</div>',
+                admin_user.username,
+                admin_user.email
+            )
+        return format_html(
+            '<div style="background: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffc107;">'
+            '<p style="margin: 0;">⚠️ No admin user found for this test tenant.</p>'
+            '</div>'
+        )
+    test_credentials_display.short_description = "Test Login Credentials"
 
 
 @admin.register(TenantUser)
