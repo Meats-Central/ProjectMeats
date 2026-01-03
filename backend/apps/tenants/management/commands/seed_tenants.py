@@ -1,60 +1,65 @@
 """
-Django management command to seed database with demo tenants.
-
-This command wraps the existing batch_tenant_creator utility to enable
-pipeline-friendly invocation via GitHub Actions or other CI/CD systems.
-
-Usage:
-    python manage.py seed_tenants --count=5 --env=development
-    python manage.py seed_tenants --count=3 --env=uat
-    python manage.py seed_tenants --count=2 --env=prod
+Django management command to seed database with TEST tenants and data.
+Generates tenants, users, and business data for testing purposes.
 """
 from django.core.management.base import BaseCommand
-from apps.tenants.utils.batch_tenant_creator import create_demo_tenants
+from apps.tenants.utils.test_data_seeder import seed_test_data
 
 
 class Command(BaseCommand):
-    help = 'Seed database with demo tenants'
+    help = 'Seed database with comprehensive test tenants and data'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--count',
             type=int,
             default=3,
-            help='Number of tenants to create (default: 3)'
+            help='Number of test tenants to create (default: 3)'
         )
         parser.add_argument(
             '--env',
             type=str,
             default='development',
-            help='Target environment config (default: development)'
+            help='Target environment context (development, uat, staging)'
+        )
+        parser.add_argument(
+            '-v', '--verbosity',
+            type=int,
+            default=1,
+            help='Verbosity level: 0=minimal, 1=normal, 2=verbose'
         )
 
     def handle(self, *args, **options):
         count = options['count']
         environment = options['env']
+        verbosity = options['verbosity']
         
-        self.stdout.write(f"🌱 Seeding {count} tenants for {environment}...")
+        self.stdout.write(f"🌱 Seeding {count} FULL test tenants for {environment}...")
         
         try:
-            tenants = create_demo_tenants(
+            tenants = seed_test_data(
                 environment=environment,
                 count=count,
-                verbosity=1
+                verbosity=verbosity
             )
             
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"✅ Seeding complete: {len(tenants)} tenants created"
-                )
-            )
-            
-            # Output tenant names for verification
-            for tenant in tenants:
-                self.stdout.write(f"  • {tenant.name} ({tenant.schema_name})")
+            self.stdout.write(self.style.SUCCESS(f"\n✅ Seeding Complete! Created {len(tenants)} tenants."))
+            self.stdout.write("\n🔑 Test Credentials:")
+            self.stdout.write("="*60)
+            for t in tenants:
+                creds = t.test_credentials
+                self.stdout.write(f"Tenant: {t.name}")
+                self.stdout.write(f"  Slug: {t.slug}")
+                self.stdout.write(f"  User: {creds['username']}")
+                self.stdout.write(f"  Pass: {creds['password']}")
+                self.stdout.write(f"  Role: {creds['role']}")
+                self.stdout.write("-" * 20)
+            self.stdout.write("="*60)
+            self.stdout.write("\n💡 Tip: Log in as superuser and view these credentials in Django Admin → Tenants")
                 
         except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"❌ Seeding failed: {str(e)}")
-            )
+            self.stdout.write(self.style.ERROR(f"❌ Seeding failed: {str(e)}"))
+            import traceback
+            if verbosity >= 2:
+                traceback.print_exc()
             raise
