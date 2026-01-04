@@ -74,7 +74,8 @@ jobs:
             --head development \
             --title "Sync: Development to UAT ($(date +%Y-%m-%d))" \
             --body "Automated sync. Development is ${{ steps.dev_uat.outputs.commits }} commits ahead." \
-            --label "sync,automated"
+            --label "sync" \
+            --label "automated"
 
   draft-release:
     name: "Draft Release PR"
@@ -162,13 +163,23 @@ jobs:
           SOURCE=${{ steps.context.outputs.SOURCE }}
           TARGET=${{ steps.context.outputs.TARGET }}
           HEAD=${{ steps.conflicts.outputs.HEAD_BRANCH }}
+          LABELS="${{ steps.context.outputs.LABEL }}"
+          
           echo "## Release: ${SOURCE^^} to ${TARGET^^}" > pr_body.md
           if [[ "${{ steps.conflicts.outputs.HAS_CONFLICTS }}" == "true" ]]; then
              echo "**Conflicts Auto-Resolved**: Used 'ours' strategy ($SOURCE)." >> pr_body.md
           fi
+          
+          # Convert comma-separated labels to multiple --label flags
+          LABEL_FLAGS=()
+          IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
+          for label in "${LABEL_ARRAY[@]}"; do
+            LABEL_FLAGS+=("--label" "$label")
+          done
+          
           gh pr create \
-            --base $TARGET \
+            --base "$TARGET" \
             --head "$HEAD" \
             --title "Release: Promote $SOURCE to $TARGET" \
             --body-file pr_body.md \
-            --label "${{ steps.context.outputs.LABEL }}"
+            "${LABEL_FLAGS[@]}"

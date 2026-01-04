@@ -745,11 +745,11 @@ jobs:
           echo "✓ Container started successfully"
           
           # Verify container is running
-          if docker ps | grep -E 'projectmeats-frontend|pm-frontend' > /dev/null; then
+          if docker ps | grep 'pm-frontend' > /dev/null; then
             echo "✓ Frontend container is running"
           else
             echo "✗ Frontend container is not running"
-            docker ps -a | grep -E 'projectmeats-frontend|pm-frontend' || echo "No container found"
+            docker ps -a | grep 'pm-frontend' || echo "No container found"
             exit 1
           fi
           
@@ -770,7 +770,7 @@ jobs:
           
           if [ "$HTTP_CODE" != "200" ]; then
             echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts"
-            docker logs projectmeats-frontend --tail 50 || docker logs pm-frontend --tail 50
+            docker logs pm-frontend --tail 50
             exit 1
           fi
           
@@ -791,7 +791,7 @@ jobs:
           echo "==================================="
           echo "✓ Frontend Deployment Complete"
           echo "==================================="
-          echo "Container: projectmeats-frontend"
+          echo "Container: pm-frontend"
           echo "Port: 127.0.0.1:8080 → 80"
           echo "External access: https://${DOMAIN_NAME}"
           echo "Note: Host nginx proxies external traffic to this container"

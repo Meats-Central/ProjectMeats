@@ -22,12 +22,7 @@ class Command(BaseCommand):
             default='development',
             help='Target environment context (development, uat, staging)'
         )
-        parser.add_argument(
-            '-v', '--verbosity',
-            type=int,
-            default=1,
-            help='Verbosity level: 0=minimal, 1=normal, 2=verbose'
-        )
+        # Note: Django already provides -v/--verbosity, so we use it from options
 
     def handle(self, *args, **options):
         count = options['count']
