@@ -108,6 +108,7 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
     Generate dummy business data for a tenant with strict dependency ordering.
     
     CRITICAL EXECUTION ORDER:
+    0. Delete existing data (maintain "exactly 3 rows" rule)
     1. Protein (Global/Shared)
     2. Plant (tenant-isolated)
     3. Contact (tenant-isolated)
@@ -122,6 +123,53 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         user: User to assign as owner/creator
         verbosity: Output verbosity level
     """
+    # === STEP 0: Delete existing business data for this tenant ===
+    # This ensures we maintain "exactly 3 rows per model" rule on re-runs
+    try:
+        from tenant_apps.plants.models import Plant
+        Plant.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.contacts.models import Contact
+        Contact.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.carriers.models import Carrier
+        Carrier.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.suppliers.models import Supplier
+        Supplier.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.customers.models import Customer
+        Customer.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.products.models import Product
+        Product.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    try:
+        from tenant_apps.purchase_orders.models import PurchaseOrder
+        PurchaseOrder.objects.filter(tenant=tenant).delete()
+    except ImportError:
+        pass
+    
+    if verbosity >= 2:
+        print(f"  🗑️  Cleared existing business data for {tenant.name}")
+    
     # === STEP 1: Ensure Proteins exist (Global/Shared model) ===
     try:
         from apps.core.models import Protein
