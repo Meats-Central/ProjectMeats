@@ -176,6 +176,7 @@ class IndustryChoices(models.TextChoices):
     PET_SECTOR = "Pet Sector", "Pet Sector"
     PROCESSOR = "Processor", "Processor"
     RETAIL = "Retail", "Retail"
+    WHOLESALER = "Wholesaler", "Wholesaler"
     FOOD_SERVICE = "Food Service", "Food Service"
     EXPORT = "Export", "Export"
 

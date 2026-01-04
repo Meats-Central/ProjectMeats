@@ -144,6 +144,12 @@ class Customer(TimestampModel):
         default='',
         help_text="Buyer contact name",
     )
+    contact_title = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="e.g., Vice President, Buyer",
+    )
     buyer_contact_phone = models.CharField(
         max_length=20,
         blank=True,
