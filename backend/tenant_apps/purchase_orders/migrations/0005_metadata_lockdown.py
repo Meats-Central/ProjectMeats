@@ -4,6 +4,12 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    Idempotent index creation for tenant-related fields.
+    
+    Uses SeparateDatabaseAndState with IF NOT EXISTS to safely handle
+    environments where indexes may already exist from earlier migrations.
+    """
 
     dependencies = [
         ("carriers", "0003_add_logistics_indexes"),
@@ -20,30 +26,66 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddIndex(
-            model_name="carrierpurchaseorder",
-            index=models.Index(
-                fields=["tenant", "our_carrier_po_num"],
-                name="purchase_or_tenant__6ab6fd_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="coldstorageentry",
-            index=models.Index(
-                fields=["tenant", "date_time_stamp_created"],
-                name="purchase_or_tenant__d5379c_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="purchaseorder",
-            index=models.Index(
-                fields=["tenant", "order_number"], name="purchase_or_tenant__e12583_idx"
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="purchaseorder",
-            index=models.Index(
-                fields=["tenant", "order_date"], name="purchase_or_tenant__e60062_idx"
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddIndex(
+                    model_name="carrierpurchaseorder",
+                    index=models.Index(
+                        fields=["tenant", "our_carrier_po_num"],
+                        name="purchase_or_tenant__6ab6fd_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="coldstorageentry",
+                    index=models.Index(
+                        fields=["tenant", "date_time_stamp_created"],
+                        name="purchase_or_tenant__d5379c_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="purchaseorder",
+                    index=models.Index(
+                        fields=["tenant", "order_number"],
+                        name="purchase_or_tenant__e12583_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="purchaseorder",
+                    index=models.Index(
+                        fields=["tenant", "order_date"],
+                        name="purchase_or_tenant__e60062_idx",
+                    ),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS purchase_or_tenant__6ab6fd_idx 
+                        ON purchase_orders_carrierpurchaseorder (tenant_id, our_carrier_po_num);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS purchase_or_tenant__6ab6fd_idx;",
+                ),
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS purchase_or_tenant__d5379c_idx 
+                        ON purchase_orders_coldstorageentry (tenant_id, date_time_stamp_created);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS purchase_or_tenant__d5379c_idx;",
+                ),
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS purchase_or_tenant__e12583_idx 
+                        ON purchase_orders_purchaseorder (tenant_id, order_number);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS purchase_or_tenant__e12583_idx;",
+                ),
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS purchase_or_tenant__e60062_idx 
+                        ON purchase_orders_purchaseorder (tenant_id, order_date);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS purchase_or_tenant__e60062_idx;",
+                ),
+            ],
         ),
     ]

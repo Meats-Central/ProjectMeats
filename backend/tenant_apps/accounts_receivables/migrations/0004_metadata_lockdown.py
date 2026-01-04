@@ -5,6 +5,12 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    Idempotent index creation for tenant-related fields.
+    
+    Uses SeparateDatabaseAndState with IF NOT EXISTS to safely handle
+    environments where indexes may already exist from earlier migrations.
+    """
 
     dependencies = [
         ("accounts_receivables", "0003_state_sync_tenant"),
@@ -14,17 +20,38 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddIndex(
-            model_name="accountsreceivable",
-            index=models.Index(
-                fields=["tenant", "invoice_number"],
-                name="accounts_re_tenant__f66a87_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="accountsreceivable",
-            index=models.Index(
-                fields=["tenant", "status"], name="accounts_re_tenant__60de31_idx"
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddIndex(
+                    model_name="accountsreceivable",
+                    index=models.Index(
+                        fields=["tenant", "invoice_number"],
+                        name="accounts_re_tenant__f66a87_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="accountsreceivable",
+                    index=models.Index(
+                        fields=["tenant", "status"],
+                        name="accounts_re_tenant__60de31_idx",
+                    ),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS accounts_re_tenant__f66a87_idx 
+                        ON accounts_receivables_accountsreceivable (tenant_id, invoice_number);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS accounts_re_tenant__f66a87_idx;",
+                ),
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS accounts_re_tenant__60de31_idx 
+                        ON accounts_receivables_accountsreceivable (tenant_id, status);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS accounts_re_tenant__60de31_idx;",
+                ),
+            ],
         ),
     ]
