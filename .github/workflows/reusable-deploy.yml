@@ -550,15 +550,13 @@ jobs:
           
           # Fix permissions for staticfiles directory
           echo "Fixing permissions for staticfiles directory..."
-          docker exec -u root -T pm-backend chown -R 1000:1000 /app/staticfiles || {
-            echo "⚠ Warning: Could not change ownership, trying chmod instead"
-            docker exec -u root -T pm-backend chmod -R 777 /app/staticfiles
-          }
+          docker exec -u root pm-backend chown -R 1000:1000 /app/staticfiles
+          docker exec -u root pm-backend chmod -R 775 /app/staticfiles
           echo "✓ Permissions fixed"
           
           # Collect static files for admin UI
           echo "Collecting static files for Django admin..."
-          docker exec -T pm-backend python manage.py collectstatic --noinput || {
+          docker exec pm-backend python manage.py collectstatic --noinput || {
             echo "⚠ Warning: collectstatic failed, but continuing"
           }
           echo "✓ Static files collected"
