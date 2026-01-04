@@ -13,77 +13,14 @@
 - [x] Migrated to SSH-based database migrations
 - [x] Archived obsolete documentation
 - [x] Created single source of truth (`DEVELOPMENT_PIPELINE.md`)
+- [x] Migrated frontend tests from Jest to Vitest (January 2026)
+- [x] Re-enabled frontend testing gate in CI/CD pipeline
 
 ---
 
 ## 🎯 Immediate Next Steps
 
-### 1. Frontend Test Migration (High Priority)
-
-**Status:** ⚠️ Tests currently SKIPPED
-
-**Background:**
-Frontend tests are currently skipped in the pipeline due to incomplete migration from Jest to Vitest.
-
-**Tasks:**
-- [ ] **Replace test framework dependencies**
-  ```bash
-  cd frontend
-  npm uninstall jest @types/jest ts-jest
-  npm install --save-dev vitest @vitest/ui @testing-library/dom
-  ```
-
-- [ ] **Update import statements**
-  ```typescript
-  // ❌ Old (Jest)
-  const mockFn = require('./module');
-  
-  // ✅ New (ES6)
-  import { mockFn } from './module';
-  ```
-
-- [ ] **Replace Jest mocks with Vitest**
-  ```typescript
-  // ❌ Old
-  jest.fn()
-  jest.mock()
-  
-  // ✅ New
-  vi.fn()
-  vi.mock()
-  ```
-
-- [ ] **Update test configuration**
-  ```typescript
-  // vitest.config.ts
-  import { defineConfig } from 'vitest/config';
-  
-  export default defineConfig({
-    test: {
-      globals: true,
-      environment: 'jsdom',
-      setupFiles: './src/test/setup.ts',
-    },
-  });
-  ```
-
-- [ ] **Re-enable tests in workflow**
-  ```yaml
-  # .github/workflows/reusable-deploy.yml
-  - name: Run frontend tests
-    run: npm run test:ci
-    # Remove: if: false
-  ```
-
-**References:**
-- [Vitest Migration Guide](https://vitest.dev/guide/migration.html)
-- [Testing Library with Vitest](https://testing-library.com/docs/react-testing-library/setup#vitest)
-
-**Estimated Effort:** 2-3 days
-
----
-
-### 2. Database Access Investigation (Medium Priority)
+### 1. Database Access Investigation (Medium Priority)
 
 **Status:** 📋 Research Phase
 
@@ -156,7 +93,7 @@ Currently, migrations run via SSH on deployment servers because GitHub Actions r
 
 ---
 
-### 3. Documentation Updates (Low Priority)
+### 2. Documentation Updates (Low Priority)
 
 **Status:** 🔄 Ongoing
 
@@ -171,7 +108,7 @@ Currently, migrations run via SSH on deployment servers because GitHub Actions r
 
 ---
 
-### 4. Security Hardening (Medium Priority)
+### 3. Security Hardening (Medium Priority)
 
 **Status:** 📋 Planned
 
@@ -206,7 +143,7 @@ Currently, migrations run via SSH on deployment servers because GitHub Actions r
 
 ## 🚀 Long-Term Improvements
 
-### 5. Zero-Downtime Deployments (Q2-Q3 2026)
+### 4. Zero-Downtime Deployments (Q2-Q3 2026)
 
 **Current Downtime:** ~5-10 seconds during container swap
 
@@ -219,7 +156,7 @@ Currently, migrations run via SSH on deployment servers because GitHub Actions r
 
 ---
 
-### 6. Automated Rollback (Q2 2026)
+### 5. Automated Rollback (Q2 2026)
 
 **Concept:**
 ```bash
@@ -237,7 +174,7 @@ fi
 
 ---
 
-### 7. Canary Deployments (Q3 2026)
+### 6. Canary Deployments (Q3 2026)
 
 **Concept:**
 - Deploy new version to 10% of traffic
@@ -263,7 +200,7 @@ Track these to measure pipeline health:
 | **Downtime per Deployment** | <30s | ⚠️ ~10s |
 | **Rollback Time** | <5 min | 📋 Not measured |
 | **Test Coverage (Backend)** | >80% | 📊 TBD |
-| **Test Coverage (Frontend)** | >70% | ❌ 0% (tests skipped) |
+| **Test Coverage (Frontend)** | >70% | ✅ Active (Vitest) |
 
 ---
 
@@ -271,7 +208,6 @@ Track these to measure pipeline health:
 
 ```
 High Priority, High Impact
-├─ Frontend Test Migration
 └─ Security Hardening
 
 Medium Priority, Medium Impact
@@ -288,12 +224,11 @@ Low Priority, High Impact (Future)
 
 ## 📝 Notes
 
-- **Do NOT** start new initiatives until frontend tests are re-enabled
 - **Do NOT** change migration approach without thorough testing in dev/UAT
 - **Do** keep this document updated as tasks are completed
 - **Do** reference this in sprint planning and standups
 
 ---
 
-**Last Updated:** 2025-12-09  
-**Next Review:** 2026-01-09 (monthly)
+**Last Updated:** 2026-01-04  
+**Next Review:** 2026-02-04 (monthly)

@@ -291,8 +291,25 @@ jobs:
     needs: [build-frontend]
     runs-on: ubuntu-latest
     steps:
-      - name: Skip frontend tests (temporarily)
-        run: echo "Frontend tests skipped - will be fixed in separate PR to migrate from jest to vitest"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Vitest (CI Mode)
+        working-directory: frontend
+        run: npm run test:ci
 
   # ==========================================
   # Backend Deployment: Migrations
