@@ -155,6 +155,8 @@ class Carrier(models.Model):
         verbose_name_plural = "Carriers"
         indexes = [
             models.Index(fields=['tenant', 'name']),
+            models.Index(fields=['mc_number']),
+            models.Index(fields=['dot_number']),
         ]
 
     def __str__(self):

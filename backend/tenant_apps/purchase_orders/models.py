@@ -55,10 +55,18 @@ class PurchaseOrder(TimestampModel):
         on_delete=models.CASCADE,
         help_text="Supplier for this purchase order",
     )
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        help_text="Product being purchased",
+    )
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=Decimal("0.00"),
+        verbose_name="Total Amount ($)",
         help_text="Total order amount",
     )
     status = models.CharField(
@@ -118,6 +126,7 @@ class PurchaseOrder(TimestampModel):
     quantity = models.IntegerField(
         blank=True,
         null=True,
+        verbose_name="Quantity",
         help_text="Quantity of items",
     )
     total_weight = models.DecimalField(
@@ -125,12 +134,14 @@ class PurchaseOrder(TimestampModel):
         decimal_places=2,
         blank=True,
         null=True,
+        verbose_name="Total Weight (LBS)",
         help_text="Total weight",
     )
     weight_unit = models.CharField(
         max_length=10,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.LBS,
+        verbose_name="Weight Unit",
         help_text="Unit of weight (LBS or KG)",
     )
     how_carrier_make_appointment = models.CharField(
@@ -223,6 +234,16 @@ class CarrierPurchaseOrder(TimestampModel):
         help_text="Link to the associated Supplier Purchase Order (SupplierPO). "
                   "This creates the logistics bridge to track which carrier is hauling which supplier order."
     )
+    
+    # Logistics Bridge - Links CarrierPO to SalesOrder for tracking via Sales Order Number
+    sales_order = models.ForeignKey(
+        "sales_orders.SalesOrder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="carrier_logistics",
+        help_text="Link to the associated Sales Order for logistics tracking via Sales Order Number (spreadsheet #7)."
+    )
 
     # Dates
     pick_up_date = models.DateField(
@@ -309,17 +330,20 @@ class CarrierPurchaseOrder(TimestampModel):
         decimal_places=2,
         blank=True,
         null=True,
+        verbose_name="Total Weight (LBS)",
         help_text="Total weight",
     )
     weight_unit = models.CharField(
         max_length=10,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.LBS,
+        verbose_name="Weight Unit",
         help_text="Unit of weight (LBS or KG)",
     )
     quantity = models.IntegerField(
         blank=True,
         null=True,
+        verbose_name="Quantity",
         help_text="Quantity of items",
     )
 
