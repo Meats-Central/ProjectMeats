@@ -4,6 +4,12 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    Idempotent index creation for tenant-related fields.
+    
+    Uses SeparateDatabaseAndState with IF NOT EXISTS to safely handle
+    environments where indexes may already exist from earlier migrations.
+    """
 
     dependencies = [
         ("carriers", "0003_add_logistics_indexes"),
@@ -20,11 +26,24 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddIndex(
-            model_name="salesorder",
-            index=models.Index(
-                fields=["tenant", "our_sales_order_num"],
-                name="sales_order_tenant__027d51_idx",
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddIndex(
+                    model_name="salesorder",
+                    index=models.Index(
+                        fields=["tenant", "our_sales_order_num"],
+                        name="sales_order_tenant__027d51_idx",
+                    ),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        CREATE INDEX IF NOT EXISTS sales_order_tenant__027d51_idx 
+                        ON sales_orders_salesorder (tenant_id, our_sales_order_num);
+                    """,
+                    reverse_sql="DROP INDEX IF EXISTS sales_order_tenant__027d51_idx;",
+                ),
+            ],
         ),
     ]
