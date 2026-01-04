@@ -55,6 +55,13 @@ class PurchaseOrder(TimestampModel):
         on_delete=models.CASCADE,
         help_text="Supplier for this purchase order",
     )
+    product = models.ForeignKey(
+        "products.Product",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        help_text="Product being purchased",
+    )
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -222,6 +229,16 @@ class CarrierPurchaseOrder(TimestampModel):
         related_name="carrier_logistics",
         help_text="Link to the associated Supplier Purchase Order (SupplierPO). "
                   "This creates the logistics bridge to track which carrier is hauling which supplier order."
+    )
+    
+    # Logistics Bridge - Links CarrierPO to SalesOrder for tracking via Sales Order Number
+    sales_order = models.ForeignKey(
+        "sales_orders.SalesOrder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="carrier_logistics",
+        help_text="Link to the associated Sales Order for logistics tracking via Sales Order Number (spreadsheet #7)."
     )
 
     # Dates
