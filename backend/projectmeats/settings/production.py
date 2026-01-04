@@ -226,14 +226,16 @@ except ValueError:
     pass
 
 # -----------------------------------------------------------------------------
-# Email
+# Email (SendGrid)
 # -----------------------------------------------------------------------------
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.sendgrid.net")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com")
+SERVER_EMAIL = config("SERVER_EMAIL", default=config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com"))
 
 # -----------------------------------------------------------------------------
 # Static / Media
