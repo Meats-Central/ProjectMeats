@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tenants", "0004_add_golden_ticket_features"),
+        ("tenants", "0005_baseline_metadata_cleanup"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

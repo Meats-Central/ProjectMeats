@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             "suppliers",
             "0003_rename_suppliers_s_tenant__idx_suppliers_s_tenant__566edc_idx",
         ),
-        ("tenants", "0005_metadata_lockdown"),
+        ("tenants", "0006_metadata_lockdown"),
     ]
 
     operations = [
