@@ -40,6 +40,7 @@ class Product(TimestampModel):
         help_text="Unique product code",
     )
     description_of_product_item = models.TextField(
+        db_index=True,
         help_text="Detailed description of the product item",
     )
 

@@ -13,7 +13,8 @@ class PurchaseOrderAdmin(TenantFilteredAdmin):
     list_display = (
         "order_number",
         "supplier",
-        "total_amount",
+        "product",
+        "formatted_total_amount",
         "status",
         "order_date",
         "pick_up_date",
@@ -37,7 +38,15 @@ class PurchaseOrderAdmin(TenantFilteredAdmin):
         "notes",
     )
     readonly_fields = ("date_time_stamp", "created_on", "modified_on")
-    raw_id_fields = ("supplier", "carrier", "plant", "contact")
+    raw_id_fields = ("supplier", "product", "carrier", "plant", "contact")
+    
+    def formatted_total_amount(self, obj):
+        """Format total_amount as currency."""
+        if obj.total_amount:
+            return f"${obj.total_amount:,.2f}"
+        return "-"
+    formatted_total_amount.short_description = "Total Amount"
+    formatted_total_amount.admin_order_field = "total_amount"
 
     fieldsets = (
         (
@@ -48,6 +57,7 @@ class PurchaseOrderAdmin(TenantFilteredAdmin):
                     "our_purchase_order_num",
                     "supplier_confirmation_order_num",
                     "supplier",
+                    "product",
                     "total_amount",
                     "status",
                 )

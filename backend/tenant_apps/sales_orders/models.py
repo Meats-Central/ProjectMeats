@@ -51,7 +51,7 @@ class SalesOrder(TimestampModel):
     supplier = models.ForeignKey(
         "suppliers.Supplier",
         on_delete=models.CASCADE,
-        help_text="Supplier for this sales order",
+        help_text="Supplier for this sales order (required to complete sourcing chain)",
     )
     customer = models.ForeignKey(
         "customers.Customer",
@@ -154,6 +154,9 @@ class SalesOrder(TimestampModel):
         ordering = ["-date_time_stamp", "-created_on"]
         verbose_name = "Sales Order"
         verbose_name_plural = "Sales Orders"
+        indexes = [
+            models.Index(fields=['tenant', 'our_sales_order_num']),
+        ]
 
     def __str__(self):
         return f"SO-{self.our_sales_order_num}"

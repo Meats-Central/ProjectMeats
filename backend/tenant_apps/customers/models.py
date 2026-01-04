@@ -102,6 +102,7 @@ class Customer(TimestampModel):
         choices=IndustryChoices.choices,
         blank=True,
         default='',
+        verbose_name="Industry Sector",
         help_text="Industry sector (e.g., Pet Sector, Retail)",
     )
     contacts = models.ManyToManyField(
@@ -143,6 +144,13 @@ class Customer(TimestampModel):
         blank=True,
         default='',
         help_text="Buyer contact name",
+    )
+    contact_title = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name="Contact Title",
+        help_text="e.g., Vice President, Buyer",
     )
     buyer_contact_phone = models.CharField(
         max_length=20,

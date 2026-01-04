@@ -410,6 +410,11 @@ const PurchaseOrders: React.FC = () => {
         total_amount: parseFloat(formData.total_amount),
         supplier: parseInt(formData.supplier),
       };
+      
+      // Remove order_number if empty - let backend auto-generate
+      if (!purchaseOrderData.order_number || purchaseOrderData.order_number.trim() === '') {
+        delete purchaseOrderData.order_number;
+      }
 
       if (editingPurchaseOrder) {
         await apiService.updatePurchaseOrder(editingPurchaseOrder.id, purchaseOrderData);
@@ -660,13 +665,18 @@ const PurchaseOrders: React.FC = () => {
             </FormHeader>
             <Form onSubmit={handleSubmit}>
               <FormGroup>
-                <Label>Order Number</Label>
+                <Label>Order Number {!editingPurchaseOrder && '(Optional - Auto-generated)'}</Label>
                 <Input
                   type="text"
                   name="order_number"
                   value={formData.order_number}
                   onChange={handleInputChange}
                   placeholder={editingPurchaseOrder ? '' : `Suggested: ${getNextOrderNumber()}`}
+                  readOnly={!editingPurchaseOrder}
+                  style={{ 
+                    backgroundColor: !editingPurchaseOrder ? '#f8f9fa' : 'white',
+                    cursor: !editingPurchaseOrder ? 'not-allowed' : 'text'
+                  }}
                 />
               </FormGroup>
               <FormGroup>
