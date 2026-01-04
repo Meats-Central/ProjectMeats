@@ -512,12 +512,12 @@ jobs:
           docker run -d --name pm-backend \
             --restart unless-stopped \
             -p 8000:8000 \
-            --env-file /home/django/ProjectMeats/backend/.env \
+            --env-file /root/projectmeats/backend/.env \
             -e DJANGO_SUPERUSER_USERNAME="${{ secrets.DJANGO_SUPERUSER_USERNAME }}" \
             -e DJANGO_SUPERUSER_EMAIL="${{ secrets.DJANGO_SUPERUSER_EMAIL }}" \
             -e DJANGO_SUPERUSER_PASSWORD="${{ secrets.DJANGO_SUPERUSER_PASSWORD }}" \
-            -v /home/django/ProjectMeats/media:/app/media \
-            -v /home/django/ProjectMeats/staticfiles:/app/staticfiles \
+            -v /root/projectmeats/media:/app/media \
+            -v /root/projectmeats/staticfiles:/app/staticfiles \
             "$REG/$IMG:$TAG"
           
           # Wait for container to be ready
@@ -633,8 +633,8 @@ jobs:
           
           # Navigate to project directory to use docker-compose.yml
           echo "Navigating to project directory..."
-          cd /root/ProjectMeats 2>/dev/null || cd /home/django/ProjectMeats || {
-            echo "✗ Project directory not found"
+          cd /root/projectmeats || {
+            echo "✗ Project directory not found at /root/projectmeats"
             exit 1
           }
           
