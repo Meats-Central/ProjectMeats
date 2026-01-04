@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.shortcuts import render, redirect
 from django.urls import path
@@ -385,7 +386,7 @@ class TenantAdmin(admin.ModelAdmin):
         Only displays for test tenants (schema_name starts with 'test_').
         """
         if not obj.schema_name or not obj.schema_name.startswith('test_'):
-            return format_html(
+            return mark_safe(
                 '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">'
                 '<p style="color: #666;"><em>Not a test tenant. This section only applies to tenants '
                 'created via the seed_tenants management command.</em></p>'
@@ -413,7 +414,7 @@ class TenantAdmin(admin.ModelAdmin):
                 admin_user.username,
                 admin_user.email
             )
-        return format_html(
+        return mark_safe(
             '<div style="background: #fff3cd; padding: 15px; border-radius: 5px; border: 1px solid #ffc107;">'
             '<p style="margin: 0;">⚠️ No admin user found for this test tenant.</p>'
             '</div>'
