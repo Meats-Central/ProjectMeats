@@ -697,7 +697,7 @@ jobs:
           
           # Start new frontend container using docker compose
           echo "Starting frontend container via docker compose..."
-          docker compose up -d frontend
+          docker compose up -d --build frontend
           
           echo "✓ Container started successfully"
           
