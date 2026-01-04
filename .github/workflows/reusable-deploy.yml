@@ -519,18 +519,18 @@ jobs:
     steps:
       - name: Create Backend .env File Locally
         run: |
-          cat << 'EOF' > backend.env
-          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-          DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
-          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
-          DEBUG=${{ secrets.DEBUG }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          DB_ENGINE=django.db.backends.postgresql
-          EOF
+          cat <<- 'EOF' > backend.env
+          	DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          	DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
+          	ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          	DEBUG=${{ secrets.DEBUG }}
+          	DB_NAME=${{ secrets.DB_NAME }}
+          	DB_USER=${{ secrets.DB_USER }}
+          	DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          	DB_HOST=${{ secrets.DB_HOST }}
+          	DB_PORT=${{ secrets.DB_PORT }}
+          	DB_ENGINE=django.db.backends.postgresql
+          	EOF
           echo "✓ backend.env file created locally"
       
       - name: Transfer .env to Server

@@ -1,6 +1,6 @@
 name: Master Pipeline
 
-run-name: "Deploy to ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title }}"
+run-name: "${{ github.event_name == 'pull_request' && format('🔍 PR Check: {0}', github.event.pull_request.title) || format('🚀 Deploy: {0}', github.ref_name) }}"
 
 on:
   push:
