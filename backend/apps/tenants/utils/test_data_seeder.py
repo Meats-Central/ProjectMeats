@@ -105,18 +105,27 @@ def seed_test_data(environment='development', count=3, verbosity=1):
 
 def _populate_tenant_business_data(tenant, user, verbosity=1):
     """
-    Generate dummy business data for a tenant.
+    Generate dummy business data for a tenant with strict dependency ordering.
+    
+    CRITICAL EXECUTION ORDER:
+    1. Protein (Global/Shared)
+    2. Plant (tenant-isolated)
+    3. Contact (tenant-isolated)
+    4. Carrier (tenant-isolated)
+    5. Supplier (depends on Plant, Contact)
+    6. Customer (depends on Plant, Contact)
+    7. Product (depends on Supplier)
+    8. PurchaseOrder (depends on Supplier, Carrier, Plant, Contact)
     
     Args:
         tenant: Tenant instance
         user: User to assign as owner/creator
         verbosity: Output verbosity level
     """
+    # === STEP 1: Ensure Proteins exist (Global/Shared model) ===
     try:
-        # Import models dynamically to avoid circular dependencies
         from apps.core.models import Protein
         
-        # Ensure Proteins exist (Global/Shared model)
         proteins = ['Beef', 'Pork', 'Chicken', 'Lamb', 'Turkey']
         protein_objs = []
         for p_name in proteins:
@@ -131,22 +140,113 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
             print(f"  ⚠️  Could not import Protein model: {e}")
         protein_objs = []
     
-    # Create Suppliers
+    # === STEP 2: Create Plants (tenant-isolated) ===
+    plants = []
     try:
-        from tenant_apps.suppliers.models import Supplier
+        from tenant_apps.plants.models import Plant
         
         for i in range(1, 4):
-            Supplier.objects.get_or_create(
+            plant, _ = Plant.objects.get_or_create(
                 tenant=tenant,
-                code=f"SUP-{i:03d}",
+                code=f"PLANT-{i:03d}",
                 defaults={
-                    'name': f"Supplier {i} - {tenant.name}",
+                    'name': f"Plant {i} - {tenant.name}",
+                    'location': f"Location {i}",
                     'status': 'active',
                     'owner': user,
                     'created_by': user,
                     'modified_by': user
                 }
             )
+            plants.append(plant)
+        
+        if verbosity >= 2:
+            print(f"  🏭 Created 3 plants")
+            
+    except ImportError as e:
+        if verbosity >= 1:
+            print(f"  ⚠️  Plant model not available: {e}")
+    
+    # === STEP 3: Create Contacts (tenant-isolated) ===
+    contacts = []
+    try:
+        from tenant_apps.contacts.models import Contact
+        
+        for i in range(1, 4):
+            contact, _ = Contact.objects.get_or_create(
+                tenant=tenant,
+                email=f"contact{i}@{tenant.schema_name}.com",
+                defaults={
+                    'first_name': f"Contact{i}",
+                    'last_name': f"Test",
+                    'phone': f"555-010{i}",
+                    'status': 'active',
+                    'owner': user,
+                    'created_by': user,
+                    'modified_by': user
+                }
+            )
+            contacts.append(contact)
+        
+        if verbosity >= 2:
+            print(f"  👤 Created 3 contacts")
+            
+    except ImportError as e:
+        if verbosity >= 1:
+            print(f"  ⚠️  Contact model not available: {e}")
+    
+    # === STEP 4: Create Carriers (tenant-isolated) ===
+    carriers = []
+    try:
+        from tenant_apps.carriers.models import Carrier
+        
+        for i in range(1, 4):
+            carrier, _ = Carrier.objects.get_or_create(
+                tenant=tenant,
+                code=f"CARR-{i:03d}",
+                defaults={
+                    'name': f"Carrier {i} - {tenant.name}",
+                    'status': 'active',
+                    'owner': user,
+                    'created_by': user,
+                    'modified_by': user
+                }
+            )
+            carriers.append(carrier)
+        
+        if verbosity >= 2:
+            print(f"  🚚 Created 3 carriers")
+            
+    except ImportError as e:
+        if verbosity >= 1:
+            print(f"  ⚠️  Carrier model not available: {e}")
+    
+    # === STEP 5: Create Suppliers (depends on Plant, Contact) ===
+    suppliers = []
+    try:
+        from tenant_apps.suppliers.models import Supplier
+        
+        for i in range(1, 4):
+            supplier_defaults = {
+                'name': f"Supplier {i} - {tenant.name}",
+                'status': 'active',
+                'owner': user,
+                'created_by': user,
+                'modified_by': user
+            }
+            
+            # Assign random Plant and Contact if available
+            if plants:
+                supplier_defaults['plant'] = random.choice(plants)
+            if contacts:
+                supplier_defaults['primary_contact'] = random.choice(contacts)
+            
+            supplier, _ = Supplier.objects.get_or_create(
+                tenant=tenant,
+                code=f"SUP-{i:03d}",
+                defaults=supplier_defaults
+            )
+            suppliers.append(supplier)
         
         if verbosity >= 2:
             print(f"  🏭 Created 3 suppliers")
@@ -155,21 +255,29 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         if verbosity >= 1:
             print(f"  ⚠️  Supplier model not available: {e}")
     
-    # Create Customers
+    # === STEP 6: Create Customers (depends on Plant, Contact) ===
     try:
         from tenant_apps.customers.models import Customer
         
         for i in range(1, 4):
+            customer_defaults = {
+                'name': f"Customer {i} - {tenant.name}",
+                'status': 'active',
+                'owner': user,
+                'created_by': user,
+                'modified_by': user
+            }
+            
+            # Assign random Plant and Contact if available
+            if plants:
+                customer_defaults['plant'] = random.choice(plants)
+            if contacts:
+                customer_defaults['primary_contact'] = random.choice(contacts)
+            
             Customer.objects.get_or_create(
                 tenant=tenant,
                 code=f"CUST-{i:03d}",
-                defaults={
-                    'name': f"Customer {i} - {tenant.name}",
-                    'status': 'active',
-                    'owner': user,
-                    'created_by': user,
-                    'modified_by': user
-                }
+                defaults=customer_defaults
             )
         
         if verbosity >= 2:
@@ -179,22 +287,29 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         if verbosity >= 1:
             print(f"  ⚠️  Customer model not available: {e}")
     
-    # Create Products
+    # === STEP 7: Create Products (depends on Supplier) ===
     try:
         from tenant_apps.products.models import Product
         
         for i in range(1, 4):
+            product_defaults = {
+                'name': f"Product {i}",
+                'status': 'active',
+                'owner': user,
+                'created_by': user,
+                'modified_by': user
+            }
+            
+            # Assign random Protein and Supplier if available
+            if protein_objs:
+                product_defaults['protein_type'] = random.choice(protein_objs)
+            if suppliers:
+                product_defaults['supplier'] = random.choice(suppliers)
+            
             Product.objects.get_or_create(
                 tenant=tenant,
                 code=f"PROD-{i:03d}",
-                defaults={
-                    'name': f"Product {i}",
-                    'protein_type': random.choice(protein_objs) if protein_objs else None,
-                    'status': 'active',
-                    'owner': user,
-                    'created_by': user,
-                    'modified_by': user
-                }
+                defaults=product_defaults
             )
         
         if verbosity >= 2:
@@ -203,3 +318,40 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
     except ImportError as e:
         if verbosity >= 1:
             print(f"  ⚠️  Product model not available: {e}")
+    
+    # === STEP 8: Create PurchaseOrders (depends on Supplier, Carrier, Plant, Contact) ===
+    try:
+        from tenant_apps.purchase_orders.models import PurchaseOrder
+        
+        for i in range(1, 4):
+            po_defaults = {
+                'order_number': f"PO-{tenant.schema_name}-{i:04d}",
+                'status': 'draft',
+                'order_date': timezone.now().date(),
+                'owner': user,
+                'created_by': user,
+                'modified_by': user
+            }
+            
+            # Assign random related objects if available
+            if suppliers:
+                po_defaults['supplier'] = random.choice(suppliers)
+            if carriers:
+                po_defaults['carrier'] = random.choice(carriers)
+            if plants:
+                po_defaults['destination_plant'] = random.choice(plants)
+            if contacts:
+                po_defaults['buyer_contact'] = random.choice(contacts)
+            
+            PurchaseOrder.objects.get_or_create(
+                tenant=tenant,
+                code=f"PO-{i:03d}",
+                defaults=po_defaults
+            )
+        
+        if verbosity >= 2:
+            print(f"  📝 Created 3 purchase orders")
+            
+    except ImportError as e:
+        if verbosity >= 1:
+            print(f"  ⚠️  PurchaseOrder model not available: {e}")
