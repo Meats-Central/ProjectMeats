@@ -525,7 +525,7 @@ jobs:
           
           # Collect static files for admin UI
           echo "Collecting static files for Django admin..."
-          docker exec pm-backend python manage.py collectstatic --noinput || {
+          docker exec -T pm-backend python manage.py collectstatic --noinput || {
             echo "⚠ Warning: collectstatic failed, but continuing"
           }
           echo "✓ Static files collected"
