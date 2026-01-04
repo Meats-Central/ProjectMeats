@@ -695,9 +695,13 @@ jobs:
           echo "Stopping old frontend container..."
           docker compose down frontend 2>/dev/null || docker rm -f projectmeats-frontend pm-frontend || true
           
+          # Debug: Verify we are in the correct directory with docker-compose.yml
+          echo "Current directory contents:"
+          ls -la
+          
           # Start new frontend container using docker compose
           echo "Starting frontend container via docker compose..."
-          docker compose up -d --build frontend
+          docker compose up --detach --build frontend
           
           echo "✓ Container started successfully"
           
