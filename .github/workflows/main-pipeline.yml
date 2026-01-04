@@ -1,10 +1,10 @@
 name: Master Pipeline
 
-# Dynamic run names for deployments only
+# Clean, concise run names
 run-name: >-
   ${{ 
-    github.event_name == 'workflow_dispatch' && format('🕹️ Manual Deploy: {0}', inputs.environment) || 
-    format('🚀 Deploy: {0}', github.ref_name) 
+    github.event_name == 'workflow_dispatch' && format('Deploy {0}', inputs.environment) || 
+    format('Deploy {0}', github.ref_name) 
   }}
 
 on:

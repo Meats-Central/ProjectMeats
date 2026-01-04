@@ -2,9 +2,9 @@ name: "Ops Release Automation"
 
 run-name: >-
   ${{ 
-    github.event_name == 'workflow_run' && format('Auto-Promote: {0} to {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_branch == 'development' && 'UAT' || 'Production') ||
-    github.event_name == 'schedule' && 'Daily Branch Sync Check' ||
-    format('Manual Ops: {0}', inputs.task)
+    github.event_name == 'workflow_run' && format('Promote {0} to {1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_branch == 'development' && 'uat' || 'main') ||
+    github.event_name == 'schedule' && 'Branch Sync Check' ||
+    format('Manual: {0}', inputs.task)
   }}
 
 on:

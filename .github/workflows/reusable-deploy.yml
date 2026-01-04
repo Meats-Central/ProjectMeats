@@ -1,5 +1,8 @@
 name: Reusable Deployment Worker
 
+# Clean, concise run names
+run-name: Deploy ${{ inputs.environment }}
+
 on:
   workflow_call:
     inputs:
