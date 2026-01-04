@@ -466,7 +466,7 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             "fields": ("tenant", "email", "role", "message")
         }),
         ("Reusability Settings", {
-            "fields": ("is_reusable", "max_uses", "uses_count"),
+            "fields": ("is_reusable", "max_uses", "usage_count"),
             "classes": ["collapse"]
         }),
         ("Status", {
