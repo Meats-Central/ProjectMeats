@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { apiService, PurchaseOrder } from '../services/apiService';
+import { apiService, PurchaseOrder, Supplier } from '../services/apiService';
 import PurchaseOrderWorkflow from '../components/Workflow/PurchaseOrderWorkflow';
 
 // Styled Components
@@ -262,6 +262,17 @@ const Input = styled.input`
     outline: none;
     border-color: #007bff;
   }
+
+  /* Hide number input spinner buttons */
+  &[type='number']::-webkit-inner-spin-button,
+  &[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &[type='number'] {
+    -moz-appearance: textfield;
+  }
 `;
 
 const Select = styled.select`
@@ -332,6 +343,7 @@ const SubmitButton = styled.button`
 
 const PurchaseOrders: React.FC = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingPurchaseOrder, setEditingPurchaseOrder] = useState<PurchaseOrder | null>(null);
@@ -346,19 +358,48 @@ const PurchaseOrders: React.FC = () => {
   });
 
   useEffect(() => {
-    loadPurchaseOrders();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [posData, suppliersData] = await Promise.all([
+        apiService.getPurchaseOrders(),
+        apiService.getSuppliers(),
+      ]);
+      setPurchaseOrders(posData);
+      setSuppliers(suppliersData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPurchaseOrders = async () => {
     try {
-      setLoading(true);
       const data = await apiService.getPurchaseOrders();
       setPurchaseOrders(data);
     } catch (error) {
       console.error('Error loading purchase orders:', error);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  // Calculate next suggested order number
+  const getNextOrderNumber = () => {
+    if (purchaseOrders.length === 0) return '1';
+    
+    // Find highest numeric order number
+    let maxNum = 0;
+    purchaseOrders.forEach((po) => {
+      const num = parseInt(po.order_number);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    });
+    
+    return String(maxNum + 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -474,7 +515,22 @@ const PurchaseOrders: React.FC = () => {
     <Container>
       <Header>
         <Title>Purchase Orders</Title>
-        <AddButton onClick={() => setShowForm(true)}>+ Add Purchase Order</AddButton>
+        <AddButton
+          onClick={() => {
+            setFormData({
+              order_number: getNextOrderNumber(),
+              supplier: '',
+              total_amount: '',
+              status: 'pending',
+              order_date: '',
+              delivery_date: '',
+              notes: '',
+            });
+            setShowForm(true);
+          }}
+        >
+          + Add Purchase Order
+        </AddButton>
       </Header>
 
       <StatsCards>
@@ -550,7 +606,7 @@ const PurchaseOrders: React.FC = () => {
           <TableHeader>
             <TableRow>
               <TableHeaderCell>Order Number</TableHeaderCell>
-              <TableHeaderCell>Supplier ID</TableHeaderCell>
+              <TableHeaderCell>Supplier</TableHeaderCell>
               <TableHeaderCell>Amount</TableHeaderCell>
               <TableHeaderCell>Status</TableHeaderCell>
               <TableHeaderCell>Order Date</TableHeaderCell>
@@ -559,28 +615,36 @@ const PurchaseOrders: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {purchaseOrders.map((purchaseOrder) => (
-              <TableRow key={purchaseOrder.id}>
-                <TableCell>{purchaseOrder.order_number}</TableCell>
-                <TableCell>{purchaseOrder.supplier}</TableCell>
-                <TableCell>${(Number(purchaseOrder.total_amount) || 0).toFixed(2)}</TableCell>
-                <TableCell>
-                  <StatusBadge $color={getStatusColor(purchaseOrder.status)}>
-                    {purchaseOrder.status.toUpperCase()}
-                  </StatusBadge>
-                </TableCell>
-                <TableCell>{new Date(purchaseOrder.order_date).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  {purchaseOrder.delivery_date
-                    ? new Date(purchaseOrder.delivery_date).toLocaleDateString()
-                    : 'Not set'}
-                </TableCell>
-                <TableCell>
-                  <ActionButton onClick={() => handleEdit(purchaseOrder)}>Edit</ActionButton>
-                  <DeleteButton onClick={() => handleDelete(purchaseOrder.id)}>Delete</DeleteButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {purchaseOrders.map((purchaseOrder) => {
+              const supplier = suppliers.find((s) => s.id === purchaseOrder.supplier);
+              return (
+                <TableRow key={purchaseOrder.id}>
+                  <TableCell>{purchaseOrder.order_number}</TableCell>
+                  <TableCell>{supplier?.name || `ID: ${purchaseOrder.supplier}`}</TableCell>
+                  <TableCell>
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(Number(purchaseOrder.total_amount) || 0)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge $color={getStatusColor(purchaseOrder.status)}>
+                      {purchaseOrder.status.toUpperCase()}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>{new Date(purchaseOrder.order_date).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {purchaseOrder.delivery_date
+                      ? new Date(purchaseOrder.delivery_date).toLocaleDateString()
+                      : 'Not set'}
+                  </TableCell>
+                  <TableCell>
+                    <ActionButton onClick={() => handleEdit(purchaseOrder)}>Edit</ActionButton>
+                    <DeleteButton onClick={() => handleDelete(purchaseOrder.id)}>Delete</DeleteButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
@@ -602,18 +666,24 @@ const PurchaseOrders: React.FC = () => {
                   name="order_number"
                   value={formData.order_number}
                   onChange={handleInputChange}
-                  required
+                  placeholder={editingPurchaseOrder ? '' : `Suggested: ${getNextOrderNumber()}`}
                 />
               </FormGroup>
               <FormGroup>
-                <Label>Supplier ID</Label>
-                <Input
-                  type="number"
+                <Label>Supplier</Label>
+                <Select
                   name="supplier"
                   value={formData.supplier}
                   onChange={handleInputChange}
                   required
-                />
+                >
+                  <option value="">Select a supplier</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </Select>
               </FormGroup>
               <FormGroup>
                 <Label>Total Amount</Label>
