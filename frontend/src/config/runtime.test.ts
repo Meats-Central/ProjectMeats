@@ -137,14 +137,14 @@ describe('Runtime Configuration', () => {
     });
 
     it('should use tenant context for API_BASE_URL with tenant subdomain', () => {
-      window.location.hostname = 'acme.projectmeats.com';
+      window.location.hostname = 'acme.meatscentral.com';
       
       const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
-      expect(result).toBe('https://acme-api.projectmeats.com/api/v1');
+      expect(result).toBe('https://acme-api.meatscentral.com/api/v1');
     });
 
     it('should prioritize window.ENV over tenant context for API_BASE_URL', () => {
-      window.location.hostname = 'acme.projectmeats.com';
+      window.location.hostname = 'acme.meatscentral.com';
       (window as any).ENV = { API_BASE_URL: 'https://override.example.com/api/v1' };
       
       const result = getRuntimeConfig('API_BASE_URL', 'http://default.com/api/v1');
@@ -171,7 +171,7 @@ describe('Runtime Configuration', () => {
     });
 
     it('should return tenant for tenant subdomain', () => {
-      window.location.hostname = 'acme.projectmeats.com';
+      window.location.hostname = 'acme.meatscentral.com';
       
       expect(getCurrentTenant()).toBe('acme');
     });
