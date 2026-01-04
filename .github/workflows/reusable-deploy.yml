@@ -640,6 +640,12 @@ jobs:
           
           echo "✓ In directory: $(pwd)"
           
+          # Ensure backend/.env file exists to prevent Docker Compose parser errors
+          echo "Ensuring backend/.env file exists..."
+          mkdir -p backend
+          touch backend/.env
+          echo "✓ backend/.env file ready"
+          
           # Export environment variables for docker compose
           export REGISTRY="$REG"
           export FRONTEND_IMAGE="$IMG"
