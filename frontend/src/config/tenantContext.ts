@@ -6,12 +6,12 @@
  * 
  * Domain Pattern Examples:
  * - localhost:3000 -> { tenant: null, environment: 'development' }
- * - dev.projectmeats.com -> { tenant: null, environment: 'development' }
- * - uat.projectmeats.com -> { tenant: null, environment: 'uat' }
- * - projectmeats.com -> { tenant: null, environment: 'production' }
- * - acme-dev.projectmeats.com -> { tenant: 'acme', environment: 'development' }
- * - acme-uat.projectmeats.com -> { tenant: 'acme', environment: 'uat' }
- * - acme.projectmeats.com -> { tenant: 'acme', environment: 'production' }
+ * - dev.meatscentral.com -> { tenant: null, environment: 'development' }
+ * - uat.meatscentral.com -> { tenant: null, environment: 'uat' }
+ * - meatscentral.com -> { tenant: null, environment: 'production' }
+ * - acme-dev.meatscentral.com -> { tenant: 'acme', environment: 'development' }
+ * - acme-uat.meatscentral.com -> { tenant: 'acme', environment: 'uat' }
+ * - acme.meatscentral.com -> { tenant: 'acme', environment: 'production' }
  * - custom-tenant.com -> { tenant: 'custom-tenant', environment: 'production' }
  */
 
@@ -47,8 +47,8 @@ const ENVIRONMENT_PATTERNS = {
  */
 const DEFAULT_API_URLS = {
   development: 'https://dev.meatscentral.com/api/v1',
-  uat: 'https://api.uat.meatscentral.com/api/v1',
-  production: 'https://api.meatscentral.com/api/v1',
+  uat: 'https://uat.meatscentral.com/api/v1',
+  production: 'https://meatscentral.com/api/v1',
 };
 
 /**
@@ -73,12 +73,12 @@ function extractEnvironment(hostname: string): 'development' | 'uat' | 'producti
  * Extract tenant identifier from hostname
  * 
  * Examples:
- * - acme-dev.projectmeats.com -> 'acme'
- * - acme-uat.projectmeats.com -> 'acme'
- * - acme.projectmeats.com -> 'acme'
+ * - acme-dev.meatscentral.com -> 'acme'
+ * - acme-uat.meatscentral.com -> 'acme'
+ * - acme.meatscentral.com -> 'acme'
  * - tenant1.customdomain.com -> 'tenant1'
  * - localhost -> null
- * - dev.projectmeats.com -> null
+ * - dev.meatscentral.com -> null
  */
 function extractTenant(hostname: string, environment: string): string | null {
   // Localhost has no tenant
@@ -92,7 +92,7 @@ function extractTenant(hostname: string, environment: string): string | null {
   // Split hostname into parts
   const parts = hostWithoutPort.split('.');
   
-  // If it's just the base domain (e.g., projectmeats.com), no tenant
+  // If it's just the base domain (e.g., meatscentral.com), no tenant
   if (parts.length <= 2) {
     return null;
   }
@@ -151,7 +151,7 @@ function buildApiBaseUrl(tenant: string | null, environment: 'development' | 'ua
     }
     
     // Use tenant-specific API endpoint
-    return `${protocol}://${tenant}${envPrefix}-api.projectmeats.com/api/v1`;
+    return `${protocol}://${tenant}${envPrefix}-api.meatscentral.com/api/v1`;
   }
   
   // Fall back to default API URLs for deployed environments

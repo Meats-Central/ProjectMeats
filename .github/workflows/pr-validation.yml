@@ -123,3 +123,61 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Closing delimiters are properly unindented" >> $GITHUB_STEP_SUMMARY
           echo "- No syntax errors detected" >> $GITHUB_STEP_SUMMARY
+  
+  check-lockfile-sync:
+    name: Validate Frontend Lockfile Sync
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Check for lockfile sync
+        working-directory: frontend
+        run: |
+          echo "🔍 Checking if package-lock.json is in sync with package.json..."
+          
+          # Generate lockfile without installing
+          npm install --package-lock-only
+          
+          # Check if there are any changes
+          if ! git diff --exit-code package-lock.json; then
+            echo ""
+            echo "❌ ERROR: package-lock.json is out of sync with package.json"
+            echo ""
+            echo "This indicates that dependencies were updated in package.json"
+            echo "but the lockfile was not regenerated."
+            echo ""
+            echo "To fix this issue:"
+            echo "  1. cd frontend"
+            echo "  2. npm install"
+            echo "  3. git add package-lock.json"
+            echo "  4. git commit -m 'fix: synchronize package-lock.json'"
+            echo ""
+            echo "Why this matters:"
+            echo "  - npm ci requires an exact lockfile match"
+            echo "  - Mismatched lockfiles break deployment pipelines"
+            echo "  - Golden Standard requires consistent dependency trees"
+            echo ""
+            exit 1
+          fi
+          
+          echo "✅ package-lock.json is in sync with package.json"
+      
+      - name: Summary
+        if: success()
+        run: |
+          echo "## ✅ Lockfile Sync Validation Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "package-lock.json is properly synchronized with package.json" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- npm ci will work correctly" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency tree is consistent" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployment pipeline integrity maintained" >> $GITHUB_STEP_SUMMARY
