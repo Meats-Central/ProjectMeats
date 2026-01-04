@@ -213,30 +213,6 @@ jobs:
           # python manage.py test apps/ --verbosity=2
           echo "⚠️  Tests temporarily bypassed to unblock RLS deployment"
 
-  migrate:
-    name: "Run Database Migrations"
-    needs: [test-backend]
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.backend_environment }}
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-      
-      - name: Login to DigitalOcean Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: registry.digitalocean.com
-          username: ${{ secrets.DO_ACCESS_TOKEN }}
-          password: ${{ secrets.DO_ACCESS_TOKEN }}
-      
-      - name: Install SSH and PostgreSQL tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y openssh-client sshpass postgresql-client netcat-openbsd lsof
-
   # ==========================================
   # FRONTEND SWIMLANE  
   # ==========================================
