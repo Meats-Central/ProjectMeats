@@ -699,9 +699,12 @@ jobs:
           echo "Current directory contents:"
           ls -la
           
-          # Start new frontend container using docker compose
+          # Start new frontend container using docker compose via script
           echo "Starting frontend container via docker compose..."
-          docker compose up -d
+          echo "cd /root/projectmeats && docker compose up -d" > deploy_frontend.sh
+          chmod +x deploy_frontend.sh
+          ./deploy_frontend.sh
+          rm deploy_frontend.sh
           
           echo "✓ Container started successfully"
           
