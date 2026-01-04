@@ -699,13 +699,9 @@ jobs:
           echo "Current directory contents:"
           ls -la
           
-          # Build frontend image
-          echo "Building frontend image..."
-          docker compose build frontend
-          
           # Start new frontend container using docker compose
           echo "Starting frontend container via docker compose..."
-          docker compose up -d frontend
+          docker compose up -d
           
           echo "✓ Container started successfully"
           
