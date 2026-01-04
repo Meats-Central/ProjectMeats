@@ -102,4 +102,3 @@ CMD ["sh", "-c", "set -x && \
       --capture-output \
       --access-logfile - \
       --error-logfile -"]
-      --error-logfile - || { echo \"Gunicorn failed with exit code $?\"; sleep 300; }"]
