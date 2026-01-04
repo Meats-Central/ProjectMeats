@@ -171,15 +171,15 @@ jobs:
           fi
           
           # Convert comma-separated labels to multiple --label flags
-          LABEL_FLAGS=""
+          LABEL_FLAGS=()
           IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
           for label in "${LABEL_ARRAY[@]}"; do
-            LABEL_FLAGS="$LABEL_FLAGS --label \"$label\""
+            LABEL_FLAGS+=("--label" "$label")
           done
           
-          eval gh pr create \
+          gh pr create \
             --base "$TARGET" \
             --head "$HEAD" \
             --title "Release: Promote $SOURCE to $TARGET" \
             --body-file pr_body.md \
-            $LABEL_FLAGS
+            "${LABEL_FLAGS[@]}"
