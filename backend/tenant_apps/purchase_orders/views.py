@@ -35,6 +35,8 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the tenant and auto-generate order_number when creating a new purchase order."""
+        from django.db import transaction
+        
         tenant = None
 
         # First, try to get tenant from middleware (request.tenant)
@@ -70,37 +72,38 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
                 "Tenant context is required to create a purchase order."
             )
         
-        # Auto-generate order_number if not provided
-        if not serializer.validated_data.get('order_number'):
-            # Get all existing purchase orders for this tenant
-            existing_pos = PurchaseOrder.objects.filter(tenant=tenant)
-            
-            # Find the highest numeric order number
-            max_order_num = 0
-            for po in existing_pos:
-                try:
-                    # Try to extract numeric value from order_number
-                    num = int(po.order_number)
-                    if num > max_order_num:
-                        max_order_num = num
-                except (ValueError, TypeError):
-                    # Skip non-numeric order numbers
-                    continue
-            
-            # Increment and assign
-            next_order_num = str(max_order_num + 1)
-            serializer.validated_data['order_number'] = next_order_num
-            
-            logger.info(
-                f"Auto-generated order_number: {next_order_num} for tenant {tenant.name}",
-                extra={
-                    "tenant_id": tenant.id,
-                    "order_number": next_order_num,
-                    "timestamp": timezone.now().isoformat(),
-                }
-            )
+        # Auto-generate order_number if not provided (atomic to prevent duplicates)
+        with transaction.atomic():
+            if not serializer.validated_data.get('order_number'):
+                # Get all existing purchase orders for this tenant with a lock
+                existing_pos = PurchaseOrder.objects.filter(tenant=tenant).select_for_update()
+                
+                # Find the highest numeric order number
+                max_order_num = 0
+                for po in existing_pos:
+                    try:
+                        # Try to extract numeric value from order_number
+                        num = int(po.order_number)
+                        if num > max_order_num:
+                            max_order_num = num
+                    except (ValueError, TypeError):
+                        # Skip non-numeric order numbers
+                        continue
+                
+                # Increment and assign
+                next_order_num = str(max_order_num + 1)
+                serializer.validated_data['order_number'] = next_order_num
+                
+                logger.info(
+                    f"Auto-generated order_number: {next_order_num} for tenant {tenant.name}",
+                    extra={
+                        "tenant_id": tenant.id,
+                        "order_number": next_order_num,
+                        "timestamp": timezone.now().isoformat(),
+                    }
+                )
 
-        serializer.save(tenant=tenant)
+            serializer.save(tenant=tenant)
 
     def create(self, request, *args, **kwargs):
         """Create a new purchase order with enhanced error handling."""
