@@ -24,7 +24,10 @@ services:
 
   # Django backend API
   backend:
-    build: ./backend
+    image: registry.digitalocean.com/meatscentral/projectmeats-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: projectmeats-backend
     ports:
       - "8000:8000"
@@ -46,24 +49,20 @@ services:
 
   # React frontend
   frontend:
+    image: registry.digitalocean.com/meatscentral/projectmeats-frontend:${IMAGE_TAG:-latest}
     build:
       context: .
-      dockerfile: frontend/dockerfile
+      dockerfile: frontend/Dockerfile
     container_name: projectmeats-frontend
     ports:
-      - "3000:80"
-      - "443:443"
+      - "127.0.0.1:8080:80"
     depends_on:
       - backend
     environment:
       - REACT_APP_API_BASE_URL=http://localhost:8000
       - BACKEND_HOST=${BACKEND_HOST:-backend}
       - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
-    volumes:
-      # Mount Let's Encrypt certificates (read-only to preserve symlinks)
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      # Mount webroot for ACME challenge validation
-      - /var/www/certbot:/var/www/certbot:ro
+    # Note: SSL certificates are handled by host-level nginx, not by this container
 
 volumes:
   pgdata:

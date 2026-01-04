@@ -68,19 +68,19 @@ if database_url:
 
     DATABASES = {"default": _db_config}
 else:
-    # Get DB_ENGINE - PostgreSQL is required for all environments
+    # Get DB_ENGINE - PostgreSQL is hardcoded default (shared-schema multi-tenancy)
     # Using config() to read from .env file for local development
-    DB_ENGINE = config("DB_ENGINE", default="").strip() or "django.db.backends.postgresql"
+    DB_ENGINE = config("DB_ENGINE", default="django.db.backends.postgresql")
 
     if DB_ENGINE == "django.db.backends.postgresql":
         # PostgreSQL configuration with standard Django backend (shared-schema)
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",  # Standard Django backend
-                "NAME": config("DB_NAME"),
-                "USER": config("DB_USER"),
-                "PASSWORD": config("DB_PASSWORD"),
-                "HOST": config("DB_HOST"),
+                "NAME": config("DB_NAME", default="projectmeats_dev"),
+                "USER": config("DB_USER", default="postgres"),
+                "PASSWORD": config("DB_PASSWORD", default="postgres"),
+                "HOST": config("DB_HOST", default="localhost"),
                 "PORT": config("DB_PORT", default="5432"),
                 "CONN_MAX_AGE": 0,  # Close connections after each request in development
                 "OPTIONS": {

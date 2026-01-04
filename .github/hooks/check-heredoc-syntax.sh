@@ -17,8 +17,14 @@ for file in .github/workflows/*.yml .github/workflows/*.yaml; do
   
   # Look for heredoc markers
   while IFS=: read -r line_num content; do
-    # Extract delimiter name
-    DELIMITER=$(echo "$content" | sed -n "s/.*<<['-]\?\s*['\"]\\?\([A-Z_]*\)['\"]\\?.*/\1/p")
+    # Check if using <<- (allows indentation)
+    if echo "$content" | grep -q "<<-"; then
+      # <<- allows indented closing delimiter, skip validation
+      continue
+    fi
+    
+    # Extract delimiter name for << (without dash)
+    DELIMITER=$(echo "$content" | sed -n "s/.*<<\s*['\"]\\?\([A-Z_]*\)['\"]\\?.*/\1/p")
     
     if [ -n "$DELIMITER" ] && [ "$DELIMITER" != "SSH" ] && [ "$DELIMITER" != "ENVJS" ]; then
       # Find closing delimiter
