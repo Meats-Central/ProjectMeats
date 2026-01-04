@@ -62,8 +62,6 @@ services:
     volumes:
       # Mount Let's Encrypt certificates (read-only to preserve symlinks)
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      # Mount webroot for ACME challenge validation
-      - /var/www/certbot:/var/www/certbot:ro
 
 volumes:
   pgdata:
