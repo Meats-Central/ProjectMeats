@@ -323,6 +323,7 @@ jobs:
   # ==========================================
   
   migrate:
+    name: "Run Database Migrations"
     needs: [test-backend]
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
