@@ -66,6 +66,7 @@ class PurchaseOrder(TimestampModel):
         max_digits=10,
         decimal_places=2,
         default=Decimal("0.00"),
+        verbose_name="Total Amount ($)",
         help_text="Total order amount",
     )
     status = models.CharField(
@@ -125,6 +126,7 @@ class PurchaseOrder(TimestampModel):
     quantity = models.IntegerField(
         blank=True,
         null=True,
+        verbose_name="Quantity",
         help_text="Quantity of items",
     )
     total_weight = models.DecimalField(
@@ -132,12 +134,14 @@ class PurchaseOrder(TimestampModel):
         decimal_places=2,
         blank=True,
         null=True,
+        verbose_name="Total Weight (LBS)",
         help_text="Total weight",
     )
     weight_unit = models.CharField(
         max_length=10,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.LBS,
+        verbose_name="Weight Unit",
         help_text="Unit of weight (LBS or KG)",
     )
     how_carrier_make_appointment = models.CharField(
@@ -326,17 +330,20 @@ class CarrierPurchaseOrder(TimestampModel):
         decimal_places=2,
         blank=True,
         null=True,
+        verbose_name="Total Weight (LBS)",
         help_text="Total weight",
     )
     weight_unit = models.CharField(
         max_length=10,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.LBS,
+        verbose_name="Weight Unit",
         help_text="Unit of weight (LBS or KG)",
     )
     quantity = models.IntegerField(
         blank=True,
         null=True,
+        verbose_name="Quantity",
         help_text="Quantity of items",
     )
 

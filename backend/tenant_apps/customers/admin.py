@@ -13,6 +13,7 @@ class CustomerAdmin(TenantFilteredAdmin):
     list_display = (
         "name",
         "contact_person",
+        "contact_title",
         "email",
         "phone",
         "city",
@@ -52,6 +53,7 @@ class CustomerAdmin(TenantFilteredAdmin):
             {
                 "fields": (
                     "buyer_contact_name",
+                    "contact_title",
                     "buyer_contact_phone",
                     "buyer_contact_email",
                 )
