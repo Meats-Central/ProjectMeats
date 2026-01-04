@@ -1,5 +1,3 @@
-name: Reusable Deployment Worker
-
 on:
   workflow_call:
     inputs:
@@ -509,36 +507,21 @@ jobs:
           # Create backend/.env file from GitHub Secrets
           echo "Creating backend/.env file from secrets..."
           mkdir -p backend
-          cat > backend/.env << 'ENVFILE'
-# Django Configuration
-DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
-ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
-
-# Database Configuration
-DB_ENGINE=django.db.backends.postgresql
-DB_HOST=${{ secrets.DB_HOST }}
-DB_PORT=${{ secrets.DB_PORT }}
-DB_USER=${{ secrets.DB_USER }}
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-DB_NAME=${{ secrets.DB_NAME }}
-
-# Django Superuser (optional - also passed via -e flags)
-DJANGO_SUPERUSER_USERNAME=${{ secrets.DJANGO_SUPERUSER_USERNAME }}
-DJANGO_SUPERUSER_EMAIL=${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-
-# Email Configuration (optional)
-EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
-EMAIL_HOST=${{ secrets.EMAIL_HOST }}
-EMAIL_PORT=${{ secrets.EMAIL_PORT }}
-EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
-EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
-EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
-
-# Debug mode
-DEBUG=${{ secrets.DEBUG }}
-ENVFILE
+          
+          # Write environment variables to .env file
+          cat > backend/.env <<'ENVFILE'
+          SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          DB_ENGINE=django.db.backends.postgresql
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DEBUG=${{ secrets.DEBUG }}
+          ENVFILE
+          
           echo "✓ backend/.env file created"
           
           # Login to registry
