@@ -174,7 +174,7 @@ jobs:
           
           -- Re-enable triggers
           SET session_replication_role = 'origin';
-          SQL
+SQL
           
           psql \
             -h localhost \
@@ -243,7 +243,7 @@ jobs:
           UPDATE apps_suppliers_supplier SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
           UPDATE apps_plants_plant SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
           UPDATE apps_customers_customer SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
-          SQL
+SQL
           
           psql \
             -h localhost \
