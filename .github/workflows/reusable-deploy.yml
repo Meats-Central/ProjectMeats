@@ -499,6 +499,48 @@ jobs:
           IMG="${{ env.BACKEND_IMAGE }}"
           TAG="${{ inputs.environment }}-${{ github.sha }}"
           
+          # Navigate to project directory
+          cd /root/projectmeats || {
+            echo "✗ Project directory not found at /root/projectmeats"
+            exit 1
+          }
+          echo "✓ In directory: $(pwd)"
+          
+          # Create backend/.env file from GitHub Secrets
+          echo "Creating backend/.env file from secrets..."
+          mkdir -p backend
+          cat > backend/.env << 'ENVFILE'
+# Django Configuration
+DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
+ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+
+# Database Configuration
+DB_ENGINE=django.db.backends.postgresql
+DB_HOST=${{ secrets.DB_HOST }}
+DB_PORT=${{ secrets.DB_PORT }}
+DB_USER=${{ secrets.DB_USER }}
+DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+DB_NAME=${{ secrets.DB_NAME }}
+
+# Django Superuser (optional - also passed via -e flags)
+DJANGO_SUPERUSER_USERNAME=${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+DJANGO_SUPERUSER_EMAIL=${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+
+# Email Configuration (optional)
+EMAIL_BACKEND=${{ secrets.EMAIL_BACKEND }}
+EMAIL_HOST=${{ secrets.EMAIL_HOST }}
+EMAIL_PORT=${{ secrets.EMAIL_PORT }}
+EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }}
+EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
+EMAIL_USE_TLS=${{ secrets.EMAIL_USE_TLS }}
+
+# Debug mode
+DEBUG=${{ secrets.DEBUG }}
+ENVFILE
+          echo "✓ backend/.env file created"
+          
           # Login to registry
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
           
@@ -508,7 +550,7 @@ jobs:
           # Stop old container
           docker rm -f pm-backend projectmeats-backend || true
           
-          # Start new container with superuser credentials from secrets
+          # Start new container with environment file
           docker run -d --name pm-backend \
             --restart unless-stopped \
             -p 8000:8000 \
