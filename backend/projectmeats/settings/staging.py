@@ -60,9 +60,11 @@ for host in STAGING_HOSTS:
 # Less restrictive CORS for staging testing
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 
-# Email backend for staging (console or file for safety, but can be configured for SMTP)
+# Email backend for staging (SendGrid SMTP Relay)
+# IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
+# Do not hardcode API keys in source code
 EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
 )
 EMAIL_HOST = config("EMAIL_HOST", default="smtp.sendgrid.net")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
@@ -70,6 +72,7 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com")
+SERVER_EMAIL = config("SERVER_EMAIL", default="noreply@meatscentral.com")
 
 # Staging-specific cache (can be less robust)
 CACHES = {

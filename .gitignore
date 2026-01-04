@@ -137,3 +137,4 @@ storybook-static
 
 # Master Convergence Backups
 backups/
+SENDGRID_API_KEY.txt

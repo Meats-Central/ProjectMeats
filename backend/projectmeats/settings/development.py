@@ -173,8 +173,21 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3003",
 ]
 
-# Email backend for development
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email backend for development (SendGrid SMTP Relay - can be overridden to console)
+# IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable
+# Do not hardcode API keys in source code
+# For local development, set in your .env file or use console backend:
+#   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.sendgrid.net")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com")
+SERVER_EMAIL = config("SERVER_EMAIL", default="noreply@meatscentral.com")
 
 # Static files
 STATICFILES_DIRS = [
