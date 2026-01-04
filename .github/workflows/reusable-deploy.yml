@@ -84,6 +84,9 @@ on:
       DOMAIN_NAME:
         required: false
         description: "Domain name for SSL certificates (e.g., dev.meatscentral.com)"
+      EMAIL_HOST_PASSWORD:
+        required: false
+        description: "SendGrid SMTP API key (from job environment - dev/uat/prod buckets)"
 
 env:
   REGISTRY: registry.digitalocean.com/meatscentral
