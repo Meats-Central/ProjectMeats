@@ -699,47 +699,21 @@ jobs:
           docker pull "$REG/$IMG:$IMAGE_TAG"
           echo "✓ Image pulled successfully"
           
-          # Navigate to project directory to use docker-compose.yml
-          echo "Navigating to project directory..."
-          cd /root/projectmeats || {
-            echo "✗ Project directory not found at /root/projectmeats"
-            exit 1
-          }
-          
-          echo "✓ In directory: $(pwd)"
-          
-          # Ensure backend/.env file exists to prevent Docker Compose parser errors
-          echo "Ensuring backend/.env file exists..."
-          mkdir -p backend
-          touch backend/.env
-          echo "✓ backend/.env file ready"
-          
-          # Export environment variables for docker-compose
-          export REGISTRY="$REG"
-          export FRONTEND_IMAGE="$IMG"
-          export IMAGE_TAG="$IMAGE_TAG"
-          export BACKEND_HOST="$BACKEND_HOST"
-          export DOMAIN_NAME="$DOMAIN_NAME"
-          export ENVIRONMENT="$ENVIRONMENT"
-          
-          # Stop old frontend container
+          # Stop old container
           echo "Stopping old frontend container..."
-          docker-compose down frontend 2>/dev/null || docker rm -f projectmeats-frontend pm-frontend || true
+          docker rm -f pm-frontend projectmeats-frontend || true
           
-          # Pull latest image using docker-compose
-          echo "Pulling latest frontend image via docker-compose..."
-          docker-compose pull frontend
-          
-          # Debug: Verify we are in the correct directory with docker-compose.yml
-          echo "Current directory contents:"
-          ls -la
-          
-          # Start new frontend container using docker-compose via script
-          echo "Starting frontend container via docker-compose..."
-          echo "cd /root/projectmeats && docker-compose up -d --no-deps frontend" > deploy_frontend.sh
-          chmod +x deploy_frontend.sh
-          ./deploy_frontend.sh
-          rm deploy_frontend.sh
+          # Start new container with docker run
+          echo "Starting frontend container..."
+          docker run -d --name pm-frontend \
+            --restart unless-stopped \
+            -p 127.0.0.1:8080:80 \
+            -e REACT_APP_API_BASE_URL="${API_BASE_URL}" \
+            -e BACKEND_HOST="${BACKEND_HOST}" \
+            -e DOMAIN_NAME="${DOMAIN_NAME}" \
+            -e ENVIRONMENT="${ENVIRONMENT}" \
+            -v /opt/pm/frontend/env:/usr/share/nginx/html/env:ro \
+            "$REG/$IMG:$IMAGE_TAG"
           
           echo "✓ Container started successfully"
           
