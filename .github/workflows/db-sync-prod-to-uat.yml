@@ -148,33 +148,33 @@ jobs:
           echo "🧹 Clearing UAT business data (preserving test tenants)..."
           
           # Create SQL to truncate business tables while preserving test tenant data
-          cat > /tmp/clear_uat.sql <<'SQL'
-          -- Disable triggers to allow truncation
-          SET session_replication_role = 'replica';
-          
-          -- Get list of all tenant-aware tables (those with tenant_id column)
-          DO $$
-          DECLARE
-            r RECORD;
-          BEGIN
-            FOR r IN (
-              SELECT table_schema, table_name
-              FROM information_schema.columns
-              WHERE column_name = 'tenant_id'
-                AND table_schema NOT IN ('pg_catalog', 'information_schema')
-                AND table_name NOT LIKE 'auth_%'
-                AND table_name NOT LIKE 'django_%'
-            ) LOOP
-              -- Delete only non-test tenant data
-              EXECUTE format('DELETE FROM %I.%I WHERE tenant_id NOT IN (SELECT id FROM apps_tenants_tenant WHERE schema_name LIKE ''test_%%'');', 
-                r.table_schema, r.table_name);
-              RAISE NOTICE 'Cleared %', r.table_name;
-            END LOOP;
-          END $$;
-          
-          -- Re-enable triggers
-          SET session_replication_role = 'origin';
-SQL
+          cat > /tmp/clear_uat.sql <<- 'SQL'
+          	-- Disable triggers to allow truncation
+          	SET session_replication_role = 'replica';
+          	
+          	-- Get list of all tenant-aware tables (those with tenant_id column)
+          	DO $$
+          	DECLARE
+          	  r RECORD;
+          	BEGIN
+          	  FOR r IN (
+          	    SELECT table_schema, table_name
+          	    FROM information_schema.columns
+          	    WHERE column_name = 'tenant_id'
+          	      AND table_schema NOT IN ('pg_catalog', 'information_schema')
+          	      AND table_name NOT LIKE 'auth_%'
+          	      AND table_name NOT LIKE 'django_%'
+          	  ) LOOP
+          	    -- Delete only non-test tenant data
+          	    EXECUTE format('DELETE FROM %I.%I WHERE tenant_id NOT IN (SELECT id FROM apps_tenants_tenant WHERE schema_name LIKE ''test_%%'');', 
+          	      r.table_schema, r.table_name);
+          	    RAISE NOTICE 'Cleared %', r.table_name;
+          	  END LOOP;
+          	END $$;
+          	
+          	-- Re-enable triggers
+          	SET session_replication_role = 'origin';
+          	SQL
           
           psql \
             -h localhost \
@@ -227,23 +227,23 @@ SQL
           echo "Found UAT superuser ID: $UAT_SUPERUSER_ID"
           
           # Update all owner_id and created_by_id references
-          cat > /tmp/fixup.sql <<SQL
-          -- Update all owner_id fields
-          UPDATE apps_suppliers_supplier SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
-          UPDATE apps_plants_plant SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
-          UPDATE apps_customers_customer SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
-          
-          -- Update all created_by_id fields
-          UPDATE apps_suppliers_supplier SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
-          UPDATE apps_plants_plant SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
-          UPDATE apps_customers_customer SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
-          UPDATE apps_purchase_orders_purchaseorder SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
-          
-          -- Update any updated_by_id fields
-          UPDATE apps_suppliers_supplier SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
-          UPDATE apps_plants_plant SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
-          UPDATE apps_customers_customer SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
-SQL
+          cat > /tmp/fixup.sql <<- SQL
+          	-- Update all owner_id fields
+          	UPDATE apps_suppliers_supplier SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          	UPDATE apps_plants_plant SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          	UPDATE apps_customers_customer SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          	
+          	-- Update all created_by_id fields
+          	UPDATE apps_suppliers_supplier SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          	UPDATE apps_plants_plant SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          	UPDATE apps_customers_customer SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          	UPDATE apps_purchase_orders_purchaseorder SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          	
+          	-- Update any updated_by_id fields
+          	UPDATE apps_suppliers_supplier SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          	UPDATE apps_plants_plant SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          	UPDATE apps_customers_customer SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          	SQL
           
           psql \
             -h localhost \
