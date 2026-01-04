@@ -610,6 +610,7 @@ def create_purchase_order_history(sender, instance, created, **kwargs):
     # Create history entry
     PurchaseOrderHistory.objects.create(
         purchase_order=instance,
+        tenant=instance.tenant,  # Inherit tenant from parent PurchaseOrder
         changed_data=changed_data,
         changed_by=user,
         change_type=change_type,
