@@ -489,8 +489,8 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             percentage = (obj.usage_count / obj.max_uses * 100) if obj.max_uses > 0 else 0
             color = "#28a745" if percentage < 80 else "#ffc107" if percentage < 100 else "#dc3545"
             return format_html(
-                '<span style="color: {};">{} / {} uses ({:.0f}%)</span>',
-                color, obj.usage_count, obj.max_uses, percentage
+                '<span style="color: {};">{} / {} uses ({}%)</span>',
+                color, obj.usage_count, obj.max_uses, int(percentage)
             )
         return "—"
     usage_info.short_description = "Usage"
