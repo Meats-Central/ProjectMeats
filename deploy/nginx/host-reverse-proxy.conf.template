@@ -66,7 +66,7 @@ server {
     proxy_buffering off;
     proxy_request_buffering off;
     
-    # Backend API routes (Django)
+    # Backend API routes (Django) - explicit IP routing
     location /api/ {
         proxy_pass http://${BACKEND_HOST}:8000;
         proxy_http_version 1.1;
@@ -74,19 +74,19 @@ server {
         proxy_set_header Connection "upgrade";
     }
     
-    # Django Admin
+    # Django Admin - explicit IP routing
     location /admin/ {
         proxy_pass http://${BACKEND_HOST}:8000;
     }
     
-    # Django static files (admin CSS/JS)
+    # Django static files (admin CSS/JS) - explicit IP routing
     location /static/ {
         proxy_pass http://${BACKEND_HOST}:8000;
         expires 7d;
         add_header Cache-Control "public, immutable";
     }
     
-    # Media files (user uploads)
+    # Media files (user uploads) - explicit IP routing
     location /media/ {
         proxy_pass http://${BACKEND_HOST}:8000;
         expires 7d;
@@ -100,13 +100,9 @@ server {
         add_header Content-Type text/plain;
     }
     
-    # Frontend React app (served by frontend container nginx)
+    # Frontend React app (localhost-only binding)
     # This must be LAST to act as fallback
     location / {
-        # Frontend container serves on host port 80
-        # Docker maps container port 80 to host port 80
-        # But since host nginx is using port 80, frontend container must use different port!
-        # We need to fix this port conflict
         proxy_pass http://127.0.0.1:8080;
         
         # SPA routing support

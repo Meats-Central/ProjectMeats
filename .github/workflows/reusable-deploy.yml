@@ -558,7 +558,7 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>&1
 
-      - name: Deploy frontend container
+      - name: Deploy frontend container via docker compose
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -582,6 +582,7 @@ jobs:
           echo "Full Image: $REG/$IMG:$IMAGE_TAG"
           echo "Environment: $ENVIRONMENT"
           echo "Backend Host: $BACKEND_HOST"
+          echo "Domain: $DOMAIN_NAME"
           echo "==================================="
           
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
@@ -621,46 +622,36 @@ jobs:
           docker pull "$REG/$IMG:$IMAGE_TAG"
           echo "✓ Image pulled successfully"
           
+          # Navigate to project directory
+          cd /root/ProjectMeats || cd /home/django/ProjectMeats || {
+            echo "✗ Project directory not found"
+            exit 1
+          }
+          
+          # Update docker-compose to use the new image
+          export REGISTRY="$REG"
+          export FRONTEND_IMAGE="$IMG"
+          export IMAGE_TAG="$IMAGE_TAG"
+          export BACKEND_HOST="$BACKEND_HOST"
+          export DOMAIN_NAME="$DOMAIN_NAME"
+          export ENVIRONMENT="$ENVIRONMENT"
+          
           # Stop old container
-          echo "Stopping old container..."
-          docker rm -f pm-frontend || true
+          echo "Stopping old frontend container..."
+          docker compose down frontend 2>/dev/null || docker rm -f pm-frontend || true
           
-          # Note: Port 80/443 will be handled by host-level nginx (not by container)
-          # Container binds to port 8080 which maps to container's internal port 80
-          
-          # Start new container
-          echo "Starting new container..."
-          
-          # Build docker run command with conditional SSL mount
-          # NOTE: Port 8080 is used because host nginx reverse proxy binds to port 80
-          # Host nginx (port 80/443) → Frontend container (port 8080 → container port 80)
-          DOCKER_CMD="docker run -d --name pm-frontend \
-            --restart unless-stopped \
-            -p 8080:80 \
-            -e BACKEND_HOST=${BACKEND_HOST} \
-            -e ENVIRONMENT=${ENVIRONMENT} \
-            -e DOMAIN_NAME=${DOMAIN_NAME} \
-            --add-host backend:${BACKEND_HOST} \
-            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro"
-          
-          # SSL certificates are NO LONGER MOUNTED in container
-          # Host-level nginx handles SSL termination and routes to container on port 8080
-          # Container nginx runs in HTTP-only mode on port 80 (mapped to host 8080)
-          
-          # Complete the command with image
-          DOCKER_CMD="${DOCKER_CMD} $REG/$IMG:$IMAGE_TAG"
-          
-          # Execute the command
-          eval "$DOCKER_CMD"
+          # Start new container using docker compose
+          echo "Starting new frontend container via docker compose..."
+          docker compose up -d frontend
           
           echo "✓ Container started successfully"
           
           # Verify container is running
-          if docker ps | grep pm-frontend > /dev/null; then
-            echo "✓ Container pm-frontend is running"
+          if docker ps | grep frontend > /dev/null; then
+            echo "✓ Frontend container is running"
           else
-            echo "✗ Container pm-frontend is not running"
-            docker ps -a | grep pm-frontend || echo "No container found"
+            echo "✗ Frontend container is not running"
+            docker ps -a | grep frontend || echo "No container found"
             exit 1
           fi
           
@@ -672,15 +663,37 @@ jobs:
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Frontend container health check passed (HTTP $HTTP_CODE)"
-              echo "ℹ Note: External access via https://${DOMAIN_NAME} requires host nginx"
-              exit 0
+              break
             fi
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
           
-          echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts"
-          docker logs pm-frontend --tail 50
-          exit 1
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts"
+            docker logs projectmeats-frontend --tail 50 || docker logs pm-frontend --tail 50
+            exit 1
+          fi
+          
+          # Reload host nginx to ensure routing is synced
+          echo "Reloading host-level nginx..."
+          if command -v nginx > /dev/null; then
+            sudo systemctl reload nginx || {
+              echo "⚠ Warning: Failed to reload nginx, but continuing"
+              echo "  You may need to manually run: sudo systemctl reload nginx"
+            }
+            echo "✓ Host nginx reloaded successfully"
+          else
+            echo "ℹ Nginx not found on host (may be running in different setup)"
+          fi
+          
+          echo ""
+          echo "==================================="
+          echo "✓ Frontend Deployment Complete"
+          echo "==================================="
+          echo "Container: projectmeats-frontend"
+          echo "Port: 127.0.0.1:8080 → 80"
+          echo "External access via: https://${DOMAIN_NAME}"
+          echo "Note: Host nginx must be configured to proxy to port 8080"
           SSH
