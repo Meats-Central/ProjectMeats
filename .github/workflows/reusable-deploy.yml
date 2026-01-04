@@ -575,8 +575,22 @@ jobs:
           	DB_HOST=${{ secrets.DB_HOST }}
           	DB_PORT=${{ secrets.DB_PORT }}
           	DB_ENGINE=django.db.backends.postgresql
+          	EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+          	EMAIL_HOST=smtp.sendgrid.net
+          	EMAIL_PORT=587
+          	EMAIL_USE_TLS=True
+          	EMAIL_HOST_USER=apikey
           	EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
+          	DEFAULT_FROM_EMAIL=noreply@meatscentral.com
           	EOF
+          
+          # Verify EMAIL_HOST_PASSWORD is set (show length only for security)
+          if [ -n "${{ secrets.EMAIL_HOST_PASSWORD }}" ]; then
+            echo "✓ EMAIL_HOST_PASSWORD is set (${#EMAIL_HOST_PASSWORD} characters)"
+          else
+            echo "⚠️  WARNING: EMAIL_HOST_PASSWORD is NOT set in environment secrets"
+          fi
+          
           echo "✓ backend.env file created locally"
       
       - name: Transfer .env to Server
@@ -651,16 +665,29 @@ jobs:
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Backend health check passed (HTTP $HTTP_CODE)"
-              exit 0
+              break
             fi
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
           
-          echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts"
-          docker logs pm-backend --tail 50
-          exit 1
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "✗ Backend health check failed after $MAX_ATTEMPTS attempts"
+            docker logs pm-backend --tail 50
+            exit 1
+          fi
+          
+          # Verify EMAIL_HOST_PASSWORD in container
+          echo "Verifying EMAIL_HOST_PASSWORD in container..."
+          if docker exec pm-backend printenv EMAIL_HOST_PASSWORD > /dev/null 2>&1; then
+            EMAIL_LEN=$(docker exec pm-backend printenv EMAIL_HOST_PASSWORD | wc -c)
+            echo "✓ EMAIL_HOST_PASSWORD is set in container ($EMAIL_LEN characters)"
+          else
+            echo "⚠️  WARNING: EMAIL_HOST_PASSWORD is NOT set in container"
+            echo "Checking .env file on server..."
+            grep EMAIL_HOST_PASSWORD /root/projectmeats/backend/.env || echo "Not found in .env file"
+          fi
           SSH
 
   # ==========================================
