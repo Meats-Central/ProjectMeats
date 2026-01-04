@@ -50,5 +50,5 @@ def send_invitation_email(sender, instance, created, **kwargs):
             )
             logger.info("✅ Email sent successfully.")
         except Exception as e:
-            logger.error(f"❌ Failed to send email: {str(e)}")
+            logger.exception(f"❌ Failed to send email: {str(e)}")
 
