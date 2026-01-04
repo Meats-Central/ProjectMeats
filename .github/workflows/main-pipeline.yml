@@ -1,11 +1,6 @@
 name: Master Pipeline
 
-# Dynamic run names for deployments only
-run-name: >-
-  ${{ 
-    github.event_name == 'workflow_dispatch' && format('🕹️ Manual Deploy: {0}', inputs.environment) || 
-    format('🚀 Deploy: {0}', github.ref_name) 
-  }}
+run-name: "Deploy to ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title }}"
 
 on:
   push:
@@ -14,6 +9,8 @@ on:
       - '**.md'
       - 'docs/**'
       - 'archived/**'
+  pull_request:
+    branches: [development, uat, main]
   workflow_dispatch:
     inputs:
       environment:

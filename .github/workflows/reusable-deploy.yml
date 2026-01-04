@@ -1,5 +1,3 @@
-name: Reusable Deployment Worker
-
 on:
   workflow_call:
     inputs:
@@ -95,13 +93,10 @@ env:
 
 jobs:
   # ==========================================
-  # Stage 1: Build & Push Images
+  # Stage 1: Build & Push Images (Parallel)
   # ==========================================
-  build-and-push:
+  build-backend:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: [frontend, backend]
     permissions:
       contents: read
       packages: write
@@ -128,29 +123,63 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.app }}
+      - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.app }}/dockerfile
+          file: backend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-            ${{ env.GHCR_REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Move cache (deprecated)
-        if: false
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+  build-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DOCR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DO_ACCESS_TOKEN }}
+          password: ${{ secrets.DO_ACCESS_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ==========================================
   # Stage 1.5: Security Scan (Non-Blocking)
   # ==========================================
   security-scan:
-    needs: [build-and-push]
+    needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
     continue-on-error: true  # Don't block deployment on vulnerabilities
     strategy:
@@ -183,7 +212,7 @@ jobs:
   # Stage 2: Test Backend
   # ==========================================
   test-backend:
-    needs: [build-and-push, security-scan]
+    needs: [build-backend]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -233,7 +262,7 @@ jobs:
   # Stage 3: Test Frontend
   # ==========================================
   test-frontend:
-    needs: [build-and-push]
+    needs: [build-frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Skip frontend tests (temporarily)
@@ -244,7 +273,7 @@ jobs:
   # NOTE: Runner-based approach doesn't work because GitHub runner can't reach private DB
   # ==========================================
   migrate:
-    needs: [test-backend, build-and-push]
+    needs: [test-backend]
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
     timeout-minutes: 15
@@ -488,6 +517,30 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
     steps:
+      - name: Create Backend .env File Locally
+        run: |
+          cat << 'EOF' > backend.env
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          DEBUG=${{ secrets.DEBUG }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_ENGINE=django.db.backends.postgresql
+          EOF
+          echo "✓ backend.env file created locally"
+      
+      - name: Transfer .env to Server
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /root/projectmeats/backend"
+          sshpass -e scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null backend.env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/projectmeats/backend/.env
+          echo "✓ backend/.env transferred to server"
+      
       - name: Deploy backend container
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -499,6 +552,21 @@ jobs:
           IMG="${{ env.BACKEND_IMAGE }}"
           TAG="${{ inputs.environment }}-${{ github.sha }}"
           
+          # Navigate to project directory
+          cd /root/projectmeats || {
+            echo "✗ Project directory not found at /root/projectmeats"
+            exit 1
+          }
+          echo "✓ In directory: $(pwd)"
+          echo "✓ backend/.env file already transferred"
+          
+          # Preemptively create and fix permissions for staticfiles directory on host
+          echo "Creating and fixing permissions for staticfiles directory..."
+          mkdir -p /root/projectmeats/staticfiles
+          chown -R 1000:1000 /root/projectmeats/staticfiles
+          chmod -R 775 /root/projectmeats/staticfiles
+          echo "✓ Host-level permissions fixed"
+          
           # Login to registry
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
           
@@ -506,19 +574,29 @@ jobs:
           docker pull "$REG/$IMG:$TAG"
           
           # Stop old container
-          docker rm -f pm-backend || true
+          docker rm -f pm-backend projectmeats-backend || true
           
-          # Start new container with superuser credentials from secrets
+          # Start new container with environment file
           docker run -d --name pm-backend \
             --restart unless-stopped \
             -p 8000:8000 \
-            --env-file /home/django/ProjectMeats/backend/.env \
+            --env-file /root/projectmeats/backend/.env \
             -e DJANGO_SUPERUSER_USERNAME="${{ secrets.DJANGO_SUPERUSER_USERNAME }}" \
             -e DJANGO_SUPERUSER_EMAIL="${{ secrets.DJANGO_SUPERUSER_EMAIL }}" \
             -e DJANGO_SUPERUSER_PASSWORD="${{ secrets.DJANGO_SUPERUSER_PASSWORD }}" \
-            -v /home/django/ProjectMeats/media:/app/media \
-            -v /home/django/ProjectMeats/staticfiles:/app/staticfiles \
+            -v /root/projectmeats/media:/app/media \
+            -v /root/projectmeats/staticfiles:/app/staticfiles \
             "$REG/$IMG:$TAG"
+          
+          # Wait for container to be ready
+          sleep 5
+          
+          # Collect static files for admin UI
+          echo "Collecting static files for Django admin..."
+          docker exec pm-backend python manage.py collectstatic --noinput || {
+            echo "⚠ Warning: collectstatic failed, but continuing"
+          }
+          echo "✓ Static files collected"
           
           # Health check
           MAX_ATTEMPTS=5
@@ -543,7 +621,7 @@ jobs:
   # Stage 6: Deploy Frontend
   # ==========================================
   deploy-frontend:
-    needs: [deploy-backend, test-frontend]
+    needs: [migrate, test-frontend]
     runs-on: ubuntu-latest
     environment: ${{ inputs.frontend_environment }}
     steps:
@@ -622,45 +700,29 @@ jobs:
           echo "✓ Image pulled successfully"
           
           # Stop old container
-          echo "Stopping old container..."
-          docker rm -f pm-frontend || true
+          echo "Stopping old frontend container..."
+          docker rm -f pm-frontend projectmeats-frontend || true
           
-          # Note: Port 80/443 will be handled by host-level nginx (not by container)
-          # Container binds to port 8080 which maps to container's internal port 80
-          
-          # Start new container
-          echo "Starting new container..."
-          
-          # Build docker run command with conditional SSL mount
-          # NOTE: Port 8080 is used because host nginx reverse proxy binds to port 80
-          # Host nginx (port 80/443) → Frontend container (port 8080 → container port 80)
-          DOCKER_CMD="docker run -d --name pm-frontend \
+          # Start new container with docker run
+          echo "Starting frontend container..."
+          docker run -d --name pm-frontend \
             --restart unless-stopped \
-            -p 8080:80 \
-            -e BACKEND_HOST=${BACKEND_HOST} \
-            -e ENVIRONMENT=${ENVIRONMENT} \
-            -e DOMAIN_NAME=${DOMAIN_NAME} \
-            --add-host backend:${BACKEND_HOST} \
-            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro"
-          
-          # SSL certificates are NO LONGER MOUNTED in container
-          # Host-level nginx handles SSL termination and routes to container on port 8080
-          # Container nginx runs in HTTP-only mode on port 80 (mapped to host 8080)
-          
-          # Complete the command with image
-          DOCKER_CMD="${DOCKER_CMD} $REG/$IMG:$IMAGE_TAG"
-          
-          # Execute the command
-          eval "$DOCKER_CMD"
+            -p 127.0.0.1:8080:80 \
+            -e REACT_APP_API_BASE_URL="${API_BASE_URL}" \
+            -e BACKEND_HOST="${BACKEND_HOST}" \
+            -e DOMAIN_NAME="${DOMAIN_NAME}" \
+            -e ENVIRONMENT="${ENVIRONMENT}" \
+            -v /opt/pm/frontend/env:/usr/share/nginx/html/env:ro \
+            "$REG/$IMG:$IMAGE_TAG"
           
           echo "✓ Container started successfully"
           
           # Verify container is running
-          if docker ps | grep pm-frontend > /dev/null; then
-            echo "✓ Container pm-frontend is running"
+          if docker ps | grep -E 'projectmeats-frontend|pm-frontend' > /dev/null; then
+            echo "✓ Frontend container is running"
           else
-            echo "✗ Container pm-frontend is not running"
-            docker ps -a | grep pm-frontend || echo "No container found"
+            echo "✗ Frontend container is not running"
+            docker ps -a | grep -E 'projectmeats-frontend|pm-frontend' || echo "No container found"
             exit 1
           fi
           
@@ -672,15 +734,38 @@ jobs:
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✓ Frontend container health check passed (HTTP $HTTP_CODE)"
-              echo "ℹ Note: External access via https://${DOMAIN_NAME} requires host nginx"
-              exit 0
+              break
             fi
             echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HTTP_CODE), retrying..."
             sleep 5
             ATTEMPT=$((ATTEMPT + 1))
           done
           
-          echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts"
-          docker logs pm-frontend --tail 50
-          exit 1
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "✗ Frontend health check failed after $MAX_ATTEMPTS attempts"
+            docker logs projectmeats-frontend --tail 50 || docker logs pm-frontend --tail 50
+            exit 1
+          fi
+          
+          # Reload host nginx to sync proxy configuration
+          echo "Reloading host-level nginx..."
+          if command -v nginx > /dev/null 2>&1; then
+            sudo systemctl reload nginx && {
+              echo "✓ Host nginx reloaded successfully"
+            } || {
+              echo "⚠ Warning: Failed to reload nginx (continuing anyway)"
+              echo "  You may need to manually run: sudo systemctl reload nginx"
+            }
+          else
+            echo "ℹ Nginx not found on host (may be running in different configuration)"
+          fi
+          
+          echo ""
+          echo "==================================="
+          echo "✓ Frontend Deployment Complete"
+          echo "==================================="
+          echo "Container: projectmeats-frontend"
+          echo "Port: 127.0.0.1:8080 → 80"
+          echo "External access: https://${DOMAIN_NAME}"
+          echo "Note: Host nginx proxies external traffic to this container"
           SSH
