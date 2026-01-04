@@ -9,8 +9,6 @@ on:
       - '**.md'
       - 'docs/**'
       - 'archived/**'
-  pull_request:
-    branches: [development, uat, main]
   workflow_dispatch:
     inputs:
       environment:
