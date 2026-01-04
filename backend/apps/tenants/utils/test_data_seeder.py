@@ -148,14 +148,21 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         for i in range(1, 4):
             plant, _ = Plant.objects.get_or_create(
                 tenant=tenant,
-                code=f"PLANT-{i:03d}",
+                code=f"PLT-{tenant.slug}-{i}",  # Globally unique
                 defaults={
                     'name': f"Plant {i} - {tenant.name}",
-                    'location': f"Location {i}",
-                    'status': 'active',
-                    'owner': user,
-                    'created_by': user,
-                    'modified_by': user
+                    'plant_type': 'processing',
+                    'address': f"{i}00 Industrial Blvd",
+                    'city': f"City {i}",
+                    'state': 'TX',
+                    'zip_code': f"7500{i}",
+                    'country': 'USA',
+                    'phone': f"555-010{i}",
+                    'email': f"plant{i}@{tenant.slug}.example.com",
+                    'manager': f"Manager {i}",
+                    'capacity': 1000 * i,
+                    'is_active': True,
+                    'created_by': user
                 }
             )
             plants.append(plant)
@@ -181,9 +188,9 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
                     'last_name': f"Test",
                     'phone': f"555-010{i}",
                     'status': 'active',
-                    'owner': user,
-                    'created_by': user,
-                    'modified_by': user
+                    'company': f"Company {i}",
+                    'position': f"Manager {i}",
+                    'contact_type': 'general'
                 }
             )
             contacts.append(contact)
@@ -203,13 +210,20 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         for i in range(1, 4):
             carrier, _ = Carrier.objects.get_or_create(
                 tenant=tenant,
-                code=f"CARR-{i:03d}",
+                code=f"CARR-{tenant.slug}-{i}",  # Globally unique
                 defaults={
                     'name': f"Carrier {i} - {tenant.name}",
-                    'status': 'active',
-                    'owner': user,
-                    'created_by': user,
-                    'modified_by': user
+                    'carrier_type': 'truck',
+                    'contact_person': f"Driver {i}",
+                    'phone': f"555-020{i}",
+                    'email': f"carrier{i}@example.com",
+                    'address': f"{i}00 Highway Rd",
+                    'city': f"City {i}",
+                    'state': 'TX',
+                    'zip_code': f"7600{i}",
+                    'country': 'USA',
+                    'is_active': True,
+                    'created_by': user
                 }
             )
             carriers.append(carrier)
@@ -229,24 +243,30 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         for i in range(1, 4):
             supplier_defaults = {
                 'name': f"Supplier {i} - {tenant.name}",
-                'status': 'active',
-                'owner': user,
-                'created_by': user,
-                'modified_by': user
+                'contact_person': f"Supplier Contact {i}",
+                'email': f"supplier{i}@{tenant.slug}.example.com",
+                'phone': f"555-030{i}",
+                'address': f"{i}00 Supplier Ave",
+                'city': f"City {i}",
+                'state': 'TX',
+                'zip_code': f"7700{i}",
+                'country': 'USA'
             }
             
-            # Assign random Plant and Contact if available
+            # Assign random Plant if available
             if plants:
                 supplier_defaults['plant'] = random.choice(plants)
-            if contacts:
-                supplier_defaults['primary_contact'] = random.choice(contacts)
             
             supplier, _ = Supplier.objects.get_or_create(
                 tenant=tenant,
-                code=f"SUP-{i:03d}",
+                name=f"Supplier {i} - {tenant.name}",  # Use name as unique identifier
                 defaults=supplier_defaults
             )
             suppliers.append(supplier)
+            
+            # Add contacts via ManyToMany relationship after creation
+            if contacts:
+                supplier.contacts.add(random.choice(contacts))
         
         if verbosity >= 2:
             print(f"  🏭 Created 3 suppliers")
@@ -262,23 +282,29 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         for i in range(1, 4):
             customer_defaults = {
                 'name': f"Customer {i} - {tenant.name}",
-                'status': 'active',
-                'owner': user,
-                'created_by': user,
-                'modified_by': user
+                'contact_person': f"Customer Contact {i}",
+                'email': f"customer{i}@{tenant.slug}.example.com",
+                'phone': f"555-040{i}",
+                'address': f"{i}00 Customer St",
+                'city': f"City {i}",
+                'state': 'TX',
+                'zip_code': f"7800{i}",
+                'country': 'USA'
             }
             
-            # Assign random Plant and Contact if available
+            # Assign random Plant if available
             if plants:
                 customer_defaults['plant'] = random.choice(plants)
-            if contacts:
-                customer_defaults['primary_contact'] = random.choice(contacts)
             
-            Customer.objects.get_or_create(
+            customer, _ = Customer.objects.get_or_create(
                 tenant=tenant,
-                code=f"CUST-{i:03d}",
+                name=f"Customer {i} - {tenant.name}",  # Use name as unique identifier
                 defaults=customer_defaults
             )
+            
+            # Add contacts via ManyToMany relationship after creation
+            if contacts:
+                customer.contacts.add(random.choice(contacts))
         
         if verbosity >= 2:
             print(f"  👥 Created 3 customers")
@@ -287,28 +313,26 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
         if verbosity >= 1:
             print(f"  ⚠️  Customer model not available: {e}")
     
-    # === STEP 7: Create Products (depends on Supplier) ===
+    # === STEP 7: Create Products (depends on Supplier, Protein) ===
     try:
         from tenant_apps.products.models import Product
         
         for i in range(1, 4):
             product_defaults = {
-                'name': f"Product {i}",
-                'status': 'active',
-                'owner': user,
-                'created_by': user,
-                'modified_by': user
+                'description_of_product_item': f"Test Product {i} - {tenant.name}",
+                'fresh_or_frozen': 'fresh',
+                'package_type': 'box',
+                'net_or_catch': 'net',
+                'is_active': True
             }
             
-            # Assign random Protein and Supplier if available
+            # Assign random Protein if available (type_of_protein is CharField, not FK)
             if protein_objs:
-                product_defaults['protein_type'] = random.choice(protein_objs)
-            if suppliers:
-                product_defaults['supplier'] = random.choice(suppliers)
+                product_defaults['type_of_protein'] = random.choice(['beef', 'pork', 'chicken', 'turkey'])
             
             Product.objects.get_or_create(
                 tenant=tenant,
-                code=f"PROD-{i:03d}",
+                product_code=f"PROD-{tenant.slug}-{i}",  # Globally unique
                 defaults=product_defaults
             )
         
@@ -322,15 +346,17 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
     # === STEP 8: Create PurchaseOrders (depends on Supplier, Carrier, Plant, Contact) ===
     try:
         from tenant_apps.purchase_orders.models import PurchaseOrder
+        from decimal import Decimal
         
         for i in range(1, 4):
             po_defaults = {
-                'order_number': f"PO-{tenant.schema_name}-{i:04d}",
-                'status': 'draft',
+                'status': 'pending',
                 'order_date': timezone.now().date(),
-                'owner': user,
-                'created_by': user,
-                'modified_by': user
+                'pick_up_date': timezone.now().date(),
+                'total_amount': Decimal('1000.00') * i,
+                'quantity': 100 * i,
+                'total_weight': Decimal('500.00') * i,
+                'weight_unit': 'lbs'
             }
             
             # Assign random related objects if available
@@ -338,14 +364,10 @@ def _populate_tenant_business_data(tenant, user, verbosity=1):
                 po_defaults['supplier'] = random.choice(suppliers)
             if carriers:
                 po_defaults['carrier'] = random.choice(carriers)
-            if plants:
-                po_defaults['destination_plant'] = random.choice(plants)
-            if contacts:
-                po_defaults['buyer_contact'] = random.choice(contacts)
             
             PurchaseOrder.objects.get_or_create(
                 tenant=tenant,
-                code=f"PO-{i:03d}",
+                order_number=f"PO-{tenant.slug}-{i:04d}",  # Globally unique
                 defaults=po_defaults
             )
         
