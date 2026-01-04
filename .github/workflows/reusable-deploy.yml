@@ -130,7 +130,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.app }}/dockerfile
+          file: ${{ matrix.app }}/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ matrix.app == 'frontend' && env.FRONTEND_IMAGE || env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
@@ -683,7 +683,7 @@ jobs:
           touch backend/.env
           echo "✓ backend/.env file ready"
           
-          # Export environment variables for docker compose
+          # Export environment variables for docker-compose
           export REGISTRY="$REG"
           export FRONTEND_IMAGE="$IMG"
           export IMAGE_TAG="$IMAGE_TAG"
@@ -693,15 +693,15 @@ jobs:
           
           # Stop old frontend container
           echo "Stopping old frontend container..."
-          docker compose down frontend 2>/dev/null || docker rm -f projectmeats-frontend pm-frontend || true
+          docker-compose down frontend 2>/dev/null || docker rm -f projectmeats-frontend pm-frontend || true
           
           # Debug: Verify we are in the correct directory with docker-compose.yml
           echo "Current directory contents:"
           ls -la
           
-          # Start new frontend container using docker compose via script
-          echo "Starting frontend container via docker compose..."
-          echo "cd /root/projectmeats && docker compose up -d" > deploy_frontend.sh
+          # Start new frontend container using docker-compose via script
+          echo "Starting frontend container via docker-compose..."
+          echo "cd /root/projectmeats && docker-compose up -d --no-deps frontend" > deploy_frontend.sh
           chmod +x deploy_frontend.sh
           ./deploy_frontend.sh
           rm deploy_frontend.sh
