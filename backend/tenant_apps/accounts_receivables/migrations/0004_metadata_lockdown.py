@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("accounts_receivables", "0003_state_sync_tenant"),
         ("customers", "0003_customer_contact_title_alter_customer_industry"),
-        ("tenants", "0005_metadata_lockdown"),
+        ("tenants", "0006_metadata_lockdown"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

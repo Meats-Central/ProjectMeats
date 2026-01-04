@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("plants", "0003_state_sync_tenant"),
-        ("tenants", "0005_metadata_lockdown"),
+        ("tenants", "0006_metadata_lockdown"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
