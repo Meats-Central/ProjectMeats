@@ -1,0 +1,335 @@
+name: "🔄 Daily Production-to-UAT Database Sync"
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # Daily at 00:00 UTC
+  workflow_dispatch:  # Manual trigger for testing
+
+concurrency:
+  group: db-sync-prod-to-uat
+  cancel-in-progress: false  # Never cancel a running sync
+
+permissions:
+  contents: read
+
+jobs:
+  sync-database:
+    name: "Sync Production Data to UAT"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client sshpass
+      
+      - name: Setup SSH tunnel to Production DB
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          # Start SSH tunnel to Production DB (local port 5433)
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -N -L 5433:${{ secrets.PROD_DB_HOST }}:${{ secrets.PROD_DB_PORT || '5432' }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} &
+          
+          SSH_PID=$!
+          echo "PROD_SSH_PID=$SSH_PID" >> $GITHUB_ENV
+          
+          # Wait for tunnel
+          echo "Waiting for Production tunnel..."
+          sleep 5
+          
+          # Verify tunnel
+          nc -zv localhost 5433 || (echo "Production tunnel failed" && exit 1)
+      
+      - name: Setup SSH tunnel to UAT DB
+        env:
+          SSHPASS: ${{ secrets.UAT_SSH_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          # Start SSH tunnel to UAT DB (local port 5434)
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -N -L 5434:${{ secrets.UAT_DB_HOST }}:${{ secrets.UAT_DB_PORT || '5432' }} \
+            ${{ secrets.UAT_SSH_USER }}@${{ secrets.UAT_SSH_HOST }} &
+          
+          SSH_PID=$!
+          echo "UAT_SSH_PID=$SSH_PID" >> $GITHUB_ENV
+          
+          # Wait for tunnel
+          echo "Waiting for UAT tunnel..."
+          sleep 5
+          
+          # Verify tunnel
+          nc -zv localhost 5434 || (echo "UAT tunnel failed" && exit 1)
+      
+      - name: Extract Production data
+        env:
+          PGPASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "📦 Extracting Production business data..."
+          
+          # Dump only business data (exclude auth/session tables)
+          pg_dump \
+            -h localhost \
+            -p 5433 \
+            -U "${{ secrets.PROD_DB_USER }}" \
+            -d "${{ secrets.PROD_DB_NAME }}" \
+            --no-owner \
+            --no-privileges \
+            --data-only \
+            --exclude-table='auth_user' \
+            --exclude-table='auth_permission' \
+            --exclude-table='auth_group*' \
+            --exclude-table='django_session' \
+            --exclude-table='authtoken_token' \
+            --exclude-table='django_admin_log' \
+            --exclude-table='django_content_type' \
+            --exclude-table='django_migrations' \
+            --exclude-schema='information_schema' \
+            --exclude-schema='pg_catalog' \
+            > /tmp/prod_data.sql
+          
+          echo "✅ Extracted $(wc -l < /tmp/prod_data.sql) lines of data"
+      
+      - name: Filter out test tenants
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Filtering test tenants (schema_name starting with 'test_')..."
+          
+          # Create filtered SQL that excludes test tenant data
+          # This preserves UAT seed data while importing production data
+          grep -v "^INSERT INTO.*apps_tenants_tenant.*'test_" /tmp/prod_data.sql > /tmp/filtered_data.sql || true
+          
+          # If grep found no matches, use original dump
+          if [ ! -s /tmp/filtered_data.sql ]; then
+            cp /tmp/prod_data.sql /tmp/filtered_data.sql
+          fi
+          
+          ORIGINAL_LINES=$(wc -l < /tmp/prod_data.sql)
+          FILTERED_LINES=$(wc -l < /tmp/filtered_data.sql)
+          REMOVED_LINES=$((ORIGINAL_LINES - FILTERED_LINES))
+          
+          echo "📊 Removed $REMOVED_LINES lines containing test tenant data"
+      
+      - name: Backup UAT database before sync
+        env:
+          PGPASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "💾 Creating UAT backup..."
+          
+          pg_dump \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            --format=custom \
+            > /tmp/uat_backup_$(date +%Y%m%d_%H%M%S).dump
+          
+          echo "✅ Backup created"
+      
+      - name: Clear UAT business data (preserve system tables)
+        env:
+          PGPASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "🧹 Clearing UAT business data (preserving test tenants)..."
+          
+          # Create SQL to truncate business tables while preserving test tenant data
+          cat > /tmp/clear_uat.sql <<'SQL'
+          -- Disable triggers to allow truncation
+          SET session_replication_role = 'replica';
+          
+          -- Get list of all tenant-aware tables (those with tenant_id column)
+          DO $$
+          DECLARE
+            r RECORD;
+          BEGIN
+            FOR r IN (
+              SELECT table_schema, table_name
+              FROM information_schema.columns
+              WHERE column_name = 'tenant_id'
+                AND table_schema NOT IN ('pg_catalog', 'information_schema')
+                AND table_name NOT LIKE 'auth_%'
+                AND table_name NOT LIKE 'django_%'
+            ) LOOP
+              -- Delete only non-test tenant data
+              EXECUTE format('DELETE FROM %I.%I WHERE tenant_id NOT IN (SELECT id FROM apps_tenants_tenant WHERE schema_name LIKE ''test_%%'');', 
+                r.table_schema, r.table_name);
+              RAISE NOTICE 'Cleared %', r.table_name;
+            END LOOP;
+          END $$;
+          
+          -- Re-enable triggers
+          SET session_replication_role = 'origin';
+          SQL
+          
+          psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -f /tmp/clear_uat.sql
+          
+          echo "✅ UAT business data cleared"
+      
+      - name: Import Production data to UAT
+        env:
+          PGPASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "📥 Importing Production data to UAT..."
+          
+          psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -v ON_ERROR_STOP=1 \
+            -f /tmp/filtered_data.sql
+          
+          echo "✅ Import completed"
+      
+      - name: Fix foreign key references (Post-Restore Fixup)
+        env:
+          PGPASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "🔧 Fixing foreign key references to UAT superuser..."
+          
+          # Get UAT superuser ID
+          UAT_SUPERUSER_ID=$(psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -t -c "SELECT id FROM auth_user WHERE is_superuser = true LIMIT 1;")
+          
+          if [ -z "$UAT_SUPERUSER_ID" ]; then
+            echo "❌ No UAT superuser found"
+            exit 1
+          fi
+          
+          echo "Found UAT superuser ID: $UAT_SUPERUSER_ID"
+          
+          # Update all owner_id and created_by_id references
+          cat > /tmp/fixup.sql <<SQL
+          -- Update all owner_id fields
+          UPDATE apps_suppliers_supplier SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          UPDATE apps_plants_plant SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          UPDATE apps_customers_customer SET owner_id = $UAT_SUPERUSER_ID WHERE owner_id IS NOT NULL;
+          
+          -- Update all created_by_id fields
+          UPDATE apps_suppliers_supplier SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          UPDATE apps_plants_plant SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          UPDATE apps_customers_customer SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          UPDATE apps_purchase_orders_purchaseorder SET created_by_id = $UAT_SUPERUSER_ID WHERE created_by_id IS NOT NULL;
+          
+          -- Update any updated_by_id fields
+          UPDATE apps_suppliers_supplier SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          UPDATE apps_plants_plant SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          UPDATE apps_customers_customer SET updated_by_id = $UAT_SUPERUSER_ID WHERE updated_by_id IS NOT NULL;
+          SQL
+          
+          psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -f /tmp/fixup.sql
+          
+          echo "✅ Foreign key references fixed"
+      
+      - name: Validate data integrity
+        env:
+          PGPASSWORD: ${{ secrets.UAT_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Validating data integrity..."
+          
+          # Count tenants (should include test tenants + production tenants)
+          TENANT_COUNT=$(psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -t -c "SELECT COUNT(*) FROM apps_tenants_tenant;")
+          
+          echo "Total tenants in UAT: $TENANT_COUNT"
+          
+          # Count test tenants (should be preserved)
+          TEST_TENANT_COUNT=$(psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -t -c "SELECT COUNT(*) FROM apps_tenants_tenant WHERE schema_name LIKE 'test_%';")
+          
+          echo "Test tenants preserved: $TEST_TENANT_COUNT"
+          
+          if [ "$TEST_TENANT_COUNT" -eq 0 ]; then
+            echo "⚠️ Warning: No test tenants found in UAT"
+          fi
+          
+          # Check for orphaned references
+          ORPHANED=$(psql \
+            -h localhost \
+            -p 5434 \
+            -U "${{ secrets.UAT_DB_USER }}" \
+            -d "${{ secrets.UAT_DB_NAME }}" \
+            -t -c "SELECT COUNT(*) FROM apps_suppliers_supplier WHERE owner_id NOT IN (SELECT id FROM auth_user);")
+          
+          if [ "$ORPHANED" -gt 0 ]; then
+            echo "❌ Found $ORPHANED orphaned owner_id references"
+            exit 1
+          fi
+          
+          echo "✅ Data integrity validated"
+      
+      - name: Cleanup tunnels
+        if: always()
+        run: |
+          set -euo pipefail
+          
+          echo "🧹 Cleaning up SSH tunnels..."
+          
+          if [ -n "${PROD_SSH_PID:-}" ]; then
+            kill $PROD_SSH_PID 2>/dev/null || true
+          fi
+          
+          if [ -n "${UAT_SSH_PID:-}" ]; then
+            kill $UAT_SSH_PID 2>/dev/null || true
+          fi
+          
+          # Remove temp files
+          rm -f /tmp/prod_data.sql /tmp/filtered_data.sql /tmp/clear_uat.sql /tmp/fixup.sql
+          
+          echo "✅ Cleanup complete"
+      
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "❌ Production-to-UAT database sync FAILED"
+          echo "Check workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # TODO: Add Slack/email notification integration
+      
+      - name: Send notification on success
+        if: success()
+        run: |
+          echo "✅ Production-to-UAT database sync completed successfully"
+          echo "UAT database now contains fresh production data with preserved test tenants"
