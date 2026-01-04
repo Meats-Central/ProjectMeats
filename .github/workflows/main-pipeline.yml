@@ -1,5 +1,7 @@
 name: Master Pipeline
 
+run-name: 🚀 Deploy to ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+
 on:
   push:
     branches: [development, uat, main]
