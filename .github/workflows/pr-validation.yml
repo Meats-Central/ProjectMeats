@@ -1,7 +1,7 @@
 name: PR Validation
 
 # Clean, concise run name
-run-name: "PR: ${{ github.event.pull_request.title }}"
+run-name: "PR Check: ${{ github.event.pull_request.title }}"
 
 on:
   pull_request:
