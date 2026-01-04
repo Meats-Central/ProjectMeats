@@ -531,6 +531,87 @@ Repeat similarly for `UAT` → `main`.
 
 ### Django Best Practices
 
+#### 🏆 MANDATORY: Declarative Migrations (Golden Standard)
+**ProjectMeats maintains a Certified Golden Baseline. ALL migrations must follow these patterns:**
+
+**🚫 ABSOLUTE PROHIBITIONS:**
+- ❌ **NEVER** use RunPython without SeparateDatabaseAndState wrapper
+- ❌ **NEVER** create indexes without IF NOT EXISTS in production migrations
+- ❌ **NEVER** create merge migrations (rename and linearize instead)
+- ❌ **NEVER** commit migrations that fail `makemigrations --check`
+- ❌ **NEVER** use raw SQL without state synchronization
+
+**✅ REQUIRED PATTERNS (MANDATORY):**
+
+**1. State Synchronization for Custom SQL:**
+```python
+# ✅ CORRECT: When using custom SQL, wrap with SeparateDatabaseAndState
+migrations.SeparateDatabaseAndState(
+    state_operations=[
+        # Tell Django's state what changed
+        migrations.AddField(model_name="mymodel", name="myfield", ...)
+    ],
+    database_operations=[
+        # Actual SQL or NO-OP if already exists
+        migrations.RunSQL("ALTER TABLE ...")
+    ]
+)
+
+# ❌ WRONG: Raw RunPython without state wrapper
+migrations.RunPython(my_function)  # Django can't introspect this!
+```
+
+**2. Idempotent Schema Operations:**
+```python
+# ✅ CORRECT: Production-grade index creation
+migrations.SeparateDatabaseAndState(
+    state_operations=[
+        migrations.AddIndex(model_name="mymodel", index=...)
+    ],
+    database_operations=[
+        migrations.RunSQL(
+            sql="CREATE INDEX IF NOT EXISTS idx_name ON table (fields);",
+            reverse_sql="DROP INDEX IF EXISTS idx_name;"
+        )
+    ]
+)
+
+# ❌ WRONG: Not idempotent
+migrations.AddIndex(...)  # Fails if index exists!
+```
+
+**3. Migration Linearization:**
+```python
+# ✅ CORRECT: When conflicts arise, rename and resequence
+# 0005_conflicting.py → 0006_feature.py
+# Update dependencies to point to 0005_baseline
+
+# ❌ WRONG: Creating merge migrations
+# python manage.py makemigrations --merge  # Creates complex graphs
+```
+
+**4. Validation Gate (CI/CD):**
+```bash
+# ✅ MUST PASS: Before every commit
+python manage.py makemigrations --check
+# Output: "No changes detected" ✅
+
+# ✅ MUST PASS: Before deployment
+python manage.py migrate --fake-initial --noinput
+```
+
+**🔍 VERIFICATION TEST:**
+If migrations fail with ANY of these errors, you VIOLATED the golden standard:
+- "Conflicting migrations detected" → Linearize, don't merge
+- "DuplicateTable" → Use IF NOT EXISTS
+- "Changes detected" → Used RunPython without state sync
+- "Migration cannot be applied" → Schema drift from manual SQL
+
+**Why This Matters**: Phase 2 Golden State Achievement (Jan 4, 2026) established a Certified Golden Baseline with 71 migrations and "No changes detected" status. Any deviation causes "perception drift" and breaks the Single Source of Truth.
+
+**Authority**: See `docs/GOLDEN_STANDARD_ACHIEVEMENT.md` - Phase 2 section
+
+
 - **Models:**
   - Use explicit field names (avoid abbreviations)
   - Add `verbose_name` and `help_text` for admin interface

@@ -480,7 +480,7 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
     
     def email_or_type(self, obj):
         if obj.is_reusable:
-            return format_html('<strong style="color: #0066cc;">🔗 Reusable Link</strong>')
+            return format_html('<strong style="color: #0066cc;">{}</strong>', '🔗 Reusable Link')
         return obj.email or "—"
     email_or_type.short_description = "Email / Type"
     
