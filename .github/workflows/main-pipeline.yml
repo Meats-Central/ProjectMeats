@@ -1,12 +1,5 @@
 name: Master Pipeline
 
-# Clean, concise run names
-run-name: >-
-  ${{ 
-    github.event_name == 'workflow_dispatch' && format('Deploy {0}', inputs.environment) || 
-    format('Deploy {0}', github.ref_name) 
-  }}
-
 on:
   push:
     branches: [development, uat, main]
