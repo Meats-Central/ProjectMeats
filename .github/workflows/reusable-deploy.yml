@@ -529,6 +529,13 @@ jobs:
           echo "✓ In directory: $(pwd)"
           echo "✓ backend/.env file already transferred"
           
+          # Preemptively create and fix permissions for staticfiles directory on host
+          echo "Creating and fixing permissions for staticfiles directory..."
+          mkdir -p /root/projectmeats/staticfiles
+          chown -R 1000:1000 /root/projectmeats/staticfiles
+          chmod -R 775 /root/projectmeats/staticfiles
+          echo "✓ Host-level permissions fixed"
+          
           # Login to registry
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
           
@@ -552,12 +559,6 @@ jobs:
           
           # Wait for container to be ready
           sleep 5
-          
-          # Fix permissions for staticfiles directory
-          echo "Fixing permissions for staticfiles directory..."
-          docker exec -u root pm-backend chown -R 1000:1000 /app/staticfiles
-          docker exec -u root pm-backend chmod -R 775 /app/staticfiles
-          echo "✓ Permissions fixed"
           
           # Collect static files for admin UI
           echo "Collecting static files for Django admin..."
