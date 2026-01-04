@@ -508,17 +508,17 @@ jobs:
           echo "Creating backend/.env file from secrets..."
           mkdir -p backend
           
-          # Write environment variables to .env file using echo commands
-          echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" > backend/.env
-          echo "DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}" >> backend/.env
-          echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> backend/.env
-          echo "DB_ENGINE=django.db.backends.postgresql" >> backend/.env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> backend/.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> backend/.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> backend/.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> backend/.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> backend/.env
-          echo "DEBUG=${{ secrets.DEBUG }}" >> backend/.env
+          # Write environment variables to .env file using echo commands with proper quoting
+          echo "SECRET_KEY='${{ secrets.DJANGO_SECRET_KEY }}'" > backend/.env
+          echo "DJANGO_SETTINGS_MODULE='${{ secrets.DJANGO_SETTINGS_MODULE }}'" >> backend/.env
+          echo "ALLOWED_HOSTS='${{ secrets.ALLOWED_HOSTS }}'" >> backend/.env
+          echo "DB_ENGINE='django.db.backends.postgresql'" >> backend/.env
+          echo "DB_HOST='${{ secrets.DB_HOST }}'" >> backend/.env
+          echo "DB_PORT='${{ secrets.DB_PORT }}'" >> backend/.env
+          echo "DB_USER='${{ secrets.DB_USER }}'" >> backend/.env
+          echo "DB_PASSWORD='${{ secrets.DB_PASSWORD }}'" >> backend/.env
+          echo "DB_NAME='${{ secrets.DB_NAME }}'" >> backend/.env
+          echo "DEBUG='${{ secrets.DEBUG }}'" >> backend/.env
           
           echo "✓ backend/.env file created"
           
