@@ -486,6 +486,30 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.backend_environment }}
     steps:
+      - name: Create Backend .env File Locally
+        run: |
+          cat << 'EOF' > backend.env
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE=${{ secrets.DJANGO_SETTINGS_MODULE }}
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          DEBUG=${{ secrets.DEBUG }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_ENGINE=django.db.backends.postgresql
+          EOF
+          echo "✓ backend.env file created locally"
+      
+      - name: Transfer .env to Server
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /root/projectmeats/backend"
+          sshpass -e scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null backend.env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/projectmeats/backend/.env
+          echo "✓ backend/.env transferred to server"
+      
       - name: Deploy backend container
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
@@ -503,25 +527,7 @@ jobs:
             exit 1
           }
           echo "✓ In directory: $(pwd)"
-          
-          # Create backend/.env file from GitHub Secrets
-          echo "Creating backend/.env file from secrets..."
-          mkdir -p backend
-          
-          # Write environment variables using individual echo commands with proper escaping
-          cat /dev/null > backend/.env
-          echo "DJANGO_SECRET_KEY=\"${{ secrets.DJANGO_SECRET_KEY }}\"" >> backend/.env
-          echo "DJANGO_SETTINGS_MODULE=\"${{ secrets.DJANGO_SETTINGS_MODULE }}\"" >> backend/.env
-          echo "ALLOWED_HOSTS=\"${{ secrets.ALLOWED_HOSTS }}\"" >> backend/.env
-          echo "DEBUG=\"${{ secrets.DEBUG }}\"" >> backend/.env
-          echo "DB_NAME=\"${{ secrets.DB_NAME }}\"" >> backend/.env
-          echo "DB_USER=\"${{ secrets.DB_USER }}\"" >> backend/.env
-          echo "DB_PASSWORD=\"${{ secrets.DB_PASSWORD }}\"" >> backend/.env
-          echo "DB_HOST=\"${{ secrets.DB_HOST }}\"" >> backend/.env
-          echo "DB_PORT=\"${{ secrets.DB_PORT }}\"" >> backend/.env
-          echo "DB_ENGINE=\"django.db.backends.postgresql\"" >> backend/.env
-          
-          echo "✓ backend/.env file created"
+          echo "✓ backend/.env file already transferred"
           
           # Login to registry
           echo "${{ secrets.DO_ACCESS_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_ACCESS_TOKEN }}" --password-stdin
