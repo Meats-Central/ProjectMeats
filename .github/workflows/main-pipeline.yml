@@ -1,8 +1,5 @@
 name: Master Pipeline
 
-run-name: |
-  ${{ github.ref_name == 'development' && '🚀 Deploy to dev' || github.ref_name == 'uat' && '🚀 Deploy to uat' || github.ref_name == 'main' && '🚀 Deploy to prod' || '🚀 Deploy' }}: ${{ github.event.head_commit.message || github.event.pull_request.title || github.event_name }}
-
 on:
   push:
     branches: [development, uat, main]
