@@ -11,6 +11,12 @@
 export { Button } from './Button';
 export { Card, CardHeader, CardContent, CardFooter } from './Card';
 export { PageContainer } from './PageContainer';
+export { Select } from './Select';
+export { PhoneInput } from './PhoneInput';
 
-// Re-export types if needed
-export type { default as ButtonProps } from './Button';
+// Re-export types
+export type { ButtonProps } from './Button';
+export type { CardProps, CardHeaderProps, CardContentProps, CardFooterProps } from './Card';
+export type { PageContainerProps } from './PageContainer';
+export type { SelectProps, SelectOption } from './Select';
+export type { PhoneInputProps } from './PhoneInput';
