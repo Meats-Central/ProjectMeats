@@ -30,6 +30,39 @@ const PinIcon: React.FC<{ isPinned: boolean }> = ({ isPinned }) => (
   </svg>
 );
 
+// Lock icons (replacing pin icon)
+const LockOpenIcon: React.FC = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+const LockIcon: React.FC = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, themeName, tenantBranding } = useTheme();
   const location = useLocation();
@@ -120,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
             title={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
             aria-label={keepOpen ? "Unpin sidebar" : "Pin sidebar open"}
           >
-            <PinIcon isPinned={keepOpen} />
+            {keepOpen ? <LockIcon /> : <LockOpenIcon />}
           </PinButton>
         )}
       </SidebarHeader>
