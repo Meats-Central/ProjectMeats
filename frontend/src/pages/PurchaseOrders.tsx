@@ -4,12 +4,6 @@ import { apiService, PurchaseOrder, Supplier } from '../services/apiService';
 import PurchaseOrderWorkflow from '../components/Workflow/PurchaseOrderWorkflow';
 
 // Styled Components
-const Container = styled.div`
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -519,15 +513,11 @@ const PurchaseOrders: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Container>
-        <LoadingMessage>Loading purchase orders...</LoadingMessage>
-      </Container>
-    );
+    return <LoadingMessage>Loading purchase orders...</LoadingMessage>;
   }
 
   return (
-    <Container>
+    <>
       <Header>
         <Title>Purchase Orders</Title>
         <AddButton
@@ -784,7 +774,7 @@ const PurchaseOrders: React.FC = () => {
           </FormContainer>
         </FormOverlay>
       )}
-    </Container>
+    </>
   );
 };
 

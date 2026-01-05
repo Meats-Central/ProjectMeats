@@ -131,7 +131,7 @@ const Suppliers: React.FC = () => {
   }
 
   return (
-    <Container>
+    <>
       <Header>
         <Title $theme={theme}>Suppliers</Title>
         <AddButton onClick={() => setShowForm(true)}>+ Add Supplier</AddButton>
@@ -307,15 +307,11 @@ const Suppliers: React.FC = () => {
           </Table>
         )}
       </TableContainer>
-    </Container>
+    </>
   );
 };
 
 // Styled Components
-const Container = styled.div`
-  max-width: 1200px;
-`;
-
 const LoadingContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   justify-content: center;

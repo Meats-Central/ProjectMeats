@@ -306,7 +306,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <DashboardContainer>
+    <>
       <DashboardHeader>
         <HeaderTop>
           <TitleSection>
@@ -453,13 +453,9 @@ const Dashboard: React.FC = () => {
           </ActionButton>
         </ActionButtons>
       </QuickActions>
-    </DashboardContainer>
+    </>
   );
 };
-
-const DashboardContainer = styled.div`
-  max-width: 1200px;
-`;
 
 const LoadingContainer = styled.div<{ $theme: Theme }>`
   display: flex;
