@@ -33,20 +33,31 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Start SSH tunnel to Production DB (local port 5433)
-          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          echo "🔌 Starting SSH tunnel to Production DB..."
+          
+          # Start SSH tunnel with verbose logging for debugging
+          sshpass -e ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             -N -L 5433:${{ secrets.PROD_DB_HOST }}:${{ secrets.PROD_DB_PORT || '5432' }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} &
           
           SSH_PID=$!
           echo "PROD_SSH_PID=$SSH_PID" >> $GITHUB_ENV
           
-          # Wait for tunnel
-          echo "Waiting for Production tunnel..."
-          sleep 5
+          echo "⏳ Waiting for Production tunnel (PID: $SSH_PID)..."
           
-          # Verify tunnel
-          nc -zv localhost 5433 || (echo "Production tunnel failed" && exit 1)
+          # Retry loop with exponential backoff
+          for i in {1..10}; do
+            if nc -zv localhost 5433 2>/dev/null; then
+              echo "✅ Production tunnel established (attempt $i/10)"
+              exit 0
+            fi
+            echo "⚠️  Tunnel not ready, retrying in 3 seconds... (attempt $i/10)"
+            sleep 3
+          done
+          
+          echo "❌ Production tunnel failed to establish after 10 attempts"
+          kill $SSH_PID 2>/dev/null || true
+          exit 1
       
       - name: Setup SSH tunnel to UAT DB
         env:
@@ -54,20 +65,31 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Start SSH tunnel to UAT DB (local port 5434)
-          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          echo "🔌 Starting SSH tunnel to UAT DB..."
+          
+          # Start SSH tunnel with verbose logging for debugging
+          sshpass -e ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             -N -L 5434:${{ secrets.UAT_DB_HOST }}:${{ secrets.UAT_DB_PORT || '5432' }} \
             ${{ secrets.UAT_SSH_USER }}@${{ secrets.UAT_SSH_HOST }} &
           
           SSH_PID=$!
           echo "UAT_SSH_PID=$SSH_PID" >> $GITHUB_ENV
           
-          # Wait for tunnel
-          echo "Waiting for UAT tunnel..."
-          sleep 5
+          echo "⏳ Waiting for UAT tunnel (PID: $SSH_PID)..."
           
-          # Verify tunnel
-          nc -zv localhost 5434 || (echo "UAT tunnel failed" && exit 1)
+          # Retry loop with exponential backoff
+          for i in {1..10}; do
+            if nc -zv localhost 5434 2>/dev/null; then
+              echo "✅ UAT tunnel established (attempt $i/10)"
+              exit 0
+            fi
+            echo "⚠️  Tunnel not ready, retrying in 3 seconds... (attempt $i/10)"
+            sleep 3
+          done
+          
+          echo "❌ UAT tunnel failed to establish after 10 attempts"
+          kill $SSH_PID 2>/dev/null || true
+          exit 1
       
       - name: Extract Production data
         env:
