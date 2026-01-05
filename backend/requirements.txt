@@ -34,7 +34,7 @@ pre-commit==3.5.0
 
 # Production (optional for development)
 gunicorn==21.2.0
-whitenoise==6.6.0
+whitenoise==6.11.0
 
 # Utilities
 python-decouple==3.8
