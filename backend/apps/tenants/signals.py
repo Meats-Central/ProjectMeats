@@ -1,13 +1,14 @@
 """
 Signal handlers for tenant models.
 Automatically sends invitation emails when TenantInvitation is created.
+Ensures owners have Django admin access.
 """
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import TenantInvitation
+from .models import TenantInvitation, TenantUser
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +41,17 @@ def send_invitation_email(sender, instance, created, **kwargs):
         base_url = getattr(settings, 'FRONTEND_URL', 'https://meatscentral.com')
         invite_url = f"{base_url}/signup?token={instance.token}"
         
-        subject = f"You've been invited to join {instance.tenant.name} on Project Meats"
+        subject = f"You've been invited to join {instance.tenant.name} on Meats Central"
         
         message = (
             f"Hello,\n\n"
-            f"You have been invited to join the workspace '{instance.tenant.name}' as a {instance.role}.\n\n"
-            f"Message from sender: {instance.message}\n\n"
+            f"You have been invited to join '{instance.tenant.name}' as a {instance.role}.\n\n"
+            f"{instance.message}\n\n"
             f"Click the link below to accept the invitation and set up your account:\n"
             f"{invite_url}\n\n"
             f"This link expires on {instance.expires_at.strftime('%Y-%m-%d')}.\n\n"
-            f"Welcome aboard,\nThe Project Meats Team"
+            f"Welcome to easy meat management,\n"
+            f"The Meats Central Team"
         )
         
         try:
@@ -69,4 +71,21 @@ def send_invitation_email(sender, instance, created, **kwargs):
             # Re-raise to ensure error is visible
             raise
 
+
+@receiver(post_save, sender=TenantUser, dispatch_uid="ensure_owner_has_staff_access")
+def ensure_owner_has_staff_access(sender, instance, created, **kwargs):
+    """
+    Automatically grant Django admin access to users with 'owner' role.
+    
+    When a TenantUser is created or updated with role='owner', this signal
+    ensures the associated User has is_staff=True so they can access the
+    Django admin interface.
+    
+    Note: dispatch_uid prevents duplicate signal connections during Django reload.
+    """
+    if instance.role == 'owner' and not instance.user.is_staff:
+        logger.info(f"🔑 Granting admin access to owner: {instance.user.username} @ {instance.tenant.slug}")
+        instance.user.is_staff = True
+        instance.user.save(update_fields=['is_staff'])
+        logger.info(f"✅ Admin access granted to {instance.user.username}")
 
