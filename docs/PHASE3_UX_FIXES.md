@@ -322,6 +322,83 @@ frontend/src/
 
 ---
 
+## 7. Advanced Branding & Theming (New)
+
+**Goal:** Implement dynamic, logo-based theming and customizable sidebar.
+
+**Priority:** 🟡 MEDIUM
+
+### Tasks
+
+#### 7.1 Dynamic Theme Engine
+
+- [ ] **Color Extraction Utility**
+  - **File:** `frontend/src/utils/themeUtils.ts` (create)
+  - **Action:** Create function `extractBrandColors(logoUrl: string)` using colorthief
+  - **Integration:** Apply extracted color to `--color-primary` when tenant loads
+  - **Fallback:** Use default colors if extraction fails
+  - **Priority:** High
+
+#### 7.2 Theme Selector
+
+- [ ] **Branding Settings Panel**
+  - **File:** `frontend/src/pages/Settings.tsx` (enhance)
+  - **Action:** Add "Branding" section with Color Picker for Primary/Secondary colors
+  - **Backend:** Ensure `Tenant` model has theme preferences (JSONB field)
+  - **API:** Create endpoint `/api/tenants/branding/` for saving preferences
+  - **Priority:** Medium
+
+#### 7.3 Sidebar Visual Improvements
+
+- [ ] **Icon Color Unification**
+  - **File:** `frontend/src/components/Layout/Sidebar.tsx`
+  - **Requirement:** All icons use same base color (determined by contrast)
+  - **States:**
+    - Inactive: `opacity: 0.7` (70% transparency)
+    - Active/Hover: `opacity: 1.0` (100% solid)
+  - **Priority:** High
+
+- [ ] **Pin Icon Replacement**
+  - **File:** `frontend/src/components/Layout/Sidebar.tsx`
+  - **Action:** Replace current pin icon with lock icons
+  - **States:**
+    - Unpinned/Collapsed: Show **Unlocked Paddle Lock** icon (`LockOpen`)
+    - Pinned/Expanded: Show **Locked Paddle Lock** icon (`Lock`)
+  - **Library:** Use `react-icons` or custom SVG
+  - **Priority:** Medium
+
+---
+
+## 8. Layout Standardization (Global)
+
+**Goal:** Fix inconsistent container colors and margins across mobile/desktop.
+
+**Priority:** 🔴 HIGH (Fixes dark mode bug)
+
+### Tasks
+
+#### 8.1 Container Color Audit
+
+- [ ] **Remove Hardcoded Backgrounds**
+  - **Files:** All page components (`Suppliers.tsx`, `Customers.tsx`, etc.)
+  - **Action:**
+    - Remove: Any hardcoded `bg-white` or `bg-gray-800`
+    - Apply: Semantic class `bg-card` (from design system)
+  - **Benefit:** Fixes "White container in Dark Mode" bug
+  - **Priority:** 🔴 Critical
+
+#### 8.2 Responsive Wrapper Standardization
+
+- [ ] **PageContainer Implementation**
+  - **Files:** All page components
+  - **Action:** Wrap every page in `PageContainer` component
+  - **Padding:** Standardize to `p-4 md:p-6 lg:p-8`
+  - **Width:** Apply `max-w-7xl mx-auto` consistently
+  - **Benefit:** Prevents content stretching on large screens
+  - **Priority:** High
+
+---
+
 ## Related Documentation
 
 - **Semantic Design System:** `docs/SEMANTIC_DESIGN_SYSTEM.md`
