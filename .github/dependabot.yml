@@ -83,7 +83,7 @@ updates:
       #   reason: "CVE-2022-XXXX - Not applicable to our use case (no TIFF processing)"
 
   # ============================================================================
-  # Frontend (npm) Dependencies
+  # Frontend (npm) Dependencies (UNIFIED)
   # ============================================================================
   - package-ecosystem: "npm"
     directory: "/frontend"
@@ -91,7 +91,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "03:00"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels:
       - "dependencies"
       - "frontend"
@@ -99,58 +99,11 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
+    # UNIFIED GROUP: Consolidates ALL frontend dependencies into ONE PR
     groups:
-      # React 19 and core ecosystem
-      react:
+      frontend-unified:
         patterns:
-          - "react"
-          - "react-dom"
-          - "react-router*"
-          - "@types/react*"
-        update-types:
-          - "minor"
-          - "patch"
-      # TypeScript 5.9+ and type definitions
-      typescript:
-        patterns:
-          - "typescript"
-          - "@types/*"
-          - "ts-node*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Build tools (Vite-based)
-      build:
-        patterns:
-          - "vite*"
-          - "@vitejs/*"
-          - "esbuild*"
-          - "rollup*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Testing utilities
-      testing:
-        patterns:
-          - "@testing-library/*"
-          - "vitest*"
-          - "jest*"
-          - "@jest/*"
-        update-types:
-          - "minor"
-      # Linting and formatting (non-critical)
-      dev-tools:
-        patterns:
-          - "eslint*"
-          - "prettier*"
-          - "@typescript-eslint/*"
-        update-types:
-          - "major"
-          - "minor"
-      # Storybook ecosystem (cautious major updates)
-      storybook:
-        patterns:
-          - "@storybook/*"
+          - "*"  # Catch everything
         update-types:
           - "minor"
           - "patch"
@@ -160,17 +113,17 @@ updates:
         update-types: ["version-update:semver-patch"]
       - dependency-name: "eslint-*"
         update-types: ["version-update:semver-patch"]
-      # Storybook major version updates (handle manually)
+      # Storybook major updates (handle manually due to breaking changes)
       - dependency-name: "@storybook/*"
         update-types: ["version-update:semver-major"]
-      # OWASP: Ignore known false positives
+      # OWASP: Document ignored vulnerabilities
       # Example:
       # - dependency-name: "axios"
       #   versions: ["< 1.0.0"]
       #   reason: "CVE-2022-XXXX - Mitigated by input validation"
 
   # ============================================================================
-  # GitHub Actions - Grouped Updates
+  # GitHub Actions (UNIFIED)
   # ============================================================================
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -186,25 +139,17 @@ updates:
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
-    # Group all GitHub Actions into a single PR per week
+    # UNIFIED GROUP: Consolidates ALL action updates into ONE PR
     groups:
-      github-actions:
+      actions-unified:
         patterns:
-          - "*"
+          - "*"  # Catch everything
         update-types:
           - "minor"
           - "patch"
-    # Ignore patch updates for stable actions
-    ignore:
-      - dependency-name: "actions/checkout"
-        update-types: ["version-update:semver-patch"]
-      - dependency-name: "actions/setup-node"
-        update-types: ["version-update:semver-patch"]
-      - dependency-name: "actions/setup-python"
-        update-types: ["version-update:semver-patch"]
 
   # ============================================================================
-  # Docker Base Images
+  # Docker Base Images (Backend)
   # ============================================================================
   - package-ecosystem: "docker"
     directory: "/backend"
@@ -218,6 +163,14 @@ updates:
       - "backend"
     commit-message:
       prefix: "chore(docker)"
+    # Group all backend Docker updates
+    groups:
+      backend-docker:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     # Only update on minor versions (e.g., Python 3.11 -> 3.12)
     ignore:
       - dependency-name: "python"
@@ -225,6 +178,9 @@ updates:
       - dependency-name: "postgres"
         update-types: ["version-update:semver-patch"]
 
+  # ============================================================================
+  # Docker Base Images (Frontend)
+  # ============================================================================
   - package-ecosystem: "docker"
     directory: "/frontend"
     schedule:
@@ -237,6 +193,14 @@ updates:
       - "frontend"
     commit-message:
       prefix: "chore(docker)"
+    # Group all frontend Docker updates
+    groups:
+      frontend-docker:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-patch"]
@@ -244,33 +208,46 @@ updates:
         update-types: ["version-update:semver-patch"]
 
 # ============================================================================
-# Dependabot Configuration Notes
+# Dependabot Optimization Strategy
 # ============================================================================
+#
+# BEFORE: 15+ individual PRs per week
+# ├─ PR: Bump django from 5.0.1 to 5.0.2
+# ├─ PR: Bump djangorestframework from 3.14.0 to 3.15.0
+# ├─ PR: Bump psycopg2-binary from 2.9.9 to 2.9.10
+# ├─ PR: Bump react from 19.0.0 to 19.0.1
+# ├─ PR: Bump vite from 5.0.0 to 5.0.1
+# └─ ... 10+ more individual PRs
+#
+# AFTER: 2-3 consolidated PRs per week
+# ├─ PR: 🔍 PR Check: chore(deps): bump the backend-unified group with 12 updates
+# ├─ PR: 🔍 PR Check: chore(deps): bump the frontend-unified group with 8 updates
+# └─ PR: 🔍 PR Check: chore(ci): bump the actions-unified group with 2 updates
+#
+# Benefits:
+# - Reduced review overhead (3 PRs vs 15+)
+# - Single CI run per ecosystem (faster, less resource usage)
+# - Easier to approve/merge in bulk
+# - Your existing "🔍 PR Check:" naming convention is preserved
+# - Maintains automerge labels for automated workflows
 #
 # Auto-merge Strategy:
 # - PRs labeled with 'automerge' can be auto-merged after CI passes
-# - Requires branch protection rules and status checks
-# - Configure auto-merge in repository settings
+# - Configure in: Repository Settings → Branches → Branch Protection
+# - Requires status checks: all tests must pass before merge
 #
 # OWASP Vulnerability Management:
-# - Review Dependabot security alerts regularly
-# - Document ignored vulnerabilities with justification
-# - Use 'ignore' rules only for false positives or accepted risks
-# - Re-evaluate ignored vulnerabilities quarterly
+# - Review Dependabot security alerts in GitHub Security tab
+# - Critical vulnerabilities bypass grouping (separate PR immediately)
+# - Document ignored vulnerabilities with CVE number and justification
+# - Re-evaluate ignored risks quarterly
 #
-# PR Limit Strategy:
-# - open-pull-requests-limit: 5 balances freshness vs. review load
-# - Groups reduce total PR count by combining related updates
-# - Adjust limits based on team capacity
+# Next Scheduled Run:
+# - Monday 03:00 UTC (weekly for dependencies)
+# - First Monday of month (Docker images)
+# - Dependabot will close existing scattered PRs and create new unified ones
 #
-# Update Types:
-# - "patch": 1.0.0 -> 1.0.1 (bug fixes)
-# - "minor": 1.0.0 -> 1.1.0 (new features, backwards compatible)
-# - "major": 1.0.0 -> 2.0.0 (breaking changes)
-#
-# Best Practices:
-# - Review and test dependency updates in development branch
-# - Monitor for breaking changes in major updates
-# - Keep production dependencies up-to-date for security
-# - Use 'ignore' sparingly and document reasons
+# Manual Trigger:
+# - Go to: Insights → Dependency Graph → Dependabot
+# - Click "Check for updates" to trigger immediately
 # ============================================================================
