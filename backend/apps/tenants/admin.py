@@ -321,7 +321,7 @@ class TenantAdmin(admin.ModelAdmin):
                         is_primary=True
                     )
 
-                    # 3. Create Owner Invitation (Signal will handle Email)
+                    # 3. Create Owner Invitation and Explicitly Send Email
                     first_name = form.cleaned_data['owner_first_name']
                     last_name = form.cleaned_data['owner_last_name']
                     owner_email = form.cleaned_data['owner_email']
@@ -333,6 +333,11 @@ class TenantAdmin(admin.ModelAdmin):
                         invited_by=request.user,
                         message=f"Welcome {first_name} {last_name}, your new workspace '{tenant.name}' is ready! Click the link to set up your account."
                     )
+                    
+                    # Explicitly trigger email send (in case signal doesn't fire)
+                    print("📧 Sending onboarding email to owner...")
+                    from .signals import send_invitation_email
+                    send_invitation_email(TenantInvitation, invitation, created=True)
 
                     self.message_user(
                         request, 

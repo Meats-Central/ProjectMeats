@@ -304,6 +304,13 @@ const TextArea = styled.textarea`
   }
 `;
 
+const FieldHint = styled.div`
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+`;
+
 const FormActions = styled.div`
   display: flex;
   gap: 12px;
@@ -355,6 +362,7 @@ const PurchaseOrders: React.FC = () => {
     order_date: '',
     delivery_date: '',
     notes: '',
+    logistics_scenario: 'supplier_delivery',
   });
 
   useEffect(() => {
@@ -405,7 +413,7 @@ const PurchaseOrders: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const purchaseOrderData = {
+      const purchaseOrderData: any = {
         ...formData,
         total_amount: parseFloat(formData.total_amount),
         supplier: parseInt(formData.supplier),
@@ -413,7 +421,7 @@ const PurchaseOrders: React.FC = () => {
       
       // Remove order_number if empty - let backend auto-generate
       if (!purchaseOrderData.order_number || purchaseOrderData.order_number.trim() === '') {
-        delete purchaseOrderData.order_number;
+        purchaseOrderData.order_number = undefined;
       }
 
       if (editingPurchaseOrder) {
@@ -433,6 +441,7 @@ const PurchaseOrders: React.FC = () => {
         order_date: '',
         delivery_date: '',
         notes: '',
+        logistics_scenario: 'supplier_delivery',
       });
     } catch (error: unknown) {
       // Log detailed error information
@@ -460,6 +469,7 @@ const PurchaseOrders: React.FC = () => {
       order_date: purchaseOrder.order_date,
       delivery_date: purchaseOrder.delivery_date || '',
       notes: purchaseOrder.notes || '',
+      logistics_scenario: purchaseOrder.logistics_scenario || 'supplier_delivery',
     });
     setShowForm(true);
   };
@@ -530,6 +540,7 @@ const PurchaseOrders: React.FC = () => {
               order_date: '',
               delivery_date: '',
               notes: '',
+              logistics_scenario: 'supplier_delivery',
             });
             setShowForm(true);
           }}
@@ -664,6 +675,24 @@ const PurchaseOrders: React.FC = () => {
               <CloseButton onClick={() => setShowForm(false)}>×</CloseButton>
             </FormHeader>
             <Form onSubmit={handleSubmit}>
+              <FormGroup>
+                <Label>Logistics Scenario</Label>
+                <Select 
+                  name="logistics_scenario" 
+                  value={formData.logistics_scenario} 
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="customer_pickup">Customer Pickup</option>
+                  <option value="supplier_delivery">Supplier Delivery</option>
+                  <option value="we_pickup">We Pickup (Our Logistics)</option>
+                </Select>
+                <FieldHint>
+                  {formData.logistics_scenario === 'customer_pickup' && '🚗 Customer handles pickup'}
+                  {formData.logistics_scenario === 'supplier_delivery' && '🚚 Supplier delivers to us'}
+                  {formData.logistics_scenario === 'we_pickup' && '🚛 We handle logistics'}
+                </FieldHint>
+              </FormGroup>
               <FormGroup>
                 <Label>Order Number {!editingPurchaseOrder && '(Optional - Auto-generated)'}</Label>
                 <Input

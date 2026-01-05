@@ -8,7 +8,7 @@ Implements tenant ForeignKey field for shared-schema multi-tenancy.
 from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from apps.tenants.models import Tenant
 from apps.core.models import (
@@ -34,6 +34,14 @@ class PurchaseOrderStatus(models.TextChoices):
     APPROVED = "approved", "Approved"
     DELIVERED = "delivered", "Delivered"
     CANCELLED = "cancelled", "Cancelled"
+
+
+class LogisticsScenarioChoices(models.TextChoices):
+    """Logistics scenario for purchase orders (determines field visibility)."""
+    
+    CUSTOMER_PICKUP = "customer_pickup", "Customer Pickup"
+    SUPPLIER_DELIVERY = "supplier_delivery", "Supplier Delivery"
+    WE_PICKUP = "we_pickup", "We Pickup (Our Logistics)"
 
 
 class PurchaseOrder(TimestampModel):
@@ -79,7 +87,15 @@ class PurchaseOrder(TimestampModel):
     delivery_date = models.DateField(blank=True, null=True, help_text="Expected delivery date")
     notes = models.TextField(blank=True, null=True, help_text="Additional notes")
 
-    # Enhanced fields from Excel requirements
+    # LOGISTICS SCENARIO TOGGLE (Controls Form Field Visibility)
+    logistics_scenario = models.CharField(
+        max_length=50,
+        choices=LogisticsScenarioChoices.choices,
+        default=LogisticsScenarioChoices.SUPPLIER_DELIVERY,
+        help_text="Logistics scenario: Customer Pickup, Supplier Delivery, or We Pickup"
+    )
+
+    # Enhanced fields from Excel requirements (All 41 Fields)
     date_time_stamp = models.DateTimeField(
         auto_now_add=True,
         null=True,
@@ -103,6 +119,32 @@ class PurchaseOrder(TimestampModel):
         default="",
         help_text="Supplier's confirmation order number",
     )
+    
+    # Supplier Auto-Populated Fields (from Supplier model on selection)
+    supplier_corporate_address = models.TextField(
+        blank=True,
+        default="",
+        help_text="Auto-populated from Supplier - Corporate address"
+    )
+    supplier_contact_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Auto-populated from Supplier - Contact person name"
+    )
+    supplier_contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Auto-populated from Supplier - Contact phone"
+    )
+    supplier_contact_email = models.EmailField(
+        blank=True,
+        default="",
+        help_text="Auto-populated from Supplier - Contact email"
+    )
+    
+    # Carrier and Logistics Fields
     carrier = models.ForeignKey(
         "carriers.Carrier",
         on_delete=models.SET_NULL,
@@ -123,6 +165,15 @@ class PurchaseOrder(TimestampModel):
         default="",
         help_text="Carrier release number",
     )
+    how_carrier_make_appointment = models.CharField(
+        max_length=50,
+        choices=AppointmentMethodChoices.choices,
+        blank=True,
+        default="",
+        help_text="How carrier makes appointments",
+    )
+    
+    # Product Details
     quantity = models.IntegerField(
         blank=True,
         null=True,
@@ -144,13 +195,50 @@ class PurchaseOrder(TimestampModel):
         verbose_name="Weight Unit",
         help_text="Unit of weight (LBS or KG)",
     )
-    how_carrier_make_appointment = models.CharField(
+    price_per_unit = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Price per unit/pound"
+    )
+    type_of_protein = models.CharField(
         max_length=50,
-        choices=AppointmentMethodChoices.choices,
+        choices=ProteinTypeChoices.choices,
         blank=True,
         default="",
-        help_text="How carrier makes appointments",
+        help_text="Type of protein (Beef, Pork, Chicken, etc.)"
     )
+    fresh_or_frozen = models.CharField(
+        max_length=20,
+        choices=FreshOrFrozenChoices.choices,
+        blank=True,
+        default="",
+        help_text="Product state (Fresh or Frozen)"
+    )
+    package_type = models.CharField(
+        max_length=50,
+        choices=PackageTypeChoices.choices,
+        blank=True,
+        default="",
+        help_text="Package type (Combo, Box, Bag, etc.)"
+    )
+    net_or_catch = models.CharField(
+        max_length=20,
+        choices=NetOrCatchChoices.choices,
+        blank=True,
+        default="",
+        help_text="Weight type (Net or Catch)"
+    )
+    edible_or_inedible = models.CharField(
+        max_length=50,
+        choices=EdibleInedibleChoices.choices,
+        blank=True,
+        default="",
+        help_text="Edible or inedible product"
+    )
+    
+    # Facility and Contact
     plant = models.ForeignKey(
         "plants.Plant",
         on_delete=models.SET_NULL,
@@ -164,6 +252,34 @@ class PurchaseOrder(TimestampModel):
         null=True,
         blank=True,
         help_text="Primary contact for this order",
+    )
+    
+    # Payment Terms
+    payment_terms = models.CharField(
+        max_length=50,
+        choices=AccountingPaymentTermsChoices.choices,
+        blank=True,
+        default="",
+        help_text="Payment terms (Wire, ACH, Check, etc.)"
+    )
+    credit_limit = models.CharField(
+        max_length=50,
+        choices=CreditLimitChoices.choices,
+        blank=True,
+        default="",
+        help_text="Credit limit/terms"
+    )
+    
+    # Additional Metadata
+    item_description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Detailed item description"
+    )
+    special_instructions = models.TextField(
+        blank=True,
+        default="",
+        help_text="Special instructions or notes"
     )
     class Meta:
         ordering = ["-order_date", "-created_on"]
@@ -544,6 +660,36 @@ class PurchaseOrderHistory(TimestampModel):
 
     def __str__(self):
         return f"History for {self.purchase_order.order_number} at {self.created_on}"
+
+
+@receiver(pre_save, sender=PurchaseOrder)
+def auto_populate_supplier_fields(sender, instance, **kwargs):
+    """
+    Signal handler to auto-populate supplier contact fields when a supplier is selected.
+    
+    This runs BEFORE saving the PurchaseOrder and populates:
+    - supplier_corporate_address
+    - supplier_contact_name
+    - supplier_contact_phone
+    - supplier_contact_email
+    
+    Only populates if supplier is set and fields are currently empty.
+    """
+    if instance.supplier:
+        supplier = instance.supplier
+        
+        # Auto-populate only if fields are empty
+        if not instance.supplier_corporate_address and supplier.address:
+            instance.supplier_corporate_address = supplier.address
+        
+        if not instance.supplier_contact_name and supplier.contact_person:
+            instance.supplier_contact_name = supplier.contact_person
+        
+        if not instance.supplier_contact_phone and supplier.phone:
+            instance.supplier_contact_phone = supplier.phone
+        
+        if not instance.supplier_contact_email and supplier.email:
+            instance.supplier_contact_email = supplier.email
 
 
 @receiver(post_save, sender=PurchaseOrder)
