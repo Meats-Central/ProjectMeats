@@ -63,14 +63,12 @@ CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bo
 # Email backend for staging (SendGrid SMTP Relay)
 # IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
 # Do not hardcode API keys in source code
+# Use SendGrid Web API for better performance and reliability
 EMAIL_BACKEND = config(
-    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+    "EMAIL_BACKEND", default="sendgrid_backend.SendgridBackend"
 )
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.sendgrid.net")
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_API_KEY = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default="no-reply@meatscentral.com")
 

@@ -228,14 +228,13 @@ except ValueError:
 # -----------------------------------------------------------------------------
 # Email (SendGrid SMTP Relay)
 # -----------------------------------------------------------------------------
+# Email Configuration (SendGrid Web API)
+# -----------------------------------------------------------------------------
 # IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
 # Do not hardcode API keys in source code
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.sendgrid.net")
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default=config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com"))
 

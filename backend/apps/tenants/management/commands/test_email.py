@@ -30,21 +30,20 @@ class Command(BaseCommand):
         # Display configuration
         self.stdout.write("\n🔧 Current Configuration:")
         self.stdout.write(f"  EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
-        self.stdout.write(f"  EMAIL_HOST: {settings.EMAIL_HOST}")
-        self.stdout.write(f"  EMAIL_PORT: {settings.EMAIL_PORT}")
-        self.stdout.write(f"  EMAIL_USE_TLS: {settings.EMAIL_USE_TLS}")
-        self.stdout.write(f"  EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
-        
-        password_status = '✅ SET' if settings.EMAIL_HOST_PASSWORD else '❌ NOT SET'
-        password_length = len(settings.EMAIL_HOST_PASSWORD) if settings.EMAIL_HOST_PASSWORD else 0
-        self.stdout.write(f"  EMAIL_HOST_PASSWORD: {password_status} ({password_length} characters)")
-        
         self.stdout.write(f"  DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
+        
+        api_key = getattr(settings, 'SENDGRID_API_KEY', '')
+        api_key_status = '✅ SET' if api_key else '❌ NOT SET'
+        api_key_length = len(api_key) if api_key else 0
+        self.stdout.write(f"  SENDGRID_API_KEY: {api_key_status} ({api_key_length} characters)")
+        
+        sandbox_mode = getattr(settings, 'SENDGRID_SANDBOX_MODE_IN_DEBUG', False)
+        self.stdout.write(f"  SENDGRID_SANDBOX_MODE_IN_DEBUG: {sandbox_mode}")
         
         # Check for issues
         issues = []
-        if not settings.EMAIL_HOST_PASSWORD:
-            issues.append("❌ EMAIL_HOST_PASSWORD is not set")
+        if not api_key:
+            issues.append("❌ SENDGRID_API_KEY is not set")
         if not settings.DEFAULT_FROM_EMAIL:
             issues.append("❌ DEFAULT_FROM_EMAIL is not set")
         if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
@@ -67,8 +66,9 @@ class Command(BaseCommand):
             self.stdout.write("\n❌ No recipient specified. Use --to=email@example.com")
             sys.exit(1)
         
-        if not settings.EMAIL_HOST_PASSWORD:
-            self.stdout.write(self.style.ERROR("\n❌ Cannot send email: EMAIL_HOST_PASSWORD not set"))
+        api_key = getattr(settings, 'SENDGRID_API_KEY', '')
+        if not api_key:
+            self.stdout.write(self.style.ERROR("\n❌ Cannot send email: SENDGRID_API_KEY not set"))
             sys.exit(1)
         
         self.stdout.write(f"\n📤 Sending test email to: {recipient}")
@@ -77,12 +77,12 @@ class Command(BaseCommand):
             result = send_mail(
                 subject="🧪 Test Email from Project Meats",
                 message=(
-                    "This is a test email to verify SendGrid integration.\n\n"
+                    "This is a test email to verify SendGrid Web API integration.\n\n"
                     "If you receive this email, your SendGrid configuration is working correctly!\n\n"
                     "Email Settings:\n"
                     f"- Backend: {settings.EMAIL_BACKEND}\n"
-                    f"- Host: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}\n"
                     f"- From: {settings.DEFAULT_FROM_EMAIL}\n"
+                    f"- API: SendGrid Web API v3\n"
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[recipient],
@@ -101,8 +101,8 @@ class Command(BaseCommand):
             
             # Provide troubleshooting tips
             self.stdout.write("\n🔍 Troubleshooting Tips:")
-            self.stdout.write("  1. Verify EMAIL_HOST_PASSWORD is your SendGrid API key")
-            self.stdout.write("  2. Check that sender email is verified in SendGrid")
+            self.stdout.write("  1. Verify SENDGRID_API_KEY is your SendGrid API key")
+            self.stdout.write("  2. Check that sender email (no-reply@meatscentral.com) is verified in SendGrid")
             self.stdout.write("  3. Ensure SendGrid API key has 'Mail Send' permissions")
             self.stdout.write("  4. Check SendGrid activity log for more details")
             

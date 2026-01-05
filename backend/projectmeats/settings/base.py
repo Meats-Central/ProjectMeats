@@ -277,12 +277,10 @@ CACHES = {
     }
 }
 
-# Email Configuration (SendGrid)
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+# Email Configuration (SendGrid Web API)
+# Using SendGrid Web API instead of SMTP to avoid 504 timeouts
+EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+SENDGRID_API_KEY = os.environ.get('EMAIL_HOST_PASSWORD', '')
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = 'no-reply@meatscentral.com'
 SERVER_EMAIL = 'no-reply@meatscentral.com'

@@ -30,9 +30,8 @@ def send_invitation_email(sender, instance, created, **kwargs):
         logger.info(f"Tenant: {instance.tenant.name}")
         logger.info(f"Role: {instance.role}")
         logger.info(f"EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
-        logger.info(f"EMAIL_HOST: {settings.EMAIL_HOST}")
         logger.info(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
-        logger.info(f"EMAIL_HOST_PASSWORD: {'✅ SET' if settings.EMAIL_HOST_PASSWORD else '❌ NOT SET'}")
+        logger.info(f"SENDGRID_API_KEY: {'✅ SET' if getattr(settings, 'SENDGRID_API_KEY', '') else '❌ NOT SET'}")
         logger.info("=" * 60)
         
         # Construct the invite link
@@ -52,7 +51,7 @@ def send_invitation_email(sender, instance, created, **kwargs):
         )
         
         try:
-            logger.info(f"📤 Sending invitation email to {instance.email} via {settings.EMAIL_HOST}...")
+            logger.info(f"📤 Sending invitation email to {instance.email} via SendGrid Web API...")
             result = send_mail(
                 subject=subject,
                 message=message,

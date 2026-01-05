@@ -43,3 +43,7 @@ psutil>=5.9.0  # For system health monitoring
 
 # HTTP requests
 requests>=2.31.0  # For GitHub API integration in bug reports
+
+# Email (SendGrid Web API)
+sendgrid>=6.11.0
+django-sendgrid-v5>=1.2.3
