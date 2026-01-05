@@ -230,10 +230,11 @@ except ValueError:
 # -----------------------------------------------------------------------------
 # Email Configuration (SendGrid Web API)
 # -----------------------------------------------------------------------------
-# IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
+# MANDATORY: SendGrid Web API backend - bypasses SMTP ports completely (no Errno 111)
+# IMPORTANT: SENDGRID_API_KEY or EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
 # Do not hardcode API keys in source code
 EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-SENDGRID_API_KEY = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_API_KEY = config("SENDGRID_API_KEY", default=config("EMAIL_HOST_PASSWORD", default=""))
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default=config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com"))

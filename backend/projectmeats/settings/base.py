@@ -278,9 +278,10 @@ CACHES = {
 }
 
 # Email Configuration (SendGrid Web API)
-# Using SendGrid Web API instead of SMTP to avoid 504 timeouts
+# Using SendGrid Web API instead of SMTP to avoid 504 timeouts and connection issues
+# MANDATORY: This backend bypasses SMTP ports completely (no Errno 111 or 504 errors)
 EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
-SENDGRID_API_KEY = os.environ.get('EMAIL_HOST_PASSWORD', '')
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY') or os.environ.get('EMAIL_HOST_PASSWORD', '')
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = 'no-reply@meatscentral.com'
 SERVER_EMAIL = 'no-reply@meatscentral.com'
