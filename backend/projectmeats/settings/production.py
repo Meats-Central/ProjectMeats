@@ -236,8 +236,8 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="apikey")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com")
-SERVER_EMAIL = config("SERVER_EMAIL", default=config("DEFAULT_FROM_EMAIL", default="noreply@meatscentral.com"))
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
+SERVER_EMAIL = config("SERVER_EMAIL", default=config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com"))
 
 # -----------------------------------------------------------------------------
 # Static / Media
