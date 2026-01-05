@@ -12,7 +12,7 @@ from .models import TenantInvitation
 logger = logging.getLogger(__name__)
 
 
-@receiver(post_save, sender=TenantInvitation)
+@receiver(post_save, sender=TenantInvitation, dispatch_uid="send_invitation_email_once")
 def send_invitation_email(sender, instance, created, **kwargs):
     """
     Automatically send email when a new invitation is created.
@@ -21,6 +21,8 @@ def send_invitation_email(sender, instance, created, **kwargs):
     - Invitation was just created
     - Status is 'pending'
     - Email address is provided (not a reusable golden ticket)
+    
+    Note: dispatch_uid prevents duplicate signal connections during Django reload.
     """
     if created and instance.status == 'pending' and instance.email:
         # Log configuration status

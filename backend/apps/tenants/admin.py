@@ -337,37 +337,9 @@ class TenantAdmin(admin.ModelAdmin):
                         message=f"Welcome {first_name} {last_name}, your new workspace '{tenant.name}' is ready! Click the link to set up your account."
                     )
                     
-                    # Explicitly trigger email send with detailed error logging
-                    try:
-                        logger.info("=" * 80)
-                        logger.info(f"📧 Starting email send for tenant: {tenant.name}")
-                        logger.info(f"   Recipient: {owner_email}")
-                        logger.info(f"   EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
-                        logger.info(f"   SENDGRID_API_KEY: {'✅ SET' if getattr(settings, 'SENDGRID_API_KEY', None) else '❌ NOT SET'}")
-                        logger.info("=" * 80)
-                        
-                        from .signals import send_invitation_email
-                        send_invitation_email(TenantInvitation, invitation, created=True)
-                        
-                        logger.info(f"✅ Email sent successfully to {owner_email}")
-                        
-                    except ConnectionRefusedError as e:
-                        logger.error("=" * 80)
-                        logger.error("❌ CONNECTION REFUSED ERROR (Errno 111)")
-                        logger.error(f"   This indicates SMTP is being attempted instead of Web API!")
-                        logger.error(f"   Error: {str(e)}")
-                        logger.error(f"   Type: {type(e).__name__}")
-                        logger.error("=" * 80)
-                        raise
-                    except Exception as e:
-                        logger.error("=" * 80)
-                        logger.error(f"❌ EMAIL SEND FAILED")
-                        logger.error(f"   Error Type: {type(e).__name__}")
-                        logger.error(f"   Error Message: {str(e)}")
-                        logger.error(f"   Tenant: {tenant.name}")
-                        logger.error(f"   Recipient: {owner_email}")
-                        logger.error("=" * 80)
-                        raise
+                    # Email is automatically sent by post_save signal in signals.py
+                    # No need to manually trigger here (was causing duplicate emails)
+                    logger.info(f"✅ Invitation created for {owner_email}. Email will be sent by post_save signal.")
 
                     self.message_user(
                         request, 
