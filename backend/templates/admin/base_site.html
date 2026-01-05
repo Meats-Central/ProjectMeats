@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if request.tenant %}{{ request.tenant.name }}{% else %}Meats Central{% endif %} Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        {% if request.tenant %}
+            {{ request.tenant.name }} Administration
+        {% else %}
+            Meats Central Administration
+        {% endif %}
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Meats Central Dark/Red Theme Overrides */
+    :root {
+        --primary: #991b1b; /* Red-800 */
+        --secondary: #7f1d1d; /* Red-900 */
+        --accent: #f87171; /* Red-400 */
+        --header-bg: #1f2937; /* Gray-800 */
+        --header-color: #ffffff;
+        --link-fg: #b91c1c;
+        --link-hover: #991b1b;
+    }
+    
+    /* Apply Header Background */
+    #header {
+        background: var(--header-bg);
+        color: var(--header-color);
+        border-bottom: 3px solid var(--primary);
+    }
+    
+    /* Branding Text */
+    #branding h1, #branding h1 a:link, #branding h1 a:visited {
+        color: var(--header-color);
+        font-weight: 600;
+    }
+    
+    /* Primary Buttons */
+    .button.default, input[type=submit].default, .submit-row input.default,
+    button[type=submit].default {
+        background: var(--primary);
+        border: none;
+    }
+    
+    .button.default:hover, input[type=submit].default:hover,
+    .submit-row input.default:hover, button[type=submit].default:hover {
+        background: var(--secondary);
+    }
+    
+    /* Module Headers */
+    .module h2, .module caption, .inline-group h2 {
+        background: var(--secondary);
+        color: var(--header-color);
+    }
+    
+    /* Links */
+    a:link, a:visited {
+        color: var(--link-fg);
+    }
+    
+    a:hover, a:active {
+        color: var(--link-hover);
+    }
+    
+    /* Breadcrumbs */
+    div.breadcrumbs {
+        background: var(--header-bg);
+        color: var(--header-color);
+    }
+    
+    div.breadcrumbs a {
+        color: var(--accent);
+    }
+    
+    /* Selected items in change list */
+    .selected {
+        background-color: #fef2f2; /* Red-50 */
+        border-color: var(--primary);
+    }
+    
+    /* Action buttons */
+    .button, input[type=submit], input[type=button], .submit-row input, button {
+        background: var(--link-fg);
+        color: white;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover,
+    .submit-row input:hover, button:hover {
+        background: var(--link-hover);
+    }
+</style>
+{% endblock %}
