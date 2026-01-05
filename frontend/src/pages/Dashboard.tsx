@@ -566,7 +566,8 @@ const StatCard = styled.div<{ $theme: Theme }>`
 
 const StatIcon = styled.div`
   font-size: 40px;
-  opacity: 0.8;
+  opacity: 1;
+  filter: grayscale(0);
 `;
 
 const StatContent = styled.div`
