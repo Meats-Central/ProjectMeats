@@ -30,28 +30,10 @@ const PinIcon: React.FC<{ isPinned: boolean }> = ({ isPinned }) => (
   </svg>
 );
 
-// Search icon SVG component
-const SearchIcon: React.FC = () => (
-  <svg 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);
-
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) => {
   const { theme, themeName, tenantBranding } = useTheme();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [keepOpen, setKeepOpen] = useState(() => {
     // Load keep open preference from localStorage
     return localStorage.getItem('sidebarKeepOpen') === 'true';
@@ -143,23 +125,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
         )}
       </SidebarHeader>
 
-      {isExpanded && (
-        <SearchContainer $isDarkMode={isDarkMode}>
-          <SearchInputWrapper $isDarkMode={isDarkMode}>
-            <SearchIconWrapper $isDarkMode={isDarkMode}>
-              <SearchIcon />
-            </SearchIconWrapper>
-            <SearchInput
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              $isDarkMode={isDarkMode}
-            />
-          </SearchInputWrapper>
-        </SearchContainer>
-      )}
-
       <NavigationSection $isDarkMode={isDarkMode}>
         <NavigationMenu items={navigation} isExpanded={isExpanded} />
       </NavigationSection>
@@ -190,6 +155,8 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMo
   box-shadow: ${(props) => props.$isDarkMode 
     ? '2px 0 12px rgba(0, 0, 0, 0.3)' 
     : '2px 0 12px rgba(0, 0, 0, 0.08)'};
+  will-change: width;
+  overflow: hidden;
 `;
 
 const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean; $isDarkMode: boolean }>`
@@ -268,56 +235,6 @@ const PinButton = styled.button<{ $theme: Theme; $active: boolean; $isDarkMode: 
   &:focus-visible {
     outline: 2px solid #7c3aed;
     outline-offset: 2px;
-  }
-`;
-
-const SearchContainer = styled.div<{ $isDarkMode: boolean }>`
-  padding: 12px 16px;
-`;
-
-const SearchInputWrapper = styled.div<{ $isDarkMode: boolean }>`
-  display: flex;
-  align-items: center;
-  background: ${(props) => props.$isDarkMode 
-    ? 'rgba(255, 255, 255, 0.08)' 
-    : 'rgba(0, 0, 0, 0.04)'};
-  border-radius: 8px;
-  padding: 8px 12px;
-  gap: 8px;
-  border: 1px solid ${(props) => props.$isDarkMode 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'};
-  transition: all 0.15s ease;
-
-  &:focus-within {
-    border-color: #7c3aed;
-    background: ${(props) => props.$isDarkMode 
-      ? 'rgba(124, 58, 237, 0.1)' 
-      : 'rgba(124, 58, 237, 0.05)'};
-  }
-`;
-
-const SearchIconWrapper = styled.div<{ $isDarkMode: boolean }>`
-  color: ${(props) => props.$isDarkMode 
-    ? 'rgba(255, 255, 255, 0.5)' 
-    : 'rgba(0, 0, 0, 0.4)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const SearchInput = styled.input<{ $isDarkMode: boolean }>`
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-size: 14px;
-  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
-  
-  &::placeholder {
-    color: ${(props) => props.$isDarkMode 
-      ? 'rgba(255, 255, 255, 0.4)' 
-      : 'rgba(0, 0, 0, 0.4)'};
   }
 `;
 

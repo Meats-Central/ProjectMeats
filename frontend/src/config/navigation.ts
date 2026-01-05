@@ -78,7 +78,6 @@ export const navigation: NavigationItem[] = [
     label: 'Customers',
     icon: '👥',
     path: '/customers',
-    color: '#ADD8E6',
     children: [
       {
         label: 'Contacts',
