@@ -230,6 +230,13 @@ const Dashboard: React.FC = () => {
     await fetchStats();
   };
 
+  const handleCardKeyPress = (e: React.KeyboardEvent, path: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      navigate(path);
+    }
+  };
+
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'add-supplier':
@@ -311,7 +318,14 @@ const Dashboard: React.FC = () => {
       </DashboardHeader>
 
       <StatsGrid>
-        <StatCard $theme={theme}>
+        <StatCard 
+          $theme={theme} 
+          onClick={() => navigate('/suppliers')} 
+          onKeyDown={(e) => handleCardKeyPress(e, '/suppliers')}
+          role="button" 
+          tabIndex={0}
+          aria-label="View all suppliers"
+        >
           <StatIcon>🏭</StatIcon>
           <StatContent>
             <StatNumber $theme={theme}>{stats.suppliers}</StatNumber>
@@ -319,7 +333,14 @@ const Dashboard: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        <StatCard $theme={theme}>
+        <StatCard 
+          $theme={theme} 
+          onClick={() => navigate('/customers')} 
+          onKeyDown={(e) => handleCardKeyPress(e, '/customers')}
+          role="button" 
+          tabIndex={0}
+          aria-label="View all customers"
+        >
           <StatIcon>👥</StatIcon>
           <StatContent>
             <StatNumber $theme={theme}>{stats.customers}</StatNumber>
@@ -327,7 +348,14 @@ const Dashboard: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        <StatCard $theme={theme}>
+        <StatCard 
+          $theme={theme} 
+          onClick={() => navigate('/purchase-orders')} 
+          onKeyDown={(e) => handleCardKeyPress(e, '/purchase-orders')}
+          role="button" 
+          tabIndex={0}
+          aria-label="View all purchase orders"
+        >
           <StatIcon>📋</StatIcon>
           <StatContent>
             <StatNumber $theme={theme}>{stats.purchaseOrders}</StatNumber>
@@ -335,7 +363,14 @@ const Dashboard: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        <StatCard $theme={theme}>
+        <StatCard 
+          $theme={theme} 
+          onClick={() => navigate('/accounts-receivable')} 
+          onKeyDown={(e) => handleCardKeyPress(e, '/accounts-receivable')}
+          role="button" 
+          tabIndex={0}
+          aria-label="View all accounts receivables"
+        >
           <StatIcon>💰</StatIcon>
           <StatContent>
             <StatNumber $theme={theme}>{stats.accountsReceivables}</StatNumber>
@@ -509,17 +544,30 @@ const StatCard = styled.div<{ $theme: Theme }>`
   box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 20px ${(props) => props.$theme.colors.shadowMedium};
+    background-color: ${(props) => props.$theme.colors.surfaceHover};
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.$theme.colors.primary};
+    outline-offset: 2px;
   }
 `;
 
 const StatIcon = styled.div`
   font-size: 40px;
-  opacity: 0.8;
+  opacity: 1;
+  filter: grayscale(0);
 `;
 
 const StatContent = styled.div`

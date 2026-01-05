@@ -70,7 +70,7 @@ const Layout: React.FC = () => {
 
 const LayoutContainer = styled.div<{ $theme: Theme }>`
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background-color: ${(props) => props.$theme.colors.background};
 `;
 
@@ -80,6 +80,8 @@ const MainArea = styled.div<{ $sidebarOpen: boolean; $sidebarHovered: boolean }>
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  will-change: margin-left;
 `;
 
 const Content = styled.main<{ $theme: Theme }>`

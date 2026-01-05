@@ -9,10 +9,28 @@ interface HeaderProps {
   // No props needed currently
 }
 
+// Search icon SVG component
+const SearchIcon: React.FC = () => (
+  <svg 
+    width="16" 
+    height="16" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
 const Header: React.FC<HeaderProps> = () => {
   const { theme, themeName, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Get tenant name from localStorage
   const tenantName = localStorage.getItem('tenantName') || 'ProjectMeats';
@@ -29,9 +47,37 @@ const Header: React.FC<HeaderProps> = () => {
     setShowQuickMenu(false);
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // TODO: Implement global search functionality
+      console.log('Search query:', searchQuery);
+      // Navigate to search results page or filter current page
+      // navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   return (
     <HeaderContainer $theme={theme}>
       <HeaderTitle $theme={theme}>{tenantName}</HeaderTitle>
+      
+      {/* Global Search */}
+      <SearchForm onSubmit={handleSearchSubmit}>
+        <SearchInputWrapper $theme={theme}>
+          <SearchIconWrapper $theme={theme}>
+            <SearchIcon />
+          </SearchIconWrapper>
+          <SearchInput
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            $theme={theme}
+            aria-label="Global search"
+          />
+        </SearchInputWrapper>
+      </SearchForm>
+      
       <HeaderActions>
         {/* Quick Menu */}
         <QuickMenuContainer>
@@ -39,6 +85,7 @@ const Header: React.FC<HeaderProps> = () => {
             onClick={() => setShowQuickMenu(!showQuickMenu)}
             $theme={theme}
             title="Quick Actions"
+            aria-label="Quick Actions Menu"
           >
             ⚡
           </QuickMenuButton>
@@ -63,12 +110,13 @@ const Header: React.FC<HeaderProps> = () => {
           onClick={toggleTheme}
           $theme={theme}
           title={`Switch to ${themeName === 'light' ? 'dark' : 'light'} mode`}
+          aria-label={`Switch to ${themeName === 'light' ? 'dark' : 'light'} mode`}
         >
           {themeName === 'light' ? '🌙' : '☀️'}
         </ThemeToggleButton>
 
         {/* Notifications */}
-        <NotificationButton $theme={theme} title="Notifications">
+        <NotificationButton $theme={theme} title="Notifications" aria-label="Notifications">
           🔔
         </NotificationButton>
 
@@ -89,6 +137,7 @@ const HeaderContainer = styled.header<{ $theme: Theme }>`
   padding: 0 30px;
   box-shadow: 0 2px 4px ${(props) => props.$theme.colors.shadow};
   transition: all 0.3s ease;
+  gap: 20px;
 `;
 
 const HeaderTitle = styled.h1<{ $theme: Theme }>`
@@ -96,6 +145,51 @@ const HeaderTitle = styled.h1<{ $theme: Theme }>`
   font-weight: 600;
   color: ${(props) => props.$theme.colors.headerText};
   margin: 0;
+  white-space: nowrap;
+`;
+
+const SearchForm = styled.form`
+  flex: 1;
+  max-width: 500px;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchInputWrapper = styled.div<{ $theme: Theme }>`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: ${(props) => props.$theme.colors.surface};
+  border-radius: 8px;
+  padding: 8px 12px;
+  gap: 8px;
+  border: 1px solid ${(props) => props.$theme.colors.border};
+  transition: all 0.2s ease;
+
+  &:focus-within {
+    border-color: ${(props) => props.$theme.colors.primary};
+    box-shadow: 0 0 0 3px ${(props) => props.$theme.colors.primary}20;
+  }
+`;
+
+const SearchIconWrapper = styled.div<{ $theme: Theme }>`
+  color: ${(props) => props.$theme.colors.textSecondary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SearchInput = styled.input<{ $theme: Theme }>`
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: ${(props) => props.$theme.colors.textPrimary};
+  
+  &::placeholder {
+    color: ${(props) => props.$theme.colors.textSecondary};
+  }
 `;
 
 const HeaderActions = styled.div`
