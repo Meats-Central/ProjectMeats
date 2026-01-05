@@ -60,6 +60,11 @@ for host in STAGING_HOSTS:
 # Less restrictive CORS for staging testing
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 
+# Frontend URL Configuration for UAT/staging
+# Used for invitation links and cross-origin references
+# Override with FRONTEND_URL environment variable if needed
+FRONTEND_URL = config("FRONTEND_URL", default="https://uat.meatscentral.com")
+
 # Email Configuration (SendGrid Web API ONLY - NO SMTP)
 # CRITICAL: Web API uses HTTP/HTTPS - SMTP completely disabled
 # MANDATORY: Do NOT add EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER
