@@ -173,16 +173,16 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3003",
 ]
 
-# Email backend for development (SendGrid SMTP Relay - can be overridden to console)
-# IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable
+# Email Configuration (SendGrid Web API)
+# MANDATORY: SendGrid Web API backend - bypasses SMTP ports completely
+# IMPORTANT: SENDGRID_API_KEY or EMAIL_HOST_PASSWORD must be set as environment variable
 # Do not hardcode API keys in source code
-# For local development, set in your .env file or use console backend:
+# For local development, set in your .env file or override with console backend:
 #   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-# Use SendGrid Web API in development (can override with console backend via env var)
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND", default="sendgrid_backend.SendgridBackend"
 )
-SENDGRID_API_KEY = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_API_KEY = config("SENDGRID_API_KEY", default=config("EMAIL_HOST_PASSWORD", default=""))
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default="no-reply@meatscentral.com")

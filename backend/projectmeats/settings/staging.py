@@ -60,14 +60,14 @@ for host in STAGING_HOSTS:
 # Less restrictive CORS for staging testing
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
 
-# Email backend for staging (SendGrid SMTP Relay)
-# IMPORTANT: EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
+# Email Configuration (SendGrid Web API)
+# MANDATORY: SendGrid Web API backend - bypasses SMTP ports completely (no Errno 111 or 504)
+# IMPORTANT: SENDGRID_API_KEY or EMAIL_HOST_PASSWORD must be set as environment variable or GitHub secret
 # Do not hardcode API keys in source code
-# Use SendGrid Web API for better performance and reliability
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND", default="sendgrid_backend.SendgridBackend"
 )
-SENDGRID_API_KEY = config("EMAIL_HOST_PASSWORD", default="")
+SENDGRID_API_KEY = config("SENDGRID_API_KEY", default=config("EMAIL_HOST_PASSWORD", default=""))
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default="no-reply@meatscentral.com")
