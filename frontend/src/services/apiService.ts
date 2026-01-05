@@ -189,6 +189,9 @@ export interface PurchaseOrder {
   notes?: string;
   created_at: string;
   updated_at: string;
+  logistics_scenario?: string;
+  total_weight?: number;
+  weight_unit?: string;
 }
 
 export interface Contact {

@@ -60,6 +60,7 @@ jobs:
       DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
       DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
       DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
 
   # ==========================================
   # Route to UAT

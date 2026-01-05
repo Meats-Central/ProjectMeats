@@ -1,14 +1,16 @@
 #!/bin/bash
 # ProjectMeats Development Server Startup Script
 # This script ensures PostgreSQL is running and starts both backend and frontend servers
-# Usage: ./start_dev.sh
+# Usage: ./scripts/dev/start_dev.sh
 
 set -e
 
+# Get project root directory (two levels up from script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/backend"
-FRONTEND_DIR="$SCRIPT_DIR/frontend"
-LOG_DIR="$SCRIPT_DIR/logs"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BACKEND_DIR="$PROJECT_ROOT/backend"
+FRONTEND_DIR="$PROJECT_ROOT/frontend"
+LOG_DIR="$PROJECT_ROOT/logs"
 
 # Colors for output
 RED='\033[0;31m'
