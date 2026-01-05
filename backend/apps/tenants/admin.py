@@ -8,6 +8,9 @@ from django import forms
 from django.contrib.auth.models import User
 from apps.core.admin import TenantFilteredAdmin
 from .models import Tenant, TenantUser, TenantInvitation, TenantDomain
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class InviteUserForm(forms.Form):
@@ -334,10 +337,37 @@ class TenantAdmin(admin.ModelAdmin):
                         message=f"Welcome {first_name} {last_name}, your new workspace '{tenant.name}' is ready! Click the link to set up your account."
                     )
                     
-                    # Explicitly trigger email send (in case signal doesn't fire)
-                    print("📧 Sending onboarding email to owner...")
-                    from .signals import send_invitation_email
-                    send_invitation_email(TenantInvitation, invitation, created=True)
+                    # Explicitly trigger email send with detailed error logging
+                    try:
+                        logger.info("=" * 80)
+                        logger.info(f"📧 Starting email send for tenant: {tenant.name}")
+                        logger.info(f"   Recipient: {owner_email}")
+                        logger.info(f"   EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
+                        logger.info(f"   SENDGRID_API_KEY: {'✅ SET' if getattr(settings, 'SENDGRID_API_KEY', None) else '❌ NOT SET'}")
+                        logger.info("=" * 80)
+                        
+                        from .signals import send_invitation_email
+                        send_invitation_email(TenantInvitation, invitation, created=True)
+                        
+                        logger.info(f"✅ Email sent successfully to {owner_email}")
+                        
+                    except ConnectionRefusedError as e:
+                        logger.error("=" * 80)
+                        logger.error("❌ CONNECTION REFUSED ERROR (Errno 111)")
+                        logger.error(f"   This indicates SMTP is being attempted instead of Web API!")
+                        logger.error(f"   Error: {str(e)}")
+                        logger.error(f"   Type: {type(e).__name__}")
+                        logger.error("=" * 80)
+                        raise
+                    except Exception as e:
+                        logger.error("=" * 80)
+                        logger.error(f"❌ EMAIL SEND FAILED")
+                        logger.error(f"   Error Type: {type(e).__name__}")
+                        logger.error(f"   Error Message: {str(e)}")
+                        logger.error(f"   Tenant: {tenant.name}")
+                        logger.error(f"   Recipient: {owner_email}")
+                        logger.error("=" * 80)
+                        raise
 
                     self.message_user(
                         request, 
@@ -347,6 +377,7 @@ class TenantAdmin(admin.ModelAdmin):
                     return redirect('admin:tenants_tenant_changelist')
                     
                 except Exception as e:
+                    logger.exception("❌ Onboarding failed with exception:")
                     self.message_user(request, f"❌ Error: {str(e)}", messages.ERROR)
         else:
             form = FullOnboardForm()

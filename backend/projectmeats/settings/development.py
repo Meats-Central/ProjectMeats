@@ -173,8 +173,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3003",
 ]
 
-# Email Configuration (SendGrid Web API)
-# MANDATORY: SendGrid Web API backend - bypasses SMTP ports completely
+# Email Configuration (SendGrid Web API ONLY - NO SMTP)
+# CRITICAL: Web API uses HTTP/HTTPS - SMTP completely disabled
+# MANDATORY: Do NOT add EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER
+# WARNING: Adding SMTP variables will cause Errno 111 and 504 timeouts
 # IMPORTANT: SENDGRID_API_KEY or EMAIL_HOST_PASSWORD must be set as environment variable
 # Do not hardcode API keys in source code
 # For local development, set in your .env file or override with console backend:
@@ -186,6 +188,7 @@ SENDGRID_API_KEY = config("SENDGRID_API_KEY", default=config("EMAIL_HOST_PASSWOR
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="no-reply@meatscentral.com")
 SERVER_EMAIL = config("SERVER_EMAIL", default="no-reply@meatscentral.com")
+# ⚠️  NEVER ADD: EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_USE_SSL
 
 # Static files
 STATICFILES_DIRS = [
