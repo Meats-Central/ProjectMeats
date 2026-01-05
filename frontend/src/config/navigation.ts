@@ -20,6 +20,7 @@ export const navigation: NavigationItem[] = [
   {
     label: 'Cockpit',
     icon: '🎯',
+    path: '/cockpit',
     children: [
       {
         label: 'Call log/schedule',

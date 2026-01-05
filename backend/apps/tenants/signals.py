@@ -23,6 +23,17 @@ def send_invitation_email(sender, instance, created, **kwargs):
     - Email address is provided (not a reusable golden ticket)
     """
     if created and instance.status == 'pending' and instance.email:
+        # Log configuration status
+        logger.info("=" * 60)
+        logger.info("📧 Preparing to send invitation email")
+        logger.info(f"Recipient: {instance.email}")
+        logger.info(f"Tenant: {instance.tenant.name}")
+        logger.info(f"Role: {instance.role}")
+        logger.info(f"EMAIL_BACKEND: {settings.EMAIL_BACKEND}")
+        logger.info(f"DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
+        logger.info(f"SENDGRID_API_KEY: {'✅ SET' if getattr(settings, 'SENDGRID_API_KEY', '') else '❌ NOT SET'}")
+        logger.info("=" * 60)
+        
         # Construct the invite link
         base_url = getattr(settings, 'FRONTEND_URL', 'https://meatscentral.com')
         invite_url = f"{base_url}/signup?token={instance.token}"
@@ -40,15 +51,20 @@ def send_invitation_email(sender, instance, created, **kwargs):
         )
         
         try:
-            logger.info(f"📧 Sending invitation email to {instance.email} via SendGrid...")
-            send_mail(
+            logger.info(f"📤 Sending invitation email to {instance.email} via SendGrid Web API...")
+            result = send_mail(
                 subject=subject,
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[instance.email],
                 fail_silently=False,
             )
-            logger.info("✅ Email sent successfully.")
+            logger.info(f"✅ Email sent successfully! (result={result})")
         except Exception as e:
-            logger.exception(f"❌ Failed to send email: {str(e)}")
+            logger.exception(f"❌ Failed to send email to {instance.email}")
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error message: {str(e)}")
+            # Re-raise to ensure error is visible
+            raise
+
 

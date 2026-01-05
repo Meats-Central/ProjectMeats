@@ -19,6 +19,9 @@ import Contacts from './pages/Contacts';
 import Plants from './pages/Plants';
 import Carriers from './pages/Carriers';
 import AIAssistant from './pages/AIAssistant';
+import Cockpit from './pages/Cockpit';
+import Processes from './pages/Processes';
+import Reports from './pages/Reports';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Profile from './pages/Profile';
@@ -49,6 +52,9 @@ const App: React.FC = () => {
                 <Route path="plants" element={<Plants />} />
                 <Route path="carriers" element={<Carriers />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
+                <Route path="cockpit" element={<Cockpit />} />
+                <Route path="processes" element={<Processes />} />
+                <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="api-test" element={<ApiTestComponent />} />
