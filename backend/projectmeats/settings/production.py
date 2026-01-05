@@ -226,6 +226,13 @@ except ValueError:
     pass
 
 # -----------------------------------------------------------------------------
+# Frontend URL Configuration
+# -----------------------------------------------------------------------------
+# Used for invitation links and cross-origin references
+# Override with FRONTEND_URL environment variable if needed
+FRONTEND_URL = config("FRONTEND_URL", default="https://meatscentral.com")
+
+# -----------------------------------------------------------------------------
 # Email (SendGrid SMTP Relay)
 # -----------------------------------------------------------------------------
 # Email Configuration (SendGrid Web API ONLY - NO SMTP)
