@@ -575,23 +575,18 @@ jobs:
           	DB_HOST=${{ secrets.DB_HOST }}
           	DB_PORT=${{ secrets.DB_PORT }}
           	DB_ENGINE=django.db.backends.postgresql
-          	EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-          	EMAIL_HOST=smtp.sendgrid.net
-          	EMAIL_PORT=587
-          	EMAIL_USE_TLS=True
-          	EMAIL_HOST_USER=apikey
-          	EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}
-          	DEFAULT_FROM_EMAIL=noreply@meatscentral.com
+          	SENDGRID_API_KEY=${{ secrets.EMAIL_HOST_PASSWORD }}
+          	DEFAULT_FROM_EMAIL=no-reply@meatscentral.com
           	EOF
           
-          # Verify EMAIL_HOST_PASSWORD is set (show length only for security)
+          # Verify SENDGRID_API_KEY is set (show length only for security)
           if [ -n "${{ secrets.EMAIL_HOST_PASSWORD }}" ]; then
-            echo "✓ EMAIL_HOST_PASSWORD is set (${#EMAIL_HOST_PASSWORD} characters)"
+            echo "✓ SENDGRID_API_KEY is set (${#EMAIL_HOST_PASSWORD} characters)"
           else
-            echo "⚠️  WARNING: EMAIL_HOST_PASSWORD is NOT set in environment secrets"
+            echo "⚠️  WARNING: SENDGRID_API_KEY is NOT set in environment secrets"
           fi
           
-          echo "✓ backend.env file created locally"
+          echo "✓ backend.env file created locally (SendGrid Web API configured)"
       
       - name: Transfer .env to Server
         env:
@@ -641,6 +636,11 @@ jobs:
             --restart unless-stopped \
             -p 8000:8000 \
             --env-file /root/projectmeats/backend/.env \
+            -e DB_HOST="${{ secrets.DB_HOST }}" \
+            -e DB_NAME="${{ secrets.DB_NAME }}" \
+            -e DB_USER="${{ secrets.DB_USER }}" \
+            -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            -e DB_PORT="${{ secrets.DB_PORT }}" \
             -e DJANGO_SUPERUSER_USERNAME="${{ secrets.DJANGO_SUPERUSER_USERNAME }}" \
             -e DJANGO_SUPERUSER_EMAIL="${{ secrets.DJANGO_SUPERUSER_EMAIL }}" \
             -e DJANGO_SUPERUSER_PASSWORD="${{ secrets.DJANGO_SUPERUSER_PASSWORD }}" \
