@@ -277,11 +277,24 @@ CACHES = {
     }
 }
 
-# Email Configuration (SendGrid Web API)
-# Using SendGrid Web API instead of SMTP to avoid 504 timeouts and connection issues
-# MANDATORY: This backend bypasses SMTP ports completely (no Errno 111 or 504 errors)
+# ==============================================================================
+# Email Configuration (SendGrid Web API ONLY - NO SMTP)
+# ==============================================================================
+# CRITICAL: This backend uses HTTP/HTTPS exclusively - SMTP is completely disabled
+# MANDATORY: Do NOT add EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, or EMAIL_HOST_USER
+#            These variables will trigger SMTP behavior and cause Errno 111
+# 
+# Why Web API Only:
+#   - SMTP ports (25, 587, 465) are blocked by firewalls → Errno 111
+#   - SMTP handshakes are slow → 504 Gateway Timeout
+#   - Web API uses HTTP/HTTPS (ports 80/443) → Always accessible, instant delivery
+# ==============================================================================
 EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY') or os.environ.get('EMAIL_HOST_PASSWORD', '')
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 DEFAULT_FROM_EMAIL = 'no-reply@meatscentral.com'
 SERVER_EMAIL = 'no-reply@meatscentral.com'
+# ==============================================================================
+# ⚠️  DO NOT ADD: EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_USE_SSL
+# ⚠️  These will cause Errno 111 (Connection Refused) and 504 timeouts
+# ==============================================================================
