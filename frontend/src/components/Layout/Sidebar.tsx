@@ -155,6 +155,8 @@ const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMo
   box-shadow: ${(props) => props.$isDarkMode 
     ? '2px 0 12px rgba(0, 0, 0, 0.3)' 
     : '2px 0 12px rgba(0, 0, 0, 0.08)'};
+  will-change: width;
+  overflow: hidden;
 `;
 
 const SidebarHeader = styled.div<{ $theme: Theme; $isExpanded: boolean; $isDarkMode: boolean }>`
