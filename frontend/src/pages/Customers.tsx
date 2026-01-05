@@ -128,7 +128,7 @@ const Customers: React.FC = () => {
   }
 
   return (
-    <Container>
+    <>
       <Header>
         <Title $theme={theme}>Customers</Title>
         <AddButton onClick={() => setShowForm(true)}>+ Add Customer</AddButton>
@@ -298,15 +298,11 @@ const Customers: React.FC = () => {
           </Table>
         )}
       </TableContainer>
-    </Container>
+    </>
   );
 };
 
 // Styled Components (reusing from Suppliers with customer theme colors)
-const Container = styled.div`
-  max-width: 1200px;
-`;
-
 const LoadingContainer = styled.div<{ $theme: Theme }>`
   display: flex;
   justify-content: center;

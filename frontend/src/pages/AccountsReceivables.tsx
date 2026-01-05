@@ -3,12 +3,6 @@ import styled from 'styled-components';
 import { apiService, AccountsReceivable } from '../services/apiService';
 
 // Styled Components
-const Container = styled.div`
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -458,15 +452,11 @@ const AccountsReceivables: React.FC = () => {
       : 0;
 
   if (loading) {
-    return (
-      <Container>
-        <LoadingMessage>Loading accounts receivables...</LoadingMessage>
-      </Container>
-    );
+    return <LoadingMessage>Loading accounts receivables...</LoadingMessage>;
   }
 
   return (
-    <Container>
+    <>
       <Header>
         <Title>Accounts Receivables</Title>
         <AddButton onClick={() => setShowForm(true)}>+ Add Receivable</AddButton>
@@ -601,7 +591,7 @@ const AccountsReceivables: React.FC = () => {
           </FormContainer>
         </FormOverlay>
       )}
-    </Container>
+    </>
   );
 };
 
