@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { useTheme } from '../contexts/ThemeContext';
 import { Theme } from '../config/theme';
 import { apiService, Customer } from '../services/apiService';
+import { PhoneInput, Select } from '../components/ui';
+import { US_STATES } from '../utils/constants/states';
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -177,10 +179,11 @@ const Customers: React.FC = () => {
 
                 <FormGroup>
                   <Label $theme={theme}>Phone</Label>
-                  <Input $theme={theme}
-                    type="text"
+                  <PhoneInput
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, phone: value })}
+                    placeholder="(XXX) XXX-XXXX"
+                    aria-label="Phone number"
                   />
                 </FormGroup>
 
@@ -204,10 +207,12 @@ const Customers: React.FC = () => {
 
                 <FormGroup>
                   <Label $theme={theme}>State</Label>
-                  <Input $theme={theme}
-                    type="text"
+                  <Select
                     value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, state: value })}
+                    options={US_STATES}
+                    placeholder="Select state"
+                    aria-label="State"
                   />
                 </FormGroup>
 
@@ -216,7 +221,14 @@ const Customers: React.FC = () => {
                   <Input $theme={theme}
                     type="text"
                     value={formData.zip_code}
-                    onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                    onChange={(e) => {
+                      // Only allow digits, max 5 characters
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                      setFormData({ ...formData, zip_code: value });
+                    }}
+                    maxLength={5}
+                    pattern="^\d{5}$"
+                    placeholder="12345"
                   />
                 </FormGroup>
 
