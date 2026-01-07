@@ -5,6 +5,7 @@ Defines supplier entities and related business logic.
 
 Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from apps.tenants.models import Tenant
@@ -15,6 +16,7 @@ from apps.core.models import (
     CertificateTypeChoices,
     CountryOriginChoices,
     CreditLimitChoices,
+    DepartmentChoicesSupplier,
     EdibleInedibleChoices,
     FreshOrFrozenChoices,
     NetOrCatchChoices,
@@ -193,6 +195,12 @@ class Supplier(TimestampModel):
         blank=True,
         default='',
         help_text="Departments (comma-separated: Sales, BOL, COA, etc.)",
+    )
+    departments_array = ArrayField(
+        models.CharField(max_length=50, choices=DepartmentChoicesSupplier.choices),
+        blank=True,
+        default=list,
+        help_text="Departments (multi-select: Sales, Doc's BOL, Doc's COA, etc.) - NEW",
     )
     
     # Deprecated fields - keeping for backward compatibility
