@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { tenantService, Tenant } from '../services/tenantService';
 import styled from 'styled-components';
+import { ChromePicker, ColorResult } from 'react-color';
+import { extractBrandColors, rgbToHex, hexToRgb } from '../utils/themeUtils';
 
 // Renamed to avoid collision with component name (ESLint no-redeclare warning)
 interface UserSettings {
@@ -54,6 +56,13 @@ const Settings: React.FC = () => {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  
+  // Theme color picker state
+  const [primaryColor, setPrimaryColor] = useState<string>('#DC2626');
+  const [secondaryColor, setSecondaryColor] = useState<string>('#F59E0B');
+  const [showPrimaryPicker, setShowPrimaryPicker] = useState(false);
+  const [showSecondaryPicker, setShowSecondaryPicker] = useState(false);
+  const [extractingColors, setExtractingColors] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage (in a real app, this would come from an API)
@@ -239,6 +248,59 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleExtractColors = async () => {
+    if (!logoPreview) {
+      setMessage({ type: 'error', text: 'Please upload a logo first' });
+      return;
+    }
+
+    setExtractingColors(true);
+    setMessage(null);
+
+    try {
+      const rgb = await extractBrandColors(logoPreview);
+      if (rgb) {
+        const hexColor = rgbToHex(rgb[0], rgb[1], rgb[2]);
+        setPrimaryColor(hexColor);
+        setMessage({ type: 'success', text: `Extracted color: ${hexColor}` });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to extract colors from logo' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to extract colors from logo' });
+      console.error('Color extraction error:', error);
+    } finally {
+      setExtractingColors(false);
+    }
+  };
+
+  const handlePrimaryColorChange = (color: ColorResult) => {
+    setPrimaryColor(color.hex);
+  };
+
+  const handleSecondaryColorChange = (color: ColorResult) => {
+    setSecondaryColor(color.hex);
+  };
+
+  const handleApplyThemeColors = () => {
+    // Apply colors to CSS variables
+    const primaryRgb = hexToRgb(primaryColor);
+    const secondaryRgb = hexToRgb(secondaryColor);
+
+    if (primaryRgb) {
+      document.documentElement.style.setProperty('--color-primary', primaryRgb.join(', '));
+    }
+    if (secondaryRgb) {
+      document.documentElement.style.setProperty('--color-secondary', secondaryRgb.join(', '));
+    }
+
+    setMessage({ type: 'success', text: 'Theme colors applied! (Note: This is a preview. Backend integration coming soon.)' });
+    
+    // Close pickers
+    setShowPrimaryPicker(false);
+    setShowSecondaryPicker(false);
+  };
+
   if (!user) {
     return (
       <Container>
@@ -324,6 +386,51 @@ const Settings: React.FC = () => {
                     {currentTenant.name}
                   </SettingDescription>
                 </SettingInfo>
+              </SettingItem>
+
+              {/* Theme Color Customization */}
+              <SettingItem>
+                <SettingInfo>
+                  <SettingLabel>Brand Colors</SettingLabel>
+                  <SettingDescription>
+                    Customize your organization's primary and secondary colors
+                  </SettingDescription>
+                </SettingInfo>
+                <ColorPickerSection>
+                  {logoPreview && (
+                    <ExtractButton onClick={handleExtractColors} disabled={extractingColors}>
+                      {extractingColors ? 'Extracting...' : '🎨 Extract from Logo'}
+                    </ExtractButton>
+                  )}
+                  
+                  <ColorPickerRow>
+                    <ColorPickerWrapper>
+                      <ColorLabel>Primary Color</ColorLabel>
+                      <ColorPreview color={primaryColor} onClick={() => setShowPrimaryPicker(!showPrimaryPicker)} />
+                      {showPrimaryPicker && (
+                        <PickerPopover>
+                          <PickerCover onClick={() => setShowPrimaryPicker(false)} />
+                          <ChromePicker color={primaryColor} onChange={handlePrimaryColorChange} />
+                        </PickerPopover>
+                      )}
+                    </ColorPickerWrapper>
+
+                    <ColorPickerWrapper>
+                      <ColorLabel>Secondary Color</ColorLabel>
+                      <ColorPreview color={secondaryColor} onClick={() => setShowSecondaryPicker(!showSecondaryPicker)} />
+                      {showSecondaryPicker && (
+                        <PickerPopover>
+                          <PickerCover onClick={() => setShowSecondaryPicker(false)} />
+                          <ChromePicker color={secondaryColor} onChange={handleSecondaryColorChange} />
+                        </PickerPopover>
+                      )}
+                    </ColorPickerWrapper>
+                  </ColorPickerRow>
+
+                  <ApplyButton onClick={handleApplyThemeColors}>
+                    Apply Colors
+                  </ApplyButton>
+                </ColorPickerSection>
               </SettingItem>
             </SettingGroup>
           </SettingsSection>
@@ -830,6 +937,101 @@ const RemoveLogoButton = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+`;
+
+const ColorPickerSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+`;
+
+const ExtractButton = styled.button`
+  background: rgb(var(--color-primary));
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const ColorPickerRow = styled.div`
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+`;
+
+const ColorPickerWrapper = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const ColorLabel = styled.label`
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+`;
+
+const ColorPreview = styled.div<{ color: string }>`
+  width: 100px;
+  height: 40px;
+  background-color: ${props => props.color};
+  border: 2px solid rgb(var(--color-border));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const PickerPopover = styled.div`
+  position: absolute;
+  top: 70px;
+  left: 0;
+  z-index: 1000;
+`;
+
+const PickerCover = styled.div`
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+`;
+
+const ApplyButton = styled.button`
+  background: rgb(var(--color-primary));
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+
+  &:hover {
+    opacity: 0.9;
   }
 `;
 
