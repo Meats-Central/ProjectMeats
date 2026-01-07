@@ -138,7 +138,11 @@ class CertificateTypeChoices(models.TextChoices):
 
     THIRD_PARTY = "3rd Party", "3rd Party"
     BRC = "BRC", "BRC"
+    FSSAI = "FSSAI", "FSSAI"
     SQF = "SQF", "SQF"
+    IFS = "IFS", "IFS"
+    ISO = "ISO", "ISO"
+    HACCP = "HACCP", "HACCP"
     HALAL = "Halal", "Halal"
     KOSHER = "Kosher", "Kosher"
     ORGANIC = "Organic", "Organic"
@@ -167,6 +171,8 @@ class ShippingOfferedChoices(models.TextChoices):
 
     YES_DOMESTIC = "Yes - Domestic", "Yes - Domestic"
     YES_INTERNATIONAL = "Yes - International", "Yes - International"
+    YES_EXPORTED = "Yes - Exported", "Yes - Exported"
+    YES_DOMESTIC_EXPORTED = "Yes - Domestic & Exported", "Yes - Domestic & Exported"
     NO = "No", "No"
 
 
@@ -189,13 +195,13 @@ class WeightUnitChoices(models.TextChoices):
 
 
 class AppointmentMethodChoices(models.TextChoices):
-    """Common choices for how carriers make appointments."""
+    """Common choices for how to make appointments."""
 
     EMAIL = "Email", "Email"
     PHONE = "Phone", "Phone"
     WEBSITE = "Website", "Website"
     FAX = "Fax", "Fax"
-    FCFS = "FCFS", "FCFS"
+    FCFS = "First Come First Serve", "First Come First Serve"
 
 
 class ContactTypeChoices(models.TextChoices):
@@ -209,6 +215,27 @@ class ContactTypeChoices(models.TextChoices):
     QUALITY = "Quality", "Quality"
     EXECUTIVE = "Executive", "Executive"
     DOCS_BOL = "Doc's BOL", "Doc's BOL"
+    COA = "COA", "COA"
+    POD = "POD", "POD"
+
+
+class DepartmentChoicesSupplier(models.TextChoices):
+    """Common choices for supplier departments."""
+
+    SALES = "Sales", "Sales"
+    DOCS_BOL = "Doc's BOL", "Doc's BOL"
+    DOCS_COA = "Doc's COA", "Doc's COA"
+    ACCOUNTING = "Accounting", "Accounting"
+    SHIPPING = "Shipping", "Shipping"
+    RECEIVING = "Receiving", "Receiving"
+    OPERATIONS = "Operations", "Operations"
+    QUALITY = "Quality", "Quality"
+
+
+class CarrierDepartmentChoices(models.TextChoices):
+    """Common choices for carrier departments."""
+
+    BOL = "BOL", "BOL"
     COA = "COA", "COA"
     POD = "POD", "POD"
 
