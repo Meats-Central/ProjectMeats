@@ -4,6 +4,7 @@ Carriers models for ProjectMeats.
 Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.contrib.auth.models import User
 from apps.tenants.models import Tenant
@@ -11,6 +12,7 @@ from apps.core.models import (
     AccountingPaymentTermsChoices,
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
+    CarrierDepartmentChoices,
     CreditLimitChoices,
     TenantManager,
 )
@@ -128,6 +130,12 @@ class Carrier(models.Model):
         blank=True,
         default='',
         help_text="Departments (comma-separated: BOL, COA, POD, etc.)",
+    )
+    departments_array = ArrayField(
+        models.CharField(max_length=50, choices=CarrierDepartmentChoices.choices),
+        blank=True,
+        default=list,
+        help_text="Departments (multi-select: BOL, COA, POD) - NEW",
     )
     how_carrier_make_appointment = models.CharField(
         max_length=50,
