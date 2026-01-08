@@ -232,15 +232,15 @@ const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: bool
     background-color: ${(props) => props.$isDarkMode 
       ? 'rgba(255, 255, 255, 0.08)' 
       : 'rgba(0, 0, 0, 0.04)'};
-    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   }
 `;
 
 const activeStyles = css<{ $isDarkMode: boolean }>`
   background-color: ${(props) => props.$isDarkMode 
-    ? 'rgba(124, 58, 237, 0.15)' 
-    : 'rgba(124, 58, 237, 0.1)'};
-  color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    ? 'rgba(var(--color-primary), 0.15)' 
+    : 'rgba(var(--color-primary), 0.1)'};
+  color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   
   &::before {
     content: '';
@@ -250,14 +250,14 @@ const activeStyles = css<{ $isDarkMode: boolean }>`
     transform: translateY(-50%);
     width: 3px;
     height: 24px;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    background: rgb(var(--color-primary));
     border-radius: 0 3px 3px 0;
   }
 
   &:hover {
     background-color: ${(props) => props.$isDarkMode 
-      ? 'rgba(124, 58, 237, 0.2)' 
-      : 'rgba(124, 58, 237, 0.15)'};
+      ? 'rgba(var(--color-primary), 0.2)' 
+      : 'rgba(var(--color-primary), 0.15)'};
   }
 `;
 
@@ -268,7 +268,7 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: 
   ${(props) => props.$active && activeStyles}
   
   ${(props) => props.$hasActiveChild && css<{ $isDarkMode: boolean }>`
-    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)'};
+    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgb(var(--color-text-primary))'};
   `}
 
   &.active {
@@ -329,7 +329,7 @@ const ExpandButton = styled.button<{ $isExpanded: boolean; $isDarkMode: boolean 
     background: ${(props) => props.$isDarkMode 
       ? 'rgba(255, 255, 255, 0.1)' 
       : 'rgba(0, 0, 0, 0.05)'};
-    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   }
 `;
 
