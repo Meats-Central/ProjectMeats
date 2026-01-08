@@ -62,29 +62,43 @@ The **Payment Tracking System** has been successfully integrated into all three 
   - [x] Success callback for parent refresh
   - [x] Exported from `components/Shared/index.ts`
 
+- [x] **PaymentHistoryList Component (235 lines)**
+  - [x] Universal component for all three entity types
+  - [x] Fetches from `/api/v1/payments/` with entity filtering
+  - [x] Displays date, amount, payment method, reference number
+  - [x] Shows created by user name
+  - [x] Sorts by date (newest first)
+  - [x] Empty state: "No payment history yet"
+  - [x] Loading and error states
+  - [x] Theme-compliant styling with semantic colors
+  - [x] Exported from `components/Shared/index.ts`
+
 - [x] **PayablePOs.tsx Integration**
-  - [x] Imported `RecordPaymentModal`
+  - [x] Imported `RecordPaymentModal` and `PaymentHistoryList`
   - [x] Added `showPaymentModal` state
-  - [x] Added "Record Payment" button in side panel header
+  - [x] Added "💰 Record Payment" button in side panel header
   - [x] Conditional button (hidden when `payment_status === 'paid'`)
   - [x] Wired modal with correct props (`entityType="purchase_order"`)
-  - [x] Success callback refreshes data
+  - [x] Added Payment History section above Activity Log
+  - [x] Success callback refreshes data to show updated status
 
 - [x] **ReceivableSOs.tsx Integration**
-  - [x] Imported `RecordPaymentModal`
+  - [x] Imported `RecordPaymentModal` and `PaymentHistoryList`
   - [x] Added `showPaymentModal` state
-  - [x] Added "Record Payment" button in side panel header
+  - [x] Added "💰 Record Payment" button in side panel header
   - [x] Conditional button (hidden when `payment_status === 'paid'`)
   - [x] Wired modal with correct props (`entityType="sales_order"`)
-  - [x] Success callback refreshes data
+  - [x] Added Payment History section above Activity Log
+  - [x] Success callback refreshes data to show updated status
 
 - [x] **Invoices.tsx Integration**
-  - [x] Imported `RecordPaymentModal`
+  - [x] Imported `RecordPaymentModal` and `PaymentHistoryList`
   - [x] Added `showPaymentModal` state
-  - [x] Added "Record Payment" button in side panel header
+  - [x] Added "💰 Record Payment" button in side panel header
   - [x] Conditional button (hidden when `status === 'paid' OR 'cancelled'`)
   - [x] Wired modal with correct props (`entityType="invoice"`)
-  - [x] Success callback refreshes data
+  - [x] Added Payment History section above Activity Log
+  - [x] Success callback refreshes data to show updated status
 
 ### Documentation (100% Complete)
 
