@@ -13,7 +13,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
@@ -83,7 +83,7 @@ const EmptyIcon = styled.div`
 const EmptyTitle = styled.h3`
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 10px;
 `;
 
@@ -123,7 +123,7 @@ const TableHeaderCell = styled.th`
   text-align: left;
   padding: 16px 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -209,7 +209,7 @@ const FormTitle = styled.h2`
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
 `;
 
 const CloseButton = styled.button`
@@ -226,7 +226,7 @@ const CloseButton = styled.button`
   justify-content: center;
 
   &:hover {
-    color: #2c3e50;
+    color: rgb(var(--color-text-primary));
   }
 `;
 
@@ -242,7 +242,7 @@ const Label = styled.label`
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 

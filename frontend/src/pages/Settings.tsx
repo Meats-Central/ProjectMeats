@@ -660,7 +660,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
@@ -715,7 +715,7 @@ const SectionIcon = styled.div`
 const SectionTitle = styled.h3`
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
@@ -750,7 +750,7 @@ const SettingInfo = styled.div`
 const SettingLabel = styled.div`
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 4px;
 `;
 
@@ -787,7 +787,7 @@ const Select = styled.select`
   border: 2px solid #e9ecef;
   border-radius: 6px;
   font-size: 14px;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   background: rgb(var(--color-surface));
   color: rgb(var(--color-surface-foreground));
   cursor: pointer;

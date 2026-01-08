@@ -36,7 +36,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
