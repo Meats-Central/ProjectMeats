@@ -159,8 +159,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
 const SidebarContainer = styled.div<{ $isOpen: boolean; $theme: Theme; $isDarkMode: boolean }>`
   width: ${(props) => (props.$isOpen ? '260px' : '64px')};
   height: 100vh;
-  background: ${(props) => props.$isDarkMode ? '#0f172a' : '#ffffff'};
-  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-text-primary));
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -200,8 +200,8 @@ const LogoIconWrapper = styled.div<{ $isDarkMode: boolean }>`
   align-items: center;
   justify-content: center;
   background: ${(props) => props.$isDarkMode 
-    ? 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)' 
-    : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'};
+    ? 'linear-gradient(135deg, rgba(var(--color-primary), 0.8), rgba(var(--color-primary), 1))' 
+    : 'linear-gradient(135deg, rgb(var(--color-primary)), rgba(var(--color-primary), 0.8))'};
   border-radius: 8px;
   font-size: 18px;
 `;
@@ -218,7 +218,7 @@ const LogoText = styled.h2<{ $isDarkMode: boolean }>`
   font-weight: 600;
   margin: 0;
   white-space: nowrap;
-  color: ${(props) => props.$isDarkMode ? '#ffffff' : '#1e293b'};
+  color: rgb(var(--color-text-primary));
   letter-spacing: 0.01em;
 `;
 
@@ -229,27 +229,27 @@ const PinButton = styled.button<{ $theme: Theme; $active: boolean; $isDarkMode: 
   width: 32px;
   height: 32px;
   background: ${(props) => props.$active 
-    ? 'rgba(124, 58, 237, 0.2)' 
+    ? 'rgba(var(--color-primary), 0.2)' 
     : 'transparent'};
   border: none;
   border-radius: 6px;
   color: ${(props) => props.$active 
-    ? '#7c3aed' 
+    ? 'rgb(var(--color-primary))' 
     : props.$isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.4)'};
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
     background: ${(props) => props.$active 
-      ? 'rgba(124, 58, 237, 0.3)' 
+      ? 'rgba(var(--color-primary), 0.3)' 
       : props.$isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
     color: ${(props) => props.$active 
-      ? '#7c3aed' 
-      : props.$isDarkMode ? '#ffffff' : '#1e293b'};
+      ? 'rgb(var(--color-primary))' 
+      : 'rgb(var(--color-text-primary))'};
   }
 
   &:focus-visible {
-    outline: 2px solid #7c3aed;
+    outline: 2px solid rgb(var(--color-primary));
     outline-offset: 2px;
   }
 `;
