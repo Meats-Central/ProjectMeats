@@ -15,9 +15,11 @@ from apps.core.models import (
     AccountingPaymentTermsChoices,
     AppointmentMethodChoices,
     CarrierReleaseFormatChoices,
+    ChangeTypeChoices,
     CreditLimitChoices,
     EdibleInedibleChoices,
     FreshOrFrozenChoices,
+    LoadStatusChoices,
     NetOrCatchChoices,
     PackageTypeChoices,
     ProteinTypeChoices,
@@ -575,7 +577,7 @@ class ColdStorageEntry(TimestampModel):
     # Status and dates
     status_of_load = models.CharField(
         max_length=50,
-        choices=[("Matched", "Matched"), ("TBD - Not Matched", "TBD - Not Matched")],
+        choices=LoadStatusChoices.choices,
         blank=True,
         default="",
         help_text="Load matching status",
@@ -680,12 +682,8 @@ class PurchaseOrderHistory(TimestampModel):
     )
     change_type = models.CharField(
         max_length=20,
-        choices=[
-            ("created", "Created"),
-            ("updated", "Updated"),
-            ("deleted", "Deleted"),
-        ],
-        default="updated",
+        choices=ChangeTypeChoices.choices,
+        default=ChangeTypeChoices.UPDATED,
         help_text="Type of change made",
     )
 

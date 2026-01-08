@@ -273,6 +273,24 @@ class LoadStatusChoices(models.TextChoices):
     TBD_NOT_MATCHED = "TBD - Not Matched", "TBD - Not Matched"
 
 
+class ChangeTypeChoices(models.TextChoices):
+    """Common choices for change/history tracking."""
+
+    CREATED = "created", "Created"
+    UPDATED = "updated", "Updated"
+    DELETED = "deleted", "Deleted"
+
+
+class CarrierTypeChoices(models.TextChoices):
+    """Common choices for carrier types."""
+
+    TRUCK = "truck", "Truck"
+    RAIL = "rail", "Rail"
+    AIR = "air", "Air"
+    SEA = "sea", "Sea"
+    OTHER = "other", "Other"
+
+
 class StatusChoices(models.TextChoices):
     """Common status choices for entities."""
 

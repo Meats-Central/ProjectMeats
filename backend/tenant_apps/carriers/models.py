@@ -13,6 +13,7 @@ from apps.core.models import (
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
     CarrierDepartmentChoices,
+    CarrierTypeChoices,
     CreditLimitChoices,
     TenantManager,
 )
@@ -22,13 +23,6 @@ from tenant_apps.contacts.models import Contact
 class Carrier(models.Model):
     # Use custom manager for multi-tenancy
     objects = TenantManager()
-    CARRIER_TYPE_CHOICES = [
-        ("truck", "Truck"),
-        ("rail", "Rail"),
-        ("air", "Air"),
-        ("sea", "Sea"),
-        ("other", "Other"),
-    ]
 
     # Multi-tenancy
     tenant = models.ForeignKey(
@@ -41,7 +35,7 @@ class Carrier(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
     carrier_type = models.CharField(
-        max_length=20, choices=CARRIER_TYPE_CHOICES, default="truck"
+        max_length=20, choices=CarrierTypeChoices.choices, default=CarrierTypeChoices.TRUCK
     )
     contact_person = models.CharField(max_length=100, blank=True, default='')
     phone = models.CharField(max_length=20, blank=True, default='')
