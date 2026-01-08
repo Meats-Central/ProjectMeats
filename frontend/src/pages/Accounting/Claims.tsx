@@ -472,7 +472,7 @@ export const Claims: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.get('/api/v1/claims/', {
+      const response = await apiClient.get('claims/', {
         params: {
           type: activeTab,
         },

@@ -335,7 +335,7 @@ const ReceivableSOs: React.FC = () => {
         params.payment_status = statusFilter;
       }
       
-      const response = await apiClient.get('/api/v1/sales-orders/', { params });
+      const response = await apiClient.get('sales-orders/', { params });
       
       // Transform orders to include payment status (mocked for now - backend enhancement needed)
       const ordersWithPaymentStatus = response.data.results || response.data;

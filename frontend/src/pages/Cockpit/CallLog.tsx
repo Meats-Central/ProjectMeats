@@ -360,7 +360,7 @@ export const CallLog: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.get('/api/v1/cockpit/scheduled-calls/');
+      const response = await apiClient.get('cockpit/scheduled-calls/');
       const callsData = response.data;
 
       // Sort by scheduled_for (upcoming first)
@@ -388,7 +388,7 @@ export const CallLog: React.FC = () => {
 
   const handleCompleteCall = async (callId: number) => {
     try {
-      await apiClient.patch(`/api/v1/cockpit/scheduled-calls/${callId}/`, {
+      await apiClient.patch(`cockpit/scheduled-calls/${callId}/`, {
         is_completed: true,
         outcome: 'Completed from call log',
       });
