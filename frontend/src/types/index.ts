@@ -97,9 +97,12 @@ export interface UploadedDocument {
 export interface Location {
   id: string;
   name: string;
+  location_type: 'plant' | 'warehouse' | 'distribution_center';
   address: string;
   city: string;
-  state_zip: string;
+  state_province: string;
+  zip_postal_code: string;
+  country: string;
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;
@@ -107,6 +110,7 @@ export interface Location {
   plant_est_number?: string;
   supplier?: string;
   customer?: string;
+  tenant: string;
   created_on: string;
   modified_on: string;
 }
@@ -117,8 +121,9 @@ export interface Location {
 export interface LocationListItem {
   id: string;
   name: string;
+  location_type: string;
   city: string;
-  state_zip: string;
+  state_province: string;
 }
 
 /**
