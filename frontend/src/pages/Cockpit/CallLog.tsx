@@ -433,7 +433,7 @@ export const CallLog: React.FC = () => {
       <ScheduleCallModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
-        onSuccess={fetchCalls}
+        onSuccess={fetchScheduledCalls}
       />
 
       <SplitPaneContainer>
