@@ -50,13 +50,17 @@ class ActivityLog(TimestampModel):
         help_text="Tenant this activity log belongs to"
     )
     
-    # Entity tracking (Generic Foreign Key for flexibility)
+    # Entity tracking (Generic Foreign Key for flexibility - optional)
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         help_text="Type of entity this log relates to"
     )
     object_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
         help_text="ID of the related entity"
     )
     content_object = GenericForeignKey('content_type', 'object_id')

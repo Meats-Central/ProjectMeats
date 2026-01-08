@@ -56,7 +56,12 @@ class Command(BaseCommand):
         if tenant_id:
             tenant = Tenant.objects.get(id=tenant_id)
         else:
-            tenant = Tenant.objects.first()
+            # Try to use "Seed Test Tenant" which has logistics data
+            try:
+                tenant = Tenant.objects.get(name='Seed Test Tenant')
+            except Tenant.DoesNotExist:
+                tenant = Tenant.objects.first()
+            
             if not tenant:
                 self.stdout.write(self.style.ERROR('❌ No tenants found. Run seed_tenants first.'))
                 return
@@ -83,15 +88,13 @@ class Command(BaseCommand):
             self._clear_data(tenant)
 
         # Seed in order (respecting dependencies)
-        # self.seed_plants(tenant, count=5)  # Skip - needs suppliers
-        self.seed_carriers(tenant, count=3)
-        self.seed_contacts(tenant, count=15)
-        # self.seed_products(tenant, count=8)  # Skip - complex model
-        # self.seed_sales_orders(tenant, user, count=count)  # Skip - needs products/customers
-        # self.seed_invoices(tenant, count=count)  # Skip - needs customers
-        self.seed_claims(tenant, user, count=5)
-        self.seed_activity_logs(tenant, user, count=20)
-        self.seed_scheduled_calls(tenant, user, count=5)
+        # Skip carriers/contacts - they may already exist from seed_logistics_data
+        self.stdout.write('ℹ️  Skipping Carriers/Contacts (assumed to exist from seed_logistics_data)')
+        
+        # Only seed the new models we created
+        self.seed_claims(tenant, user, count=int(count * 0.5))  # Half the count for claims
+        self.seed_activity_logs(tenant, user, count=count)
+        self.seed_scheduled_calls(tenant, user, count=int(count * 0.3))  # Fewer scheduled calls
 
         self.stdout.write(self.style.SUCCESS('\n✅ Seeding complete!'))
         self.stdout.write(self.style.SUCCESS(f'🎉 Created data for tenant: {tenant.name}'))
@@ -366,6 +369,7 @@ class Command(BaseCommand):
         for i in range(count):
             entity_type, entity_id, entity_name = random.choice(entities)
             
+            # Don't set content_type/object_id - use entity_type/entity_id instead
             log = ActivityLog.objects.create(
                 tenant=tenant,
                 entity_type=entity_type,
