@@ -1,5 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import { apiService, Supplier } from '../services/apiService';
+
+const TestButton = styled.button`
+  background-color: rgb(var(--color-primary));
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 1;
+  transition: background-color 0.2s, opacity 0.2s;
+
+  &:hover {
+    background-color: rgb(var(--color-primary-hover));
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
 
 const ApiTestComponent: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -54,21 +75,9 @@ const ApiTestComponent: React.FC = () => {
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>🧪 API Test Component</h2>
       <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={testCreateSupplier}
-          disabled={loading}
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
+        <TestButton onClick={testCreateSupplier} disabled={loading}>
           {loading ? '⏳ Creating...' : '✨ Test Create Supplier'}
-        </button>
+        </TestButton>
       </div>
 
       {error && (
