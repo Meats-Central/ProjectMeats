@@ -18,7 +18,7 @@ const Title = styled.h1`
 `;
 
 const AddButton = styled.button`
-  background: #007bff;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 12px 24px;
@@ -29,7 +29,7 @@ const AddButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #0056b3;
+    background: rgb(var(--color-primary-hover));
     transform: translateY(-1px);
   }
 `;
@@ -53,7 +53,7 @@ const StatCard = styled.div`
 const StatNumber = styled.div`
   font-size: 32px;
   font-weight: 700;
-  color: #007bff;
+  color: rgb(var(--color-primary));
   margin-bottom: 8px;
 `;
 
@@ -256,7 +256,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: rgb(var(--color-primary));
   }
 `;
 
@@ -270,7 +270,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: rgb(var(--color-primary));
   }
 `;
 
@@ -297,7 +297,7 @@ const CancelButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  background: #007bff;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 10px 20px;
@@ -307,7 +307,7 @@ const SubmitButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #0056b3;
+    background: rgb(var(--color-primary-hover));
   }
 `;
 
