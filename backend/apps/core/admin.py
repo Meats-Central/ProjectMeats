@@ -50,6 +50,37 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         # If no tenant field, return all (for non-tenanted models like User, Group, etc.)
         return qs
     
+    def has_module_permission(self, request):
+        """
+        Allow staff users with an active tenant to see the app modules.
+        
+        - Superusers see everything
+        - Staff users with active tenant association can see modules
+        """
+        if request.user.is_superuser:
+            return True
+        return TenantUser.objects.filter(user=request.user, is_active=True).exists()
+    
+    def has_view_permission(self, request, obj=None):
+        """
+        Allow staff users with an active tenant to view model instances.
+        
+        - Superusers can view everything
+        - Staff users with active tenant can view their tenant's data
+        """
+        if request.user.is_superuser:
+            return True
+        
+        # If checking a specific object, ensure it belongs to their tenant
+        if obj is not None and hasattr(obj, 'tenant'):
+            user_tenants = TenantUser.objects.filter(
+                user=request.user, 
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            return obj.tenant_id in user_tenants
+            
+        return TenantUser.objects.filter(user=request.user, is_active=True).exists()
+    
     def has_add_permission(self, request):
         """
         Check if user can add objects.
