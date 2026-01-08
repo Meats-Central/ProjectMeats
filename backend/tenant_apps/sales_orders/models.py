@@ -48,8 +48,7 @@ class SalesOrder(TimestampModel):
     # Order identification
     our_sales_order_num = models.CharField(
         max_length=100,
-        unique=True,
-        help_text="Our sales order number",
+        help_text="Our sales order number (unique per tenant)",
     )
     date_time_stamp = models.DateTimeField(
         auto_now_add=True,
@@ -207,6 +206,12 @@ class SalesOrder(TimestampModel):
         verbose_name_plural = "Sales Orders"
         indexes = [
             models.Index(fields=['tenant', 'our_sales_order_num']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'our_sales_order_num'],
+                name='unique_tenant_sales_order_num'
+            ),
         ]
 
     def __str__(self):
