@@ -317,7 +317,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         },
       });
 
-      setActivities(response.data);
+      setActivities(response.data.results || response.data);
     } catch (err: any) {
       console.error('Failed to fetch activity logs:', err);
       setError(err.response?.data?.detail || 'Failed to load activity logs');
