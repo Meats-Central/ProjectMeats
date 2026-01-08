@@ -20,7 +20,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
 import { apiClient } from '../../services/apiService';
-import { formatCurrency, formatDate, formatDateTime } from '../../shared/utils';
+import { formatCurrency } from '../../shared/utils';
+import { formatDateLocal, formatToLocal } from '../../utils/formatters';
 
 // ============================================================================
 // TypeScript Interfaces
@@ -625,7 +626,7 @@ export const Claims: React.FC = () => {
                           ? `Supplier #${claim.supplier}` 
                           : `Customer #${claim.customer}`}
                       </TableCell>
-                      <TableCell>{formatDate(claim.claim_date)}</TableCell>
+                      <TableCell>{formatDateLocal(claim.claim_date)}</TableCell>
                       <TableCell>{formatCurrency(parseFloat(claim.claimed_amount))}</TableCell>
                       <TableCell>{claim.description.substring(0, 50)}...</TableCell>
                       <TableCell>
@@ -698,7 +699,7 @@ export const Claims: React.FC = () => {
 
               <DetailSection>
                 <DetailLabel>Date Filed</DetailLabel>
-                <DetailValue>{formatDateTime(selectedClaim.claim_date)}</DetailValue>
+                <DetailValue>{formatToLocal(selectedClaim.claim_date)}</DetailValue>
               </DetailSection>
 
               <DetailSection>

@@ -18,7 +18,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardContent } from '../ui/Card';
-import { formatDateTime } from '../../shared/utils';
+import { formatToLocal } from '../../utils/formatters';
 import { apiClient } from '../../services/apiService';
 
 // ============================================================================
@@ -431,7 +431,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                       {activity.created_by_name || 'Unknown User'}
                     </MetaText>
                     <MetaText>
-                      {formatDateTime(activity.created_on)}
+                      {formatToLocal(activity.created_on)}
                     </MetaText>
                   </ActivityMeta>
                 </ActivityHeader>

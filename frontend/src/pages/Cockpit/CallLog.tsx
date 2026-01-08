@@ -22,7 +22,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
 import { apiClient } from '../../services/apiService';
-import { formatDateTime, formatDate } from '../../shared/utils';
+import { formatToLocal, formatDateLocal } from '../../utils/formatters';
 
 // ============================================================================
 // TypeScript Interfaces
@@ -467,7 +467,7 @@ export const CallLog: React.FC = () => {
                       <CallDetails>
                         <CallMeta>
                           <CallIcon>🕐</CallIcon>
-                          {formatDateTime(call.scheduled_for)}
+                          {formatToLocal(call.scheduled_for)}
                         </CallMeta>
                         <CallMeta>
                           <CallIcon>⏱</CallIcon>
