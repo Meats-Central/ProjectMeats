@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import InputMask from 'react-input-mask';
+import InputMask from '@mona-health/react-input-mask';
 import styled from 'styled-components';
 import { Theme } from '../../config/theme';
 import { useTheme } from '../../contexts/ThemeContext';
