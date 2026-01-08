@@ -15,6 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
+import { RecordPaymentModal } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal, formatToLocal } from '../../utils/formatters';
@@ -310,6 +311,27 @@ const CloseButton = styled.button`
   }
 `;
 
+const RecordPaymentButton = styled.button`
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgb(34, 197, 94);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.5);
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
 const DetailSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -361,6 +383,7 @@ const Invoices: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Fetch invoices
   const fetchInvoices = async () => {
@@ -517,7 +540,14 @@ const Invoices: React.FC = () => {
           <SidePanel>
             <SidePanelHeader>
               <SidePanelTitle>{selectedInvoice.invoice_number}</SidePanelTitle>
-              <CloseButton onClick={() => setSelectedInvoice(null)}>×</CloseButton>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' && (
+                  <RecordPaymentButton onClick={() => setShowPaymentModal(true)}>
+                    💰 Record Payment
+                  </RecordPaymentButton>
+                )}
+                <CloseButton onClick={() => setSelectedInvoice(null)}>×</CloseButton>
+              </div>
             </SidePanelHeader>
 
             <DetailSection>
@@ -579,6 +609,19 @@ const Invoices: React.FC = () => {
                 maxHeight="400px"
               />
             </DetailSection>
+
+            <RecordPaymentModal
+              isOpen={showPaymentModal}
+              onClose={() => setShowPaymentModal(false)}
+              entityType="invoice"
+              entityId={selectedInvoice.id}
+              entityReference={selectedInvoice.invoice_number}
+              outstandingAmount={parseFloat(selectedInvoice.outstanding_amount || selectedInvoice.total_amount || '0')}
+              onSuccess={() => {
+                fetchInvoices();
+                setShowPaymentModal(false);
+              }}
+            />
           </SidePanel>
         )}
       </ContentContainer>

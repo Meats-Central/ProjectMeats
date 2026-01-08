@@ -9,12 +9,13 @@
  * - Filter by payment status (unpaid, partial, paid)
  * - Track outstanding amounts and due dates
  * - Side panel with order details and activity feed
+ * - Record payment functionality with modal
  * 
  * Pattern: Follows Invoices.tsx architecture with side panel integration
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ActivityFeed } from '../../components/Shared/ActivityFeed';
+import { ActivityFeed, RecordPaymentModal } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal } from '../../utils/formatters';
@@ -250,6 +251,27 @@ const CloseButton = styled.button`
   }
 `;
 
+const RecordPaymentButton = styled.button`
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgb(34, 197, 94);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.5);
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
 const DetailSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -300,6 +322,7 @@ const PayablePOs: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'partial' | 'paid'>('all');
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Fetch purchase orders with accounting focus
   const fetchOrders = async () => {
@@ -415,7 +438,14 @@ const PayablePOs: React.FC = () => {
           <SidePanel>
             <SidePanelHeader>
               <SidePanelTitle>{selectedOrder.order_number}</SidePanelTitle>
-              <CloseButton onClick={() => setSelectedOrder(null)}>×</CloseButton>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {selectedOrder.payment_status !== 'paid' && (
+                  <RecordPaymentButton onClick={() => setShowPaymentModal(true)}>
+                    💰 Record Payment
+                  </RecordPaymentButton>
+                )}
+                <CloseButton onClick={() => setSelectedOrder(null)}>×</CloseButton>
+              </div>
             </SidePanelHeader>
 
             <DetailSection>
@@ -472,6 +502,19 @@ const PayablePOs: React.FC = () => {
                 maxHeight="400px"
               />
             </DetailSection>
+
+            <RecordPaymentModal
+              isOpen={showPaymentModal}
+              onClose={() => setShowPaymentModal(false)}
+              entityType="purchase_order"
+              entityId={selectedOrder.id}
+              entityReference={selectedOrder.order_number}
+              outstandingAmount={parseFloat(selectedOrder.outstanding_amount || selectedOrder.total_amount || '0')}
+              onSuccess={() => {
+                fetchOrders();
+                setShowPaymentModal(false);
+              }}
+            />
           </SidePanel>
         )}
       </ContentContainer>
