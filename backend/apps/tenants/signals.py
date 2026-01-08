@@ -72,19 +72,20 @@ def send_invitation_email(sender, instance, created, **kwargs):
             raise
 
 
-@receiver(post_save, sender=TenantUser, dispatch_uid="ensure_owner_has_staff_access")
-def ensure_owner_has_staff_access(sender, instance, created, **kwargs):
+@receiver(post_save, sender=TenantUser, dispatch_uid="ensure_privileged_roles_have_staff_access")
+def ensure_privileged_roles_have_staff_access(sender, instance, created, **kwargs):
     """
-    Automatically grant Django admin access to users with 'owner' role.
+    Automatically grant Django admin access to users with 'owner' or 'admin' roles.
     
-    When a TenantUser is created or updated with role='owner', this signal
-    ensures the associated User has is_staff=True so they can access the
-    Django admin interface.
+    When a TenantUser is created or updated with role='owner' or role='admin',
+    this signal ensures the associated User has is_staff=True so they can access
+    the Django admin interface.
     
     Note: dispatch_uid prevents duplicate signal connections during Django reload.
     """
-    if instance.role == 'owner' and not instance.user.is_staff:
-        logger.info(f"🔑 Granting admin access to owner: {instance.user.username} @ {instance.tenant.slug}")
+    privileged_roles = ['owner', 'admin']
+    if instance.role in privileged_roles and not instance.user.is_staff:
+        logger.info(f"🔑 Granting admin access to {instance.role}: {instance.user.username} @ {instance.tenant.slug}")
         instance.user.is_staff = True
         instance.user.save(update_fields=['is_staff'])
         logger.info(f"✅ Admin access granted to {instance.user.username}")
