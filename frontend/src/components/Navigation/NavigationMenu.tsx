@@ -41,33 +41,30 @@ const ChevronIcon: React.FC<{ isExpanded: boolean }> = ({ isExpanded }) => (
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: sidebarExpanded, level = 0 }) => {
   const { theme, themeName } = useTheme();
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  // Changed from Set to string | null for exclusive accordion (only one open at a time)
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const isDarkMode = themeName === 'dark';
 
   // Auto-expand parent items when a child is active
   useEffect(() => {
-    const findActiveParents = (navItems: NavigationItem[], parents: string[] = []): string[] => {
+    const findActiveParent = (navItems: NavigationItem[]): string | null => {
       for (const item of navItems) {
-        if (item.path === location.pathname) {
-          return parents;
+        if (item.path === location.pathname && item.children) {
+          return item.label;
         }
         if (item.children) {
-          const found = findActiveParents(item.children, [...parents, item.label]);
-          if (found.length > 0) {
-            return found;
+          const found = findActiveParent(item.children);
+          if (found) {
+            return item.label; // Return top-level parent only
           }
         }
       }
-      return [];
+      return null;
     };
     
-    const activeParents = findActiveParents(items);
-    if (activeParents.length > 0) {
-      setExpandedItems(prev => {
-        const newSet = new Set(prev);
-        activeParents.forEach(parent => newSet.add(parent));
-        return newSet;
-      });
+    const activeParent = findActiveParent(items);
+    if (activeParent) {
+      setExpandedItem(activeParent);
     }
   }, [location.pathname, items]);
 
@@ -76,15 +73,8 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       e.preventDefault();
       e.stopPropagation();
     }
-    setExpandedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(label)) {
-        newSet.delete(label);
-      } else {
-        newSet.add(label);
-      }
-      return newSet;
-    });
+    // Exclusive accordion: if clicking the same item, collapse it; otherwise expand the new one
+    setExpandedItem((prev) => (prev === label ? null : label));
   };
 
   const isActive = (item: NavigationItem): boolean => {
@@ -178,7 +168,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     <MenuContainer>
       {items.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
-        const isItemExpanded = expandedItems.has(item.label);
+        const isItemExpanded = expandedItem === item.label; // Changed from Set.has() to direct comparison
         const active = isActive(item);
         const exactActive = isExactActive(item);
 

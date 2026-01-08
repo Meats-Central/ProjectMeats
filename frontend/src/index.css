@@ -68,6 +68,9 @@
   /* --- Typography --- */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --font-mono: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  
+  /* --- Input States --- */
+  --color-input-readonly: 243, 244, 246; /* gray-100 - slightly darker than surface for light mode */
 }
 
 /* Dark theme overrides */
@@ -100,6 +103,9 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  
+  /* --- Input States (Dark Mode) --- */
+  --color-input-readonly: 55, 55, 55; /* Slightly lighter than surface for visibility */
 }
 
 body {
@@ -158,4 +164,32 @@ div, section, article, aside, nav, header, footer, main {
 
 .border-default {
   border-color: rgb(var(--color-border));
+}
+
+/* Fix for readonly inputs in dark mode */
+input[readonly],
+textarea[readonly],
+select[readonly] {
+  background-color: rgb(var(--color-input-readonly)) !important;
+  color: rgb(var(--color-text-primary)) !important;
+  opacity: 0.85;
+  cursor: not-allowed;
+  border-color: rgb(var(--color-border)) !important;
+}
+
+/* Ensure placeholder text is visible in dark mode for readonly fields */
+input[readonly]::placeholder,
+textarea[readonly]::placeholder {
+  color: rgb(var(--color-text-secondary)) !important;
+  opacity: 0.6;
+}
+
+/* Also handle disabled state similarly */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: rgb(var(--color-input-readonly)) !important;
+  color: rgb(var(--color-text-disabled)) !important;
+  opacity: 0.7;
+  cursor: not-allowed;
 }

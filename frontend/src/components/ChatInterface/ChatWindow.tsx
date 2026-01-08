@@ -347,7 +347,7 @@ const FeatureGrid = styled.div`
 `;
 
 const FeatureItem = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
   padding: 24px;
   border-radius: 12px;
   border: 1px solid #e5e7eb;

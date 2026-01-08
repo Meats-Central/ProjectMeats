@@ -137,7 +137,8 @@ const LoginContainer = styled.div`
 `;
 
 const LoginCard = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 16px;
   padding: 40px;
   width: 100%;
@@ -229,7 +230,7 @@ const Input = styled.input`
   }
 
   &:disabled {
-    background-color: #f8f9fa;
+    background-color: rgb(var(--color-surface-hover));
     cursor: not-allowed;
   }
 `;

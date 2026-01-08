@@ -694,7 +694,8 @@ const SettingsContent = styled.div`
 `;
 
 const SettingsSection = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -773,7 +774,8 @@ const ToggleSlider = styled.div<{ $active: boolean }>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   position: absolute;
   top: 2px;
   left: ${(props) => (props.$active ? '26px' : '2px')};
@@ -786,7 +788,8 @@ const Select = styled.select`
   border-radius: 6px;
   font-size: 14px;
   color: #2c3e50;
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   cursor: pointer;
   transition: border-color 0.2s ease;
 
@@ -861,7 +864,8 @@ const LogoPreviewContainer = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
 `;
 
 const LogoPreview = styled.img`

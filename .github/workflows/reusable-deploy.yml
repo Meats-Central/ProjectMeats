@@ -66,6 +66,12 @@ on:
       DJANGO_SETTINGS_MODULE:
         required: false
         description: "Django settings module path (from job environment)"
+      ALLOWED_HOSTS:
+        required: false
+        description: "Django allowed hosts (from job environment)"
+      DEBUG:
+        required: false
+        description: "Django debug mode (from job environment)"
       REACT_APP_API_BASE_URL:
         required: false
         description: "API base URL for frontend runtime config (from job environment)"
@@ -787,7 +793,7 @@ jobs:
             -e BACKEND_HOST="${BACKEND_HOST}" \
             -e DOMAIN_NAME="${DOMAIN_NAME}" \
             -e ENVIRONMENT="${ENVIRONMENT}" \
-            -v /opt/pm/frontend/env:/usr/share/nginx/html/env:ro \
+            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$IMAGE_TAG"
           
           echo "✓ Container started successfully"

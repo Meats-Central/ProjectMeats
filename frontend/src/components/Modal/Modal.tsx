@@ -48,7 +48,7 @@ const ModalBackdrop = styled.div`
 `;
 
 const ModalContainer = styled.div<{ maxWidth: string }>`
-  background: white;
+  background: rgb(var(--color-surface));
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   max-width: ${(props) => props.maxWidth};
@@ -65,7 +65,7 @@ const ModalHeader = styled.div`
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
 `;
 
 const ModalTitle = styled.h2`
