@@ -63,7 +63,7 @@ const StatNumber = styled.div`
 
 const StatLabel = styled.div`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-weight: 500;
 `;
 
@@ -71,7 +71,7 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 60px 20px;
   font-size: 18px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const EmptyState = styled.div`
@@ -92,7 +92,7 @@ const EmptyTitle = styled.h3`
 `;
 
 const EmptyDescription = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 16px;
 `;
 
@@ -222,7 +222,7 @@ const CloseButton = styled.button`
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   padding: 0;
   width: 30px;
   height: 30px;
@@ -308,7 +308,7 @@ const TextArea = styled.textarea`
 const FieldHint = styled.div`
   margin-top: 6px;
   font-size: 12px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-style: italic;
 `;
 
@@ -320,7 +320,7 @@ const FormActions = styled.div`
 `;
 
 const CancelButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   padding: 10px 20px;
@@ -521,7 +521,7 @@ const PurchaseOrders: React.FC = () => {
       case 'cancelled':
         return '#dc3545';
       default:
-        return '#6c757d';
+        return 'rgb(var(--color-text-secondary))';
     }
   };
 

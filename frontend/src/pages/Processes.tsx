@@ -35,7 +35,7 @@ const Processes: React.FC = () => {
       delivered: '#17a2b8',
       cancelled: '#dc3545',
     };
-    return statusColors[status] || '#6c757d';
+    return statusColors[status] || 'rgb(var(--color-text-secondary))';
   };
 
   if (loading) {

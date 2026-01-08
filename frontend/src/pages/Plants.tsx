@@ -41,7 +41,7 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -66,7 +66,7 @@ const Text = styled.h2`
 `;
 
 const SubText = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin-bottom: 30px;
   font-size: 16px;
 `;

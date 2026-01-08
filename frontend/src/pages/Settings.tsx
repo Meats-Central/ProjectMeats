@@ -650,7 +650,7 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 40px;
   font-size: 18px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const Header = styled.div`
@@ -666,7 +666,7 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -721,7 +721,7 @@ const SectionTitle = styled.h3`
 
 const SectionDescription = styled.p`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 4px 0 0 0;
 `;
 
@@ -756,7 +756,7 @@ const SettingLabel = styled.div`
 
 const SettingDescription = styled.div`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const Toggle = styled.button<{ $active: boolean }>`
@@ -806,7 +806,7 @@ const Actions = styled.div`
 `;
 
 const ResetButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   padding: 12px 24px;

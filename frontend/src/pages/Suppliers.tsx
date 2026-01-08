@@ -460,7 +460,7 @@ const FormActions = styled.div`
 `;
 
 const CancelButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   border-radius: 6px;
