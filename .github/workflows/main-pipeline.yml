@@ -41,25 +41,7 @@ jobs:
       backend_environment: 'dev-backend'
       frontend_environment: 'dev-frontend'
       api_base_url: 'https://dev.meatscentral.com'
-    secrets:
-      DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-      DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
-      BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
-      DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
-      DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-      DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-      DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
-      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+    secrets: inherit
 
   # ==========================================
   # Route to UAT
