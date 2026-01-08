@@ -95,6 +95,7 @@ class Command(BaseCommand):
         self.seed_claims(tenant, user, count=int(count * 0.5))  # Half the count for claims
         self.seed_activity_logs(tenant, user, count=count)
         self.seed_scheduled_calls(tenant, user, count=int(count * 0.3))  # Fewer scheduled calls
+        self.seed_payments(tenant, user, count=count * 3)  # Seed payment transactions
 
         self.stdout.write(self.style.SUCCESS('\n✅ Seeding complete!'))
         self.stdout.write(self.style.SUCCESS(f'🎉 Created data for tenant: {tenant.name}'))
@@ -421,3 +422,130 @@ class Command(BaseCommand):
             )
             
             self.stdout.write(f'  ✓ Created scheduled call: {call.title}')
+
+    def seed_payments(self, tenant, user, count=30):
+        """Seed payment transactions and update payment statuses."""
+        from tenant_apps.invoices.models import PaymentTransaction
+        from datetime import date
+        
+        self.stdout.write('💰 Seeding payment transactions...')
+        
+        # Get all orders and invoices
+        pos = list(PurchaseOrder.objects.filter(tenant=tenant))
+        sos = list(SalesOrder.objects.filter(tenant=tenant))
+        invoices = list(Invoice.objects.filter(tenant=tenant))
+        
+        if not (pos or sos or invoices):
+            self.stdout.write(self.style.WARNING('  ⚠️  No orders/invoices found, skipping payments'))
+            return
+        
+        # Define payment status distribution (40% paid, 20% partial, 40% unpaid)
+        payment_statuses = ['paid'] * 4 + ['partial'] * 2 + ['unpaid'] * 4
+        
+        # Update Purchase Orders with payment status
+        for po in pos:
+            status = random.choice(payment_statuses)
+            po.payment_status = status
+            
+            if status == 'paid':
+                po.outstanding_amount = Decimal('0.00')
+            elif status == 'partial':
+                po.outstanding_amount = po.total_amount * Decimal('0.5')  # 50% remaining
+            else:  # unpaid
+                po.outstanding_amount = po.total_amount
+            
+            po.save()
+        
+        # Update Sales Orders with payment status
+        for so in sos:
+            if not so.total_amount:
+                continue
+                
+            status = random.choice(payment_statuses)
+            so.payment_status = status
+            
+            if status == 'paid':
+                so.outstanding_amount = Decimal('0.00')
+            elif status == 'partial':
+                so.outstanding_amount = so.total_amount * Decimal('0.5')  # 50% remaining
+            else:  # unpaid
+                so.outstanding_amount = so.total_amount
+            
+            so.save()
+        
+        # Update Invoices with payment status
+        for inv in invoices:
+            status = random.choice(payment_statuses)
+            inv.payment_status = status
+            
+            if status == 'paid':
+                inv.outstanding_amount = Decimal('0.00')
+                inv.status = 'paid'  # Also update invoice status
+            elif status == 'partial':
+                inv.outstanding_amount = inv.total_amount * Decimal('0.5')  # 50% remaining
+            else:  # unpaid
+                inv.outstanding_amount = inv.total_amount
+            
+            inv.save()
+        
+        self.stdout.write(f'  ✅ Updated payment status for {len(pos)} POs, {len(sos)} SOs, {len(invoices)} Invoices')
+        
+        # Create payment transactions for paid and partial orders
+        payment_methods = ['check', 'wire', 'ach', 'credit_card']
+        created_count = 0
+        
+        # Create payments for Purchase Orders
+        for po in pos:
+            if po.payment_status in ['paid', 'partial']:
+                amount = po.total_amount if po.payment_status == 'paid' else po.total_amount * Decimal('0.5')
+                payment_date = date.today() - timedelta(days=random.randint(1, 30))
+                
+                PaymentTransaction.objects.create(
+                    tenant=tenant,
+                    purchase_order=po,
+                    amount=amount,
+                    payment_date=payment_date,
+                    payment_method=random.choice(payment_methods),
+                    reference_number=f'CHK-{random.randint(10000, 99999)}' if random.choice([True, False]) else f'WIRE-{random.randint(1000, 9999)}',
+                    notes=f'Payment for PO {po.order_number}',
+                    created_by=user
+                )
+                created_count += 1
+        
+        # Create payments for Sales Orders
+        for so in sos:
+            if so.payment_status in ['paid', 'partial'] and so.total_amount:
+                amount = so.total_amount if so.payment_status == 'paid' else so.total_amount * Decimal('0.5')
+                payment_date = date.today() - timedelta(days=random.randint(1, 30))
+                
+                PaymentTransaction.objects.create(
+                    tenant=tenant,
+                    sales_order=so,
+                    amount=amount,
+                    payment_date=payment_date,
+                    payment_method=random.choice(payment_methods),
+                    reference_number=f'CHK-{random.randint(10000, 99999)}' if random.choice([True, False]) else f'WIRE-{random.randint(1000, 9999)}',
+                    notes=f'Payment for SO {so.our_sales_order_num}',
+                    created_by=user
+                )
+                created_count += 1
+        
+        # Create payments for Invoices
+        for inv in invoices:
+            if inv.payment_status in ['paid', 'partial']:
+                amount = inv.total_amount if inv.payment_status == 'paid' else inv.total_amount * Decimal('0.5')
+                payment_date = date.today() - timedelta(days=random.randint(1, 30))
+                
+                PaymentTransaction.objects.create(
+                    tenant=tenant,
+                    invoice=inv,
+                    amount=amount,
+                    payment_date=payment_date,
+                    payment_method=random.choice(payment_methods),
+                    reference_number=f'CHK-{random.randint(10000, 99999)}' if random.choice([True, False]) else f'WIRE-{random.randint(1000, 9999)}',
+                    notes=f'Payment for Invoice {inv.invoice_number}',
+                    created_by=user
+                )
+                created_count += 1
+        
+        self.stdout.write(f'  ✅ Created {created_count} payment transactions')
