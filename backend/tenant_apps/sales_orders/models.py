@@ -25,6 +25,14 @@ class SalesOrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class PaymentStatus(models.TextChoices):
+    """Payment status choices for sales orders."""
+
+    UNPAID = "unpaid", "Unpaid"
+    PARTIAL = "partial", "Partial"
+    PAID = "paid", "Paid"
+
+
 class SalesOrder(TimestampModel):
     """Sales Order model for managing customer sales orders."""
     # Use custom manager for multi-tenancy
@@ -167,6 +175,19 @@ class SalesOrder(TimestampModel):
         choices=SalesOrderStatus.choices,
         default=SalesOrderStatus.PENDING,
         help_text="Current status of the sales order",
+    )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        help_text="Payment status of the sales order",
+    )
+    outstanding_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Outstanding amount (calculated: total - paid)",
     )
     total_amount = models.DecimalField(
         max_digits=10,

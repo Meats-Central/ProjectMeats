@@ -2,7 +2,7 @@
 Serializers for Invoices app.
 """
 from rest_framework import serializers
-from .models import Invoice, Claim
+from .models import Invoice, Claim, PaymentTransaction
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
@@ -44,6 +44,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "total_amount",
             "tax_amount",
             "status",
+            "payment_status",
+            "outstanding_amount",
             "notes",
             "created_on",
             "modified_on",
@@ -96,4 +98,48 @@ class ClaimSerializer(serializers.ModelSerializer):
         """Get the name of the user this claim is assigned to."""
         if obj.assigned_to:
             return f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip() or obj.assigned_to.username
+        return None
+
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    """Serializer for PaymentTransaction model."""
+    
+    created_by_name = serializers.SerializerMethodField()
+    entity_type = serializers.SerializerMethodField()
+    entity_reference = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PaymentTransaction
+        fields = [
+            'id', 'tenant', 'purchase_order', 'sales_order', 'invoice',
+            'amount', 'payment_date', 'payment_method', 'reference_number',
+            'notes', 'created_by', 'created_by_name', 'created_on', 'updated_on',
+            'entity_type', 'entity_reference'
+        ]
+        read_only_fields = ['id', 'tenant', 'created_on', 'updated_on', 'created_by_name', 'entity_type', 'entity_reference']
+    
+    def get_created_by_name(self, obj):
+        """Get the name of the user who created the payment."""
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
+        return "System"
+    
+    def get_entity_type(self, obj):
+        """Determine what type of entity this payment is for."""
+        if obj.purchase_order:
+            return "purchase_order"
+        elif obj.sales_order:
+            return "sales_order"
+        elif obj.invoice:
+            return "invoice"
+        return None
+    
+    def get_entity_reference(self, obj):
+        """Get a human-readable reference for the related entity."""
+        if obj.purchase_order:
+            return obj.purchase_order.order_number
+        elif obj.sales_order:
+            return obj.sales_order.our_sales_order_num
+        elif obj.invoice:
+            return obj.invoice.invoice_number
         return None

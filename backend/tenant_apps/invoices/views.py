@@ -5,8 +5,8 @@ Provides REST API endpoints for invoice and claim management with strict multi-t
 """
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from tenant_apps.invoices.models import Invoice, Claim
-from tenant_apps.invoices.serializers import InvoiceSerializer, ClaimSerializer
+from tenant_apps.invoices.models import Invoice, Claim, PaymentTransaction
+from tenant_apps.invoices.serializers import InvoiceSerializer, ClaimSerializer, PaymentTransactionSerializer
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):
@@ -68,3 +68,26 @@ class ClaimViewSet(viewsets.ModelViewSet):
             created_by=self.request.user
         )
 
+
+
+class PaymentTransactionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for PaymentTransaction model.
+    
+    Handles creating payment transactions and automatically updating
+    the related order/invoice payment status.
+    """
+    queryset = PaymentTransaction.objects.all()
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter payments by tenant."""
+        return super().get_queryset().filter(tenant=self.request.tenant)
+    
+    def perform_create(self, serializer):
+        """Set tenant and created_by when creating payment."""
+        serializer.save(
+            tenant=self.request.tenant,
+            created_by=self.request.user
+        )
