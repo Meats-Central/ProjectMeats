@@ -4,7 +4,7 @@
  * ProjectMeats3 React Application
  * Full Business Management System with AI Assistant
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { NavigationProvider } from './contexts/NavigationContext';
@@ -33,6 +33,57 @@ import { ComingSoon } from './pages/ComingSoon';
 import ApiTestComponent from './components/ApiTestComponent';
 
 const App: React.FC = () => {
+  // Dynamic favicon and title based on environment
+  useEffect(() => {
+    const updateFaviconAndTitle = () => {
+      // Get environment from runtime config (set by deployment pipeline)
+      // Falls back to build-time env or 'development' for local dev
+      const environment = 
+        window.ENV?.ENVIRONMENT || 
+        (typeof import.meta !== 'undefined' ? import.meta.env?.MODE : undefined) ||
+        (typeof process !== 'undefined' ? process.env?.NODE_ENV : undefined) ||
+        'development';
+
+      // Normalize environment string
+      const env = environment.toLowerCase();
+
+      // Select favicon and title prefix based on environment
+      let faviconPath = '/favicon.ico'; // Default production (red MC)
+      let titlePrefix = '';
+
+      if (env === 'development' || env === 'dev') {
+        faviconPath = '/favicon-dev.ico'; // Green DEV
+        titlePrefix = '[DEV] ';
+      } else if (env === 'uat' || env === 'staging') {
+        faviconPath = '/favicon-uat.ico'; // Yellow UAT
+        titlePrefix = '[UAT] ';
+      }
+
+      // Update favicon
+      let faviconLink = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+      if (!faviconLink) {
+        // Create favicon link if it doesn't exist
+        faviconLink = document.createElement('link');
+        faviconLink.rel = 'icon';
+        document.head.appendChild(faviconLink);
+      }
+      faviconLink.href = faviconPath;
+
+      // Update page title with environment prefix
+      const baseTitle = 'ProjectMeats';
+      if (!document.title.startsWith('[')) {
+        document.title = titlePrefix + baseTitle;
+      }
+
+      // Log for debugging (only in development)
+      if (env === 'development' || env === 'dev') {
+        console.log(`[Environment] ${env} - Favicon: ${faviconPath}`);
+      }
+    };
+
+    updateFaviconAndTitle();
+  }, []); // Run once on mount
+
   return (
     <AuthProvider>
       <ThemeProvider>
