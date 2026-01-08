@@ -396,7 +396,7 @@ const Invoices: React.FC = () => {
         params.status = statusFilter;
       }
       
-      const response = await apiClient.get('/api/v1/invoices/', { params });
+      const response = await apiClient.get('invoices/', { params });
       const invoicesData = response.data.results || response.data;
       
       // Calculate outstanding amounts (mocked for now - backend enhancement needed)
