@@ -48,7 +48,8 @@ const StatsCards = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   padding: 24px;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -99,27 +100,28 @@ const EmptyDescription = styled.p`
 
 const Table = styled.table`
   width: 100%;
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const TableHeader = styled.thead`
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
 `;
 
 const TableBody = styled.tbody``;
 
 const TableRow = styled.tr`
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgb(var(--color-border));
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background-color: #f8f9fa;
+    background-color: rgb(var(--color-surface-hover));
   }
 `;
 
@@ -182,7 +184,8 @@ const FormOverlay = styled.div`
 `;
 
 const FormContainer = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 0;
   width: 90%;
@@ -196,7 +199,7 @@ const FormHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgb(var(--color-border));
 `;
 
 const FormTitle = styled.h2`

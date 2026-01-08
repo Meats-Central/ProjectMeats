@@ -44,11 +44,14 @@ const StatsCards = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   text-align: center;
+  border: 1px solid rgb(var(--color-border));
+  transition: box-shadow 0.2s ease, background-color 0.3s ease;
 `;
 
 const StatNumber = styled.div`
@@ -95,27 +98,28 @@ const EmptyDescription = styled.p`
 
 const Table = styled.table`
   width: 100%;
-  background: white;
+  background: rgb(var(--color-surface));
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgb(var(--color-border));
 `;
 
 const TableHeader = styled.thead`
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
 `;
 
 const TableBody = styled.tbody``;
 
 const TableRow = styled.tr`
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgb(var(--color-border));
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background-color: #f8f9fa;
+    background-color: rgb(var(--color-surface-hover));
   }
 `;
 
@@ -187,13 +191,15 @@ const FormOverlay = styled.div`
 `;
 
 const FormContainer = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 0;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid rgb(var(--color-border));
 `;
 
 const FormHeader = styled.div`
@@ -702,7 +708,6 @@ const PurchaseOrders: React.FC = () => {
                   placeholder={editingPurchaseOrder ? '' : `Suggested: ${getNextOrderNumber()}`}
                   readOnly={!editingPurchaseOrder}
                   style={{ 
-                    backgroundColor: !editingPurchaseOrder ? '#f8f9fa' : 'white',
                     cursor: !editingPurchaseOrder ? 'not-allowed' : 'text'
                   }}
                 />

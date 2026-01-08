@@ -48,7 +48,8 @@ const Subtitle = styled.p`
 
 const ChatContainer = styled.div`
   flex: 1;
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   overflow: hidden;
