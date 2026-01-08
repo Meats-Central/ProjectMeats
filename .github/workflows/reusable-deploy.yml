@@ -66,9 +66,6 @@ on:
       DJANGO_SETTINGS_MODULE:
         required: false
         description: "Django settings module path (from job environment)"
-      REACT_APP_API_BASE_URL:
-        required: false
-        description: "API base URL for frontend runtime config (from job environment)"
       BACKEND_HOST:
         required: false
         description: "Backend host IP/hostname for nginx proxy and Docker networking (from job environment)"
