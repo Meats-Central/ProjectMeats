@@ -438,7 +438,7 @@ const FooterText = styled.p`
 `;
 
 const FooterNote = styled.p`
-  color: #8a8a8a;
+  color: rgb(var(--color-text-secondary));
   font-size: 12px;
   margin: 0;
   font-style: italic;
@@ -479,7 +479,7 @@ const SuccessMessage = styled.p`
 `;
 
 const SuccessSubMessage = styled.p`
-  color: #8a8a8a;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
   margin: 0;
   font-style: italic;

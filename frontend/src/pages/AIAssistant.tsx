@@ -42,7 +42,7 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
