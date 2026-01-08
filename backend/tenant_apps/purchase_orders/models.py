@@ -67,7 +67,7 @@ class PurchaseOrder(TimestampModel):
         help_text="Tenant this purchase order belongs to"
     )
 
-    order_number = models.CharField(max_length=50, unique=True, help_text="Unique order number")
+    order_number = models.CharField(max_length=50, help_text="Order number (unique per tenant)")
     supplier = models.ForeignKey(
         "suppliers.Supplier",
         on_delete=models.CASCADE,
@@ -327,6 +327,12 @@ class PurchaseOrder(TimestampModel):
         indexes = [
             models.Index(fields=['tenant', 'order_number']),
             models.Index(fields=['tenant', 'order_date']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'order_number'],
+                name='unique_tenant_purchase_order_number'
+            ),
         ]
 
     def __str__(self):

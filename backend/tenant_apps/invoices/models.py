@@ -51,8 +51,7 @@ class Invoice(TimestampModel):
     # Invoice identification
     invoice_number = models.CharField(
         max_length=100,
-        unique=True,
-        help_text="Unique invoice number",
+        help_text="Invoice number (unique per tenant)",
     )
     date_time_stamp = models.DateTimeField(
         auto_now_add=True,
@@ -234,6 +233,12 @@ class Invoice(TimestampModel):
         indexes = [
             models.Index(fields=['tenant', 'invoice_number']),
             models.Index(fields=['tenant', 'status']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'invoice_number'],
+                name='unique_tenant_invoice_number'
+            ),
         ]
 
     def __str__(self):
