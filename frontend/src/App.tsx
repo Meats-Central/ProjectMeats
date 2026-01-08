@@ -23,6 +23,7 @@ import Plants from './pages/Plants';
 import Carriers from './pages/Carriers';
 import AIAssistant from './pages/AIAssistant';
 import Cockpit from './pages/Cockpit';
+import CallLog from './pages/Cockpit/CallLog';
 import Processes from './pages/Processes';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
@@ -130,6 +131,7 @@ const App: React.FC = () => {
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="cockpit" element={<Cockpit />} />
+                <Route path="cockpit/call-log" element={<CallLog />} />
                 <Route path="processes" element={<Processes />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
