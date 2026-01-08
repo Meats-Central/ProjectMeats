@@ -3,7 +3,7 @@ Django admin configuration for Invoices app.
 """
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Invoice
+from .models import Invoice, Claim
 
 
 @admin.register(Invoice)
@@ -126,3 +126,31 @@ class InvoiceAdmin(TenantFilteredAdmin):
         ),
     )
 
+
+
+@admin.register(Claim)
+class ClaimAdmin(TenantFilteredAdmin):
+    """Admin interface for Claim model with tenant filtering."""
+    
+    list_display = (
+        "claim_number",
+        "claim_type",
+        "status",
+        "claimed_amount",
+        "claim_date",
+        "assigned_to",
+    )
+    list_filter = (
+        "claim_type",
+        "status",
+        "claim_date",
+        "resolution_date",
+    )
+    search_fields = (
+        "claim_number",
+        "reason",
+        "description",
+        "resolution_notes",
+    )
+    readonly_fields = ("created_on", "modified_on")
+    raw_id_fields = ("supplier", "customer", "purchase_order", "sales_order", "invoice", "assigned_to", "created_by")
