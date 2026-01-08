@@ -27,6 +27,10 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         """
         qs = super().get_queryset(request)
         
+        # Anonymous users get no data
+        if not request.user.is_authenticated:
+            return qs.none()
+        
         # Superusers see all data
         if request.user.is_superuser:
             return qs
@@ -57,6 +61,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         - Superusers see everything
         - Staff users with active tenant association can see modules
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         return TenantUser.objects.filter(user=request.user, is_active=True).exists()
@@ -68,6 +74,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         - Superusers can view everything
         - Staff users with active tenant can view their tenant's data
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -87,6 +95,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         
         Requires user to have at least one active tenant association.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -102,6 +112,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         
         If obj is provided, ensure it belongs to user's tenant.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -125,6 +137,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         
         Only owners and admins can delete. Managers and below cannot.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -184,7 +198,7 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         Security: Prevents tenant admins from seeing or selecting other tenants.
         For any ForeignKey to Tenant model, restrict choices to user's active tenants.
         """
-        if db_field.name == "tenant" and not request.user.is_superuser:
+        if db_field.name == "tenant" and request.user.is_authenticated and not request.user.is_superuser:
             # Import here to avoid circular dependency
             from apps.tenants.models import Tenant
             
