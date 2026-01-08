@@ -56,7 +56,7 @@ const Login: React.FC = () => {
         <Header>
           <LogoSection>
             <Logo>🥩</Logo>
-            <LogoText>ProjectMeats</LogoText>
+            <LogoText>Meats Central</LogoText>
           </LogoSection>
           <Title>Sign In</Title>
           <Subtitle>Access your business management dashboard</Subtitle>

@@ -311,7 +311,7 @@ const Dashboard: React.FC = () => {
         <HeaderTop>
           <TitleSection>
             <Title $theme={theme}>Dashboard</Title>
-            <Subtitle $theme={theme}>Welcome to ProjectMeats Business Management System</Subtitle>
+            <Subtitle $theme={theme}>Welcome to Meats Central Business Management System</Subtitle>
           </TitleSection>
           <RefreshButton onClick={handleRefresh} $theme={theme}>🔄 Refresh Data</RefreshButton>
         </HeaderTop>

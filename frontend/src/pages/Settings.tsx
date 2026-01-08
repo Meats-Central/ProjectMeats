@@ -313,7 +313,7 @@ const Settings: React.FC = () => {
     <Container>
       <Header>
         <Title>Settings</Title>
-        <Subtitle>Customize your ProjectMeats experience</Subtitle>
+        <Subtitle>Customize your Meats Central experience</Subtitle>
       </Header>
 
       {message && (

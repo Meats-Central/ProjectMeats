@@ -112,7 +112,7 @@ const SignUp: React.FC = () => {
             <SuccessIcon>✅</SuccessIcon>
             <SuccessTitle>Account Created Successfully!</SuccessTitle>
             <SuccessMessage>
-              Welcome to ProjectMeats! Your account has been created and you're now logged in.
+              Welcome to Meats Central! Your account has been created and you're now logged in.
             </SuccessMessage>
             <SuccessSubMessage>Redirecting you to the dashboard...</SuccessSubMessage>
           </SuccessContent>
@@ -127,10 +127,10 @@ const SignUp: React.FC = () => {
         <Header>
           <LogoSection>
             <Logo>🥩</Logo>
-            <LogoText>ProjectMeats</LogoText>
+            <LogoText>Meats Central</LogoText>
           </LogoSection>
           <Title>Create Account</Title>
-          <Subtitle>Join ProjectMeats to manage your business operations</Subtitle>
+          <Subtitle>Join Meats Central to manage your business operations</Subtitle>
         </Header>
 
         {error && (

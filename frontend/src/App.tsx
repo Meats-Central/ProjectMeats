@@ -50,7 +50,7 @@ const App: React.FC = () => {
       const env = environment.toLowerCase();
 
       // Select favicon and title prefix based on environment
-      let faviconPath = '/favicon.ico'; // Default production (red MC)
+      let faviconPath = '/favicon-prod.svg'; // Production (red MC)
       let titlePrefix = '';
 
       if (env === 'development' || env === 'dev') {
@@ -72,7 +72,7 @@ const App: React.FC = () => {
       faviconLink.href = faviconPath;
 
       // Update page title with environment prefix
-      const baseTitle = 'ProjectMeats';
+      const baseTitle = 'Meats Central';
       if (!document.title.startsWith('[')) {
         document.title = titlePrefix + baseTitle;
       }

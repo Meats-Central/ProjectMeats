@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Get tenant name from localStorage
-  const tenantName = localStorage.getItem('tenantName') || 'ProjectMeats';
+  const tenantName = localStorage.getItem('tenantName') || 'Meats Central';
 
   const quickMenuItems = [
     { label: 'New Supplier', path: '/suppliers/new', icon: '🏭' },
