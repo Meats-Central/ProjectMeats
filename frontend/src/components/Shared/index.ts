@@ -7,5 +7,6 @@
 export { LocationSelector } from './LocationSelector';
 export { MultiSelect } from './MultiSelect';
 export { ActivityFeed } from './ActivityFeed';
+export { RecordPaymentModal } from './RecordPaymentModal';
 export type { LocationSelectorProps } from './LocationSelector';
 export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';
