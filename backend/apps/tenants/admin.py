@@ -23,7 +23,7 @@ class InviteUserForm(forms.Form):
     message = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 3}), 
         required=False,
-        initial="Join us on Project Meats!"
+        initial="Welcome! We're excited to have you join our team on Meats Central."
     )
 
 
@@ -501,18 +501,23 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
     
     def invite_user_view(self, request):
         """View for creating new user invitations."""
-        # Get user's tenant(s)
-        tenant_users = TenantUser.objects.filter(
-            user=request.user,
-            is_active=True
-        ).select_related('tenant')
-        
-        if not tenant_users.exists():
-            messages.error(request, "You don't have access to any tenants.")
-            return redirect('..')
-        
-        # If user has only one tenant, use it as default
-        default_tenant = tenant_users.first().tenant if tenant_users.count() == 1 else None
+        # Superusers can invite to any tenant
+        if request.user.is_superuser:
+            tenant_users = TenantUser.objects.all().select_related('tenant')
+            default_tenant = None  # Superusers must explicitly select tenant
+        else:
+            # Get user's tenant(s)
+            tenant_users = TenantUser.objects.filter(
+                user=request.user,
+                is_active=True
+            ).select_related('tenant')
+            
+            if not tenant_users.exists():
+                messages.error(request, "You don't have access to any tenants.")
+                return redirect('..')
+            
+            # If user has only one tenant, use it as default
+            default_tenant = tenant_users.first().tenant if tenant_users.count() == 1 else None
         
         if request.method == 'POST':
             form = InviteUserForm(request.POST)
@@ -549,9 +554,9 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
                 messages.success(
                     request,
                     format_html(
-                        '✅ Invitation sent to <strong>{}</strong> as <strong>{}</strong><br>'
+                        '✅ Invitation sent to <strong>{}</strong> as <strong>{}</strong> for <strong>{}</strong><br>'
                         'Invite link: <input type="text" value="{}" style="width: 100%; padding: 8px; margin-top: 8px;" readonly onclick="this.select();">',
-                        email, role, link
+                        email, role, tenant.name, link
                     )
                 )
                 return redirect('..')
@@ -567,6 +572,7 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             'site_title': admin.site.site_title,
             'tenants': tenant_users,
             'default_tenant': default_tenant,
+            'is_superuser': request.user.is_superuser,
         }
         
         return render(request, 'admin/tenants/invite_user.html', context)

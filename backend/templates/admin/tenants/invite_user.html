@@ -105,6 +105,19 @@
     <div class="tenant-info">
         <strong>Inviting to:</strong> {{ default_tenant.name }}
     </div>
+    {% elif is_superuser %}
+    <div class="form-group">
+        <label for="id_tenant">Organization *</label>
+        <select name="tenant" id="id_tenant" required style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+            <option value="">Select an organization...</option>
+            {% for tenant_user in tenants %}
+                <option value="{{ tenant_user.tenant.id }}">{{ tenant_user.tenant.name }}</option>
+            {% endfor %}
+        </select>
+        <p style="color: #6B7280; font-size: 12px; margin-top: 5px;">
+            Select which organization to send the invitation for
+        </p>
+    </div>
     {% elif tenants.count > 1 %}
     <div class="tenant-info">
         <strong>Note:</strong> You have access to multiple tenants. The invitation will be sent for your primary tenant.
