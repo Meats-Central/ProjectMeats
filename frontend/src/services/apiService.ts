@@ -537,3 +537,6 @@ export class ApiService {
 
 // Export singleton instance
 export const apiService = new ApiService();
+
+// Export apiClient for direct axios usage in components
+export { apiClient };

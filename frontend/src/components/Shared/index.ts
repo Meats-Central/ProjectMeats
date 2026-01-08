@@ -6,5 +6,6 @@
 
 export { LocationSelector } from './LocationSelector';
 export { MultiSelect } from './MultiSelect';
+export { ActivityFeed } from './ActivityFeed';
 export type { LocationSelectorProps } from './LocationSelector';
 export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';

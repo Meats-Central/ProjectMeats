@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
               <span>🥩</span>
             </LogoIconWrapper>
           )}
-          {isExpanded && <LogoText $isDarkMode={isDarkMode}>{tenantBranding?.tenantName || 'ProjectMeats'}</LogoText>}
+          {isExpanded && <LogoText $isDarkMode={isDarkMode}>{tenantBranding?.tenantName || 'Meats Central'}</LogoText>}
         </Logo>
         {isExpanded && isDesktop && (
           <PinButton 
@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onHoverChange }) =>
       <SidebarFooter $isExpanded={isExpanded} $isDarkMode={isDarkMode}>
         {isExpanded && (
           <FooterText $isDarkMode={isDarkMode}>
-            © 2025 ProjectMeats
+            © 2025 Meats Central
           </FooterText>
         )}
       </SidebarFooter>
