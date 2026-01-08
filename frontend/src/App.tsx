@@ -25,6 +25,9 @@ import AIAssistant from './pages/AIAssistant';
 import Cockpit from './pages/Cockpit';
 import CallLog from './pages/Cockpit/CallLog';
 import Claims from './pages/Accounting/Claims';
+import PayablePOs from './pages/Accounting/PayablePOs';
+import ReceivableSOs from './pages/Accounting/ReceivableSOs';
+import Invoices from './pages/Accounting/Invoices';
 import Processes from './pages/Processes';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
@@ -122,10 +125,10 @@ const App: React.FC = () => {
                 <Route path="accounting/claims" element={<Claims />} />
                 <Route path="accounting/receivables/claims" element={<Claims />} />
                 <Route path="accounting/payables/claims" element={<Claims />} />
-                <Route path="accounting/receivables/sos" element={<ComingSoon title="Receivables S.O.'s" description="View sales orders related to receivables." />} />
-                <Route path="accounting/receivables/invoices" element={<ComingSoon title="Receivables Invoices" description="Manage customer invoices and billing." />} />
+                <Route path="accounting/receivables/sos" element={<ReceivableSOs />} />
+                <Route path="accounting/receivables/invoices" element={<Invoices />} />
                 <Route path="accounting/payables" element={<Payables />} />
-                <Route path="accounting/payables/pos" element={<ComingSoon title="Payables P.O.'s" description="View purchase orders related to payables." />} />
+                <Route path="accounting/payables/pos" element={<PayablePOs />} />
                 
                 {/* Other Pages */}
                 <Route path="cold-storage" element={<ColdStorage />} />

@@ -49,6 +49,8 @@ class SalesOrderSerializer(serializers.ModelSerializer):
             "total_weight",
             "weight_unit",
             "status",
+            "payment_status",
+            "outstanding_amount",
             "total_amount",
             "notes",
             "created_on",

@@ -3,7 +3,7 @@ Django admin configuration for Invoices app.
 """
 from django.contrib import admin
 from apps.core.admin import TenantFilteredAdmin
-from .models import Invoice, Claim
+from .models import Invoice, Claim, PaymentTransaction
 
 
 @admin.register(Invoice)
@@ -14,7 +14,9 @@ class InvoiceAdmin(TenantFilteredAdmin):
         "invoice_number",
         "customer",
         "status",
+        "payment_status",
         "total_amount",
+        "outstanding_amount",
         "due_date",
         "date_time_stamp",
     )
@@ -107,6 +109,8 @@ class InvoiceAdmin(TenantFilteredAdmin):
                     "unit_price",
                     "total_amount",
                     "tax_amount",
+                    "payment_status",
+                    "outstanding_amount",
                 )
             },
         ),
@@ -154,3 +158,30 @@ class ClaimAdmin(TenantFilteredAdmin):
     )
     readonly_fields = ("created_on", "modified_on")
     raw_id_fields = ("supplier", "customer", "purchase_order", "sales_order", "invoice", "assigned_to", "created_by")
+
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(TenantFilteredAdmin):
+    """Admin interface for PaymentTransaction model with tenant filtering."""
+
+    list_display = ("id", "payment_date", "amount", "payment_method", "reference_number", "purchase_order", "sales_order", "invoice", "created_by")
+    list_filter = ("payment_date", "payment_method")
+    search_fields = ("reference_number", "notes")
+    readonly_fields = ("created_on", "modified_on")
+    raw_id_fields = ("purchase_order", "sales_order", "invoice", "created_by")
+    
+    fieldsets = (
+        ("Payment Information", {
+            "fields": ("amount", "payment_date", "payment_method", "reference_number")
+        }),
+        ("Related Entity", {
+            "fields": ("purchase_order", "sales_order", "invoice")
+        }),
+        ("Additional Details", {
+            "fields": ("notes", "created_by")
+        }),
+        ("Metadata", {
+            "fields": ("tenant", "created_on", "modified_on"),
+            "classes": ("collapse",)
+        }),
+    )

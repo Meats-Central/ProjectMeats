@@ -38,6 +38,14 @@ class PurchaseOrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class PaymentStatus(models.TextChoices):
+    """Payment status choices for purchase orders."""
+
+    UNPAID = "unpaid", "Unpaid"
+    PARTIAL = "partial", "Partial"
+    PAID = "paid", "Paid"
+
+
 class LogisticsScenarioChoices(models.TextChoices):
     """Logistics scenario for purchase orders (determines field visibility)."""
     
@@ -84,6 +92,19 @@ class PurchaseOrder(TimestampModel):
         choices=PurchaseOrderStatus.choices,
         default=PurchaseOrderStatus.PENDING,
         help_text="Current status of the purchase order",
+    )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        help_text="Payment status of the purchase order",
+    )
+    outstanding_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Outstanding amount (calculated: total - paid)",
     )
     order_date = models.DateField(help_text="Date the order was placed")
     delivery_date = models.DateField(blank=True, null=True, help_text="Expected delivery date")
