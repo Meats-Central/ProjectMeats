@@ -52,10 +52,10 @@ const App: React.FC = () => {
       let titlePrefix = '';
 
       if (env === 'development' || env === 'dev') {
-        faviconPath = '/favicon-dev.ico'; // Green DEV
+        faviconPath = '/favicon-dev.svg'; // Green DEV (SVG)
         titlePrefix = '[DEV] ';
       } else if (env === 'uat' || env === 'staging') {
-        faviconPath = '/favicon-uat.ico'; // Yellow UAT
+        faviconPath = '/favicon-uat.svg'; // Yellow UAT (SVG)
         titlePrefix = '[UAT] ';
       }
 
