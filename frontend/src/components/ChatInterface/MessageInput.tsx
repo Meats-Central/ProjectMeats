@@ -410,7 +410,7 @@ const DragText = styled.div`
 `;
 
 const SuggestionsContainer = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px;
@@ -447,7 +447,7 @@ const SuggestionItem = styled.button`
   text-align: left;
   border: 1px solid #d1d5db;
   border-radius: 6px;
-  background: white;
+  background: rgb(var(--color-surface));
   color: #374151;
   font-size: 14px;
   cursor: pointer;
@@ -475,7 +475,7 @@ const InputWrapper = styled.div<{ $isDragOver?: boolean }>`
   align-items: flex-end;
   gap: 12px;
   padding: 12px;
-  background: white;
+  background: rgb(var(--color-surface));
   border: 2px solid ${(props) => (props.$isDragOver ? '#667eea' : '#e5e7eb')};
   border-radius: 12px;
   transition: all 0.2s ease;

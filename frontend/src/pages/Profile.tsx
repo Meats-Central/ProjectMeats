@@ -301,7 +301,8 @@ const MessageIcon = styled.span`
 `;
 
 const ProfileCard = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -390,7 +391,7 @@ const Input = styled.input`
   }
 
   &:disabled {
-    background-color: #f8f9fa;
+    background-color: rgb(var(--color-surface-hover));
     cursor: not-allowed;
   }
 `;
@@ -482,7 +483,8 @@ const StatusBadge = styled.span<{ $active: boolean }>`
 `;
 
 const AccountInfo = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -506,7 +508,7 @@ const InfoCard = styled.div`
   align-items: center;
   gap: 15px;
   padding: 20px;
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
   border-radius: 8px;
 `;
 

@@ -46,7 +46,8 @@ const Subtitle = styled.p`
 `;
 
 const ComingSoon = styled.div`
-  background: white;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-surface-foreground));
   border-radius: 12px;
   padding: 60px 40px;
   text-align: center;

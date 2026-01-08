@@ -135,12 +135,12 @@ const CommandInput = styled.input`
   font-size: 16px;
   font-family: inherit;
   transition: border-color 0.2s;
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
 
   &:focus {
     outline: none;
     border-color: #3498db;
-    background: white;
+    background: rgb(var(--color-surface));
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
   }
 
@@ -152,7 +152,7 @@ const CommandInput = styled.input`
 const SuggestionsList = styled.div`
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  background: white;
+  background: rgb(var(--color-surface));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 `;
@@ -172,7 +172,7 @@ const SuggestionItem = styled.div<{ isSelected: boolean }>`
   }
 
   &:hover {
-    background: #f8f9fa;
+    background: rgb(var(--color-surface-hover));
   }
 `;
 
@@ -187,7 +187,7 @@ const SuggestionText = styled.span`
 `;
 
 const HelpText = styled.div`
-  background: #f8f9fa;
+  background: rgb(var(--color-surface-hover));
   border-radius: 8px;
   padding: 20px;
   margin-top: 10px;
