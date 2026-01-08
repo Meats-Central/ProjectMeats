@@ -478,7 +478,7 @@ export const Claims: React.FC = () => {
         },
       });
 
-      setClaims(response.data);
+      setClaims(response.data.results || response.data);
     } catch (err: any) {
       console.error('Failed to fetch claims:', err);
       setError(err.response?.data?.detail || 'Failed to load claims');
