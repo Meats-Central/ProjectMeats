@@ -15,9 +15,11 @@ from apps.core.models import (
     AccountingPaymentTermsChoices,
     AppointmentMethodChoices,
     CarrierReleaseFormatChoices,
+    ChangeTypeChoices,
     CreditLimitChoices,
     EdibleInedibleChoices,
     FreshOrFrozenChoices,
+    LoadStatusChoices,
     NetOrCatchChoices,
     PackageTypeChoices,
     ProteinTypeChoices,
@@ -246,6 +248,22 @@ class PurchaseOrder(TimestampModel):
         blank=True,
         help_text="Plant/facility for this order",
     )
+    pick_up_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pickup_purchase_orders",
+        help_text="Pick up location for this order",
+    )
+    delivery_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_purchase_orders",
+        help_text="Delivery location for this order",
+    )
     contact = models.ForeignKey(
         "contacts.Contact",
         on_delete=models.SET_NULL,
@@ -331,6 +349,22 @@ class CarrierPurchaseOrder(TimestampModel):
         blank=True,
         help_text="Plant/facility for this order",
     )
+    pick_up_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pickup_carrier_purchase_orders",
+        help_text="Pick up location for this carrier order",
+    )
+    delivery_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_carrier_purchase_orders",
+        help_text="Delivery location for this carrier order",
+    )
     product = models.ForeignKey(
         "products.Product",
         on_delete=models.SET_NULL,
@@ -385,6 +419,13 @@ class CarrierPurchaseOrder(TimestampModel):
         blank=True,
         default="",
         help_text="Carrier company name",
+    )
+    carrier_release_format = models.CharField(
+        max_length=100,
+        choices=CarrierReleaseFormatChoices.choices,
+        blank=True,
+        default="",
+        help_text="Carrier release format",
     )
 
     # Payment and credit information
@@ -536,7 +577,7 @@ class ColdStorageEntry(TimestampModel):
     # Status and dates
     status_of_load = models.CharField(
         max_length=50,
-        choices=[("Matched", "Matched"), ("TBD - Not Matched", "TBD - Not Matched")],
+        choices=LoadStatusChoices.choices,
         blank=True,
         default="",
         help_text="Load matching status",
@@ -641,12 +682,8 @@ class PurchaseOrderHistory(TimestampModel):
     )
     change_type = models.CharField(
         max_length=20,
-        choices=[
-            ("created", "Created"),
-            ("updated", "Updated"),
-            ("deleted", "Deleted"),
-        ],
-        default="updated",
+        choices=ChangeTypeChoices.choices,
+        default=ChangeTypeChoices.UPDATED,
         help_text="Type of change made",
     )
 

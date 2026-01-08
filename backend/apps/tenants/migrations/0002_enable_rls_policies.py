@@ -17,7 +17,19 @@ class Migration(migrations.Migration):
     """
 
     dependencies = [
-        ('tenants', '0001_initial'),  # Assuming initial tenant migration exists
+        ('tenants', '0001_initial'),
+        # Wait for all tenant_apps tables to be created before applying RLS
+        ('suppliers', '0001_initial'),
+        ('customers', '0001_initial'),
+        ('products', '0001_initial'),
+        ('purchase_orders', '0001_initial'),
+        ('sales_orders', '0001_initial'),
+        ('invoices', '0001_initial'),
+        ('carriers', '0001_initial'),
+        ('contacts', '0001_initial'),
+        ('plants', '0001_initial'),
+        # NOTE: locations is excluded - it has its own RLS migration (locations/0002_enable_rls_locations.py)
+        # and would create circular dependency since locations/0001 depends on tenants/0006
     ]
 
     operations = [

@@ -5,10 +5,21 @@ Provides serialization for supplier API endpoints.
 """
 from rest_framework import serializers
 from tenant_apps.suppliers.models import Supplier
+from tenant_apps.locations.serializers import LocationListSerializer
 
 
 class SupplierSerializer(serializers.ModelSerializer):
     """Serializer for Supplier model."""
+    
+    # ArrayField serialization
+    departments_array = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        allow_empty=True,
+    )
+    
+    # Nested locations (via reverse FK)
+    locations = LocationListSerializer(many=True, read_only=True)
 
     class Meta:
         model = Supplier
@@ -44,6 +55,8 @@ class SupplierSerializer(serializers.ModelSerializer):
             "package_type",
             "net_or_catch",
             "departments",
+            "departments_array",
+            "locations",
             "accounting_terms",
             "accounting_line_of_credit",
             "credit_app_sent",
@@ -51,7 +64,7 @@ class SupplierSerializer(serializers.ModelSerializer):
             "created_on",
             "modified_on",
         ]
-        read_only_fields = ["id", "created_on", "modified_on"]
+        read_only_fields = ["id", "created_on", "modified_on", "locations"]
 
     def validate_name(self, value):
         """Validate supplier name is provided and is a valid string."""

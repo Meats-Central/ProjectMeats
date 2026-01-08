@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { apiService, PurchaseOrder, Supplier } from '../services/apiService';
+import { LocationSelector } from '../components/Shared';
 import PurchaseOrderWorkflow from '../components/Workflow/PurchaseOrderWorkflow';
 
 // Styled Components
@@ -357,6 +358,8 @@ const PurchaseOrders: React.FC = () => {
     delivery_date: '',
     notes: '',
     logistics_scenario: 'supplier_delivery',
+    pick_up_location: null as string | null, // Phase 4: Location integration
+    delivery_location: null as string | null, // Phase 4: Location integration
   });
 
   useEffect(() => {
@@ -436,6 +439,8 @@ const PurchaseOrders: React.FC = () => {
         delivery_date: '',
         notes: '',
         logistics_scenario: 'supplier_delivery',
+        pick_up_location: null, // Phase 4: Reset location
+        delivery_location: null, // Phase 4: Reset location
       });
     } catch (error: unknown) {
       // Log detailed error information
@@ -464,6 +469,8 @@ const PurchaseOrders: React.FC = () => {
       delivery_date: purchaseOrder.delivery_date || '',
       notes: purchaseOrder.notes || '',
       logistics_scenario: purchaseOrder.logistics_scenario || 'supplier_delivery',
+      pick_up_location: purchaseOrder.pick_up_location || null, // Phase 4: Populate location
+      delivery_location: purchaseOrder.delivery_location || null, // Phase 4: Populate location
     });
     setShowForm(true);
   };
@@ -531,6 +538,8 @@ const PurchaseOrders: React.FC = () => {
               delivery_date: '',
               notes: '',
               logistics_scenario: 'supplier_delivery',
+              pick_up_location: null, // Phase 4: Reset location
+              delivery_location: null, // Phase 4: Reset location
             });
             setShowForm(true);
           }}
@@ -762,6 +771,25 @@ const PurchaseOrders: React.FC = () => {
                   rows={3}
                 />
               </FormGroup>
+
+              <FormGroup>
+                <LocationSelector
+                  value={formData.pick_up_location}
+                  onChange={(id) => setFormData({ ...formData, pick_up_location: id })}
+                  label="Pick-up Location"
+                  placeholder="Select pick-up location"
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <LocationSelector
+                  value={formData.delivery_location}
+                  onChange={(id) => setFormData({ ...formData, delivery_location: id })}
+                  label="Delivery Location"
+                  placeholder="Select delivery location"
+                />
+              </FormGroup>
+
               <FormActions>
                 <CancelButton type="button" onClick={() => setShowForm(false)}>
                   Cancel
