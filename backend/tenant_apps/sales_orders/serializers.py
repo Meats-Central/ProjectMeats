@@ -3,6 +3,7 @@ Serializers for Sales Orders app.
 """
 from rest_framework import serializers
 from .models import SalesOrder
+from tenant_apps.locations.serializers import LocationListSerializer
 
 
 class SalesOrderSerializer(serializers.ModelSerializer):
@@ -12,6 +13,10 @@ class SalesOrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True)
     carrier_name = serializers.CharField(source="carrier.name", read_only=True, allow_null=True)
     product_code = serializers.CharField(source="product.product_code", read_only=True, allow_null=True)
+    
+    # Nested location serializers (read-only)
+    pick_up_location_details = LocationListSerializer(source='pick_up_location', read_only=True)
+    delivery_location_details = LocationListSerializer(source='delivery_location', read_only=True)
 
     class Meta:
         model = SalesOrder
@@ -29,11 +34,17 @@ class SalesOrderSerializer(serializers.ModelSerializer):
             "product",
             "product_code",
             "plant",
+            "pick_up_location",
+            "pick_up_location_details",
+            "delivery_location",
+            "delivery_location_details",
             "contact",
             "pick_up_date",
             "delivery_date",
             "delivery_po_num",
             "carrier_release_num",
+            "carrier_release_format",
+            "plant_est_number",
             "quantity",
             "total_weight",
             "weight_unit",
@@ -43,4 +54,4 @@ class SalesOrderSerializer(serializers.ModelSerializer):
             "created_on",
             "modified_on",
         ]
-        read_only_fields = ["id", "date_time_stamp", "created_on", "modified_on"]
+        read_only_fields = ["id", "date_time_stamp", "created_on", "modified_on", "pick_up_location_details", "delivery_location_details"]

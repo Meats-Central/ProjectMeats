@@ -4,6 +4,7 @@ Carriers models for ProjectMeats.
 Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.contrib.auth.models import User
 from apps.tenants.models import Tenant
@@ -11,6 +12,8 @@ from apps.core.models import (
     AccountingPaymentTermsChoices,
     AccountLineOfCreditChoices,
     AppointmentMethodChoices,
+    CarrierDepartmentChoices,
+    CarrierTypeChoices,
     CreditLimitChoices,
     TenantManager,
 )
@@ -20,13 +23,6 @@ from tenant_apps.contacts.models import Contact
 class Carrier(models.Model):
     # Use custom manager for multi-tenancy
     objects = TenantManager()
-    CARRIER_TYPE_CHOICES = [
-        ("truck", "Truck"),
-        ("rail", "Rail"),
-        ("air", "Air"),
-        ("sea", "Sea"),
-        ("other", "Other"),
-    ]
 
     # Multi-tenancy
     tenant = models.ForeignKey(
@@ -39,7 +35,7 @@ class Carrier(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
     carrier_type = models.CharField(
-        max_length=20, choices=CARRIER_TYPE_CHOICES, default="truck"
+        max_length=20, choices=CarrierTypeChoices.choices, default=CarrierTypeChoices.TRUCK
     )
     contact_person = models.CharField(max_length=100, blank=True, default='')
     phone = models.CharField(max_length=20, blank=True, default='')
@@ -128,6 +124,12 @@ class Carrier(models.Model):
         blank=True,
         default='',
         help_text="Departments (comma-separated: BOL, COA, POD, etc.)",
+    )
+    departments_array = ArrayField(
+        models.CharField(max_length=50, choices=CarrierDepartmentChoices.choices),
+        blank=True,
+        default=list,
+        help_text="Departments (multi-select: BOL, COA, POD) - NEW",
     )
     how_carrier_make_appointment = models.CharField(
         max_length=50,

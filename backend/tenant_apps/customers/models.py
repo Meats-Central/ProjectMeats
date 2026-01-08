@@ -5,6 +5,7 @@ Defines customer entities and related business logic.
 
 Implements tenant ForeignKey field for shared-schema multi-tenancy.
 """
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from apps.tenants.models import Tenant
@@ -18,6 +19,7 @@ from apps.core.models import (
     IndustryChoices,
     OriginChoices,
     Protein,
+    ProteinTypeChoices,
     TimestampModel,
     TenantManager,
 )
@@ -105,6 +107,13 @@ class Customer(TimestampModel):
         verbose_name="Industry Sector",
         help_text="Industry sector (e.g., Pet Sector, Retail)",
     )
+    industry_array = ArrayField(
+        models.CharField(max_length=100, choices=IndustryChoices.choices),
+        blank=True,
+        default=list,
+        verbose_name="Industry Sectors",
+        help_text="Industry sectors (multi-select: Pet Sector, Retail, etc.) - NEW",
+    )
     contacts = models.ManyToManyField(
         Contact,
         related_name="customers",
@@ -113,6 +122,12 @@ class Customer(TimestampModel):
     )
     will_pickup_load = models.BooleanField(
         default=False, help_text="Will customer pickup load?"
+    )
+    preferred_protein_types = ArrayField(
+        models.CharField(max_length=50, choices=ProteinTypeChoices.choices),
+        blank=True,
+        default=list,
+        help_text="Preferred protein types (multi-select: Beef, Chicken, Pork, etc.)",
     )
     
     # Enhanced payment/credit fields with standardized choices

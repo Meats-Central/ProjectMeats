@@ -4,7 +4,9 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Theme } from '../config/theme';
 import { apiService, Customer } from '../services/apiService';
 import { PhoneInput, Select } from '../components/ui';
+import { MultiSelect } from '../components/Shared';
 import { US_STATES } from '../utils/constants/states';
+import { INDUSTRY_CHOICES, PROTEIN_TYPE_CHOICES } from '../utils/constants/choices';
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -22,6 +24,8 @@ const Customers: React.FC = () => {
     state: '',
     zip_code: '',
     country: '',
+    industry_array: [] as string[], // Phase 4: ArrayField integration
+    preferred_protein_types: [] as string[], // Phase 4: ArrayField integration
   });
 
   useEffect(() => {
@@ -80,6 +84,8 @@ const Customers: React.FC = () => {
       state: customer.state || '',
       zip_code: customer.zip_code || '',
       country: customer.country || '',
+      industry_array: customer.industry_array || [], // Phase 4: Populate array
+      preferred_protein_types: customer.preferred_protein_types || [], // Phase 4: Populate array
     });
     setShowForm(true);
   };
@@ -114,6 +120,8 @@ const Customers: React.FC = () => {
       state: '',
       zip_code: '',
       country: '',
+      industry_array: [], // Phase 4: Reset array
+      preferred_protein_types: [], // Phase 4: Reset array
     });
   };
 
@@ -238,6 +246,26 @@ const Customers: React.FC = () => {
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  />
+                </FormGroup>
+
+                <FormGroup $fullWidth>
+                  <MultiSelect
+                    value={formData.industry_array}
+                    onChange={(values) => setFormData({ ...formData, industry_array: values })}
+                    options={INDUSTRY_CHOICES}
+                    label="Industries"
+                    placeholder="Select industries (hold Ctrl/Cmd for multiple)"
+                  />
+                </FormGroup>
+
+                <FormGroup $fullWidth>
+                  <MultiSelect
+                    value={formData.preferred_protein_types}
+                    onChange={(values) => setFormData({ ...formData, preferred_protein_types: values })}
+                    options={PROTEIN_TYPE_CHOICES}
+                    label="Preferred Protein Types"
+                    placeholder="Select protein types (hold Ctrl/Cmd for multiple)"
                   />
                 </FormGroup>
               </FormGrid>
