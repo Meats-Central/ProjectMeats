@@ -14,7 +14,10 @@ import Dashboard from './pages/Dashboard';
 import Suppliers from './pages/Suppliers';
 import Customers from './pages/Customers';
 import PurchaseOrders from './pages/PurchaseOrders';
+import SalesOrders from './pages/SalesOrders';
 import AccountsReceivables from './pages/AccountsReceivables';
+import Payables from './pages/Payables';
+import ColdStorage from './pages/ColdStorage';
 import Contacts from './pages/Contacts';
 import Plants from './pages/Plants';
 import Carriers from './pages/Carriers';
@@ -26,6 +29,7 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import { ComingSoon } from './pages/ComingSoon';
 import ApiTestComponent from './components/ApiTestComponent';
 
 const App: React.FC = () => {
@@ -44,13 +48,35 @@ const App: React.FC = () => {
               <Route path="/signup" element={<SignUp />} />
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
+                
+                {/* Suppliers & Related */}
                 <Route path="suppliers" element={<Suppliers />} />
-                <Route path="customers" element={<Customers />} />
-                <Route path="purchase-orders" element={<PurchaseOrders />} />
-                <Route path="accounts-receivables" element={<AccountsReceivables />} />
-                <Route path="contacts" element={<Contacts />} />
+                <Route path="suppliers/contacts" element={<Contacts />} />
                 <Route path="plants" element={<Plants />} />
+                
+                {/* Customers & Related */}
+                <Route path="customers" element={<Customers />} />
+                <Route path="customers/contacts" element={<Contacts />} />
+                
+                {/* Orders */}
+                <Route path="purchase-orders" element={<PurchaseOrders />} />
+                <Route path="purchase-orders/attachments" element={<ComingSoon title="Purchase Order Attachments" description="View and manage attachments for purchase orders." />} />
+                <Route path="sales-orders" element={<SalesOrders />} />
+                <Route path="sales-orders/attachments" element={<ComingSoon title="Sales Order Attachments" description="View and manage attachments for sales orders." />} />
+                
+                {/* Accounting */}
+                <Route path="accounts-receivables" element={<AccountsReceivables />} />
+                <Route path="accounting/receivables/claims" element={<ComingSoon title="Receivables Claims" description="Manage claims related to accounts receivable." />} />
+                <Route path="accounting/receivables/sos" element={<ComingSoon title="Receivables S.O.'s" description="View sales orders related to receivables." />} />
+                <Route path="accounting/receivables/invoices" element={<ComingSoon title="Receivables Invoices" description="Manage customer invoices and billing." />} />
+                <Route path="accounting/payables" element={<Payables />} />
+                <Route path="accounting/payables/claims" element={<ComingSoon title="Payables Claims" description="Manage supplier claims and disputes." />} />
+                <Route path="accounting/payables/pos" element={<ComingSoon title="Payables P.O.'s" description="View purchase orders related to payables." />} />
+                
+                {/* Other Pages */}
+                <Route path="cold-storage" element={<ColdStorage />} />
                 <Route path="carriers" element={<Carriers />} />
+                <Route path="contacts" element={<Contacts />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="cockpit" element={<Cockpit />} />
                 <Route path="processes" element={<Processes />} />

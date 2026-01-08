@@ -21,20 +21,7 @@ export const navigation: NavigationItem[] = [
     label: 'Cockpit',
     icon: '🎯',
     path: '/cockpit',
-    children: [
-      {
-        label: 'Call log/schedule',
-        icon: '📅',
-        children: [
-          {
-            label: 'Slots: Per combined Supplier / Customer',
-            icon: '🔗',
-            path: '/cockpit/slots',
-            // On click: Fetch recent data via API; Initialize PO/SO modals
-          },
-        ],
-      },
-    ],
+    // Removed: Slots subpage (no longer needed)
   },
   {
     label: 'Workspace',
