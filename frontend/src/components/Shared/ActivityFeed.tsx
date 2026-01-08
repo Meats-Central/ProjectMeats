@@ -310,7 +310,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get('/api/v1/cockpit/activity-logs/', {
+      const response = await apiClient.get('cockpit/activity-logs/', {
         params: {
           entity_type: entityType,
           entity_id: entityId,
@@ -336,7 +336,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     try {
       setSubmitting(true);
       
-      const response = await apiClient.post('/api/v1/cockpit/activity-logs/', {
+      const response = await apiClient.post('cockpit/activity-logs/', {
         entity_type: entityType,
         entity_id: entityId,
         title: formData.title.trim() || 'Note',

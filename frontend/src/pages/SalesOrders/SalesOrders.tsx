@@ -414,7 +414,7 @@ export const SalesOrdersPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.get('/api/v1/sales-orders/');
+      const response = await apiClient.get('sales-orders/');
       setOrders(response.data);
     } catch (err: any) {
       console.error('Failed to fetch sales orders:', err);

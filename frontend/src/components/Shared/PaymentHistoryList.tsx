@@ -146,7 +146,7 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get('/api/v1/payments/', {
+      const response = await apiClient.get('payments/', {
         params: { [entityType]: entityId }
       });
       
