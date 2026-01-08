@@ -793,7 +793,7 @@ jobs:
             -e BACKEND_HOST="${BACKEND_HOST}" \
             -e DOMAIN_NAME="${DOMAIN_NAME}" \
             -e ENVIRONMENT="${ENVIRONMENT}" \
-            -v /opt/pm/frontend/env:/usr/share/nginx/html/env:ro \
+            -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$IMAGE_TAG"
           
           echo "✓ Container started successfully"
