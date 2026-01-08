@@ -15,7 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
-import { RecordPaymentModal } from '../../components/Shared';
+import { RecordPaymentModal, PaymentHistoryList } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal, formatToLocal } from '../../utils/formatters';
@@ -599,6 +599,14 @@ const Invoices: React.FC = () => {
                 <DetailValue>{selectedInvoice.notes}</DetailValue>
               </DetailSection>
             )}
+
+            <DetailSection>
+              <DetailLabel>Payment History</DetailLabel>
+              <PaymentHistoryList
+                entityType="invoice"
+                entityId={selectedInvoice.id}
+              />
+            </DetailSection>
 
             <DetailSection>
               <DetailLabel>Activity Log</DetailLabel>

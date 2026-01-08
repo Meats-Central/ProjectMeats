@@ -15,7 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
-import { RecordPaymentModal } from '../../components/Shared';
+import { RecordPaymentModal, PaymentHistoryList } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal } from '../../utils/formatters';
@@ -492,6 +492,14 @@ const ReceivableSOs: React.FC = () => {
                 <DetailValue>{selectedOrder.notes}</DetailValue>
               </DetailSection>
             )}
+
+            <DetailSection>
+              <DetailLabel>Payment History</DetailLabel>
+              <PaymentHistoryList
+                entityType="sales_order"
+                entityId={selectedOrder.id}
+              />
+            </DetailSection>
 
             <DetailSection>
               <DetailLabel>Activity Log</DetailLabel>
