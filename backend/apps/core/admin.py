@@ -176,6 +176,32 @@ class TenantFilteredAdmin(admin.ModelAdmin):
                 obj.tenant = sorted_tenant_users[0].tenant
         
         super().save_model(request, obj, form, change)
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Filter tenant dropdown to only show user's authorized tenants.
+        
+        Security: Prevents tenant admins from seeing or selecting other tenants.
+        For any ForeignKey to Tenant model, restrict choices to user's active tenants.
+        """
+        if db_field.name == "tenant" and not request.user.is_superuser:
+            # Import here to avoid circular dependency
+            from apps.tenants.models import Tenant
+            
+            # Get user's active tenant IDs
+            tenant_ids = TenantUser.objects.filter(
+                user=request.user, 
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            
+            # Restrict queryset to only user's tenants
+            kwargs["queryset"] = Tenant.objects.filter(id__in=tenant_ids)
+            
+            # If user has only one tenant, set it as default
+            if len(tenant_ids) == 1:
+                kwargs["initial"] = tenant_ids[0]
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Protein)
