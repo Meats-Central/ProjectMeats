@@ -34,6 +34,7 @@ _DJANGO_CORE_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.postgres",
 ]
 
 # Third-party apps
@@ -58,6 +59,7 @@ _PROJECT_APPS = [
     "tenant_apps.contacts",
     "tenant_apps.customers",
     "tenant_apps.invoices",
+    "tenant_apps.locations",
     "tenant_apps.plants",
     "tenant_apps.products",
     "tenant_apps.purchase_orders",

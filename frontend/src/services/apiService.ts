@@ -159,6 +159,7 @@ export interface Supplier {
   state?: string;
   zip_code?: string;
   country?: string;
+  departments_array?: string[]; // Phase 4: ArrayField
   created_at: string;
   updated_at: string;
 }
@@ -174,6 +175,8 @@ export interface Customer {
   state?: string;
   zip_code?: string;
   country?: string;
+  industry_array?: string[]; // Phase 4: ArrayField
+  preferred_protein_types?: string[]; // Phase 4: ArrayField
   created_at: string;
   updated_at: string;
 }
@@ -192,6 +195,8 @@ export interface PurchaseOrder {
   logistics_scenario?: string;
   total_weight?: number;
   weight_unit?: string;
+  pick_up_location?: string | null; // Phase 4: Location UUID
+  delivery_location?: string | null; // Phase 4: Location UUID
 }
 
 export interface Contact {

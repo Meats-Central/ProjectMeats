@@ -5,11 +5,16 @@ Provides serialization for purchase order API endpoints.
 """
 from rest_framework import serializers
 from tenant_apps.purchase_orders.models import PurchaseOrder, CarrierPurchaseOrder, ColdStorageEntry
-from tenant_apps.purchase_orders.models import PurchaseOrder, PurchaseOrderHistory
+from tenant_apps.purchase_orders.models import PurchaseOrderHistory
+from tenant_apps.locations.serializers import LocationListSerializer
 
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
     """Serializer for PurchaseOrder model."""
+    
+    # Nested location serializers (read-only)
+    pick_up_location_details = LocationListSerializer(source='pick_up_location', read_only=True)
+    delivery_location_details = LocationListSerializer(source='delivery_location', read_only=True)
 
     class Meta:
         model = PurchaseOrder
@@ -17,19 +22,34 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             "id",
             "order_number",
             "supplier",
+            "product",
             "total_amount",
             "status",
             "order_date",
             "delivery_date",
+            "pick_up_date",
+            "logistics_scenario",
+            "pick_up_location",
+            "pick_up_location_details",
+            "delivery_location",
+            "delivery_location_details",
+            "plant",
+            "carrier",
+            "carrier_release_format",
+            "payment_terms",
             "notes",
             "created_on",
             "modified_on",
         ]
-        read_only_fields = ["id", "created_on", "modified_on"]
+        read_only_fields = ["id", "created_on", "modified_on", "pick_up_location_details", "delivery_location_details"]
 
 
 class CarrierPurchaseOrderSerializer(serializers.ModelSerializer):
     """Serializer for CarrierPurchaseOrder model."""
+    
+    # Nested location serializers (read-only)
+    pick_up_location_details = LocationListSerializer(source='pick_up_location', read_only=True)
+    delivery_location_details = LocationListSerializer(source='delivery_location', read_only=True)
 
     class Meta:
         model = CarrierPurchaseOrder
@@ -40,11 +60,18 @@ class CarrierPurchaseOrderSerializer(serializers.ModelSerializer):
             "carrier",
             "supplier",
             "plant",
+            "pick_up_location",
+            "pick_up_location_details",
+            "delivery_location",
+            "delivery_location_details",
             "product",
+            "linked_order",
+            "sales_order",
             "pick_up_date",
             "delivery_date",
             "our_carrier_po_num",
             "carrier_name",
+            "carrier_release_format",
             "payment_terms",
             "credit_limits",
             "type_of_protein",
@@ -60,7 +87,7 @@ class CarrierPurchaseOrderSerializer(serializers.ModelSerializer):
             "created_on",
             "modified_on",
         ]
-        read_only_fields = ["id", "date_time_stamp_created", "created_on", "modified_on"]
+        read_only_fields = ["id", "date_time_stamp_created", "created_on", "modified_on", "pick_up_location_details", "delivery_location_details"]
 
 
 class ColdStorageEntrySerializer(serializers.ModelSerializer):

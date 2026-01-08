@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PhoneInput, Select } from '../components/ui';
+import { MultiSelect } from '../components/Shared';
 import { US_STATES } from '../utils/constants/states';
+import { DEPARTMENT_CHOICES } from '../utils/constants/choices';
 import styled from 'styled-components';
 import { apiService, Supplier } from '../services/apiService';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,6 +24,7 @@ const Suppliers: React.FC = () => {
     state: '',
     zip_code: '',
     country: '',
+    departments_array: [] as string[], // Phase 4: ArrayField integration
   });
 
   useEffect(() => {
@@ -82,6 +85,7 @@ const Suppliers: React.FC = () => {
       state: supplier.state || '',
       zip_code: supplier.zip_code || '',
       country: supplier.country || '',
+      departments_array: supplier.departments_array || [], // Phase 4: Populate array
     });
     setShowForm(true);
   };
@@ -117,6 +121,7 @@ const Suppliers: React.FC = () => {
       state: '',
       zip_code: '',
       country: '',
+      departments_array: [], // Phase 4: Reset array
     });
   };
 
@@ -247,6 +252,16 @@ const Suppliers: React.FC = () => {
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  />
+                </FormGroup>
+
+                <FormGroup $fullWidth>
+                  <MultiSelect
+                    value={formData.departments_array}
+                    onChange={(values) => setFormData({ ...formData, departments_array: values })}
+                    options={DEPARTMENT_CHOICES}
+                    label="Departments"
+                    placeholder="Select departments (hold Ctrl/Cmd for multiple)"
                   />
                 </FormGroup>
               </FormGrid>

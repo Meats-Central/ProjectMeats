@@ -8,6 +8,7 @@ Implements tenant ForeignKey field for shared-schema multi-tenancy.
 from django.db import models
 from apps.tenants.models import Tenant
 from apps.core.models import (
+    CarrierReleaseFormatChoices,
     TimestampModel,
     WeightUnitChoices,
     TenantManager,
@@ -79,6 +80,22 @@ class SalesOrder(TimestampModel):
         blank=True,
         help_text="Plant/facility for this order",
     )
+    pick_up_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pickup_sales_orders",
+        help_text="Pick up location for this sales order",
+    )
+    delivery_location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_sales_orders",
+        help_text="Delivery location for this sales order",
+    )
     contact = models.ForeignKey(
         "contacts.Contact",
         on_delete=models.SET_NULL,
@@ -111,6 +128,19 @@ class SalesOrder(TimestampModel):
         blank=True,
         default='',
         help_text="Carrier release number",
+    )
+    carrier_release_format = models.CharField(
+        max_length=100,
+        choices=CarrierReleaseFormatChoices.choices,
+        blank=True,
+        default='',
+        help_text="Carrier release format",
+    )
+    plant_est_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Plant establishment number",
     )
     quantity = models.IntegerField(
         blank=True,

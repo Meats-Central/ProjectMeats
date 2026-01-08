@@ -9,7 +9,9 @@ from decimal import Decimal
 from django.db import models
 from apps.tenants.models import Tenant
 from apps.core.models import (
+    AccountingPaymentTermsChoices,
     EdibleInedibleChoices,
+    ProteinTypeChoices,
     TimestampModel,
     WeightUnitChoices,
     TenantManager,
@@ -100,6 +102,13 @@ class Invoice(TimestampModel):
         default='',
         help_text="Delivery PO number",
     )
+    payment_terms = models.CharField(
+        max_length=50,
+        choices=AccountingPaymentTermsChoices.choices,
+        blank=True,
+        default='',
+        help_text="Payment terms (e.g., Wire, ACH, Check)",
+    )
     
     # Contact information
     accounting_payable_contact_name = models.CharField(
@@ -123,6 +132,7 @@ class Invoice(TimestampModel):
     # Product details
     type_of_protein = models.CharField(
         max_length=100,
+        choices=ProteinTypeChoices.choices,
         blank=True,
         default='',
         help_text="Type of protein",
