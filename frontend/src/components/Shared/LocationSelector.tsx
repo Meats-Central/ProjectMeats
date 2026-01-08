@@ -227,14 +227,14 @@ const ErrorMessage = styled.div<{ $theme: Theme }>`
 const RetryButton = styled.button`
   background: none;
   border: none;
-  color: #007bff;
+  color: rgb(var(--color-primary));
   text-decoration: underline;
   cursor: pointer;
   font-size: 12px;
   padding: 0;
 
   &:hover {
-    color: #0056b3;
+    color: rgb(var(--color-primary-hover));
   }
 `;
 
