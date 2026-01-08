@@ -308,7 +308,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
       // Set the appropriate entity field
       payload[entityType] = entityId;
 
-      await apiClient.post('/api/v1/payments/', payload);
+      await apiClient.post('payments/', payload);
 
       // Success!
       onSuccess();
