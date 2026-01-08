@@ -434,6 +434,8 @@ class TenantAdmin(admin.ModelAdmin):
 class TenantUserAdmin(TenantFilteredAdmin):
     """Admin interface for TenantUser associations with tenant filtering."""
 
+    change_list_template = 'admin/tenants/tenantuser/change_list.html'
+    
     list_display = ["user", "tenant", "role", "is_active", "created_at"]
     list_filter = ["role", "is_active", "tenant"]
     search_fields = ["user__username", "user__email", "tenant__name", "tenant__slug"]
