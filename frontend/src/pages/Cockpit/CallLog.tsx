@@ -361,7 +361,7 @@ export const CallLog: React.FC = () => {
       setError(null);
 
       const response = await apiClient.get('cockpit/scheduled-calls/');
-      const callsData = response.data;
+      const callsData = response.data.results || response.data;
 
       // Sort by scheduled_for (upcoming first)
       callsData.sort((a: ScheduledCall, b: ScheduledCall) => 
