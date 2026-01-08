@@ -1,44 +1,50 @@
 /**
- * Payables Purchase Orders Page
+ * Invoices Page (Receivables)
  * 
- * Accounting view of purchase orders showing payment status and outstanding balances.
- * This is a specialized view focused on payables accounting rather than procurement.
+ * Customer invoice management with payment tracking and activity logging.
  * 
  * Features:
- * - View all purchase orders from accounting perspective
- * - Filter by payment status (unpaid, partial, paid)
- * - Track outstanding amounts and due dates
- * - Side panel with order details and activity feed
+ * - View all customer invoices with status filtering
+ * - Filter by status: Draft | Sent | Paid | Overdue | Cancelled
+ * - Side panel with invoice details and activity feed
+ * - Payment tracking with outstanding amounts
+ * - Theme-compliant styling (32px headers, color variables)
  * 
- * Pattern: Follows Invoices.tsx architecture with side panel integration
+ * Pattern: Follows Claims.tsx/SalesOrders.tsx architecture for consistency
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
-import { formatDateLocal } from '../../utils/formatters';
+import { formatDateLocal, formatToLocal } from '../../utils/formatters';
 
 // ============================================================================
 // TypeScript Interfaces
 // ============================================================================
 
-interface PurchaseOrder {
+interface Invoice {
   id: number;
   tenant: string;
-  order_number: string;
-  supplier: number;
-  supplier_name?: string;
-  order_date: string;
-  delivery_date: string | null;
-  status: string;
-  payment_status?: 'unpaid' | 'partial' | 'paid';
+  invoice_number: string;
+  customer: number;
+  customer_name?: string;
+  sales_order: number | null;
+  our_sales_order_num: string;
+  date_time_stamp: string;
+  due_date: string | null;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   total_amount: string;
   paid_amount?: string;
   outstanding_amount?: string;
   notes: string;
+  created_by: number | null;
+  created_by_name: string;
   created_on: string;
+  updated_on: string;
 }
+
+type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 // ============================================================================
 // Styled Components (Theme-Compliant)
@@ -64,6 +70,32 @@ const PageTitle = styled.h1`
   font-weight: 700;
   color: rgb(var(--color-text-primary));
   margin: 0;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const PrimaryButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: rgb(var(--color-primary));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const ContentContainer = styled.div<{ hasSidePanel?: boolean }>`
@@ -103,6 +135,25 @@ const FilterButton = styled.button<{ active?: boolean }>`
   }
 `;
 
+const SearchInput = styled.input`
+  padding: 0.5rem 1rem;
+  background: rgb(var(--color-surface));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--radius-md);
+  color: rgb(var(--color-text-primary));
+  font-size: 0.875rem;
+  min-width: 250px;
+
+  &:focus {
+    outline: none;
+    border-color: rgb(var(--color-primary));
+  }
+
+  &::placeholder {
+    color: rgb(var(--color-text-secondary));
+  }
+`;
+
 const TableContainer = styled.div`
   background: rgb(var(--color-surface));
   border: 1px solid rgb(var(--color-border));
@@ -131,11 +182,16 @@ const TableWrapper = styled.div`
     background: rgb(var(--color-border));
     border-radius: 4px;
   }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-text-secondary));
+  }
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
 `;
 
 const TableHeader = styled.thead`
@@ -177,7 +233,7 @@ const TableCell = styled.td`
   color: rgb(var(--color-text-primary));
 `;
 
-const StatusBadge = styled.span<{ status: string }>`
+const StatusBadge = styled.span<{ status: InvoiceStatus }>`
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -187,11 +243,15 @@ const StatusBadge = styled.span<{ status: string }>`
     switch (props.status) {
       case 'paid':
         return 'background: rgba(34, 197, 94, 0.15); color: rgba(34, 197, 94, 1);';
-      case 'partial':
-        return 'background: rgba(234, 179, 8, 0.15); color: rgba(234, 179, 8, 1);';
-      case 'unpaid':
-      default:
+      case 'sent':
+        return 'background: rgba(59, 130, 246, 0.15); color: rgba(59, 130, 246, 1);';
+      case 'overdue':
         return 'background: rgba(239, 68, 68, 0.15); color: rgba(239, 68, 68, 1);';
+      case 'cancelled':
+        return 'background: rgba(107, 114, 128, 0.15); color: rgba(107, 114, 128, 1);';
+      case 'draft':
+      default:
+        return 'background: rgba(234, 179, 8, 0.15); color: rgba(234, 179, 8, 1);';
     }
   }}
 `;
@@ -294,112 +354,154 @@ const EmptyMessage = styled.div`
 // Main Component
 // ============================================================================
 
-const PayablePOs: React.FC = () => {
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+const Invoices: React.FC = () => {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'partial' | 'paid'>('all');
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Fetch purchase orders with accounting focus
-  const fetchOrders = async () => {
+  // Fetch invoices
+  const fetchInvoices = async () => {
     try {
       setLoading(true);
       setError(null);
       
       const params: any = {};
       if (statusFilter !== 'all') {
-        params.payment_status = statusFilter;
+        params.status = statusFilter;
       }
       
-      const response = await apiClient.get('/api/v1/purchase-orders/', { params });
+      const response = await apiClient.get('/api/v1/invoices/', { params });
+      const invoicesData = response.data.results || response.data;
       
-      // Transform orders to include payment status (mocked for now - backend enhancement needed)
-      const ordersWithPaymentStatus = response.data.results || response.data;
-      setOrders(ordersWithPaymentStatus.map((order: PurchaseOrder) => ({
-        ...order,
-        payment_status: order.payment_status || 'unpaid', // Default to unpaid if not provided
-        outstanding_amount: order.outstanding_amount || order.total_amount,
-      })));
+      // Calculate outstanding amounts (mocked for now - backend enhancement needed)
+      const invoicesWithOutstanding = invoicesData.map((invoice: Invoice) => ({
+        ...invoice,
+        outstanding_amount: invoice.outstanding_amount || 
+                          (invoice.status === 'paid' ? '0.00' : invoice.total_amount),
+      }));
+      
+      setInvoices(invoicesWithOutstanding);
     } catch (err: any) {
-      console.error('Failed to fetch purchase orders:', err);
-      setError(err.response?.data?.message || 'Failed to load purchase orders');
+      console.error('Failed to fetch invoices:', err);
+      setError(err.response?.data?.message || 'Failed to load invoices');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchInvoices();
   }, [statusFilter]);
 
-  // Count orders by status
+  // Filter invoices by search query
+  const filteredInvoices = invoices.filter(invoice => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      invoice.invoice_number.toLowerCase().includes(query) ||
+      invoice.customer_name?.toLowerCase().includes(query) ||
+      invoice.our_sales_order_num.toLowerCase().includes(query)
+    );
+  });
+
+  // Count invoices by status
   const counts = {
-    all: orders.length,
-    unpaid: orders.filter(o => o.payment_status === 'unpaid').length,
-    partial: orders.filter(o => o.payment_status === 'partial').length,
-    paid: orders.filter(o => o.payment_status === 'paid').length,
+    all: invoices.length,
+    draft: invoices.filter(i => i.status === 'draft').length,
+    sent: invoices.filter(i => i.status === 'sent').length,
+    paid: invoices.filter(i => i.status === 'paid').length,
+    overdue: invoices.filter(i => i.status === 'overdue').length,
+    cancelled: invoices.filter(i => i.status === 'cancelled').length,
   };
 
   return (
     <PageContainer>
       <PageHeader>
-        <PageTitle>Payables - Purchase Orders</PageTitle>
+        <PageTitle>Receivables - Invoices</PageTitle>
+        <HeaderActions>
+          <PrimaryButton onClick={() => alert('Create Invoice feature coming soon')}>
+            + Create Invoice
+          </PrimaryButton>
+        </HeaderActions>
       </PageHeader>
 
-      <ContentContainer hasSidePanel={!!selectedOrder}>
+      <ContentContainer hasSidePanel={!!selectedInvoice}>
         <MainContent>
           <FilterBar>
             <FilterButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
               All ({counts.all})
             </FilterButton>
-            <FilterButton active={statusFilter === 'unpaid'} onClick={() => setStatusFilter('unpaid')}>
-              Unpaid ({counts.unpaid})
+            <FilterButton active={statusFilter === 'draft'} onClick={() => setStatusFilter('draft')}>
+              Draft ({counts.draft})
             </FilterButton>
-            <FilterButton active={statusFilter === 'partial'} onClick={() => setStatusFilter('partial')}>
-              Partial ({counts.partial})
+            <FilterButton active={statusFilter === 'sent'} onClick={() => setStatusFilter('sent')}>
+              Sent ({counts.sent})
             </FilterButton>
             <FilterButton active={statusFilter === 'paid'} onClick={() => setStatusFilter('paid')}>
               Paid ({counts.paid})
             </FilterButton>
+            <FilterButton active={statusFilter === 'overdue'} onClick={() => setStatusFilter('overdue')}>
+              Overdue ({counts.overdue})
+            </FilterButton>
+            <FilterButton active={statusFilter === 'cancelled'} onClick={() => setStatusFilter('cancelled')}>
+              Cancelled ({counts.cancelled})
+            </FilterButton>
+            <SearchInput
+              type="text"
+              placeholder="Search invoices..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </FilterBar>
 
           <TableContainer>
             {loading ? (
-              <LoadingMessage>Loading purchase orders...</LoadingMessage>
+              <LoadingMessage>Loading invoices...</LoadingMessage>
             ) : error ? (
               <ErrorMessage>{error}</ErrorMessage>
-            ) : orders.length === 0 ? (
-              <EmptyMessage>No purchase orders found</EmptyMessage>
+            ) : filteredInvoices.length === 0 ? (
+              <EmptyMessage>
+                {searchQuery ? 'No invoices match your search' : 'No invoices found'}
+              </EmptyMessage>
             ) : (
               <TableWrapper>
                 <Table>
                   <TableHeader>
                     <tr>
-                      <TableHead>PO Number</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Order Date</TableHead>
+                      <TableHead>Invoice #</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>SO Reference</TableHead>
+                      <TableHead>Invoice Date</TableHead>
+                      <TableHead>Due Date</TableHead>
                       <TableHead>Total Amount</TableHead>
                       <TableHead>Outstanding</TableHead>
-                      <TableHead>Payment Status</TableHead>
+                      <TableHead>Status</TableHead>
                     </tr>
                   </TableHeader>
                   <tbody>
-                    {orders.map(order => (
+                    {filteredInvoices.map(invoice => (
                       <TableRow
-                        key={order.id}
+                        key={invoice.id}
                         clickable
-                        selected={selectedOrder?.id === order.id}
-                        onClick={() => setSelectedOrder(order)}
+                        selected={selectedInvoice?.id === invoice.id}
+                        onClick={() => setSelectedInvoice(invoice)}
                       >
-                        <TableCell>{order.order_number}</TableCell>
-                        <TableCell>{order.supplier_name || `Supplier #${order.supplier}`}</TableCell>
-                        <TableCell>{formatDateLocal(order.order_date)}</TableCell>
-                        <TableCell>{formatCurrency(parseFloat(order.total_amount))}</TableCell>
-                        <TableCell>{formatCurrency(parseFloat(order.outstanding_amount || order.total_amount))}</TableCell>
+                        <TableCell>{invoice.invoice_number}</TableCell>
+                        <TableCell>{invoice.customer_name || `Customer #${invoice.customer}`}</TableCell>
+                        <TableCell>{invoice.our_sales_order_num || '-'}</TableCell>
+                        <TableCell>{formatDateLocal(invoice.date_time_stamp)}</TableCell>
+                        <TableCell>{invoice.due_date ? formatDateLocal(invoice.due_date) : '-'}</TableCell>
+                        <TableCell>{formatCurrency(parseFloat(invoice.total_amount))}</TableCell>
                         <TableCell>
-                          <StatusBadge status={order.payment_status || 'unpaid'}>
-                            {(order.payment_status || 'unpaid').toUpperCase()}
+                          {formatCurrency(parseFloat(invoice.outstanding_amount || invoice.total_amount))}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={invoice.status}>
+                            {invoice.status.toUpperCase()}
                           </StatusBadge>
                         </TableCell>
                       </TableRow>
@@ -411,63 +513,68 @@ const PayablePOs: React.FC = () => {
           </TableContainer>
         </MainContent>
 
-        {selectedOrder && (
+        {selectedInvoice && (
           <SidePanel>
             <SidePanelHeader>
-              <SidePanelTitle>{selectedOrder.order_number}</SidePanelTitle>
-              <CloseButton onClick={() => setSelectedOrder(null)}>×</CloseButton>
+              <SidePanelTitle>{selectedInvoice.invoice_number}</SidePanelTitle>
+              <CloseButton onClick={() => setSelectedInvoice(null)}>×</CloseButton>
             </SidePanelHeader>
 
             <DetailSection>
-              <DetailLabel>Supplier</DetailLabel>
+              <DetailLabel>Customer</DetailLabel>
               <DetailValue>
-                {selectedOrder.supplier_name || `Supplier #${selectedOrder.supplier}`}
+                {selectedInvoice.customer_name || `Customer #${selectedInvoice.customer}`}
               </DetailValue>
             </DetailSection>
 
             <DetailSection>
-              <DetailLabel>Order Date</DetailLabel>
-              <DetailValue>{formatDateLocal(selectedOrder.order_date)}</DetailValue>
+              <DetailLabel>Sales Order</DetailLabel>
+              <DetailValue>{selectedInvoice.our_sales_order_num || 'N/A'}</DetailValue>
             </DetailSection>
 
-            {selectedOrder.delivery_date && (
-              <DetailSection>
-                <DetailLabel>Delivery Date</DetailLabel>
-                <DetailValue>{formatDateLocal(selectedOrder.delivery_date)}</DetailValue>
-              </DetailSection>
-            )}
+            <DetailSection>
+              <DetailLabel>Invoice Date</DetailLabel>
+              <DetailValue>{formatDateLocal(selectedInvoice.date_time_stamp)}</DetailValue>
+            </DetailSection>
+
+            <DetailSection>
+              <DetailLabel>Due Date</DetailLabel>
+              <DetailValue>
+                {selectedInvoice.due_date ? formatDateLocal(selectedInvoice.due_date) : 'Not set'}
+              </DetailValue>
+            </DetailSection>
 
             <DetailSection>
               <DetailLabel>Financial Summary</DetailLabel>
               <DetailValue>
-                <div>Total: {formatCurrency(parseFloat(selectedOrder.total_amount))}</div>
+                <div>Total: {formatCurrency(parseFloat(selectedInvoice.total_amount))}</div>
                 <div>
-                  Outstanding: {formatCurrency(parseFloat(selectedOrder.outstanding_amount || selectedOrder.total_amount))}
+                  Outstanding: {formatCurrency(parseFloat(selectedInvoice.outstanding_amount || selectedInvoice.total_amount))}
                 </div>
               </DetailValue>
             </DetailSection>
 
             <DetailSection>
-              <DetailLabel>Payment Status</DetailLabel>
+              <DetailLabel>Status</DetailLabel>
               <DetailValue>
-                <StatusBadge status={selectedOrder.payment_status || 'unpaid'}>
-                  {(selectedOrder.payment_status || 'unpaid').toUpperCase()}
+                <StatusBadge status={selectedInvoice.status}>
+                  {selectedInvoice.status.toUpperCase()}
                 </StatusBadge>
               </DetailValue>
             </DetailSection>
 
-            {selectedOrder.notes && (
+            {selectedInvoice.notes && (
               <DetailSection>
                 <DetailLabel>Notes</DetailLabel>
-                <DetailValue>{selectedOrder.notes}</DetailValue>
+                <DetailValue>{selectedInvoice.notes}</DetailValue>
               </DetailSection>
             )}
 
             <DetailSection>
               <DetailLabel>Activity Log</DetailLabel>
               <ActivityFeed
-                entityType="purchase_order"
-                entityId={selectedOrder.id}
+                entityType="invoice"
+                entityId={selectedInvoice.id}
                 showCreateForm={true}
                 maxHeight="400px"
               />
@@ -479,4 +586,4 @@ const PayablePOs: React.FC = () => {
   );
 };
 
-export default PayablePOs;
+export default Invoices;

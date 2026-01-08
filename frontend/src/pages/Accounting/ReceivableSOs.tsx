@@ -8,12 +8,13 @@
  * - View all sales orders from accounting perspective
  * - Filter by payment status (unpaid, partial, paid)
  * - Track outstanding amounts and due dates
- * - Quick access to customer information
+ * - Side panel with order details and activity feed
  * 
- * Pattern: Uses DataTable pattern similar to SalesOrders but with accounting focus
+ * Pattern: Follows Invoices.tsx architecture with side panel integration
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { ActivityFeed } from '../../components/Shared/ActivityFeed';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal } from '../../utils/formatters';
@@ -65,10 +66,25 @@ const PageTitle = styled.h1`
   margin: 0;
 `;
 
+const ContentContainer = styled.div<{ hasSidePanel?: boolean }>`
+  display: grid;
+  grid-template-columns: ${props => props.hasSidePanel ? '1fr 400px' : '1fr'};
+  gap: 1.5rem;
+  transition: grid-template-columns 0.3s ease;
+  flex: 1;
+  overflow: hidden;
+`;
+
+const MainContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+`;
+
 const FilterBar = styled.div`
   display: flex;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 `;
 
@@ -93,6 +109,28 @@ const TableContainer = styled.div`
   border-radius: var(--radius-lg);
   overflow: hidden;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+const TableWrapper = styled.div`
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgb(var(--color-background));
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border));
+    border-radius: 4px;
+  }
 `;
 
 const Table = styled.table`
@@ -108,13 +146,14 @@ const TableHeader = styled.thead`
   z-index: 10;
 `;
 
-const TableRow = styled.tr`
+const TableRow = styled.tr<{ clickable?: boolean; selected?: boolean }>`
   border-bottom: 1px solid rgb(var(--color-border));
-  cursor: pointer;
+  cursor: ${props => props.clickable ? 'pointer' : 'default'};
+  background: ${props => props.selected ? 'rgba(var(--color-primary), 0.05)' : 'transparent'};
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(var(--color-primary), 0.05);
+    background: ${props => props.clickable ? 'rgba(var(--color-primary), 0.08)' : 'transparent'};
   }
 
   &:last-child {
@@ -157,6 +196,79 @@ const StatusBadge = styled.span<{ status: string }>`
   }}
 `;
 
+const SidePanel = styled.div`
+  background: rgb(var(--color-surface));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 8rem);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgb(var(--color-background));
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border));
+    border-radius: 4px;
+  }
+`;
+
+const SidePanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(var(--color-border));
+`;
+
+const SidePanelTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  color: rgb(var(--color-text-secondary));
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  
+  &:hover {
+    color: rgb(var(--color-text-primary));
+  }
+`;
+
+const DetailSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const DetailLabel = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--color-text-secondary));
+`;
+
+const DetailValue = styled.div`
+  font-size: 0.875rem;
+  color: rgb(var(--color-text-primary));
+`;
+
 const LoadingMessage = styled.div`
   padding: 3rem;
   text-align: center;
@@ -187,6 +299,7 @@ const ReceivableSOs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'partial' | 'paid'>('all');
+  const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
 
   // Fetch sales orders with accounting focus
   const fetchOrders = async () => {
@@ -234,59 +347,134 @@ const ReceivableSOs: React.FC = () => {
         <PageTitle>Receivables - Sales Orders</PageTitle>
       </PageHeader>
 
-      <FilterBar>
-        <FilterButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
-          All ({counts.all})
-        </FilterButton>
-        <FilterButton active={statusFilter === 'unpaid'} onClick={() => setStatusFilter('unpaid')}>
-          Unpaid ({counts.unpaid})
-        </FilterButton>
-        <FilterButton active={statusFilter === 'partial'} onClick={() => setStatusFilter('partial')}>
-          Partial ({counts.partial})
-        </FilterButton>
-        <FilterButton active={statusFilter === 'paid'} onClick={() => setStatusFilter('paid')}>
-          Paid ({counts.paid})
-        </FilterButton>
-      </FilterBar>
+      <ContentContainer hasSidePanel={!!selectedOrder}>
+        <MainContent>
+          <FilterBar>
+            <FilterButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
+              All ({counts.all})
+            </FilterButton>
+            <FilterButton active={statusFilter === 'unpaid'} onClick={() => setStatusFilter('unpaid')}>
+              Unpaid ({counts.unpaid})
+            </FilterButton>
+            <FilterButton active={statusFilter === 'partial'} onClick={() => setStatusFilter('partial')}>
+              Partial ({counts.partial})
+            </FilterButton>
+            <FilterButton active={statusFilter === 'paid'} onClick={() => setStatusFilter('paid')}>
+              Paid ({counts.paid})
+            </FilterButton>
+          </FilterBar>
 
-      <TableContainer>
-        {loading ? (
-          <LoadingMessage>Loading sales orders...</LoadingMessage>
-        ) : error ? (
-          <ErrorMessage>{error}</ErrorMessage>
-        ) : orders.length === 0 ? (
-          <EmptyMessage>No sales orders found</EmptyMessage>
-        ) : (
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead>SO Number</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Order Date</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Outstanding</TableHead>
-                <TableHead>Payment Status</TableHead>
-              </tr>
-            </TableHeader>
-            <tbody>
-              {orders.map(order => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.order_number}</TableCell>
-                  <TableCell>{order.customer_name || `Customer #${order.customer}`}</TableCell>
-                  <TableCell>{formatDateLocal(order.order_date)}</TableCell>
-                  <TableCell>{formatCurrency(parseFloat(order.total_amount))}</TableCell>
-                  <TableCell>{formatCurrency(parseFloat(order.outstanding_amount || order.total_amount))}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={order.payment_status || 'unpaid'}>
-                      {(order.payment_status || 'unpaid').toUpperCase()}
-                    </StatusBadge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </tbody>
-          </Table>
+          <TableContainer>
+            {loading ? (
+              <LoadingMessage>Loading sales orders...</LoadingMessage>
+            ) : error ? (
+              <ErrorMessage>{error}</ErrorMessage>
+            ) : orders.length === 0 ? (
+              <EmptyMessage>No sales orders found</EmptyMessage>
+            ) : (
+              <TableWrapper>
+                <Table>
+                  <TableHeader>
+                    <tr>
+                      <TableHead>SO Number</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Order Date</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Outstanding</TableHead>
+                      <TableHead>Payment Status</TableHead>
+                    </tr>
+                  </TableHeader>
+                  <tbody>
+                    {orders.map(order => (
+                      <TableRow
+                        key={order.id}
+                        clickable
+                        selected={selectedOrder?.id === order.id}
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        <TableCell>{order.order_number}</TableCell>
+                        <TableCell>{order.customer_name || `Customer #${order.customer}`}</TableCell>
+                        <TableCell>{formatDateLocal(order.order_date)}</TableCell>
+                        <TableCell>{formatCurrency(parseFloat(order.total_amount))}</TableCell>
+                        <TableCell>{formatCurrency(parseFloat(order.outstanding_amount || order.total_amount))}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.payment_status || 'unpaid'}>
+                            {(order.payment_status || 'unpaid').toUpperCase()}
+                          </StatusBadge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableWrapper>
+            )}
+          </TableContainer>
+        </MainContent>
+
+        {selectedOrder && (
+          <SidePanel>
+            <SidePanelHeader>
+              <SidePanelTitle>{selectedOrder.order_number}</SidePanelTitle>
+              <CloseButton onClick={() => setSelectedOrder(null)}>×</CloseButton>
+            </SidePanelHeader>
+
+            <DetailSection>
+              <DetailLabel>Customer</DetailLabel>
+              <DetailValue>
+                {selectedOrder.customer_name || `Customer #${selectedOrder.customer}`}
+              </DetailValue>
+            </DetailSection>
+
+            <DetailSection>
+              <DetailLabel>Order Date</DetailLabel>
+              <DetailValue>{formatDateLocal(selectedOrder.order_date)}</DetailValue>
+            </DetailSection>
+
+            {selectedOrder.delivery_date && (
+              <DetailSection>
+                <DetailLabel>Delivery Date</DetailLabel>
+                <DetailValue>{formatDateLocal(selectedOrder.delivery_date)}</DetailValue>
+              </DetailSection>
+            )}
+
+            <DetailSection>
+              <DetailLabel>Financial Summary</DetailLabel>
+              <DetailValue>
+                <div>Total: {formatCurrency(parseFloat(selectedOrder.total_amount))}</div>
+                <div>
+                  Outstanding: {formatCurrency(parseFloat(selectedOrder.outstanding_amount || selectedOrder.total_amount))}
+                </div>
+              </DetailValue>
+            </DetailSection>
+
+            <DetailSection>
+              <DetailLabel>Payment Status</DetailLabel>
+              <DetailValue>
+                <StatusBadge status={selectedOrder.payment_status || 'unpaid'}>
+                  {(selectedOrder.payment_status || 'unpaid').toUpperCase()}
+                </StatusBadge>
+              </DetailValue>
+            </DetailSection>
+
+            {selectedOrder.notes && (
+              <DetailSection>
+                <DetailLabel>Notes</DetailLabel>
+                <DetailValue>{selectedOrder.notes}</DetailValue>
+              </DetailSection>
+            )}
+
+            <DetailSection>
+              <DetailLabel>Activity Log</DetailLabel>
+              <ActivityFeed
+                entityType="sales_order"
+                entityId={selectedOrder.id}
+                showCreateForm={true}
+                maxHeight="400px"
+              />
+            </DetailSection>
+          </SidePanel>
         )}
-      </TableContainer>
+      </ContentContainer>
     </PageContainer>
   );
 };
