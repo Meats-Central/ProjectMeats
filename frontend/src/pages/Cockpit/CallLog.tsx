@@ -21,6 +21,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
+import { ScheduleCallModal } from '../../components/Shared/ScheduleCallModal';
 import { apiClient } from '../../services/apiService';
 import { formatToLocal, formatDateLocal } from '../../utils/formatters';
 
@@ -350,6 +351,7 @@ export const CallLog: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCall, setSelectedCall] = useState<ScheduledCall | null>(null);
   const [entityFilter, setEntityFilter] = useState<EntityFilter | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
     fetchScheduledCalls();
@@ -422,11 +424,17 @@ export const CallLog: React.FC = () => {
       <PageHeader>
         <PageTitle>Call Log & Schedule</PageTitle>
         <HeaderActions>
-          <PrimaryButton>
+          <PrimaryButton onClick={() => setShowScheduleModal(true)}>
             + Schedule New Call
           </PrimaryButton>
         </HeaderActions>
       </PageHeader>
+
+      <ScheduleCallModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSuccess={fetchCalls}
+      />
 
       <SplitPaneContainer>
         {/* Left Pane: Scheduled Calls */}
