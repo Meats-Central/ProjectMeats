@@ -145,7 +145,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         
         {!loading && !fetchError && locations.map((location) => (
           <option key={location.id} value={location.id}>
-            {location.name} - {location.type} ({location.city}, {location.state})
+            {location.name} - {location.location_type} ({location.city}, {location.state_province})
           </option>
         ))}
       </StyledSelect>
