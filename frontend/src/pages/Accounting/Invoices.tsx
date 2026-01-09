@@ -14,8 +14,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ActivityFeed } from '../../components/Shared/ActivityFeed';
-import { RecordPaymentModal, PaymentHistoryList } from '../../components/Shared';
+import { ActivityFeed, RecordPaymentModal, PaymentHistoryList, CreateInvoiceModal } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal, formatToLocal } from '../../utils/formatters';
@@ -384,6 +383,7 @@ const Invoices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch invoices
   const fetchInvoices = async () => {
@@ -446,7 +446,7 @@ const Invoices: React.FC = () => {
       <PageHeader>
         <PageTitle>Receivables - Invoices</PageTitle>
         <HeaderActions>
-          <PrimaryButton onClick={() => alert('Create Invoice feature coming soon')}>
+          <PrimaryButton onClick={() => setIsModalOpen(true)}>
             + Create Invoice
           </PrimaryButton>
         </HeaderActions>
@@ -633,6 +633,12 @@ const Invoices: React.FC = () => {
           </SidePanel>
         )}
       </ContentContainer>
+
+      <CreateInvoiceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchInvoices}
+      />
     </PageContainer>
   );
 };

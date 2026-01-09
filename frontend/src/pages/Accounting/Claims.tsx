@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ActivityFeed } from '../../components/Shared/ActivityFeed';
+import { ActivityFeed, CreateClaimModal } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal, formatToLocal } from '../../utils/formatters';
@@ -462,6 +462,7 @@ export const Claims: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ClaimStatus | 'all'>('all');
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchClaims();
@@ -530,7 +531,7 @@ export const Claims: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <PageTitle>Claims Management</PageTitle>
-        <PrimaryButton onClick={() => alert('Create claim functionality coming soon')}>
+        <PrimaryButton onClick={() => setIsModalOpen(true)}>
           + New Claim
         </PrimaryButton>
       </PageHeader>
@@ -751,6 +752,13 @@ export const Claims: React.FC = () => {
           </SidePanel>
         )}
       </ContentContainer>
+
+      <CreateClaimModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchClaims}
+        defaultClaimType={activeTab}
+      />
     </PageContainer>
   );
 };

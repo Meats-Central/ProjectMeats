@@ -44,12 +44,12 @@ def send_invitation_email(sender, instance, created, **kwargs):
         subject = f"You've been invited to join {instance.tenant.name} on Meats Central"
         
         message = (
-            f"Join us, {instance.tenant.name}, on Meats Central!\n\n"
-            f"You have been invited to join as a {instance.role}.\n\n"
-            f"{instance.message}\n\n"
+            f"Hello,\n\n\n"
+            f"You have been invited to join '{instance.tenant.name}' as a {instance.role}. "
+            f"Join us on Meats Central!\n\n\n"
             f"Click the link below to accept the invitation and set up your account:\n"
             f"{invite_url}\n\n"
-            f"This link expires on {instance.expires_at.strftime('%Y-%m-%d')}.\n\n"
+            f"This link expires on {instance.expires_at.strftime('%Y-%m-%d')}.\n\n\n"
             f"Welcome to easy,\n\n"
             f"The Meats Central Team"
         )
