@@ -14,7 +14,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ActivityFeed } from '../../components/Shared/ActivityFeed';
+import { ActivityFeed, CreateOrderModal } from '../../components/Shared';
 import { apiClient } from '../../services/apiService';
 import { formatCurrency } from '../../shared/utils';
 import { formatDateLocal, formatToLocal } from '../../utils/formatters';
@@ -404,6 +404,7 @@ export const SalesOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -467,7 +468,7 @@ export const SalesOrdersPage: React.FC = () => {
       <PageHeader>
         <PageTitle>Sales Orders</PageTitle>
         <HeaderActions>
-          <PrimaryButton onClick={() => alert('Create order functionality coming soon')}>
+          <PrimaryButton onClick={() => setIsModalOpen(true)}>
             + New Order
           </PrimaryButton>
         </HeaderActions>
@@ -641,6 +642,12 @@ export const SalesOrdersPage: React.FC = () => {
           </SidePanel>
         )}
       </ContentContainer>
+
+      <CreateOrderModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchOrders}
+      />
     </PageContainer>
   );
 };

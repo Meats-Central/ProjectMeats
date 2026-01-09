@@ -503,7 +503,8 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
         """View for creating new user invitations."""
         # Superusers can invite to any tenant
         if request.user.is_superuser:
-            tenant_users = TenantUser.objects.all().select_related('tenant')
+            # Get unique tenants (not TenantUser associations)
+            tenants = Tenant.objects.all().order_by('name')
             default_tenant = None  # Superusers must explicitly select tenant
         else:
             # Get user's tenant(s)
@@ -516,8 +517,12 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
                 messages.error(request, "You don't have access to any tenants.")
                 return redirect('..')
             
+            # Get unique tenants for this user
+            tenant_ids = tenant_users.values_list('tenant_id', flat=True).distinct()
+            tenants = Tenant.objects.filter(id__in=tenant_ids).order_by('name')
+            
             # If user has only one tenant, use it as default
-            default_tenant = tenant_users.first().tenant if tenant_users.count() == 1 else None
+            default_tenant = tenants.first() if tenants.count() == 1 else None
         
         if request.method == 'POST':
             form = InviteUserForm(request.POST)
@@ -570,7 +575,7 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             'has_view_permission': self.has_view_permission(request),
             'site_header': admin.site.site_header,
             'site_title': admin.site.site_title,
-            'tenants': tenant_users,
+            'tenants': tenants,
             'default_tenant': default_tenant,
             'is_superuser': request.user.is_superuser,
         }
