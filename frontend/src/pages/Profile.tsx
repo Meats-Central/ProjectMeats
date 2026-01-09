@@ -264,7 +264,7 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 40px;
   font-size: 18px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const Header = styled.div`
@@ -274,13 +274,13 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -323,13 +323,13 @@ const ProfileInfo = styled.div`
 const DisplayName = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 4px 0;
 `;
 
 const UserRole = styled.p`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -374,7 +374,7 @@ const FormGroup = styled.div`
 
 const Label = styled.label`
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -404,7 +404,7 @@ const FormActions = styled.div`
 `;
 
 const CancelButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   padding: 12px 24px;
@@ -466,11 +466,11 @@ const DetailRow = styled.div`
 
 const DetailLabel = styled.span`
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
 `;
 
 const DetailValue = styled.span`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const StatusBadge = styled.span<{ $active: boolean }>`
@@ -493,7 +493,7 @@ const AccountInfo = styled.div`
 const InfoTitle = styled.h3`
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 20px 0;
 `;
 
@@ -525,7 +525,7 @@ const InfoContent = styled.div`
 const InfoLabel = styled.span`
   font-size: 12px;
   font-weight: 600;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
@@ -533,7 +533,7 @@ const InfoLabel = styled.span`
 const InfoText = styled.span`
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
 `;
 
 export default Profile;

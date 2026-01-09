@@ -1,0 +1,190 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .invite-form-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .invite-form-container h2 {
+        margin-top: 0;
+        color: #333;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    .invite-form-container .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    .form-group input[type="email"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 15px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.5;
+        box-sizing: border-box;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-color: white;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%206l5%205%205-5%202%201-7%207-7-7%202-1z%22%20fill%3D%22%23333%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 16px;
+        padding-right: 36px;
+    }
+    .form-group select {
+        height: 44px;
+        cursor: pointer;
+    }
+    .form-group input[type="email"],
+    .form-group textarea {
+        background-image: none;
+        padding-right: 12px;
+    }
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+    .form-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 10px;
+    }
+    .btn {
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+    .btn-primary {
+        background: #4F46E5;
+        color: white;
+    }
+    .btn-primary:hover {
+        background: #4338CA;
+    }
+    .btn-secondary {
+        background: #6B7280;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background: #4B5563;
+    }
+    .tenant-info {
+        background: #F3F4F6;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 25px;
+    }
+    .tenant-info strong {
+        color: #1F2937;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenantinvitation_changelist' %}">{% trans 'Tenant invitations' %}</a>
+    &rsaquo; {% trans 'Invite New User' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="invite-form-container">
+    <h2>🚀 Invite New User</h2>
+    <p class="subtitle">Send an invitation to join your organization on ProjectMeats</p>
+    
+    {% if default_tenant %}
+    <div class="tenant-info">
+        <strong>Inviting to:</strong> {{ default_tenant.name }}
+    </div>
+    {% elif is_superuser %}
+    <div class="form-group">
+        <label for="id_tenant">Organization *</label>
+        <select name="tenant" id="id_tenant" required style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+            <option value="">Select an organization...</option>
+            {% for tenant_user in tenants %}
+                <option value="{{ tenant_user.tenant.id }}">{{ tenant_user.tenant.name }}</option>
+            {% endfor %}
+        </select>
+        <p style="color: #6B7280; font-size: 12px; margin-top: 5px;">
+            Select which organization to send the invitation for
+        </p>
+    </div>
+    {% elif tenants.count > 1 %}
+    <div class="tenant-info">
+        <strong>Note:</strong> You have access to multiple tenants. The invitation will be sent for your primary tenant.
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="id_email">Email Address *</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <p style="color: #DC2626; font-size: 12px; margin-top: 5px;">{{ form.email.errors.0 }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="id_role">Role *</label>
+            {{ form.role }}
+            {% if form.role.errors %}
+                <p style="color: #DC2626; font-size: 12px; margin-top: 5px;">{{ form.role.errors.0 }}</p>
+            {% endif %}
+            <p style="color: #6B7280; font-size: 12px; margin-top: 5px;">
+                <strong>Owner:</strong> Full access including billing<br>
+                <strong>Admin:</strong> Full access except billing<br>
+                <strong>Manager:</strong> Create/edit orders and manage operations<br>
+                <strong>User:</strong> View and create orders<br>
+                <strong>Readonly:</strong> View-only access
+            </p>
+        </div>
+        
+        <div class="form-group">
+            <label for="id_message">Custom Message (Optional)</label>
+            {{ form.message }}
+            {% if form.message.errors %}
+                <p style="color: #DC2626; font-size: 12px; margin-top: 5px;">{{ form.message.errors.0 }}</p>
+            {% endif %}
+            <p style="color: #6B7280; font-size: 12px; margin-top: 5px;">
+                Add a personal message to the invitation email
+            </p>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">📧 Send Invitation</button>
+            <a href="{% url 'admin:tenants_tenantinvitation_changelist' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

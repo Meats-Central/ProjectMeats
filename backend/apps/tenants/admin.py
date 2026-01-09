@@ -23,7 +23,7 @@ class InviteUserForm(forms.Form):
     message = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 3}), 
         required=False,
-        initial="Join us on Project Meats!"
+        initial="Welcome! We're excited to have you join our team on Meats Central."
     )
 
 
@@ -434,6 +434,8 @@ class TenantAdmin(admin.ModelAdmin):
 class TenantUserAdmin(TenantFilteredAdmin):
     """Admin interface for TenantUser associations with tenant filtering."""
 
+    change_list_template = 'admin/tenants/tenantuser/change_list.html'
+    
     list_display = ["user", "tenant", "role", "is_active", "created_at"]
     list_filter = ["role", "is_active", "tenant"]
     search_fields = ["user__username", "user__email", "tenant__name", "tenant__slug"]
@@ -470,6 +472,8 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
     search_fields = ["email", "tenant__name", "invited_by__username"]
     readonly_fields = ["id", "token", "created_at", "accepted_at", "accepted_by"]
     
+    change_list_template = 'admin/tenants/tenantinvitation/change_list.html'
+    
     fieldsets = [
         ("Invitation Details", {
             "fields": ("tenant", "email", "role", "message")
@@ -486,6 +490,107 @@ class TenantInvitationAdmin(TenantFilteredAdmin):
             "classes": ["collapse"]
         }),
     ]
+    
+    def get_urls(self):
+        """Add custom URL for invite user functionality."""
+        urls = super().get_urls()
+        custom_urls = [
+            path('invite/', self.admin_site.admin_view(self.invite_user_view), name='tenants_tenantinvitation_invite'),
+        ]
+        return custom_urls + urls
+    
+    def invite_user_view(self, request):
+        """View for creating new user invitations."""
+        # Superusers can invite to any tenant
+        if request.user.is_superuser:
+            tenant_users = TenantUser.objects.all().select_related('tenant')
+            default_tenant = None  # Superusers must explicitly select tenant
+        else:
+            # Get user's tenant(s)
+            tenant_users = TenantUser.objects.filter(
+                user=request.user,
+                is_active=True
+            ).select_related('tenant')
+            
+            if not tenant_users.exists():
+                messages.error(request, "You don't have access to any tenants.")
+                return redirect('..')
+            
+            # If user has only one tenant, use it as default
+            default_tenant = tenant_users.first().tenant if tenant_users.count() == 1 else None
+        
+        if request.method == 'POST':
+            form = InviteUserForm(request.POST)
+            if form.is_valid():
+                email = form.cleaned_data['email']
+                role = form.cleaned_data['role']
+                message = form.cleaned_data['message']
+                
+                # Get tenant from form or use default
+                tenant_id = request.POST.get('tenant')
+                if tenant_id:
+                    tenant = Tenant.objects.get(id=tenant_id)
+                elif default_tenant:
+                    tenant = default_tenant
+                else:
+                    messages.error(request, "Please select a tenant.")
+                    return redirect('.')
+                
+                # Create invitation
+                invitation = TenantInvitation.objects.create(
+                    tenant=tenant,
+                    email=email,
+                    role=role,
+                    invited_by=request.user,
+                    is_reusable=False,
+                    status='pending',
+                    message=message
+                )
+                
+                # Generate invite link
+                base_url = getattr(settings, 'FRONTEND_URL', 'https://meatscentral.com')
+                link = f"{base_url}/signup?token={invitation.token}"
+                
+                messages.success(
+                    request,
+                    format_html(
+                        '✅ Invitation sent to <strong>{}</strong> as <strong>{}</strong> for <strong>{}</strong><br>'
+                        'Invite link: <input type="text" value="{}" style="width: 100%; padding: 8px; margin-top: 8px;" readonly onclick="this.select();">',
+                        email, role, tenant.name, link
+                    )
+                )
+                return redirect('..')
+        else:
+            form = InviteUserForm()
+        
+        context = {
+            'title': '🚀 Invite New User',
+            'form': form,
+            'opts': self.model._meta,
+            'has_view_permission': self.has_view_permission(request),
+            'site_header': admin.site.site_header,
+            'site_title': admin.site.site_title,
+            'tenants': tenant_users,
+            'default_tenant': default_tenant,
+            'is_superuser': request.user.is_superuser,
+        }
+        
+        return render(request, 'admin/tenants/invite_user.html', context)
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Make tenant field read-only for single-tenant admins on add page."""
+        if db_field.name == "tenant" and not request.user.is_superuser:
+            tenant_ids = TenantUser.objects.filter(
+                user=request.user, 
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            
+            # If user has only one tenant, restrict to that tenant
+            if len(tenant_ids) == 1:
+                kwargs["queryset"] = Tenant.objects.filter(id__in=tenant_ids)
+                kwargs["initial"] = tenant_ids[0]
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     def email_or_type(self, obj):
         if obj.is_reusable:

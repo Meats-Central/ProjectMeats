@@ -9,7 +9,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 
-from .serializers import CustomerSlotSerializer, SupplierSlotSerializer, OrderSlotSerializer
+from .serializers import (
+    CustomerSlotSerializer,
+    SupplierSlotSerializer,
+    OrderSlotSerializer,
+    ActivityLogSerializer,
+    ScheduledCallSerializer,
+)
+from .models import ActivityLog, ScheduledCall
 from tenant_apps.customers.models import Customer
 from tenant_apps.suppliers.models import Supplier
 from tenant_apps.purchase_orders.models import PurchaseOrder
@@ -59,3 +66,67 @@ class CockpitSlotViewSet(viewsets.ReadOnlyModelViewSet):
             results.extend(OrderSlotSerializer(orders, many=True).data)
         
         return Response(results)
+
+
+class ActivityLogViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Activity Logs with strict tenant isolation.
+    
+    Supports filtering by entity_type and entity_id for entity-specific note feeds.
+    """
+    serializer_class = ActivityLogSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter activity logs by tenant and optional entity filters."""
+        if not hasattr(self.request, 'tenant') or not self.request.tenant:
+            return ActivityLog.objects.none()
+        
+        queryset = ActivityLog.objects.filter(tenant=self.request.tenant)
+        
+        # Filter by entity if provided
+        entity_type = self.request.query_params.get('entity_type')
+        entity_id = self.request.query_params.get('entity_id')
+        
+        if entity_type and entity_id:
+            queryset = queryset.filter(entity_type=entity_type, entity_id=entity_id)
+        
+        return queryset.order_by('-is_pinned', '-created_on')
+    
+    def perform_create(self, serializer):
+        """Auto-assign tenant and created_by on create."""
+        serializer.save(
+            tenant=self.request.tenant,
+            created_by=self.request.user
+        )
+
+
+class ScheduledCallViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Scheduled Calls with strict tenant isolation.
+    
+    Supports filtering by date range and completion status.
+    """
+    serializer_class = ScheduledCallSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter scheduled calls by tenant and optional filters."""
+        if not hasattr(self.request, 'tenant') or not self.request.tenant:
+            return ScheduledCall.objects.none()
+        
+        queryset = ScheduledCall.objects.filter(tenant=self.request.tenant)
+        
+        # Filter by completion status
+        is_completed = self.request.query_params.get('is_completed')
+        if is_completed is not None:
+            queryset = queryset.filter(is_completed=is_completed.lower() == 'true')
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Auto-assign tenant and created_by on create."""
+        serializer.save(
+            tenant=self.request.tenant,
+            created_by=self.request.user
+        )

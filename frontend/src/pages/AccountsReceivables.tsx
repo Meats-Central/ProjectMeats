@@ -13,7 +13,7 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
@@ -59,7 +59,7 @@ const StatNumber = styled.div`
 
 const StatLabel = styled.div`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-weight: 500;
 `;
 
@@ -67,7 +67,7 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 60px 20px;
   font-size: 18px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const EmptyState = styled.div`
@@ -83,12 +83,12 @@ const EmptyIcon = styled.div`
 const EmptyTitle = styled.h3`
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 10px;
 `;
 
 const EmptyDescription = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 16px;
 `;
 
@@ -123,7 +123,7 @@ const TableHeaderCell = styled.th`
   text-align: left;
   padding: 16px 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -209,7 +209,7 @@ const FormTitle = styled.h2`
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
 `;
 
 const CloseButton = styled.button`
@@ -217,7 +217,7 @@ const CloseButton = styled.button`
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   padding: 0;
   width: 30px;
   height: 30px;
@@ -226,7 +226,7 @@ const CloseButton = styled.button`
   justify-content: center;
 
   &:hover {
-    color: #2c3e50;
+    color: rgb(var(--color-text-primary));
   }
 `;
 
@@ -242,7 +242,7 @@ const Label = styled.label`
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -282,7 +282,7 @@ const FormActions = styled.div`
 `;
 
 const CancelButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   padding: 10px 20px;
@@ -433,7 +433,7 @@ const AccountsReceivables: React.FC = () => {
       case 'disputed':
         return '#6f42c1';
       default:
-        return '#6c757d';
+        return 'rgb(var(--color-text-secondary))';
     }
   };
 

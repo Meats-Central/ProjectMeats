@@ -21,7 +21,13 @@ export const navigation: NavigationItem[] = [
     label: 'Cockpit',
     icon: '🎯',
     path: '/cockpit',
-    // Removed: Slots subpage (no longer needed)
+    children: [
+      {
+        label: 'Call Log',
+        icon: '📞',
+        path: '/cockpit/call-log',
+      },
+    ],
   },
   {
     label: 'Workspace',

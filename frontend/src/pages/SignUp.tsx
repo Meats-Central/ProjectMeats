@@ -112,7 +112,7 @@ const SignUp: React.FC = () => {
             <SuccessIcon>✅</SuccessIcon>
             <SuccessTitle>Account Created Successfully!</SuccessTitle>
             <SuccessMessage>
-              Welcome to ProjectMeats! Your account has been created and you're now logged in.
+              Welcome to Meats Central! Your account has been created and you're now logged in.
             </SuccessMessage>
             <SuccessSubMessage>Redirecting you to the dashboard...</SuccessSubMessage>
           </SuccessContent>
@@ -127,10 +127,10 @@ const SignUp: React.FC = () => {
         <Header>
           <LogoSection>
             <Logo>🥩</Logo>
-            <LogoText>ProjectMeats</LogoText>
+            <LogoText>Meats Central</LogoText>
           </LogoSection>
           <Title>Create Account</Title>
-          <Subtitle>Join ProjectMeats to manage your business operations</Subtitle>
+          <Subtitle>Join Meats Central to manage your business operations</Subtitle>
         </Header>
 
         {error && (
@@ -300,19 +300,19 @@ const Logo = styled.div`
 const LogoText = styled.h1`
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
 const Title = styled.h2`
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
   font-size: 16px;
 `;
@@ -356,7 +356,7 @@ const Label = styled.label`
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -432,13 +432,13 @@ const Footer = styled.div`
 `;
 
 const FooterText = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
   margin: 0 0 12px 0;
 `;
 
 const FooterNote = styled.p`
-  color: #8a8a8a;
+  color: rgb(var(--color-text-secondary));
   font-size: 12px;
   margin: 0;
   font-style: italic;
@@ -467,19 +467,19 @@ const SuccessIcon = styled.div`
 const SuccessTitle = styled.h2`
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 16px 0;
 `;
 
 const SuccessMessage = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 16px;
   margin: 0 0 12px 0;
   line-height: 1.5;
 `;
 
 const SuccessSubMessage = styled.p`
-  color: #8a8a8a;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
   margin: 0;
   font-style: italic;

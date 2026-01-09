@@ -38,6 +38,14 @@ class PurchaseOrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class PaymentStatus(models.TextChoices):
+    """Payment status choices for purchase orders."""
+
+    UNPAID = "unpaid", "Unpaid"
+    PARTIAL = "partial", "Partial"
+    PAID = "paid", "Paid"
+
+
 class LogisticsScenarioChoices(models.TextChoices):
     """Logistics scenario for purchase orders (determines field visibility)."""
     
@@ -59,7 +67,7 @@ class PurchaseOrder(TimestampModel):
         help_text="Tenant this purchase order belongs to"
     )
 
-    order_number = models.CharField(max_length=50, unique=True, help_text="Unique order number")
+    order_number = models.CharField(max_length=50, help_text="Order number (unique per tenant)")
     supplier = models.ForeignKey(
         "suppliers.Supplier",
         on_delete=models.CASCADE,
@@ -84,6 +92,19 @@ class PurchaseOrder(TimestampModel):
         choices=PurchaseOrderStatus.choices,
         default=PurchaseOrderStatus.PENDING,
         help_text="Current status of the purchase order",
+    )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        help_text="Payment status of the purchase order",
+    )
+    outstanding_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Outstanding amount (calculated: total - paid)",
     )
     order_date = models.DateField(help_text="Date the order was placed")
     delivery_date = models.DateField(blank=True, null=True, help_text="Expected delivery date")
@@ -306,6 +327,12 @@ class PurchaseOrder(TimestampModel):
         indexes = [
             models.Index(fields=['tenant', 'order_number']),
             models.Index(fields=['tenant', 'order_date']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'order_number'],
+                name='unique_tenant_purchase_order_number'
+            ),
         ]
 
     def __str__(self):

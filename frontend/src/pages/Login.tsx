@@ -56,7 +56,7 @@ const Login: React.FC = () => {
         <Header>
           <LogoSection>
             <Logo>🥩</Logo>
-            <LogoText>ProjectMeats</LogoText>
+            <LogoText>Meats Central</LogoText>
           </LogoSection>
           <Title>Sign In</Title>
           <Subtitle>Access your business management dashboard</Subtitle>
@@ -166,19 +166,19 @@ const Logo = styled.div`
 const LogoText = styled.h1`
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
 const Title = styled.h2`
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
   font-size: 16px;
 `;
@@ -212,7 +212,7 @@ const Label = styled.label`
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   font-size: 14px;
 `;
 
@@ -288,13 +288,13 @@ const Footer = styled.div`
 `;
 
 const FooterText = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
   margin: 0 0 8px 0;
 `;
 
 const FooterSubText = styled.p`
-  color: #8a8a8a;
+  color: rgb(var(--color-text-secondary));
   font-size: 12px;
   margin: 0;
 `;
@@ -327,7 +327,7 @@ const SuccessIcon = styled.span`
 `;
 
 const HintText = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   font-size: 12px;
   margin: 4px 0 0 0;
   font-style: italic;

@@ -23,6 +23,11 @@ import Plants from './pages/Plants';
 import Carriers from './pages/Carriers';
 import AIAssistant from './pages/AIAssistant';
 import Cockpit from './pages/Cockpit';
+import CallLog from './pages/Cockpit/CallLog';
+import Claims from './pages/Accounting/Claims';
+import PayablePOs from './pages/Accounting/PayablePOs';
+import ReceivableSOs from './pages/Accounting/ReceivableSOs';
+import Invoices from './pages/Accounting/Invoices';
 import Processes from './pages/Processes';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
@@ -48,7 +53,7 @@ const App: React.FC = () => {
       const env = environment.toLowerCase();
 
       // Select favicon and title prefix based on environment
-      let faviconPath = '/favicon.ico'; // Default production (red MC)
+      let faviconPath = '/favicon-prod.svg'; // Production (red MC)
       let titlePrefix = '';
 
       if (env === 'development' || env === 'dev') {
@@ -70,7 +75,7 @@ const App: React.FC = () => {
       faviconLink.href = faviconPath;
 
       // Update page title with environment prefix
-      const baseTitle = 'ProjectMeats';
+      const baseTitle = 'Meats Central';
       if (!document.title.startsWith('[')) {
         document.title = titlePrefix + baseTitle;
       }
@@ -117,12 +122,13 @@ const App: React.FC = () => {
                 
                 {/* Accounting */}
                 <Route path="accounts-receivables" element={<AccountsReceivables />} />
-                <Route path="accounting/receivables/claims" element={<ComingSoon title="Receivables Claims" description="Manage claims related to accounts receivable." />} />
-                <Route path="accounting/receivables/sos" element={<ComingSoon title="Receivables S.O.'s" description="View sales orders related to receivables." />} />
-                <Route path="accounting/receivables/invoices" element={<ComingSoon title="Receivables Invoices" description="Manage customer invoices and billing." />} />
+                <Route path="accounting/claims" element={<Claims />} />
+                <Route path="accounting/receivables/claims" element={<Claims />} />
+                <Route path="accounting/payables/claims" element={<Claims />} />
+                <Route path="accounting/receivables/sos" element={<ReceivableSOs />} />
+                <Route path="accounting/receivables/invoices" element={<Invoices />} />
                 <Route path="accounting/payables" element={<Payables />} />
-                <Route path="accounting/payables/claims" element={<ComingSoon title="Payables Claims" description="Manage supplier claims and disputes." />} />
-                <Route path="accounting/payables/pos" element={<ComingSoon title="Payables P.O.'s" description="View purchase orders related to payables." />} />
+                <Route path="accounting/payables/pos" element={<PayablePOs />} />
                 
                 {/* Other Pages */}
                 <Route path="cold-storage" element={<ColdStorage />} />
@@ -130,6 +136,7 @@ const App: React.FC = () => {
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
                 <Route path="cockpit" element={<Cockpit />} />
+                <Route path="cockpit/call-log" element={<CallLog />} />
                 <Route path="processes" element={<Processes />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />

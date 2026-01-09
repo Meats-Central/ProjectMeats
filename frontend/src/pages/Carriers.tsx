@@ -35,13 +35,13 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -61,12 +61,12 @@ const Icon = styled.div`
 
 const Text = styled.h2`
   font-size: 24px;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 10px;
 `;
 
 const SubText = styled.p`
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin-bottom: 30px;
   font-size: 16px;
 `;
@@ -78,7 +78,7 @@ const Features = styled.div`
 `;
 
 const FeatureItem = styled.div`
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 8px;
   font-size: 14px;
 `;

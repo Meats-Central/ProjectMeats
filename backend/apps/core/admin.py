@@ -27,6 +27,10 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         """
         qs = super().get_queryset(request)
         
+        # Anonymous users get no data
+        if not request.user.is_authenticated:
+            return qs.none()
+        
         # Superusers see all data
         if request.user.is_superuser:
             return qs
@@ -50,12 +54,49 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         # If no tenant field, return all (for non-tenanted models like User, Group, etc.)
         return qs
     
+    def has_module_permission(self, request):
+        """
+        Allow staff users with an active tenant to see the app modules.
+        
+        - Superusers see everything
+        - Staff users with active tenant association can see modules
+        """
+        if not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return TenantUser.objects.filter(user=request.user, is_active=True).exists()
+    
+    def has_view_permission(self, request, obj=None):
+        """
+        Allow staff users with an active tenant to view model instances.
+        
+        - Superusers can view everything
+        - Staff users with active tenant can view their tenant's data
+        """
+        if not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        
+        # If checking a specific object, ensure it belongs to their tenant
+        if obj is not None and hasattr(obj, 'tenant'):
+            user_tenants = TenantUser.objects.filter(
+                user=request.user, 
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            return obj.tenant_id in user_tenants
+            
+        return TenantUser.objects.filter(user=request.user, is_active=True).exists()
+    
     def has_add_permission(self, request):
         """
         Check if user can add objects.
         
         Requires user to have at least one active tenant association.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -71,6 +112,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         
         If obj is provided, ensure it belongs to user's tenant.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -94,6 +137,8 @@ class TenantFilteredAdmin(admin.ModelAdmin):
         
         Only owners and admins can delete. Managers and below cannot.
         """
+        if not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
         
@@ -145,6 +190,32 @@ class TenantFilteredAdmin(admin.ModelAdmin):
                 obj.tenant = sorted_tenant_users[0].tenant
         
         super().save_model(request, obj, form, change)
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Filter tenant dropdown to only show user's authorized tenants.
+        
+        Security: Prevents tenant admins from seeing or selecting other tenants.
+        For any ForeignKey to Tenant model, restrict choices to user's active tenants.
+        """
+        if db_field.name == "tenant" and request.user.is_authenticated and not request.user.is_superuser:
+            # Import here to avoid circular dependency
+            from apps.tenants.models import Tenant
+            
+            # Get user's active tenant IDs
+            tenant_ids = TenantUser.objects.filter(
+                user=request.user, 
+                is_active=True
+            ).values_list('tenant_id', flat=True)
+            
+            # Restrict queryset to only user's tenants
+            kwargs["queryset"] = Tenant.objects.filter(id__in=tenant_ids)
+            
+            # If user has only one tenant, set it as default
+            if len(tenant_ids) == 1:
+                kwargs["initial"] = tenant_ids[0]
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Protein)

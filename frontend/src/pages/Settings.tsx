@@ -313,7 +313,7 @@ const Settings: React.FC = () => {
     <Container>
       <Header>
         <Title>Settings</Title>
-        <Subtitle>Customize your ProjectMeats experience</Subtitle>
+        <Subtitle>Customize your Meats Central experience</Subtitle>
       </Header>
 
       {message && (
@@ -650,7 +650,7 @@ const LoadingMessage = styled.div`
   text-align: center;
   padding: 40px;
   font-size: 18px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const Header = styled.div`
@@ -660,13 +660,13 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 0;
 `;
 
@@ -715,13 +715,13 @@ const SectionIcon = styled.div`
 const SectionTitle = styled.h3`
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin: 0;
 `;
 
 const SectionDescription = styled.p`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
   margin: 4px 0 0 0;
 `;
 
@@ -750,13 +750,13 @@ const SettingInfo = styled.div`
 const SettingLabel = styled.div`
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   margin-bottom: 4px;
 `;
 
 const SettingDescription = styled.div`
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(var(--color-text-secondary));
 `;
 
 const Toggle = styled.button<{ $active: boolean }>`
@@ -787,7 +787,7 @@ const Select = styled.select`
   border: 2px solid #e9ecef;
   border-radius: 6px;
   font-size: 14px;
-  color: #2c3e50;
+  color: rgb(var(--color-text-primary));
   background: rgb(var(--color-surface));
   color: rgb(var(--color-surface-foreground));
   cursor: pointer;
@@ -806,7 +806,7 @@ const Actions = styled.div`
 `;
 
 const ResetButton = styled.button`
-  background: #6c757d;
+  background: rgb(var(--color-text-secondary));
   color: white;
   border: none;
   padding: 12px 24px;

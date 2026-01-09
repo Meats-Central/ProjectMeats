@@ -25,6 +25,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             "product",
             "total_amount",
             "status",
+            "payment_status",
+            "outstanding_amount",
             "order_date",
             "delivery_date",
             "pick_up_date",
