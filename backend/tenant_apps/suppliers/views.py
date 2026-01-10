@@ -12,6 +12,7 @@ All Environments:
     - ✅ SECURE: Proper multi-tenant data isolation across all environments
 """
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -156,3 +157,20 @@ class SupplierViewSet(viewsets.ModelViewSet):
                 {'error': 'Failed to create supplier', 'details': 'Internal server error'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['get'], url_path='products')
+    def products(self, request, pk=None):
+        """
+        List all products associated with this supplier.
+        
+        GET /api/v1/suppliers/{id}/products/
+        
+        Returns products that have this supplier in their M2M relationship.
+        Respects tenant isolation.
+        """
+        from tenant_apps.products.serializers import ProductSerializer
+        
+        supplier = self.get_object()
+        products = supplier.products.filter(tenant=request.tenant)
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)

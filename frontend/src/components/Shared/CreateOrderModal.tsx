@@ -47,7 +47,9 @@ interface Supplier {
 
 interface Product {
   id: number;
-  name: string;
+  product_code: string;
+  description_of_product_item: string;
+  name?: string; // Fallback for compatibility
 }
 
 // ============================================================================
@@ -113,6 +115,14 @@ const ModalBody = styled.div`
 
 const FormGroup = styled.div`
   margin-bottom: 1.25rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+  font-size: 0.875rem;
 `;
 
 const Required = styled.span`
@@ -223,6 +233,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -250,23 +261,91 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         notes: '',
       });
       setError(null);
+      setFilteredProducts([]);
     }
   }, [isOpen]);
 
+  // Reactive filtering: Update products when customer or supplier changes
+  useEffect(() => {
+    const filterProducts = async () => {
+      const customerId = formData.customer;
+      const supplierId = formData.supplier;
+
+      // If neither customer nor supplier selected, show all products
+      if (!customerId && !supplierId) {
+        setFilteredProducts(products);
+        return;
+      }
+
+      // Filter by customer if selected (takes precedence for Sales Orders)
+      if (customerId) {
+        try {
+          const response = await apiClient.get(`products/?customer=${customerId}`);
+          setFilteredProducts(response.data.results || response.data || []);
+        } catch (error) {
+          console.error('Error filtering products by customer:', error);
+          setFilteredProducts(products); // Fallback to all products
+        }
+      }
+      // Filter by supplier if selected (for Purchase Orders)
+      else if (supplierId) {
+        try {
+          const response = await apiClient.get(`products/?supplier=${supplierId}`);
+          setFilteredProducts(response.data.results || response.data || []);
+        } catch (error) {
+          console.error('Error filtering products by supplier:', error);
+          setFilteredProducts(products); // Fallback to all products
+        }
+      }
+    };
+
+    filterProducts();
+  }, [formData.customer, formData.supplier, products]);
+
   const loadDropdownData = async () => {
     try {
-      const [customersRes, suppliersRes, productsRes] = await Promise.all([
+      setLoading(true);
+      
+      const [customersRes, suppliersRes, productsRes] = await Promise.allSettled([
         apiClient.get('customers/'),
         apiClient.get('suppliers/'),
         apiClient.get('products/'),
       ]);
 
-      setCustomers(customersRes.data.results || customersRes.data || []);
-      setSuppliers(suppliersRes.data.results || suppliersRes.data || []);
-      setProducts(productsRes.data.results || productsRes.data || []);
+      // Handle customers
+      if (customersRes.status === 'fulfilled') {
+        setCustomers(customersRes.value.data.results || customersRes.value.data || []);
+      } else {
+        console.error('Failed to load customers:', customersRes.reason);
+        setCustomers([]);
+      }
+
+      // Handle suppliers
+      if (suppliersRes.status === 'fulfilled') {
+        setSuppliers(suppliersRes.value.data.results || suppliersRes.value.data || []);
+      } else {
+        console.error('Failed to load suppliers:', suppliersRes.reason);
+        setSuppliers([]);
+      }
+
+      // Handle products with specific 404 check
+      if (productsRes.status === 'fulfilled') {
+        setProducts(productsRes.value.data.results || productsRes.value.data || []);
+      } else {
+        const error = productsRes.reason;
+        if (error?.response?.status === 404) {
+          console.warn('Products endpoint not available (404). Proceeding with empty product list.');
+          setError('Products are currently unavailable. You can still create an order and add products later.');
+        } else {
+          console.error('Failed to load products:', error);
+        }
+        setProducts([]);
+      }
     } catch (err: any) {
-      console.error('Failed to load dropdown data:', err);
-      setError('Failed to load form options. Please try again.');
+      console.error('Unexpected error loading dropdown data:', err);
+      setError('Failed to load form options. Some fields may be unavailable.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -378,10 +457,21 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <SearchableSelect
                 label="Product"
                 value={formData.product}
-                options={products}
+                options={filteredProducts.length > 0 ? filteredProducts : products}
                 onChange={(value) => handleSelectChange('product', value)}
-                placeholder="Select Product"
+                placeholder={
+                  formData.customer || formData.supplier
+                    ? filteredProducts.length === 0
+                      ? 'No products available for selected customer/supplier'
+                      : `Select from ${filteredProducts.length} filtered product(s)`
+                    : 'Select Product (or select Customer/Supplier first to filter)'
+                }
                 required
+                getOptionLabel={(product: Product) => 
+                  product.product_code 
+                    ? `${product.product_code} - ${product.description_of_product_item}` 
+                    : product.name || 'Unknown Product'
+                }
               />
             </FormGroup>
 

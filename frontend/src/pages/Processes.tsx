@@ -30,10 +30,10 @@ const Processes: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
-      pending: '#ffc107',
-      approved: '#28a745',
-      delivered: '#17a2b8',
-      cancelled: '#dc3545',
+      pending: 'rgb(234, 179, 8)',
+      approved: 'rgb(34, 197, 94)',
+      delivered: 'rgb(59, 130, 246)',
+      cancelled: 'rgb(239, 68, 68)',
     };
     return statusColors[status] || 'rgb(var(--color-text-secondary))';
   };
@@ -159,12 +159,21 @@ const TableContainer = styled.div<{ $theme: Theme }>`
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 10px ${(props) => props.$theme.colors.shadow};
-  overflow-x: auto;
+  
+  /* Only enable horizontal scroll on small screens when truly needed */
+  @media (max-width: 768px) {
+    overflow-x: auto;
+  }
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  
+  /* Allow table to shrink on smaller screens */
+  @media (max-width: 768px) {
+    min-width: 600px;
+  }
 `;
 
 const TableRow = styled.tr<{ $theme: Theme }>`

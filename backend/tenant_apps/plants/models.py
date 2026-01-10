@@ -29,6 +29,16 @@ class Plant(models.Model):
         help_text="Tenant this plant belongs to"
     )
 
+    # Parent entity relationship (Phase 4: Contextual Supplier Selection)
+    supplier = models.ForeignKey(
+        'suppliers.Supplier',
+        on_delete=models.CASCADE,
+        related_name='supplier_plants',
+        null=True,
+        blank=True,
+        help_text="Supplier that owns/operates this plant"
+    )
+
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
     plant_est_num = models.CharField(
@@ -40,10 +50,10 @@ class Plant(models.Model):
     plant_type = models.CharField(
         max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
     )
-    address = models.TextField(default='')
-    city = models.CharField(max_length=100, default='')
-    state = models.CharField(max_length=100, default='')
-    zip_code = models.CharField(max_length=20, default='')
+    address = models.TextField(default='', blank=True)
+    city = models.CharField(max_length=100, default='', blank=True)
+    state = models.CharField(max_length=100, default='', blank=True)
+    zip_code = models.CharField(max_length=20, default='', blank=True)
     country = models.CharField(max_length=100, default="USA")
     phone = models.CharField(max_length=20, blank=True, default='')
     email = models.EmailField(blank=True, default='')

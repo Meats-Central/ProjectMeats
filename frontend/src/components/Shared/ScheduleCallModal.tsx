@@ -1,26 +1,27 @@
 /**
- * Schedule Call Modal
- * 
- * Modal for scheduling follow-up calls with customers, suppliers, or other entities.
+ * Enhanced Schedule Call Modal - CRUD Support
  * 
  * Features:
- * - Entity type dropdown (Supplier, Customer, Plant, etc.)
- * - Entity ID input
- * - Call title and description
- * - Date/time picker
- * - Duration in minutes
- * - Submits to cockpit/scheduled-calls/
+ * - Create new calls
+ * - Edit existing calls (via initialData prop)
+ * - Full form validation
+ * - Theme-compliant styling
  * 
  * Usage:
  * ```tsx
- * <ScheduleCallModal
- *   isOpen={showModal}
- *   onClose={() => setShowModal(false)}
- *   onSuccess={() => fetchCalls()}
+ * // Create new
+ * <ScheduleCallModal isOpen={show} onClose={...} onSuccess={...} />
+ * 
+ * // Edit existing
+ * <ScheduleCallModal 
+ *   isOpen={show}
+ *   initialData={call}
+ *   onClose={...}
+ *   onSuccess={...}
  * />
  * ```
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { apiClient } from '../../services/apiService';
 
@@ -28,20 +29,45 @@ import { apiClient } from '../../services/apiService';
 // TypeScript Interfaces
 // ============================================================================
 
+export interface ScheduledCallData {
+  id?: number;
+  tenant?: string;
+  entity_type: string;
+  entity_id: number;
+  title: string;
+  description: string;
+  scheduled_for: string;
+  duration_minutes: number;
+  call_purpose: string;
+  outcome?: string;
+  is_completed?: boolean;
+  created_by?: number | null;
+  created_by_name?: string;
+  created_on?: string;
+  updated_on?: string;
+}
+
 interface ScheduleCallModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: ScheduledCallData | null;  // For editing
 }
 
-type EntityType = 'supplier' | 'customer' | 'plant' | 'purchase_order' | 'sales_order' | 'carrier' | 'product' | 'invoice' | 'contact';
+// Restrict to only Supplier and Customer per requirements
+type EntityType = 'supplier' | 'customer';
+
+interface EntityOption {
+  id: number;
+  name: string;
+}
 
 // ============================================================================
 // Styled Components (Theme-Compliant)
 // ============================================================================
 
 const Overlay = styled.div<{ isOpen: boolean }>`
-  display: ${props => props.isOpen ? 'flex' : 'none'};
+  display: \${props => props.isOpen ? 'flex' : 'none'};
   position: fixed;
   top: 0;
   left: 0;
@@ -226,26 +252,87 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }) => {
+  const isEditMode = !!initialData?.id;
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [entityType, setEntityType] = useState<EntityType>('customer');
+  const [entityType, setEntityType] = useState<EntityType>('supplier');
   const [entityId, setEntityId] = useState('');
   const [scheduledFor, setScheduledFor] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [callPurpose, setCallPurpose] = useState('follow_up');
+  const [outcome, setOutcome] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dynamic entity options
+  const [entityOptions, setEntityOptions] = useState<EntityOption[]>([]);
+  const [loadingEntities, setLoadingEntities] = useState(false);
+
+  // Load initial data for editing
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setEntityType(initialData.entity_type as EntityType || 'supplier');
+      setEntityId(String(initialData.entity_id || ''));
+      
+      // Format date for datetime-local input (remove Z and seconds for local timezone)
+      const formattedDate = initialData.scheduled_for 
+        ? new Date(initialData.scheduled_for).toISOString().slice(0, 16)
+        : '';
+      setScheduledFor(formattedDate);
+      
+      setDurationMinutes(String(initialData.duration_minutes || 30));
+      setCallPurpose(initialData.call_purpose || 'follow_up');
+      setOutcome(initialData.outcome || '');
+    } else if (isOpen) {
+      resetForm();
+    }
+  }, [initialData, isOpen]);
+
+  // Fetch entity options when entity type changes
+  useEffect(() => {
+    if (isOpen && entityType) {
+      fetchEntityOptions(entityType);
+    }
+  }, [entityType, isOpen]);
+
+  const fetchEntityOptions = async (type: EntityType) => {
+    setLoadingEntities(true);
+    try {
+      const endpoint = type === 'supplier' ? 'suppliers/' : 'customers/';
+      const response = await apiClient.get(endpoint);
+      const data = response.data.results || response.data;
+      
+      // Map to consistent format
+      const options = data.map((item: any) => ({
+        id: item.id,
+        name: item.name || item.company_name || item.title || `${type} #${item.id}`,
+      }));
+      
+      setEntityOptions(options);
+    } catch (err) {
+      console.error(`Failed to fetch ${type} options:`, err);
+      setEntityOptions([]);
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
 
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setEntityType('customer');
+    setEntityType('supplier');
     setEntityId('');
     setScheduledFor('');
     setDurationMinutes('30');
     setCallPurpose('follow_up');
+    setOutcome('');
     setError(null);
+    setEntityOptions([]);
   };
 
   const handleClose = () => {
@@ -275,14 +362,6 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       return;
     }
 
-    // Prevent scheduling in the past
-    const scheduledDate = new Date(scheduledFor);
-    const now = new Date();
-    if (scheduledDate < now) {
-      setError('Cannot schedule calls in the past');
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -294,17 +373,24 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
         scheduled_for: scheduledFor,
         duration_minutes: Number(durationMinutes),
         call_purpose: callPurpose,
+        ...(outcome && { outcome: outcome.trim() }),
       };
 
-      await apiClient.post('cockpit/scheduled-calls/', payload);
+      if (isEditMode && initialData?.id) {
+        // Update existing call
+        await apiClient.patch(`cockpit/scheduled-calls/${initialData.id}/`, payload);
+      } else {
+        // Create new call
+        await apiClient.post('cockpit/scheduled-calls/', payload);
+      }
 
       // Success
       resetForm();
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Failed to schedule call:', err);
-      setError(err.response?.data?.detail || err.response?.data?.message || 'Failed to schedule call. Please try again.');
+      console.error(`Failed to ${isEditMode ? 'update' : 'schedule'} call:`, err);
+      setError(err.response?.data?.detail || err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'schedule'} call. Please try again.`);
     } finally {
       setSubmitting(false);
     }
@@ -317,7 +403,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       <Modal onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <ModalHeader>
-            <ModalTitle>Schedule New Call</ModalTitle>
+            <ModalTitle>{isEditMode ? 'Edit Call' : 'Schedule New Call'}</ModalTitle>
             <CloseButton type="button" onClick={handleClose}>&times;</CloseButton>
           </ModalHeader>
 
@@ -348,33 +434,44 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               <Label>Entity Type *</Label>
               <Select
                 value={entityType}
-                onChange={(e) => setEntityType(e.target.value as EntityType)}
+                onChange={(e) => {
+                  setEntityType(e.target.value as EntityType);
+                  setEntityId(''); // Reset entity selection when type changes
+                }}
                 disabled={submitting}
               >
-                <option value="customer">Customer</option>
                 <option value="supplier">Supplier</option>
-                <option value="contact">Contact</option>
-                <option value="sales_order">Sales Order</option>
-                <option value="purchase_order">Purchase Order</option>
-                <option value="invoice">Invoice</option>
-                <option value="plant">Plant</option>
-                <option value="carrier">Carrier</option>
-                <option value="product">Product</option>
+                <option value="customer">Customer</option>
               </Select>
-              <HelpText>Who or what is this call about?</HelpText>
+              <HelpText>Select Supplier or Customer</HelpText>
             </FormGroup>
 
             <FormGroup>
-              <Label>Entity ID *</Label>
-              <Input
-                type="number"
+              <Label>
+                {entityType === 'supplier' ? 'Supplier' : 'Customer'} *
+              </Label>
+              <Select
                 value={entityId}
                 onChange={(e) => setEntityId(e.target.value)}
-                placeholder="e.g., 123"
-                min="1"
-                disabled={submitting}
-              />
-              <HelpText>The database ID of the selected entity</HelpText>
+                disabled={submitting || loadingEntities}
+              >
+                <option value="">
+                  {loadingEntities 
+                    ? 'Loading...' 
+                    : `Select ${entityType === 'supplier' ? 'Supplier' : 'Customer'}`
+                  }
+                </option>
+                {entityOptions.map(option => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </Select>
+              {entityOptions.length === 0 && !loadingEntities && (
+                <HelpText style={{ color: 'rgb(239, 68, 68)' }}>
+                  No {entityType}s found. Please create one first.
+                </HelpText>
+              )}
             </FormGroup>
 
             <FormGroup>
@@ -384,7 +481,10 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                 value={scheduledFor}
                 onChange={(e) => setScheduledFor(e.target.value)}
                 disabled={submitting}
+                step="900"
+                aria-label="Schedule date and time in 15-minute increments"
               />
+              <HelpText>Time selector uses 15-minute increments (e.g., 9:00, 9:15, 9:30, 9:45)</HelpText>
             </FormGroup>
 
             <FormGroup>
@@ -416,6 +516,18 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               </Select>
             </FormGroup>
 
+            {isEditMode && initialData?.is_completed && (
+              <FormGroup>
+                <Label>Outcome</Label>
+                <TextArea
+                  value={outcome}
+                  onChange={(e) => setOutcome(e.target.value)}
+                  placeholder="What was the outcome of this call?"
+                  disabled={submitting}
+                />
+              </FormGroup>
+            )}
+
             {error && <ErrorMessage>{error}</ErrorMessage>}
           </ModalBody>
 
@@ -424,7 +536,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               Cancel
             </CancelButton>
             <SubmitButton type="submit" disabled={submitting}>
-              {submitting ? 'Scheduling...' : 'Schedule Call'}
+              {submitting ? (isEditMode ? 'Updating...' : 'Scheduling...') : (isEditMode ? 'Update Call' : 'Schedule Call')}
             </SubmitButton>
           </ModalFooter>
         </form>

@@ -50,6 +50,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             "industry_array",
             "preferred_protein_types",
             "contacts",
+            "products",
             "will_pickup_load",
             "locations",
             "accounting_payment_terms",

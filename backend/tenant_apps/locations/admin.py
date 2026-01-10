@@ -12,25 +12,30 @@ class LocationAdmin(TenantFilteredAdmin):
 
     list_display = (
         'name',
+        'code',
+        'location_type',
         'city',
-        'state_zip',
+        'state',
         'contact_name',
         'supplier',
         'customer',
+        'is_active',
         'created_on',
     )
     list_filter = (
-        'how_make_appointment',
+        'location_type',
+        'is_active',
         'created_on',
         'modified_on',
     )
     search_fields = (
         'name',
+        'code',
         'city',
+        'state',
         'address',
         'contact_name',
-        'contact_email',
-        'plant_est_number',
+        'email',
     )
     readonly_fields = ('created_on', 'modified_on')
 
@@ -38,19 +43,19 @@ class LocationAdmin(TenantFilteredAdmin):
         (
             'Basic Information',
             {
-                'fields': ('name', 'address', 'city', 'state_zip')
+                'fields': ('name', 'code', 'location_type', 'is_active')
+            },
+        ),
+        (
+            'Address',
+            {
+                'fields': ('address', 'city', 'state', 'zip_code', 'country')
             },
         ),
         (
             'Contact Information',
             {
-                'fields': ('contact_name', 'contact_phone', 'contact_email')
-            },
-        ),
-        (
-            'Appointment & Plant Details',
-            {
-                'fields': ('how_make_appointment', 'plant_est_number')
+                'fields': ('phone', 'email', 'contact_name')
             },
         ),
         (

@@ -291,9 +291,9 @@ const Message = styled.div<{ $type: 'success' | 'error' }>`
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  background: ${(props) => (props.$type === 'success' ? '#f0fdf4' : '#fef2f2')};
-  border: 1px solid ${(props) => (props.$type === 'success' ? '#bbf7d0' : '#fecaca')};
-  color: ${(props) => (props.$type === 'success' ? '#16a34a' : '#dc2626')};
+  background: ${(props) => (props.$type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)')};
+  border: 1px solid ${(props) => (props.$type === 'success' ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)')};
+  color: ${(props) => (props.$type === 'success' ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)')};
 `;
 
 const MessageIcon = styled.span`
@@ -334,7 +334,7 @@ const UserRole = styled.p`
 `;
 
 const EditButton = styled.button`
-  background: #667eea;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 10px 20px;
@@ -345,7 +345,7 @@ const EditButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: #5a67d8;
+    opacity: 0.9;
     transform: translateY(-1px);
   }
 `;
@@ -380,14 +380,14 @@ const Label = styled.label`
 
 const Input = styled.input`
   padding: 12px 16px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: rgb(var(--color-primary));
   }
 
   &:disabled {
@@ -415,7 +415,7 @@ const CancelButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #5a6268;
+    opacity: 0.8;
   }
 
   &:disabled {
@@ -425,7 +425,7 @@ const CancelButton = styled.button`
 `;
 
 const SaveButton = styled.button`
-  background: #667eea;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 12px 24px;
@@ -436,7 +436,7 @@ const SaveButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #5a67d8;
+    opacity: 0.9;
     transform: translateY(-1px);
   }
 
@@ -457,7 +457,7 @@ const DetailRow = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: 1px solid rgb(var(--color-border));
 
   &:last-child {
     border-bottom: none;
@@ -474,8 +474,8 @@ const DetailValue = styled.span`
 `;
 
 const StatusBadge = styled.span<{ $active: boolean }>`
-  background: ${(props) => (props.$active ? '#d4edda' : '#f8d7da')};
-  color: ${(props) => (props.$active ? '#155724' : '#721c24')};
+  background: ${(props) => (props.$active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)')};
+  color: ${(props) => (props.$active ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)')};
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;

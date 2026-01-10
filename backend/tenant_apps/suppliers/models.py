@@ -81,6 +81,7 @@ class Supplier(TimestampModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='supplier_assignments',
         help_text="Associated plant establishment",
     )
     proteins = models.ManyToManyField(
@@ -129,6 +130,12 @@ class Supplier(TimestampModel):
         related_name="suppliers",
         blank=True,
         help_text="Multiple contacts associated with this supplier",
+    )
+    products = models.ManyToManyField(
+        'products.Product',
+        related_name="suppliers",
+        blank=True,
+        help_text="Products available from this supplier",
     )
     shipping_offered = models.CharField(
         max_length=100,

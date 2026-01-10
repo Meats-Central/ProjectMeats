@@ -18,18 +18,6 @@ export interface NavigationItem {
 
 export const navigation: NavigationItem[] = [
   {
-    label: 'Cockpit',
-    icon: '🎯',
-    path: '/cockpit',
-    children: [
-      {
-        label: 'Call Log',
-        icon: '📞',
-        path: '/cockpit/call-log',
-      },
-    ],
-  },
-  {
     label: 'Workspace',
     icon: '💼',
     children: [
@@ -37,6 +25,11 @@ export const navigation: NavigationItem[] = [
         label: 'Dashboard',
         icon: '📊',
         path: '/',
+      },
+      {
+        label: 'Call Log',
+        icon: '📞',
+        path: '/call-log',
       },
       {
         label: 'Processes',
@@ -58,7 +51,7 @@ export const navigation: NavigationItem[] = [
       {
         label: 'Plants',
         icon: '🏢',
-        path: '/plants',
+        path: '/suppliers/plants',
       },
       {
         label: 'Contacts',
@@ -72,6 +65,11 @@ export const navigation: NavigationItem[] = [
     icon: '👥',
     path: '/customers',
     children: [
+      {
+        label: 'Locations',
+        icon: '📍',
+        path: '/customers/locations',
+      },
       {
         label: 'Contacts',
         icon: '📞',

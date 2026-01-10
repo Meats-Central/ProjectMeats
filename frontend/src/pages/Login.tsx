@@ -132,7 +132,7 @@ const LoginContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgb(var(--color-background));
   padding: 20px;
 `;
 
@@ -184,9 +184,9 @@ const Subtitle = styled.p`
 `;
 
 const ErrorMessage = styled.div`
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: rgb(239, 68, 68);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 24px;
@@ -219,14 +219,16 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s ease;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-text-primary));
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: rgb(var(--color-primary));
   }
 
   &:disabled {
@@ -237,7 +239,7 @@ const Input = styled.input`
 
 const LoginButton = styled.button`
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 14px 24px;
@@ -252,8 +254,9 @@ const LoginButton = styled.button`
   gap: 8px;
 
   &:hover:not(:disabled) {
+    opacity: 0.9;
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--color-primary), 0.3);
   }
 
   &:disabled {
@@ -284,7 +287,7 @@ const LoadingSpinner = styled.div`
 const Footer = styled.div`
   text-align: center;
   padding-top: 20px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid rgb(var(--color-border));
 `;
 
 const FooterText = styled.p`
@@ -300,7 +303,7 @@ const FooterSubText = styled.p`
 `;
 
 const StyledLink = styled(Link)`
-  color: #667eea;
+  color: rgb(var(--color-primary));
   text-decoration: none;
   font-weight: 600;
 
@@ -310,9 +313,9 @@ const StyledLink = styled(Link)`
 `;
 
 const SuccessMessage = styled.div`
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: rgb(34, 197, 94);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 24px;

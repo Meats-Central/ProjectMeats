@@ -47,7 +47,7 @@
 #     --timeout ${GUNICORN_TIMEOUT:-120} \
 #     --access-logfile - --error-logfile -'
 
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -59,11 +59,14 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir gunicorn whitenoise
+    && pip install --no-cache-dir gunicorn whitenoise \
+    && find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local -type f -name '*.pyc' -delete \
+    && rm -rf /root/.cache /tmp/*
 
 COPY backend/ ./
 
