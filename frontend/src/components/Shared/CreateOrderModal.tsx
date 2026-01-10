@@ -47,7 +47,9 @@ interface Supplier {
 
 interface Product {
   id: number;
-  name: string;
+  product_code: string;
+  description_of_product_item: string;
+  name?: string; // Fallback for compatibility
 }
 
 // ============================================================================
@@ -231,6 +233,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -258,8 +261,46 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         notes: '',
       });
       setError(null);
+      setFilteredProducts([]);
     }
   }, [isOpen]);
+
+  // Reactive filtering: Update products when customer or supplier changes
+  useEffect(() => {
+    const filterProducts = async () => {
+      const customerId = formData.customer;
+      const supplierId = formData.supplier;
+
+      // If neither customer nor supplier selected, show all products
+      if (!customerId && !supplierId) {
+        setFilteredProducts(products);
+        return;
+      }
+
+      // Filter by customer if selected (takes precedence for Sales Orders)
+      if (customerId) {
+        try {
+          const response = await apiClient.get(`products/?customer=${customerId}`);
+          setFilteredProducts(response.data.results || response.data || []);
+        } catch (error) {
+          console.error('Error filtering products by customer:', error);
+          setFilteredProducts(products); // Fallback to all products
+        }
+      }
+      // Filter by supplier if selected (for Purchase Orders)
+      else if (supplierId) {
+        try {
+          const response = await apiClient.get(`products/?supplier=${supplierId}`);
+          setFilteredProducts(response.data.results || response.data || []);
+        } catch (error) {
+          console.error('Error filtering products by supplier:', error);
+          setFilteredProducts(products); // Fallback to all products
+        }
+      }
+    };
+
+    filterProducts();
+  }, [formData.customer, formData.supplier, products]);
 
   const loadDropdownData = async () => {
     try {
@@ -416,10 +457,21 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <SearchableSelect
                 label="Product"
                 value={formData.product}
-                options={products}
+                options={filteredProducts.length > 0 ? filteredProducts : products}
                 onChange={(value) => handleSelectChange('product', value)}
-                placeholder="Select Product"
+                placeholder={
+                  formData.customer || formData.supplier
+                    ? filteredProducts.length === 0
+                      ? 'No products available for selected customer/supplier'
+                      : `Select from ${filteredProducts.length} filtered product(s)`
+                    : 'Select Product (or select Customer/Supplier first to filter)'
+                }
                 required
+                getOptionLabel={(product: Product) => 
+                  product.product_code 
+                    ? `${product.product_code} - ${product.description_of_product_item}` 
+                    : product.name || 'Unknown Product'
+                }
               />
             </FormGroup>
 
