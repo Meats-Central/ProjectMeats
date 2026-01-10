@@ -332,7 +332,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
 
       if (isEditMode && initialData?.id) {
         // Update existing call
-        await apiClient.patch(\`cockpit/scheduled-calls/\${initialData.id}/\`, payload);
+        await apiClient.patch(`cockpit/scheduled-calls/${initialData.id}/`, payload);
       } else {
         // Create new call
         await apiClient.post('cockpit/scheduled-calls/', payload);
@@ -343,8 +343,8 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error(\`Failed to \${isEditMode ? 'update' : 'schedule'} call:\`, err);
-      setError(err.response?.data?.detail || err.response?.data?.message || \`Failed to \${isEditMode ? 'update' : 'schedule'} call. Please try again.\`);
+      console.error(`Failed to ${isEditMode ? 'update' : 'schedule'} call:`, err);
+      setError(err.response?.data?.detail || err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'schedule'} call. Please try again.`);
     } finally {
       setSubmitting(false);
     }
