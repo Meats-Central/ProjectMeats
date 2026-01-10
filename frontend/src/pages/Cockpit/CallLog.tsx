@@ -107,10 +107,16 @@ const PrimaryButton = styled.button`
 
 const SplitPaneContainer = styled.div`
   display: grid;
-  grid-template-columns: 40% 60%;
+  grid-template-columns: 50% 50%;
   gap: 1.5rem;
   height: calc(100vh - 180px);
   overflow: hidden;
+  
+  /* Responsive: Stack on tablets and mobile */
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
 `;
 
 const LeftPane = styled.div`
@@ -121,6 +127,7 @@ const LeftPane = styled.div`
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   overflow: hidden;
+  min-width: 0; /* Prevent overflow issues */
 `;
 
 const RightPane = styled.div`
@@ -131,6 +138,7 @@ const RightPane = styled.div`
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   overflow: hidden;
+  min-width: 0; /* Prevent overflow issues */
 `;
 
 const PaneTitle = styled.h2`
@@ -316,13 +324,113 @@ const ClearButton = styled.button`
 `;
 
 // ============================================================================
+// Call Details Display Components
+// ============================================================================
+
+const CallDetailsContainer = styled.div`
+  background: rgb(var(--color-background));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const CallDetailsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgb(var(--color-border));
+`;
+
+const CallDetailsTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+  margin: 0;
+`;
+
+const CallDetailsSection = styled.div`
+  margin-bottom: 1rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CallDetailsLabel = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--color-text-secondary));
+  margin-bottom: 0.5rem;
+`;
+
+const CallDetailsValue = styled.div`
+  font-size: 0.875rem;
+  color: rgb(var(--color-text-primary));
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+`;
+
+const CallDetailsBadge = styled.span<{ type: 'upcoming' | 'completed' | 'overdue' }>`
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  
+  ${props => {
+    switch (props.type) {
+      case 'completed':
+        return `
+          background: rgba(34, 197, 94, 0.15);
+          color: rgb(34, 197, 94);
+        `;
+      case 'overdue':
+        return `
+          background: rgba(239, 68, 68, 0.15);
+          color: rgb(239, 68, 68);
+        `;
+      default: // upcoming
+        return `
+          background: rgba(59, 130, 246, 0.15);
+          color: rgb(59, 130, 246);
+        `;
+    }
+  }}
+`;
+
+const NoDetailsPlaceholder = styled.div`
+  text-align: center;
+  padding: 2rem 1rem;
+  color: rgb(var(--color-text-secondary));
+  font-size: 0.875rem;
+  font-style: italic;
+`;
+
+// ============================================================================
 // Calendar View Styled Components
 // ============================================================================
 
 const CalendarContainer = styled.div`
   flex: 1;
-  min-height: 600px;
+  min-height: 500px;
   overflow-y: auto;
+  width: 100%;
+  
+  /* Ensure calendar takes full width */
+  .ant-picker-calendar {
+    width: 100%;
+  }
+  
+  /* Responsive width for calendar */
+  @media (max-width: 768px) {
+    min-width: 300px;
+  }
 `;
 
 const CalendarControls = styled.div`
@@ -506,8 +614,11 @@ export const CallLog: React.FC = () => {
   const [editingCall, setEditingCall] = useState<ScheduledCall | null>(null);
 
   // Phase 3-6: Calendar view state
-  const [viewMode, setViewMode] = useState<ViewMode>('agenda');
+  const [viewMode, setViewMode] = useState<ViewMode>('agenda'); // Default to agenda view
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+  
+  // Step 2: Call details display state
+  const [selectedCallDetails, setSelectedCallDetails] = useState<ScheduledCall | null>(null);
 
   // Phase 5: Drag & Drop state
   const [draggedCall, setDraggedCall] = useState<ScheduledCall | null>(null);
@@ -540,6 +651,7 @@ export const CallLog: React.FC = () => {
 
   const handleCallClick = (call: ScheduledCall) => {
     setSelectedCall(call);
+    setSelectedCallDetails(call); // Store details for notes display
     setEntityFilter({
       entityType: call.entity_type as any,
       entityId: call.entity_id,
@@ -576,6 +688,7 @@ export const CallLog: React.FC = () => {
   const clearFilter = () => {
     setEntityFilter(null);
     setSelectedCall(null);
+    setSelectedCallDetails(null); // Clear details when filter cleared
   };
 
   // ============================================================================
@@ -1031,9 +1144,9 @@ export const CallLog: React.FC = () => {
           )}
         </LeftPane>
 
-        {/* Right Pane: Activity Feed */}
+        {/* Right Pane: Call Details & Activity Feed */}
         <RightPane>
-          <PaneTitle>Activity Log</PaneTitle>
+          <PaneTitle>Call Details & Activity Log</PaneTitle>
 
           {entityFilter && (
             <FilterInfo>
@@ -1044,17 +1157,87 @@ export const CallLog: React.FC = () => {
             </FilterInfo>
           )}
 
+          {/* Call Details Section */}
+          {selectedCallDetails ? (
+            <CallDetailsContainer>
+              <CallDetailsHeader>
+                <CallDetailsTitle>{selectedCallDetails.title}</CallDetailsTitle>
+                <CallDetailsBadge type={getCallStatus(selectedCallDetails)}>
+                  {getCallStatus(selectedCallDetails) === 'completed' ? '✓ Completed' :
+                   getCallStatus(selectedCallDetails) === 'overdue' ? '⚠ Overdue' :
+                   '📅 Upcoming'}
+                </CallDetailsBadge>
+              </CallDetailsHeader>
+
+              <CallDetailsSection>
+                <CallDetailsLabel>Scheduled For</CallDetailsLabel>
+                <CallDetailsValue>
+                  {formatToLocal(selectedCallDetails.scheduled_for)}
+                </CallDetailsValue>
+              </CallDetailsSection>
+
+              <CallDetailsSection>
+                <CallDetailsLabel>Duration</CallDetailsLabel>
+                <CallDetailsValue>
+                  {selectedCallDetails.duration_minutes} minutes
+                </CallDetailsValue>
+              </CallDetailsSection>
+
+              <CallDetailsSection>
+                <CallDetailsLabel>Call Purpose</CallDetailsLabel>
+                <CallDetailsValue>
+                  {selectedCallDetails.call_purpose || 'Not specified'}
+                </CallDetailsValue>
+              </CallDetailsSection>
+
+              {selectedCallDetails.description && (
+                <CallDetailsSection>
+                  <CallDetailsLabel>Description</CallDetailsLabel>
+                  <CallDetailsValue>
+                    {selectedCallDetails.description}
+                  </CallDetailsValue>
+                </CallDetailsSection>
+              )}
+
+              {selectedCallDetails.outcome && (
+                <CallDetailsSection>
+                  <CallDetailsLabel>Outcome</CallDetailsLabel>
+                  <CallDetailsValue>
+                    {selectedCallDetails.outcome}
+                  </CallDetailsValue>
+                </CallDetailsSection>
+              )}
+
+              <CallDetailsSection>
+                <CallDetailsLabel>Created By</CallDetailsLabel>
+                <CallDetailsValue>
+                  {selectedCallDetails.created_by_name || 'Unknown'}
+                </CallDetailsValue>
+              </CallDetailsSection>
+            </CallDetailsContainer>
+          ) : entityFilter && !selectedCallDetails ? (
+            <NoDetailsPlaceholder>
+              No call details to display. Click on a calendar item to see details.
+            </NoDetailsPlaceholder>
+          ) : null}
+
+          {/* Activity Feed Section */}
           {entityFilter ? (
-            <ActivityFeed
-              entityType={entityFilter.entityType}
-              entityId={entityFilter.entityId}
-              showCreateForm
-              maxHeight="calc(100vh - 380px)"
-            />
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <CallDetailsLabel style={{ marginBottom: '1rem' }}>
+                Related Activity
+              </CallDetailsLabel>
+              <ActivityFeed
+                entityType={entityFilter.entityType}
+                entityId={entityFilter.entityId}
+                showCreateForm
+                maxHeight="calc(100vh - 600px)"
+              />
+            </div>
           ) : (
             <EmptyState>
-              <p>Select a scheduled call to view related activity logs.</p>
-              <p>Or select an entity from another page to see its history.</p>
+              <p>Select a scheduled call to view details and activity logs.</p>
+              <p>Click any call item in the calendar to get started.</p>
             </EmptyState>
           )}
         </RightPane>
