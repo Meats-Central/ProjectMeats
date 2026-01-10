@@ -675,6 +675,42 @@ jobs:
           echo ""
           echo "✓ Superuser setup completed"
       
+      - name: Seed Products (All Tenants)
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "================================"
+          echo "Seeding Products"
+          echo "================================"
+          
+          # Construct DATABASE_URL pointing to tunnel
+          DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          
+          # Use same image as migrations
+          IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "Using image: $FULL_IMAGE"
+          echo ""
+          echo "Seeding products for all active tenants..."
+          
+          # Run seed_products management command
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
+            -e SECRET_KEY="$DJANGO_SECRET_KEY" \
+            -e DB_ENGINE="django.db.backends.postgresql" \
+            "$FULL_IMAGE" \
+            python manage.py seed_products --all
+          
+          echo ""
+          echo "✓ Product seeding completed"
+      
       - name: Cleanup SSH tunnel
         if: always()
         run: |
