@@ -73,7 +73,33 @@ This enhancement builds on PR #1860 to **completely fix** the tenant update issu
 
 ## 📦 Changes Implemented
 
-### 1. Enhanced Serializer (`backend/apps/tenants/serializers.py`)
+### 1. Critical Bug Fixes (models.py - Already Fixed)
+
+#### Logo URL Save Issue
+**Problem**: The `save()` method tried to access `self.logo.url` before the file was committed to storage, causing 500 errors.
+
+**Solution**: Already fixed in codebase - line 130 uses empty string:
+```python
+"logo_url": "",  # Empty string - get_theme_settings() handles URL dynamically
+```
+
+**Result**: ✅ Logo uploads no longer crash. The `get_theme_settings()` method dynamically generates the URL when needed.
+
+### 2. Frontend Button Type Fix
+
+#### Implicit Form Submission
+**Problem**: ApplyButton lacked explicit `type="button"`, could trigger form submission and page reload.
+
+**Solution**: Added explicit type attribute:
+```tsx
+<ApplyButton type="button" onClick={handleApplyThemeColors}>
+  Apply Colors
+</ApplyButton>
+```
+
+**Result**: ✅ Button won't accidentally submit forms or trigger unwanted page reloads.
+
+### 3. Enhanced Serializer (`backend/apps/tenants/serializers.py`)
 
 #### A. Meta Configuration for Partial Updates
 ```python
@@ -140,7 +166,42 @@ def update(self, instance, validated_data):
 - Multiple cache keys cleared (no stale data)
 - Detailed logging at each step
 
-### 2. Enhanced Frontend Service (`frontend/src/services/tenantService.ts`)
+### 4. Settings.tsx Improvements
+
+#### A. Button Type Safety
+```tsx
+// Prevents implicit form submission
+<ApplyButton type="button" onClick={handleApplyThemeColors}>
+  Apply Colors
+</ApplyButton>
+```
+
+#### B. Updated Theme Color Handler
+```typescript
+const handleApplyThemeColors = async () => {
+  // Apply colors immediately for instant feedback
+  injectTenantColors(primaryColor, secondaryColor, themeName);
+
+  // Save to backend using NEW updateTenantSettings method
+  await tenantService.updateTenantSettings(tenantId, {
+    theme: {
+      primary_color_light: primaryColor,
+      primary_color_dark: secondaryColor,
+    }
+  });
+  
+  // NO page reload - colors already applied
+  // Success message confirms save
+}
+```
+
+**Benefits**:
+- Uses new `updateTenantSettings()` method (proper headers)
+- No page reload (smoother UX)
+- Instant color preview via `injectTenantColors()`
+- Backend save for persistence
+
+### 5. Enhanced Frontend Service (`frontend/src/services/tenantService.ts`)
 
 #### A. New `updateTenantSettings()` Method
 ```typescript
