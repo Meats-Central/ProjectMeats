@@ -165,16 +165,20 @@ git push -u origin feature/descriptive-name
 ```
 
 #### Step 4: Create Pull Request
-**IMPORTANT: Due to branch protection rules, PRs MUST be created via GitHub web interface or CLI:**
+**LIMITATION: Copilot cannot create PRs automatically without GitHub authentication.**
 
+Due to branch protection rules and lack of API access, you must create PRs manually:
+
+**ALWAYS provide the direct PR creation URL:**
+```
+https://github.com/Meats-Central/ProjectMeats/pull/new/[branch-name]
+```
+
+**If you have gh CLI configured:**
 ```bash
-# Option A: GitHub CLI (if authenticated)
 gh pr create --base development \
   --title "Brief Title" \
   --body "Description with changes, testing, and impact"
-
-# Option B: Provide web URL
-echo "Create PR at: https://github.com/Meats-Central/ProjectMeats/pull/new/[branch-name]"
 ```
 
 #### Step 5: Await Approval and Merge
