@@ -25,6 +25,14 @@ class SalesOrderStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+class PaymentStatus(models.TextChoices):
+    """Payment status choices for sales orders."""
+
+    UNPAID = "unpaid", "Unpaid"
+    PARTIAL = "partial", "Partial"
+    PAID = "paid", "Paid"
+
+
 class SalesOrder(TimestampModel):
     """Sales Order model for managing customer sales orders."""
     # Use custom manager for multi-tenancy
@@ -40,8 +48,7 @@ class SalesOrder(TimestampModel):
     # Order identification
     our_sales_order_num = models.CharField(
         max_length=100,
-        unique=True,
-        help_text="Our sales order number",
+        help_text="Our sales order number (unique per tenant)",
     )
     date_time_stamp = models.DateTimeField(
         auto_now_add=True,
@@ -168,6 +175,19 @@ class SalesOrder(TimestampModel):
         default=SalesOrderStatus.PENDING,
         help_text="Current status of the sales order",
     )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+        help_text="Payment status of the sales order",
+    )
+    outstanding_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Outstanding amount (calculated: total - paid)",
+    )
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -186,6 +206,12 @@ class SalesOrder(TimestampModel):
         verbose_name_plural = "Sales Orders"
         indexes = [
             models.Index(fields=['tenant', 'our_sales_order_num']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'our_sales_order_num'],
+                name='unique_tenant_sales_order_num'
+            ),
         ]
 
     def __str__(self):

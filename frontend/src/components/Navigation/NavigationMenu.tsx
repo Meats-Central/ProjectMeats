@@ -89,6 +89,15 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
     return item.path === location.pathname;
   };
 
+  const hasExactActiveChild = (item: NavigationItem): boolean => {
+    if (!item.children) return false;
+    return item.children.some((child) => {
+      if (child.path === location.pathname) return true;
+      if (child.children) return hasExactActiveChild(child);
+      return false;
+    });
+  };
+
   // Render a simple navigation link (no children)
   const renderNavLink = (item: NavigationItem, exactActive: boolean, active: boolean) => (
     <StyledNavLink
@@ -123,7 +132,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
   };
 
   // Render accordion header with expand/collapse button
-  const renderAccordionHeader = (item: NavigationItem, isItemExpanded: boolean, active: boolean) => (
+  const renderAccordionHeader = (item: NavigationItem, isItemExpanded: boolean, active: boolean, hasActiveChild: boolean) => (
     <AccordionHeader
       onClick={(e) => {
         if (!item.path) {
@@ -135,6 +144,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
       $active={active}
       $isExpanded={isItemExpanded}
       $isDarkMode={isDarkMode}
+      $hasExactActiveChild={hasActiveChild}
     >
       {renderAccordionContent(item)}
       {sidebarExpanded && (
@@ -171,13 +181,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ items, isExpanded: side
         const isItemExpanded = expandedItem === item.label; // Changed from Set.has() to direct comparison
         const active = isActive(item);
         const exactActive = isExactActive(item);
+        const hasActiveChild = hasExactActiveChild(item);
 
         // Determine which component to render
         let menuItemContent;
         if (item.path && !hasChildren) {
           menuItemContent = renderNavLink(item, exactActive, active);
         } else if (hasChildren) {
-          menuItemContent = renderAccordionHeader(item, isItemExpanded, active);
+          menuItemContent = renderAccordionHeader(item, isItemExpanded, active, hasActiveChild);
         } else {
           menuItemContent = renderMenuButton(item, active);
         }
@@ -209,14 +220,14 @@ const MenuContainer = styled.div`
 
 const MenuItem = styled.div<{ $level: number }>`
   position: relative;
-  margin-bottom: 2px;
+  /* Removed margin-bottom to ensure consistent spacing handled by baseItemStyles */
 `;
 
 const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 18px 12px;
   padding-left: ${(props) => 12 + props.$level * 16}px;
   color: ${(props) => props.$isDarkMode 
     ? `rgba(255, 255, 255, ${props.$active ? 1 : 0.7})` 
@@ -225,22 +236,23 @@ const baseItemStyles = css<{ $level: number; $active: boolean; $isDarkMode: bool
   transition: all 0.15s ease;
   font-size: ${(props) => props.$level === 0 ? 14 : 13}px;
   border-radius: 8px;
-  margin: 0 8px;
-  min-height: 40px;
+  margin: 0 8px 4px 8px;
+  height: 60px;
+  box-sizing: border-box;
   
   &:hover {
     background-color: ${(props) => props.$isDarkMode 
       ? 'rgba(255, 255, 255, 0.08)' 
       : 'rgba(0, 0, 0, 0.04)'};
-    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   }
 `;
 
 const activeStyles = css<{ $isDarkMode: boolean }>`
   background-color: ${(props) => props.$isDarkMode 
-    ? 'rgba(124, 58, 237, 0.15)' 
-    : 'rgba(124, 58, 237, 0.1)'};
-  color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    ? 'rgba(var(--color-primary), 0.15)' 
+    : 'rgba(var(--color-primary), 0.1)'};
+  color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   
   &::before {
     content: '';
@@ -250,14 +262,14 @@ const activeStyles = css<{ $isDarkMode: boolean }>`
     transform: translateY(-50%);
     width: 3px;
     height: 24px;
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    background: rgb(var(--color-primary));
     border-radius: 0 3px 3px 0;
   }
 
   &:hover {
     background-color: ${(props) => props.$isDarkMode 
-      ? 'rgba(124, 58, 237, 0.2)' 
-      : 'rgba(124, 58, 237, 0.15)'};
+      ? 'rgba(var(--color-primary), 0.2)' 
+      : 'rgba(var(--color-primary), 0.15)'};
   }
 `;
 
@@ -268,7 +280,7 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: 
   ${(props) => props.$active && activeStyles}
   
   ${(props) => props.$hasActiveChild && css<{ $isDarkMode: boolean }>`
-    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)'};
+    color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgb(var(--color-text-primary))'};
   `}
 
   &.active {
@@ -276,12 +288,37 @@ const StyledNavLink = styled(NavLink)<{ $theme: Theme; $level: number; $active: 
   }
 `;
 
-const AccordionHeader = styled.div<{ $theme: Theme; $level: number; $active: boolean; $isExpanded: boolean; $isDarkMode: boolean }>`
+const AccordionHeader = styled.div<{ $theme: Theme; $level: number; $active: boolean; $isExpanded: boolean; $isDarkMode: boolean; $hasExactActiveChild?: boolean }>`
   ${baseItemStyles}
   position: relative;
   cursor: pointer;
   
-  ${(props) => props.$active && !props.$isExpanded && css<{ $isDarkMode: boolean }>`
+  ${(props) => props.$active && !props.$hasExactActiveChild && css<{ $isDarkMode: boolean }>`
+    background-color: ${props.$isDarkMode 
+      ? 'rgba(var(--color-primary), 0.15)' 
+      : 'rgba(var(--color-primary), 0.1)'};
+    color: ${props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 32px;
+      background: rgb(var(--color-primary));
+      border-radius: 0 3px 3px 0;
+    }
+
+    &:hover {
+      background-color: ${props.$isDarkMode 
+        ? 'rgba(var(--color-primary), 0.2)' 
+        : 'rgba(var(--color-primary), 0.15)'};
+    }
+  `}
+  
+  ${(props) => props.$active && props.$hasExactActiveChild && css<{ $isDarkMode: boolean }>`
     color: ${props.$isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.95)'};
   `}
 `;
@@ -329,7 +366,7 @@ const ExpandButton = styled.button<{ $isExpanded: boolean; $isDarkMode: boolean 
     background: ${(props) => props.$isDarkMode 
       ? 'rgba(255, 255, 255, 0.1)' 
       : 'rgba(0, 0, 0, 0.05)'};
-    color: ${(props) => props.$isDarkMode ? 'white' : '#1e293b'};
+    color: ${(props) => props.$isDarkMode ? 'white' : 'rgb(var(--color-text-primary))'};
   }
 `;
 
