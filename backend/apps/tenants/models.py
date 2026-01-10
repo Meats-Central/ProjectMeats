@@ -146,6 +146,8 @@ class Tenant(models.Model):
         - primary_color_light: Primary color for light theme
         - primary_color_dark: Primary color for dark theme
         - name: Tenant display name
+        
+        Priority: Settings JSON (user-defined) > Defaults
         """
         theme = self.settings.get("theme", {})
 
@@ -158,10 +160,11 @@ class Tenant(models.Model):
                 # File doesn't exist or error accessing URL
                 pass
 
+        # Prioritize colors from settings JSON, fallback to defaults
         return {
             "logo_url": logo_url,
-            "primary_color_light": theme.get("primary_color_light", "#3498db"),
-            "primary_color_dark": theme.get("primary_color_dark", "#5dade2"),
+            "primary_color_light": theme.get("primary_color_light") or theme.get("primary_color", "#3498db"),
+            "primary_color_dark": theme.get("primary_color_dark") or theme.get("primary_color", "#5dade2"),
             "name": self.name,
         }
 

@@ -114,7 +114,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
 
     loadTenantBranding();
-  }, []); // Only run once on mount
+
+    // Listen for branding updates from Settings page
+    const handleBrandingUpdate = () => {
+      console.log('🔄 Tenant branding update event received, reloading...');
+      loadTenantBranding();
+    };
+
+    window.addEventListener('tenant-branding-updated', handleBrandingUpdate);
+    
+    return () => {
+      window.removeEventListener('tenant-branding-updated', handleBrandingUpdate);
+    };
+  }, []); // Only run once on mount and setup listener
 
   // NEW: Inject tenant colors into CSS variables when branding or theme changes
   useEffect(() => {

@@ -5,6 +5,7 @@ import { tenantService, Tenant } from '../services/tenantService';
 import styled from 'styled-components';
 import { ChromePicker, ColorResult } from 'react-color';
 import { extractBrandColors, rgbToHex, hexToRgb } from '../utils/themeUtils';
+import { injectTenantColors } from '../config/theme';
 
 // Renamed to avoid collision with component name (ESLint no-redeclare warning)
 interface UserSettings {
@@ -28,7 +29,7 @@ interface UserSettings {
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  useTheme(); // Initialize theme context
+  const { themeName, tenantBranding } = useTheme(); // Initialize theme context
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -83,8 +84,11 @@ const Settings: React.FC = () => {
         const tenants = await tenantService.getMyTenants();
         if (tenants && tenants.length > 0) {
           setCurrentTenant(tenants[0]);
-          if (tenants[0].logo) {
-            setLogoPreview(tenants[0].logo);
+          // Map logo URL from the backend response
+          // Backend returns 'logo' field directly or as 'logo_url'
+          const logoUrl = tenants[0].logo || (tenants[0] as any).logo_url;
+          if (logoUrl) {
+            setLogoPreview(logoUrl);
           }
         }
       } catch (error) {
@@ -198,10 +202,13 @@ const Settings: React.FC = () => {
   const handleLogoUpload = async () => {
     if (!logoFile || !currentTenant) return;
 
+    // Use tenant_id if available, fallback to id for compatibility
+    const tenantId = (currentTenant as any).tenant_id || currentTenant.id;
+    
     // Validate tenant ID exists (debugging aid as suggested in issue)
-    if (!currentTenant.id) {
+    if (!tenantId) {
       setMessage({ type: 'error', text: 'Unable to upload logo: Tenant ID is missing. Please try refreshing the page.' });
-      console.error('Logo upload error: currentTenant.id is undefined or null', currentTenant);
+      console.error('Logo upload error: tenant_id is undefined or null', currentTenant);
       return;
     }
 
@@ -209,7 +216,7 @@ const Settings: React.FC = () => {
     setMessage(null);
 
     try {
-      const updatedTenant = await tenantService.uploadLogo(currentTenant.id, logoFile);
+      const updatedTenant = await tenantService.uploadLogo(tenantId, logoFile);
       setCurrentTenant(updatedTenant);
       setLogoFile(null);
       setMessage({ type: 'success', text: 'Logo uploaded successfully! Please refresh the page to see the logo in the sidebar.' });
@@ -224,10 +231,13 @@ const Settings: React.FC = () => {
   const handleLogoRemove = async () => {
     if (!currentTenant) return;
 
+    // Use tenant_id if available, fallback to id for compatibility
+    const tenantId = (currentTenant as any).tenant_id || currentTenant.id;
+
     // Validate tenant ID exists
-    if (!currentTenant.id) {
+    if (!tenantId) {
       setMessage({ type: 'error', text: 'Unable to remove logo: Tenant ID is missing. Please try refreshing the page.' });
-      console.error('Logo remove error: currentTenant.id is undefined or null', currentTenant);
+      console.error('Logo remove error: tenant_id is undefined or null', currentTenant);
       return;
     }
 
@@ -235,7 +245,7 @@ const Settings: React.FC = () => {
     setMessage(null);
 
     try {
-      const updatedTenant = await tenantService.removeLogo(currentTenant.id);
+      const updatedTenant = await tenantService.removeLogo(tenantId);
       setCurrentTenant(updatedTenant);
       setLogoPreview(null);
       setLogoFile(null);
@@ -259,10 +269,37 @@ const Settings: React.FC = () => {
 
     try {
       const rgb = await extractBrandColors(logoPreview);
-      if (rgb) {
-        const hexColor = rgbToHex(rgb[0], rgb[1], rgb[2]);
-        setPrimaryColor(hexColor);
-        setMessage({ type: 'success', text: `Extracted color: ${hexColor}` });
+      if (rgb && Array.isArray(rgb) && rgb.length === 3) {
+        // Set primary color from extracted color
+        const primaryHex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+        setPrimaryColor(primaryHex);
+        
+        // Generate secondary color (slightly lighter/darker variant)
+        // For light colors, darken; for dark colors, lighten
+        const luminance = 0.2126 * rgb[0]/255 + 0.7152 * rgb[1]/255 + 0.0722 * rgb[2]/255;
+        const isLight = luminance > 0.5;
+        
+        let secondaryRgb: [number, number, number];
+        if (isLight) {
+          // Darken for light colors
+          secondaryRgb = [
+            Math.max(0, Math.round(rgb[0] * 0.7)),
+            Math.max(0, Math.round(rgb[1] * 0.7)),
+            Math.max(0, Math.round(rgb[2] * 0.7))
+          ];
+        } else {
+          // Lighten for dark colors
+          secondaryRgb = [
+            Math.min(255, Math.round(rgb[0] + (255 - rgb[0]) * 0.3)),
+            Math.min(255, Math.round(rgb[1] + (255 - rgb[1]) * 0.3)),
+            Math.min(255, Math.round(rgb[2] + (255 - rgb[2]) * 0.3))
+          ];
+        }
+        
+        const secondaryHex = rgbToHex(secondaryRgb[0], secondaryRgb[1], secondaryRgb[2]);
+        setSecondaryColor(secondaryHex);
+        
+        setMessage({ type: 'success', text: `Extracted colors: Primary ${primaryHex}, Secondary ${secondaryHex}` });
       } else {
         setMessage({ type: 'error', text: 'Failed to extract colors from logo' });
       }
@@ -282,23 +319,42 @@ const Settings: React.FC = () => {
     setSecondaryColor(color.hex);
   };
 
-  const handleApplyThemeColors = () => {
-    // Apply colors to CSS variables
-    const primaryRgb = hexToRgb(primaryColor);
-    const secondaryRgb = hexToRgb(secondaryColor);
+  const handleApplyThemeColors = async () => {
+    if (!currentTenant) return;
 
-    if (primaryRgb) {
-      document.documentElement.style.setProperty('--color-primary', primaryRgb.join(', '));
-    }
-    if (secondaryRgb) {
-      document.documentElement.style.setProperty('--color-secondary', secondaryRgb.join(', '));
+    // Use tenant_id if available, fallback to id for compatibility
+    const tenantId = (currentTenant as any).tenant_id || currentTenant.id;
+
+    if (!tenantId) {
+      setMessage({ type: 'error', text: 'Unable to apply theme: Tenant ID is missing.' });
+      return;
     }
 
-    setMessage({ type: 'success', text: 'Theme colors applied! (Note: This is a preview. Backend integration coming soon.)' });
-    
-    // Close pickers
-    setShowPrimaryPicker(false);
-    setShowSecondaryPicker(false);
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      // Apply colors to CSS variables for preview using injectTenantColors utility
+      injectTenantColors(primaryColor, secondaryColor, themeName);
+
+      // Save colors to backend
+      await tenantService.updateThemeColors(tenantId, primaryColor, secondaryColor);
+      
+      setMessage({ type: 'success', text: 'Theme colors saved and applied successfully!' });
+      
+      // Close pickers
+      setShowPrimaryPicker(false);
+      setShowSecondaryPicker(false);
+
+      // Trigger theme context refresh by reloading tenant branding
+      // The ThemeContext will automatically re-fetch on next mount or you can manually trigger
+      window.dispatchEvent(new CustomEvent('tenant-branding-updated'));
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save theme colors. Please try again.' });
+      console.error('Theme update error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
