@@ -209,6 +209,12 @@ class Supplier(TimestampModel):
         default=list,
         help_text="Departments (multi-select: Sales, Doc's BOL, Doc's COA, etc.) - NEW",
     )
+    preferred_protein_types = ArrayField(
+        models.CharField(max_length=50, choices=ProteinTypeChoices.choices),
+        blank=True,
+        default=list,
+        help_text="Preferred protein types (multi-select: Beef, Chicken, Pork, etc.)",
+    )
     
     # Deprecated fields - keeping for backward compatibility
     accounting_terms = models.CharField(

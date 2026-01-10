@@ -160,6 +160,7 @@ export interface Supplier {
   zip_code?: string;
   country?: string;
   departments_array?: string[]; // Phase 4: ArrayField
+  preferred_protein_types?: string[]; // NEW: Protein filtering
   products?: number[]; // Product IDs for M2M relationship
   created_at: string;
   updated_at: string;
