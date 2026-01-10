@@ -227,9 +227,29 @@ const Settings: React.FC = () => {
       const updatedTenant = await tenantService.uploadLogo(tenantId, logoFile);
       setCurrentTenant(updatedTenant);
       setLogoFile(null);
-      setMessage({ type: 'success', text: 'Logo uploaded successfully! Please refresh the page to see the logo in the sidebar.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to upload logo. Please try again.' });
+      
+      // Update logo preview from response
+      if (updatedTenant.logo) {
+        setLogoPreview(updatedTenant.logo);
+      }
+      
+      setMessage({ 
+        type: 'success', 
+        text: 'Logo uploaded successfully! Refreshing page to update branding...' 
+      });
+      
+      // Reload page after short delay to show success message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error: any) {
+      // Enhanced error display - show the actual error message from the service
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to upload logo. Please try again.';
+      
+      setMessage({ type: 'error', text: errorMessage });
       console.error('Logo upload error:', error);
     } finally {
       setLoading(false);
@@ -348,17 +368,27 @@ const Settings: React.FC = () => {
       // Save colors to backend
       await tenantService.updateThemeColors(tenantId, primaryColor, secondaryColor);
       
-      setMessage({ type: 'success', text: 'Theme colors saved and applied successfully!' });
+      setMessage({ 
+        type: 'success', 
+        text: 'Theme colors saved successfully! Refreshing page to apply changes...' 
+      });
       
       // Close pickers
       setShowPrimaryPicker(false);
       setShowSecondaryPicker(false);
 
-      // Trigger theme context refresh by reloading tenant branding
-      // The ThemeContext will automatically re-fetch on next mount or you can manually trigger
-      window.dispatchEvent(new CustomEvent('tenant-branding-updated'));
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save theme colors. Please try again.' });
+      // Reload page after short delay to apply theme globally
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error: any) {
+      // Enhanced error display - show the actual error message from the service
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to save theme colors. Please try again.';
+      
+      setMessage({ type: 'error', text: errorMessage });
       console.error('Theme update error:', error);
     } finally {
       setLoading(false);
