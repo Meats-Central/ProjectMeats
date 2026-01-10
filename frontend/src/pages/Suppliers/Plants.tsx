@@ -495,7 +495,7 @@ const Plants: React.FC = () => {
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} plants`,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 'max-content' }}
       />
 
       {/* Form Modal */}

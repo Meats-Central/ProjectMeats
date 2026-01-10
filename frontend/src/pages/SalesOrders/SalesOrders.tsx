@@ -101,6 +101,12 @@ const ContentContainer = styled.div<{ hasSidePanel?: boolean }>`
   height: calc(100vh - 180px);
   overflow: hidden;
   transition: grid-template-columns 0.3s ease;
+  
+  /* Stack layout on tablets and mobile */
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
 `;
 
 const MainContent = styled.div`
@@ -162,7 +168,11 @@ const SearchBar = styled.input`
 const TableContainer = styled.div`
   flex: 1;
   overflow-y: auto;
-  overflow-x: auto;
+
+  /* Only enable horizontal scroll on small screens when truly needed */
+  @media (max-width: 768px) {
+    overflow-x: auto;
+  }
 
   /* Custom scrollbar */
   &::-webkit-scrollbar {
@@ -186,8 +196,16 @@ const TableContainer = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 800px;
   border-collapse: collapse;
+  
+  /* Reduce minimum width on smaller screens */
+  @media (min-width: 769px) {
+    min-width: 800px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 600px;
+  }
 `;
 
 const TableHeader = styled.thead`
