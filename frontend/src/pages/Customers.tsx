@@ -14,6 +14,7 @@ const Customers: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const { theme } = useTheme();
+  const [products, setProducts] = useState<Array<{ id: number; product_code: string; description_of_product_item: string }>>([]);
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -26,10 +27,12 @@ const Customers: React.FC = () => {
     country: '',
     industry_array: [] as string[], // Phase 4: ArrayField integration
     preferred_protein_types: [] as string[], // Phase 4: ArrayField integration
+    products: [] as number[], // Product IDs for M2M
   });
 
   useEffect(() => {
     fetchCustomers();
+    fetchProducts();
   }, []);
 
   const fetchCustomers = async () => {
@@ -41,6 +44,22 @@ const Customers: React.FC = () => {
       console.error('Error fetching customers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/v1/products/', {
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
     }
   };
 
@@ -86,6 +105,7 @@ const Customers: React.FC = () => {
       country: customer.country || '',
       industry_array: customer.industry_array || [], // Phase 4: Populate array
       preferred_protein_types: customer.preferred_protein_types || [], // Phase 4: Populate array
+      products: customer.products || [], // Populate product IDs
     });
     setShowForm(true);
   };
@@ -122,6 +142,7 @@ const Customers: React.FC = () => {
       country: '',
       industry_array: [], // Phase 4: Reset array
       preferred_protein_types: [], // Phase 4: Reset array
+      products: [], // Reset products
     });
   };
 
@@ -266,6 +287,16 @@ const Customers: React.FC = () => {
                     options={PROTEIN_TYPE_CHOICES}
                     label="Preferred Protein Types"
                     placeholder="Select protein types (hold Ctrl/Cmd for multiple)"
+                  />
+                </FormGroup>
+
+                <FormGroup $fullWidth>
+                  <MultiSelect
+                    value={formData.products.map(String)}
+                    onChange={(values) => setFormData({ ...formData, products: values.map(Number) })}
+                    options={products.map(p => ({ value: String(p.id), label: `${p.product_code} - ${p.description_of_product_item}` }))}
+                    label="Products"
+                    placeholder="Select products to associate (hold Ctrl/Cmd for multiple)"
                   />
                 </FormGroup>
               </FormGrid>
