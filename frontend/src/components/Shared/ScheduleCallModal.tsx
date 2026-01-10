@@ -482,7 +482,9 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                 onChange={(e) => setScheduledFor(e.target.value)}
                 disabled={submitting}
                 step="900"
+                aria-label="Schedule date and time in 15-minute increments"
               />
+              <HelpText>Time selector uses 15-minute increments (e.g., 9:00, 9:15, 9:30, 9:45)</HelpText>
             </FormGroup>
 
             <FormGroup>
