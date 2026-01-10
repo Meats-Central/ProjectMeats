@@ -117,6 +117,33 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Free up runner disk space
+        run: |
+          echo "============================================"
+          echo "Disk usage before cleanup:"
+          df -h
+          echo "============================================"
+          
+          # Remove unnecessary files to free up space
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          
+          # Clean apt cache
+          sudo apt-get clean || true
+          
+          echo "============================================"
+          echo "Disk usage after cleanup:"
+          df -h
+          echo "============================================"
+
+      - name: Remove unused Docker images
+        run: |
+          docker system df
+          docker image prune -af || true
+          docker system df
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -237,6 +264,33 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+
+      - name: Free up runner disk space
+        run: |
+          echo "============================================"
+          echo "Disk usage before cleanup:"
+          df -h
+          echo "============================================"
+          
+          # Remove unnecessary files to free up space
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          
+          # Clean apt cache
+          sudo apt-get clean || true
+          
+          echo "============================================"
+          echo "Disk usage after cleanup:"
+          df -h
+          echo "============================================"
+
+      - name: Remove unused Docker images
+        run: |
+          docker system df
+          docker image prune -af || true
+          docker system df
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
