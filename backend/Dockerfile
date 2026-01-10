@@ -47,7 +47,7 @@
 #     --timeout ${GUNICORN_TIMEOUT:-120} \
 #     --access-logfile - --error-logfile -'
 
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
