@@ -47,6 +47,7 @@ const Plants: React.FC = () => {
   const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
   const [deletingPlant, setDeletingPlant] = useState<Plant | null>(null);
   const [contextSupplierId, setContextSupplierId] = useState<number | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   
   const [formData, setFormData] = useState({
     name: '',
@@ -100,6 +101,7 @@ const Plants: React.FC = () => {
 
   const handleAddPlant = () => {
     setEditingPlant(null);
+    setFormErrors({});
     setFormData({
       name: '',
       code: '',
@@ -120,6 +122,7 @@ const Plants: React.FC = () => {
 
   const handleEditPlant = (plant: Plant) => {
     setEditingPlant(plant);
+    setFormErrors({});
     setFormData({
       name: plant.name,
       code: plant.code,
@@ -140,6 +143,8 @@ const Plants: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({}); // Clear previous errors
+    
     try {
       const payload = {
         ...formData,
@@ -158,9 +163,30 @@ const Plants: React.FC = () => {
       await loadPlants();
       setShowForm(false);
       setEditingPlant(null);
+      setFormErrors({});
     } catch (error: any) {
       console.error('Error saving plant:', error);
-      alert(error.response?.data?.error || 'Failed to save plant');
+      
+      // Handle validation errors from backend
+      if (error.response?.status === 400 && error.response?.data) {
+        const errors = error.response.data;
+        setFormErrors(errors);
+        
+        // Don't show alert if we have field-specific errors
+        if (Object.keys(errors).length === 0) {
+          const errorMessage = error.response?.data?.error 
+            || error.response?.data?.detail
+            || 'Failed to save plant';
+          alert(`Error: ${errorMessage}`);
+        }
+      } else {
+        // Show generic error for non-validation errors
+        const errorMessage = error.response?.data?.error 
+          || error.response?.data?.detail
+          || error.response?.data?.details
+          || 'Failed to save plant';
+        alert(`Error: ${errorMessage}`);
+      }
     }
   };
 
@@ -279,25 +305,29 @@ const Plants: React.FC = () => {
             <Form onSubmit={handleSubmit}>
               <FormRow>
                 <FormGroup>
-                  <Label>Plant Name *</Label>
+                  <Label>Plant Name <RequiredMark>*</RequiredMark></Label>
                   <Input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Main Processing Facility"
                     required
+                    className={formErrors.name ? 'error' : ''}
                   />
+                  {formErrors.name && <ErrorMessage>{formErrors.name[0]}</ErrorMessage>}
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Plant Code *</Label>
+                  <Label>Plant Code <RequiredMark>*</RequiredMark></Label>
                   <Input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
                     placeholder="e.g., PLANT-001"
                     required
+                    className={formErrors.code ? 'error' : ''}
                   />
+                  {formErrors.code && <ErrorMessage>{formErrors.code[0]}</ErrorMessage>}
                 </FormGroup>
               </FormRow>
 
@@ -309,6 +339,7 @@ const Plants: React.FC = () => {
                   value={formData.supplier}
                   onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
                   disabled={!!contextSupplierId}
+                  className={formErrors.supplier ? 'error' : ''}
                 >
                   <option value="">Select Supplier (Optional)</option>
                   {suppliers.map(supplier => (
@@ -320,6 +351,7 @@ const Plants: React.FC = () => {
                 {contextSupplierId && (
                   <HelpText>Supplier automatically selected based on your navigation context</HelpText>
                 )}
+                {formErrors.supplier && <ErrorMessage>{formErrors.supplier[0]}</ErrorMessage>}
               </FormGroup>
 
               <FormGroup>
@@ -327,6 +359,7 @@ const Plants: React.FC = () => {
                 <Select
                   value={formData.plant_type}
                   onChange={(e) => setFormData(prev => ({ ...prev, plant_type: e.target.value }))}
+                  className={formErrors.plant_type ? 'error' : ''}
                 >
                   <option value="processing">Processing Plant</option>
                   <option value="distribution">Distribution Center</option>
@@ -334,6 +367,7 @@ const Plants: React.FC = () => {
                   <option value="retail">Retail Location</option>
                   <option value="other">Other</option>
                 </Select>
+                {formErrors.plant_type && <ErrorMessage>{formErrors.plant_type[0]}</ErrorMessage>}
               </FormGroup>
 
               <FormGroup>
@@ -343,7 +377,9 @@ const Plants: React.FC = () => {
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   placeholder="Street address"
+                  className={formErrors.address ? 'error' : ''}
                 />
+                {formErrors.address && <ErrorMessage>{formErrors.address[0]}</ErrorMessage>}
               </FormGroup>
 
               <FormRow>
@@ -353,7 +389,9 @@ const Plants: React.FC = () => {
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    className={formErrors.city ? 'error' : ''}
                   />
+                  {formErrors.city && <ErrorMessage>{formErrors.city[0]}</ErrorMessage>}
                 </FormGroup>
                 <FormGroup>
                   <Label>State</Label>
@@ -362,7 +400,10 @@ const Plants: React.FC = () => {
                     value={formData.state}
                     onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
                     maxLength={2}
+                    placeholder="e.g., CA"
+                    className={formErrors.state ? 'error' : ''}
                   />
+                  {formErrors.state && <ErrorMessage>{formErrors.state[0]}</ErrorMessage>}
                 </FormGroup>
               </FormRow>
 
@@ -373,7 +414,9 @@ const Plants: React.FC = () => {
                     type="text"
                     value={formData.zip_code}
                     onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value }))}
+                    className={formErrors.zip_code ? 'error' : ''}
                   />
+                  {formErrors.zip_code && <ErrorMessage>{formErrors.zip_code[0]}</ErrorMessage>}
                 </FormGroup>
                 <FormGroup>
                   <Label>Country</Label>
@@ -381,7 +424,9 @@ const Plants: React.FC = () => {
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                    className={formErrors.country ? 'error' : ''}
                   />
+                  {formErrors.country && <ErrorMessage>{formErrors.country[0]}</ErrorMessage>}
                 </FormGroup>
               </FormRow>
 
@@ -392,7 +437,9 @@ const Plants: React.FC = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className={formErrors.phone ? 'error' : ''}
                   />
+                  {formErrors.phone && <ErrorMessage>{formErrors.phone[0]}</ErrorMessage>}
                 </FormGroup>
                 <FormGroup>
                   <Label>Email</Label>
@@ -400,7 +447,9 @@ const Plants: React.FC = () => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className={formErrors.email ? 'error' : ''}
                   />
+                  {formErrors.email && <ErrorMessage>{formErrors.email[0]}</ErrorMessage>}
                 </FormGroup>
               </FormRow>
 
@@ -412,7 +461,9 @@ const Plants: React.FC = () => {
                     value={formData.manager}
                     onChange={(e) => setFormData(prev => ({ ...prev, manager: e.target.value }))}
                     placeholder="Facility manager name"
+                    className={formErrors.manager ? 'error' : ''}
                   />
+                  {formErrors.manager && <ErrorMessage>{formErrors.manager[0]}</ErrorMessage>}
                 </FormGroup>
                 <FormGroup>
                   <Label>Capacity</Label>
@@ -421,7 +472,9 @@ const Plants: React.FC = () => {
                     value={formData.capacity}
                     onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
                     placeholder="Units"
+                    className={formErrors.capacity ? 'error' : ''}
                   />
+                  {formErrors.capacity && <ErrorMessage>{formErrors.capacity[0]}</ErrorMessage>}
                 </FormGroup>
               </FormRow>
 
@@ -714,6 +767,10 @@ const Input = styled.input`
     outline: none;
     border-color: rgb(var(--color-primary));
   }
+
+  &.error {
+    border-color: #dc3545;
+  }
 `;
 
 const Select = styled.select`
@@ -733,6 +790,28 @@ const Select = styled.select`
   &:disabled {
     opacity: 0.6;
     background: rgba(var(--color-border), 0.1);
+  }
+
+  &.error {
+    border-color: #dc3545;
+  }
+`;
+
+const RequiredMark = styled.span`
+  color: #dc3545;
+  margin-left: 2px;
+`;
+
+const ErrorMessage = styled.div`
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  
+  &:before {
+    content: '⚠ ';
+    margin-right: 4px;
   }
 `;
 
