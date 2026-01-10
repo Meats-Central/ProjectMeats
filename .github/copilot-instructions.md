@@ -132,6 +132,82 @@ gh secret list --env dev-backend
 
 **Violations of this workflow can break the deployment pipeline and production environment.**
 
+### 🤖 MANDATORY: Standard Git Workflow for All Tasks
+
+**For EVERY task, feature, or bugfix, you MUST complete this workflow automatically:**
+
+#### Step 1: Create Feature Branch
+```bash
+# Create branch from development with appropriate prefix
+git checkout development
+git pull origin development
+git checkout -b feature/descriptive-name  # or fix/, chore/, etc.
+```
+
+#### Step 2: Make Changes and Commit
+```bash
+# Stage changes
+git add [modified files]
+
+# Commit with descriptive message
+git commit -m "Brief summary
+
+Detailed description:
+- Change 1
+- Change 2
+- Impact and risk level"
+```
+
+#### Step 3: Push Branch
+```bash
+# Push to remote
+git push -u origin feature/descriptive-name
+```
+
+#### Step 4: Create Pull Request
+**IMPORTANT: Due to branch protection rules, PRs MUST be created via GitHub web interface or CLI:**
+
+```bash
+# Option A: GitHub CLI (if authenticated)
+gh pr create --base development \
+  --title "Brief Title" \
+  --body "Description with changes, testing, and impact"
+
+# Option B: Provide web URL
+echo "Create PR at: https://github.com/Meats-Central/ProjectMeats/pull/new/[branch-name]"
+```
+
+#### Step 5: Await Approval and Merge
+- Branch protection requires PR review/approval
+- Cannot push directly to `development`, `uat`, or `main`
+- CI/CD runs automatically on PR creation
+- After approval, merge via GitHub interface
+
+**⚠️ CRITICAL REMINDERS:**
+- ✅ **ALWAYS** complete all 5 steps for every task
+- ✅ **ALWAYS** create PR (don't just push branch)
+- ✅ **ALWAYS** use descriptive branch names and commit messages
+- ✅ **ALWAYS** provide PR creation URL if gh CLI unavailable
+- ❌ **NEVER** attempt to merge locally and push to protected branches
+- ❌ **NEVER** skip PR creation step
+
+**Example Complete Workflow:**
+```bash
+# Task: Fix tenant branding persistence
+git checkout development
+git pull origin development
+git checkout -b fix/tenant-branding-persistence
+# ... make changes ...
+git add frontend/src/pages/Settings.tsx backend/apps/tenants/models.py
+git commit -m "Fix tenant branding persistence
+
+- Logo upload uses tenant_id fallback
+- Colors persist to backend
+- Auto-refresh via events"
+git push -u origin fix/tenant-branding-persistence
+# Then provide PR URL for manual creation
+```
+
 See [Branch Organization & Workflow](#-branch-organization-naming-tagging-and-promotion) for full details.
 
 ---
