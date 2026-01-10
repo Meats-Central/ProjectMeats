@@ -263,18 +263,48 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   const loadDropdownData = async () => {
     try {
-      const [customersRes, suppliersRes, productsRes] = await Promise.all([
+      setLoading(true);
+      
+      const [customersRes, suppliersRes, productsRes] = await Promise.allSettled([
         apiClient.get('customers/'),
         apiClient.get('suppliers/'),
         apiClient.get('products/'),
       ]);
 
-      setCustomers(customersRes.data.results || customersRes.data || []);
-      setSuppliers(suppliersRes.data.results || suppliersRes.data || []);
-      setProducts(productsRes.data.results || productsRes.data || []);
+      // Handle customers
+      if (customersRes.status === 'fulfilled') {
+        setCustomers(customersRes.value.data.results || customersRes.value.data || []);
+      } else {
+        console.error('Failed to load customers:', customersRes.reason);
+        setCustomers([]);
+      }
+
+      // Handle suppliers
+      if (suppliersRes.status === 'fulfilled') {
+        setSuppliers(suppliersRes.value.data.results || suppliersRes.value.data || []);
+      } else {
+        console.error('Failed to load suppliers:', suppliersRes.reason);
+        setSuppliers([]);
+      }
+
+      // Handle products with specific 404 check
+      if (productsRes.status === 'fulfilled') {
+        setProducts(productsRes.value.data.results || productsRes.value.data || []);
+      } else {
+        const error = productsRes.reason;
+        if (error?.response?.status === 404) {
+          console.warn('Products endpoint not available (404). Proceeding with empty product list.');
+          setError('Products are currently unavailable. You can still create an order and add products later.');
+        } else {
+          console.error('Failed to load products:', error);
+        }
+        setProducts([]);
+      }
     } catch (err: any) {
-      console.error('Failed to load dropdown data:', err);
-      setError('Failed to load form options. Please try again.');
+      console.error('Unexpected error loading dropdown data:', err);
+      setError('Failed to load form options. Some fields may be unavailable.');
+    } finally {
+      setLoading(false);
     }
   };
 
