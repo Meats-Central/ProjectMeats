@@ -487,7 +487,7 @@ export const SalesOrdersPage: React.FC = () => {
         <PageTitle>Sales Orders</PageTitle>
         <HeaderActions>
           <PrimaryButton onClick={() => setIsModalOpen(true)}>
-            + New Order
+            + New Sales Order
           </PrimaryButton>
         </HeaderActions>
       </PageHeader>
@@ -550,7 +550,7 @@ export const SalesOrdersPage: React.FC = () => {
             ) : filteredOrders.length === 0 ? (
               <EmptyState>
                 <p>No sales orders found.</p>
-                <p>Click "New Order" to create your first order.</p>
+                <p>Click "New Sales Order" to create your first order.</p>
               </EmptyState>
             ) : (
               <Table>
