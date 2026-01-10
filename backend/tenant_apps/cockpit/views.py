@@ -179,19 +179,46 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
             })
     
     def perform_update(self, serializer):
-        """Log activity when call is updated or completed."""
-        old_instance = self.get_object()
-        was_completed = old_instance.is_completed
-        
-        scheduled_call = serializer.save()
-        
-        # If call was just marked as completed, log it
-        if scheduled_call.is_completed and not was_completed:
-            self._create_activity_log(
-                scheduled_call=scheduled_call,
-                action='completed',
-                user=self.request.user
-            )
+        """
+        Log activity when call is updated or completed.
+        Enhanced error handling to prevent 500 errors.
+        """
+        try:
+            # Validate tenant context exists
+            if not hasattr(self.request, 'tenant') or not self.request.tenant:
+                logger.error('Attempted to update scheduled call without tenant context')
+                raise ValidationError({
+                    'error': 'Tenant context required',
+                    'detail': 'Please refresh and try again.'
+                })
+            
+            old_instance = self.get_object()
+            was_completed = old_instance.is_completed
+            
+            scheduled_call = serializer.save()
+            
+            # If call was just marked as completed, log it
+            if scheduled_call.is_completed and not was_completed:
+                self._create_activity_log(
+                    scheduled_call=scheduled_call,
+                    action='completed',
+                    user=self.request.user
+                )
+                
+        except IntegrityError as e:
+            logger.error(f'Integrity error updating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Database error',
+                'detail': 'Invalid data or duplicate entry.'
+            })
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f'Error updating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Failed to update call',
+                'detail': str(e)
+            })
     
     def _create_activity_log(self, scheduled_call, action, user):
         """

@@ -278,7 +278,13 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       setDescription(initialData.description || '');
       setEntityType(initialData.entity_type as EntityType || 'supplier');
       setEntityId(String(initialData.entity_id || ''));
-      setScheduledFor(initialData.scheduled_for || '');
+      
+      // Format date for datetime-local input (remove Z and seconds for local timezone)
+      const formattedDate = initialData.scheduled_for 
+        ? new Date(initialData.scheduled_for).toISOString().slice(0, 16)
+        : '';
+      setScheduledFor(formattedDate);
+      
       setDurationMinutes(String(initialData.duration_minutes || 30));
       setCallPurpose(initialData.call_purpose || 'follow_up');
       setOutcome(initialData.outcome || '');
