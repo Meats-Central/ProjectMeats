@@ -50,10 +50,10 @@ class Plant(models.Model):
     plant_type = models.CharField(
         max_length=20, choices=PLANT_TYPE_CHOICES, default="processing"
     )
-    address = models.TextField(default='')
-    city = models.CharField(max_length=100, default='')
-    state = models.CharField(max_length=100, default='')
-    zip_code = models.CharField(max_length=20, default='')
+    address = models.TextField(default='', blank=True)
+    city = models.CharField(max_length=100, default='', blank=True)
+    state = models.CharField(max_length=100, default='', blank=True)
+    zip_code = models.CharField(max_length=20, default='', blank=True)
     country = models.CharField(max_length=100, default="USA")
     phone = models.CharField(max_length=20, blank=True, default='')
     email = models.EmailField(blank=True, default='')

@@ -127,7 +127,7 @@ class Tenant(models.Model):
             self.settings = {
                 "theme": {
                     "primary_color": "#4F46E5",  # Default Indigo
-                    "logo_url": self.logo.url if hasattr(self.logo, 'url') else "",
+                    "logo_url": "",  # Empty string - get_theme_settings() handles URL dynamically
                     "layout": "sidebar-light"
                 },
                 "features": {
