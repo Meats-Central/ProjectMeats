@@ -172,7 +172,85 @@ export class TenantService {
   }
 
   /**
-   * Update tenant theme colors
+   * Update tenant theme colors via settings PATCH
+   * This is the direct API method that sends colors as settings.theme
+   * 
+   * @param id - Tenant ID
+   * @param colors - Theme colors object
+   * @throws {Error} With detailed message if update fails
+   */
+  async updateTenantSettings(
+    id: string,
+    settings: {
+      theme?: {
+        primary_color?: string;
+        primary_color_light?: string;
+        primary_color_dark?: string;
+      };
+      [key: string]: any;
+    }
+  ): Promise<Tenant> {
+    try {
+      // CRITICAL: Explicitly set Content-Type to application/json
+      // This prevents HTML response issues when updating settings
+      const response = await apiClient.patch(
+        `/tenants/${id}/`,
+        { settings },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error handling
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        // Check if response is HTML instead of JSON (common issue)
+        const contentType = error.response.headers['content-type'];
+        if (contentType && contentType.includes('text/html')) {
+          console.error('Received HTML response instead of JSON:', {
+            status,
+            url: error.config?.url,
+            method: error.config?.method,
+          });
+          throw new Error('Server returned HTML instead of JSON. Check server configuration and CORS settings.');
+        }
+        
+        if (status === 400) {
+          // Validation error - extract specific message
+          if (data.settings) {
+            const settingsErrors = typeof data.settings === 'object' 
+              ? JSON.stringify(data.settings) 
+              : data.settings;
+            throw new Error(`Settings validation failed: ${settingsErrors}`);
+          } else if (data.detail) {
+            throw new Error(`Settings update failed: ${data.detail}`);
+          } else {
+            throw new Error(`Settings update failed: ${JSON.stringify(data)}`);
+          }
+        } else if (status === 403) {
+          throw new Error('Permission denied: Only tenant owners and admins can update settings.');
+        } else if (status === 500) {
+          throw new Error('Server error while updating settings. Please check server logs or try again later.');
+        } else {
+          throw new Error(`Settings update failed with status ${status}: ${data.detail || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        throw new Error('Network error: Unable to reach server. Please check your connection.');
+      } else {
+        throw new Error(`Settings update error: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Update tenant theme colors via settings PATCH
+   * @deprecated Use updateTenantSettings for direct settings update
    * @param id - Tenant ID
    * @param lightColor - Primary color for light theme (hex format)
    * @param darkColor - Primary color for dark theme (hex format)
