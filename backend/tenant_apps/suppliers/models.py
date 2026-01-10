@@ -81,6 +81,7 @@ class Supplier(TimestampModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='supplier_assignments',
         help_text="Associated plant establishment",
     )
     proteins = models.ManyToManyField(

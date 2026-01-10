@@ -29,6 +29,16 @@ class Plant(models.Model):
         help_text="Tenant this plant belongs to"
     )
 
+    # Parent entity relationship (Phase 4: Contextual Supplier Selection)
+    supplier = models.ForeignKey(
+        'suppliers.Supplier',
+        on_delete=models.CASCADE,
+        related_name='supplier_plants',
+        null=True,
+        blank=True,
+        help_text="Supplier that owns/operates this plant"
+    )
+
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, unique=True)
     plant_est_num = models.CharField(
