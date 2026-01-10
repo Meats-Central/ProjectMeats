@@ -337,6 +337,76 @@ class PurchaseOrder(TimestampModel):
 
     def __str__(self):
         return f"PO-{self.order_number}"
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to auto-generate order_number if not provided.
+        
+        Only auto-generates if order_number is empty/None.
+        If user provides a value, it respects it.
+        Uniqueness is enforced by the database constraint.
+        """
+        if not self.order_number and self.tenant:
+            # Auto-generate order_number only if empty
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Get all existing purchase orders for this tenant with a lock
+                existing_pos = PurchaseOrder.objects.filter(
+                    tenant=self.tenant
+                ).select_for_update()
+                
+                # Find the highest numeric order number
+                max_order_num = 0
+                for po in existing_pos:
+                    try:
+                        # Try to extract numeric value from order_number
+                        num = int(po.order_number)
+                        if num > max_order_num:
+                            max_order_num = num
+                    except (ValueError, TypeError):
+                        # Skip non-numeric order numbers
+                        continue
+                
+                # Increment and assign
+                self.order_number = str(max_order_num + 1)
+        
+        super().save(*args, **kwargs)
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to auto-generate order_number if not provided.
+        
+        Only auto-generates if order_number is empty/None.
+        If user provides a value, it respects it.
+        Uniqueness is enforced by the database constraint.
+        """
+        if not self.order_number and self.tenant:
+            # Auto-generate order_number only if empty
+            from django.db import transaction
+            
+            with transaction.atomic():
+                # Get all existing purchase orders for this tenant with a lock
+                existing_pos = PurchaseOrder.objects.filter(
+                    tenant=self.tenant
+                ).select_for_update()
+                
+                # Find the highest numeric order number
+                max_order_num = 0
+                for po in existing_pos:
+                    try:
+                        # Try to extract numeric value from order_number
+                        num = int(po.order_number)
+                        if num > max_order_num:
+                            max_order_num = num
+                    except (ValueError, TypeError):
+                        # Skip non-numeric order numbers
+                        continue
+                
+                # Increment and assign
+                self.order_number = str(max_order_num + 1)
+        
+        super().save(*args, **kwargs)
 
 
 class CarrierPurchaseOrder(TimestampModel):

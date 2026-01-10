@@ -705,7 +705,7 @@ const PurchaseOrders: React.FC = () => {
                   name="order_number"
                   value={formData.order_number}
                   onChange={handleInputChange}
-                  placeholder={`Leave blank for auto-generation (next: ${getNextOrderNumber()})`}
+                  placeholder="Leave blank for auto-generation"
                 />
               </FormGroup>
               <FormGroup>
