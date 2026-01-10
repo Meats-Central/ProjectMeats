@@ -475,6 +475,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
                 value={scheduledFor}
                 onChange={(e) => setScheduledFor(e.target.value)}
                 disabled={submitting}
+                step="900"
               />
             </FormGroup>
 

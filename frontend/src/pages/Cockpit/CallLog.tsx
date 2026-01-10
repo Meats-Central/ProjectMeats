@@ -321,6 +321,7 @@ const ClearButton = styled.button`
 
 const CalendarContainer = styled.div`
   flex: 1;
+  min-height: 600px;
   overflow-y: auto;
 `;
 
@@ -505,7 +506,7 @@ export const CallLog: React.FC = () => {
   const [editingCall, setEditingCall] = useState<ScheduledCall | null>(null);
 
   // Phase 3-6: Calendar view state
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
+  const [viewMode, setViewMode] = useState<ViewMode>('agenda');
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
 
   // Phase 5: Drag & Drop state

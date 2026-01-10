@@ -3,11 +3,15 @@ Cockpit views for aggregated search across tenant models.
 
 Provides polymorphic search API respecting tenant schema isolation.
 """
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.db.models import Q
+from django.db import IntegrityError
+from django.utils import timezone
+import logging
 
 from .serializers import (
     CustomerSlotSerializer,
@@ -18,6 +22,8 @@ from .serializers import (
 )
 from .models import ActivityLog, ScheduledCall
 from tenant_apps.customers.models import Customer
+
+logger = logging.getLogger(__name__)
 from tenant_apps.suppliers.models import Supplier
 from tenant_apps.purchase_orders.models import PurchaseOrder
 
@@ -126,18 +132,51 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        """Auto-assign tenant and created_by on create, and log activity."""
-        scheduled_call = serializer.save(
-            tenant=self.request.tenant,
-            created_by=self.request.user
-        )
-        
-        # Auto-create activity log entry for the related entity
-        self._create_activity_log(
-            scheduled_call=scheduled_call,
-            action='scheduled',
-            user=self.request.user
-        )
+        """
+        Auto-assign tenant and created_by on create, and log activity.
+        Enhanced error handling to prevent 500 errors.
+        """
+        try:
+            # Validate tenant context exists
+            if not hasattr(self.request, 'tenant') or not self.request.tenant:
+                logger.error(
+                    'Attempted to create scheduled call without tenant context',
+                    extra={
+                        'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous',
+                        'has_tenant_attr': hasattr(self.request, 'tenant'),
+                    }
+                )
+                raise ValidationError({
+                    'error': 'Tenant context required',
+                    'detail': 'Please refresh and try again.'
+                })
+            
+            scheduled_call = serializer.save(
+                tenant=self.request.tenant,
+                created_by=self.request.user
+            )
+            
+            # Auto-create activity log entry for the related entity
+            self._create_activity_log(
+                scheduled_call=scheduled_call,
+                action='scheduled',
+                user=self.request.user
+            )
+            
+        except IntegrityError as e:
+            logger.error(f'Integrity error creating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Database error',
+                'detail': 'Invalid data or duplicate entry.'
+            })
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f'Error creating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Failed to schedule call',
+                'detail': str(e)
+            })
     
     def perform_update(self, serializer):
         """Log activity when call is updated or completed."""
