@@ -115,6 +115,14 @@ const FormGroup = styled.div`
   margin-bottom: 1.25rem;
 `;
 
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+  font-size: 0.875rem;
+`;
+
 const Required = styled.span`
   color: rgba(239, 68, 68, 1);
   margin-left: 0.25rem;
