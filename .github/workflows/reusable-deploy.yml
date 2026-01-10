@@ -492,23 +492,53 @@ jobs:
           echo "Local Port: 5433"
           echo ""
           
-          # Kill any existing tunnel on port 5433 (find specific PIDs)
-          EXISTING_PIDS=$(lsof -ti:5433 2>/dev/null || true)
-          if [ -n "$EXISTING_PIDS" ]; then
-            echo "Cleaning up existing processes on port 5433: $EXISTING_PIDS"
-            for pid in $EXISTING_PIDS; do
-              kill "$pid" 2>/dev/null || true
-            done
-            sleep 2
-          fi
+          # Function to forcefully cleanup port 5433
+          cleanup_port() {
+            EXISTING_PIDS=$(lsof -ti:5433 2>/dev/null || true)
+            if [ -n "$EXISTING_PIDS" ]; then
+              echo "Force-killing processes on port 5433: $EXISTING_PIDS"
+              for pid in $EXISTING_PIDS; do
+                kill -9 "$pid" 2>/dev/null || true
+              done
+              sleep 2
+            fi
+          }
           
-          # Create SSH tunnel in background with keepalive options
-          # Forward local port 5433 -> remote DB host:port
-          echo "Attempting SSH connection..."
-          if ! sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -f -N \
-            -L 5433:$DB_HOST:$DB_PORT \
-            $BASTION_USER@$BASTION_HOST; then
-            echo "✗ SSH tunnel command failed"
+          # Initial cleanup
+          cleanup_port
+          
+          # Retry loop for SSH tunnel creation (3 attempts)
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          TUNNEL_SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Tunnel creation attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+            
+            # Create SSH tunnel in background with keepalive options
+            # Forward local port 5433 -> remote DB host:port
+            if sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -f -N \
+              -L 5433:$DB_HOST:$DB_PORT \
+              $BASTION_USER@$BASTION_HOST; then
+              echo "✓ Tunnel started successfully"
+              TUNNEL_SUCCESS=true
+              break
+            else
+              echo "✗ Tunnel creation failed (attempt $((RETRY_COUNT + 1)))"
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Retrying in 5 seconds..."
+                sleep 5
+                # Cleanup port before retry
+                cleanup_port
+              fi
+            fi
+          done
+          
+          # Check if tunnel creation succeeded
+          if [ "$TUNNEL_SUCCESS" = false ]; then
+            echo "✗ SSH tunnel creation failed after $MAX_RETRIES attempts"
             echo "Checking SSH connectivity..."
             sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
               $BASTION_USER@$BASTION_HOST "echo '✓ SSH connection successful'" || {
@@ -715,13 +745,13 @@ jobs:
         if: always()
         run: |
           echo "Cleaning up SSH tunnel..."
-          # Find and kill processes using port 5433
+          # Find and force-kill processes using port 5433
           TUNNEL_PIDS=$(lsof -ti:5433 2>/dev/null || true)
           if [ -n "$TUNNEL_PIDS" ]; then
             for pid in $TUNNEL_PIDS; do
-              kill "$pid" 2>/dev/null || true
+              kill -9 "$pid" 2>/dev/null || true
             done
-            echo "✓ Cleaned up tunnel processes: $TUNNEL_PIDS"
+            echo "✓ Force-killed tunnel processes: $TUNNEL_PIDS"
           else
             echo "✓ No tunnel processes found"
           fi
