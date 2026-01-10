@@ -9,6 +9,8 @@ from tenant_apps.contacts.models import Contact
 
 class ContactSerializer(serializers.ModelSerializer):
     """Serializer for Contact model."""
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    customer_name = serializers.CharField(source='customer.name', read_only=True)
 
     class Meta:
         model = Contact
@@ -21,12 +23,16 @@ class ContactSerializer(serializers.ModelSerializer):
             "company",
             "position",
             "status",
+            "supplier",
+            "supplier_name",
+            "customer",
+            "customer_name",
             "created_on",
             "modified_on",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_on", "modified_on", "created_at", "updated_at"]
+        read_only_fields = ["id", "supplier_name", "customer_name", "created_on", "modified_on", "created_at", "updated_at"]
 
     def validate_first_name(self, value):
         """Validate first name is provided and is a valid string."""

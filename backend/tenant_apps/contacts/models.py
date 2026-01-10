@@ -23,6 +23,24 @@ class Contact(TimestampModel):
         help_text="Tenant this contact belongs to"
     )
     
+    # Parent entity relationships (optional - contact can belong to supplier or customer)
+    supplier = models.ForeignKey(
+        'suppliers.Supplier',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="contact_persons",
+        help_text="Supplier this contact belongs to"
+    )
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="contact_persons",
+        help_text="Customer this contact belongs to"
+    )
+    
     # Status field for tracking active/inactive contacts
     status = models.CharField(
         max_length=20,

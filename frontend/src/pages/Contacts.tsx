@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useLocation } from 'react-router-dom';
 import { apiService, Contact } from '../services/apiService';
+import { apiClient } from '../services/apiService';
 
 // Styled Components
 const Container = styled.div`
@@ -257,6 +259,27 @@ const Input = styled.input`
   }
 `;
 
+const FormSelect = styled.select`
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  background: rgb(var(--color-surface));
+  color: rgb(var(--color-text-primary));
+
+  &:focus {
+    outline: none;
+    border-color: rgb(var(--color-primary));
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
 const FormActions = styled.div`
   display: flex;
   gap: 12px;
@@ -295,10 +318,18 @@ const SubmitButton = styled.button`
 `;
 
 const Contacts: React.FC = () => {
+  const location = useLocation();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  
+  // Contextual entity type detection
+  const [entityType, setEntityType] = useState<'supplier' | 'customer' | ''>('');
+  const [entityId, setEntityId] = useState<string>('');
+  const [entityOptions, setEntityOptions] = useState<Array<{id: number, name: string}>>([]);
+  const [loadingEntities, setLoadingEntities] = useState(false);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -306,7 +337,46 @@ const Contacts: React.FC = () => {
     phone: '',
     company: '',
     position: '',
+    supplier: '',
+    customer: '',
   });
+
+  // Detect context from URL path
+  useEffect(() => {
+    if (location.pathname.includes('/suppliers/contacts')) {
+      setEntityType('supplier');
+    } else if (location.pathname.includes('/customers/contacts')) {
+      setEntityType('customer');
+    }
+  }, [location.pathname]);
+
+  // Fetch entity options when entityType changes
+  useEffect(() => {
+    if (entityType && showForm) {
+      fetchEntityOptions();
+    }
+  }, [entityType, showForm]);
+
+  const fetchEntityOptions = async () => {
+    setLoadingEntities(true);
+    try {
+      const endpoint = entityType === 'supplier' ? 'suppliers/' : 'customers/';
+      const response = await apiClient.get(endpoint);
+      const data = response.data.results || response.data;
+      
+      const options = data.map((item: any) => ({
+        id: item.id,
+        name: item.name || item.company_name || `${entityType} #${item.id}`,
+      }));
+      
+      setEntityOptions(options);
+    } catch (err) {
+      console.error(`Failed to fetch ${entityType} options:`, err);
+      setEntityOptions([]);
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
 
   useEffect(() => {
     loadContacts();
@@ -336,6 +406,7 @@ const Contacts: React.FC = () => {
       await loadContacts();
       setShowForm(false);
       setEditingContact(null);
+      setEntityId('');
       setFormData({
         first_name: '',
         last_name: '',
@@ -343,6 +414,8 @@ const Contacts: React.FC = () => {
         phone: '',
         company: '',
         position: '',
+        supplier: '',
+        customer: '',
       });
     } catch (error: unknown) {
       // Log detailed error information
@@ -369,7 +442,15 @@ const Contacts: React.FC = () => {
       phone: contact.phone || '',
       company: contact.company || '',
       position: contact.position || '',
+      supplier: String((contact as any).supplier || ''),
+      customer: String((contact as any).customer || ''),
     });
+    // Pre-select entity if exists
+    if ((contact as any).supplier) {
+      setEntityId(String((contact as any).supplier));
+    } else if ((contact as any).customer) {
+      setEntityId(String((contact as any).customer));
+    }
     setShowForm(true);
   };
 
@@ -536,6 +617,46 @@ const Contacts: React.FC = () => {
                   onChange={handleInputChange}
                 />
               </FormGroup>
+              
+              {/* Contextual Entity Selection */}
+              {entityType && (
+                <FormGroup>
+                  <Label>
+                    {entityType === 'supplier' ? 'Supplier' : 'Customer'} {!editingContact && '*'}
+                  </Label>
+                  <FormSelect
+                    value={entityId}
+                    onChange={(e) => {
+                      setEntityId(e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        supplier: entityType === 'supplier' ? e.target.value : '',
+                        customer: entityType === 'customer' ? e.target.value : '',
+                      }));
+                    }}
+                    disabled={loadingEntities}
+                    required={!editingContact}
+                  >
+                    <option value="">
+                      {loadingEntities 
+                        ? 'Loading...' 
+                        : `Select ${entityType === 'supplier' ? 'Supplier' : 'Customer'}`
+                      }
+                    </option>
+                    {entityOptions.map(option => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </FormSelect>
+                  {entityOptions.length === 0 && !loadingEntities && (
+                    <div style={{ fontSize: '0.75rem', color: 'rgb(239, 68, 68)', marginTop: '0.25rem' }}>
+                      No {entityType}s found. Please create one first.
+                    </div>
+                  )}
+                </FormGroup>
+              )}
+              
               <FormActions>
                 <CancelButton type="button" onClick={() => setShowForm(false)}>
                   Cancel
