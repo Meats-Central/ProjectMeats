@@ -40,12 +40,13 @@ export interface SearchableSelectOption {
 interface SearchableSelectProps {
   label?: string;
   value: string | number;
-  options: SearchableSelectOption[];
+  options?: SearchableSelectOption[]; // Make optional to handle undefined
   onChange: (value: string | number, option?: SearchableSelectOption) => void;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
   error?: string;
+  loading?: boolean; // Add loading state
 }
 
 // ============================================================================
@@ -176,6 +177,30 @@ const EmptyState = styled.div`
   font-size: 0.875rem;
 `;
 
+const LoadingState = styled.div`
+  padding: 1rem 0.75rem;
+  text-align: center;
+  color: rgb(var(--color-text-secondary));
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+`;
+
+const Spinner = styled.div`
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgb(var(--color-border));
+  border-top-color: rgb(var(--color-primary));
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
 const ErrorText = styled.div`
   font-size: 0.75rem;
   color: rgba(239, 68, 68, 1);
@@ -189,12 +214,13 @@ const ErrorText = styled.div`
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   label,
   value,
-  options,
+  options = [], // Default to empty array if undefined
   onChange,
   placeholder = 'Select an option',
   required = false,
   disabled = false,
   error,
+  loading = false, // Default to false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,12 +228,18 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Safely handle options with null checks
+  const safeOptions = options || [];
+
   // Get the display name for the selected value
-  const selectedOption = options.find(opt => String(opt.id) === String(value));
+  const selectedOption = safeOptions.find(opt => opt && String(opt.id) === String(value));
   const displayValue = selectedOption ? selectedOption.name : '';
 
-  // Filter options based on search query
-  const filteredOptions = options.filter(option =>
+  // Filter options based on search query with null checks
+  const filteredOptions = safeOptions.filter(option => 
+    option && 
+    option.name && 
+    typeof option.name === 'string' &&
     option.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -313,9 +345,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       </InputWrapper>
 
       <DropdownList isOpen={isOpen && !disabled}>
-        {filteredOptions.length === 0 ? (
+        {loading ? (
+          <LoadingState>
+            <Spinner />
+            Loading options...
+          </LoadingState>
+        ) : filteredOptions.length === 0 ? (
           <EmptyState>
-            {searchQuery ? 'No matching results' : 'No options available'}
+            {searchQuery ? 'No matching results' : safeOptions.length === 0 ? 'No options available' : 'No matching results'}
           </EmptyState>
         ) : (
           filteredOptions.map((option, index) => (
