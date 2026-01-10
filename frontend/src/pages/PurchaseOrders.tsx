@@ -133,7 +133,7 @@ const TableHeaderCell = styled.th`
 
 const TableCell = styled.td`
   padding: 16px 20px;
-  color: #495057;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
 `;
 
@@ -147,7 +147,7 @@ const StatusBadge = styled.span<{ $color: string }>`
 `;
 
 const ActionButton = styled.button`
-  background: #28a745;
+  background: rgb(34, 197, 94);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -158,12 +158,12 @@ const ActionButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #218838;
+    background: rgb(34, 197, 94);
   }
 `;
 
 const DeleteButton = styled.button`
-  background: #dc3545;
+  background: rgb(239, 68, 68);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -173,7 +173,7 @@ const DeleteButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #c82333;
+    background: rgb(239, 68, 68);
   }
 `;
 
@@ -207,7 +207,7 @@ const FormHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgb(var(--color-border));
 `;
 
 const FormTitle = styled.h2`
@@ -254,7 +254,7 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -279,7 +279,7 @@ const Input = styled.input`
 const Select = styled.select`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -293,7 +293,7 @@ const Select = styled.select`
 const TextArea = styled.textarea`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   resize: vertical;
@@ -330,7 +330,7 @@ const CancelButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #5a6268;
+    background: rgb(var(--color-text-secondary));
   }
 `;
 
@@ -513,13 +513,13 @@ const PurchaseOrders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return '#ffc107';
+        return 'rgb(234, 179, 8)';
       case 'approved':
-        return '#28a745';
+        return 'rgb(34, 197, 94)';
       case 'delivered':
         return 'rgb(var(--color-primary))';
       case 'cancelled':
-        return '#dc3545';
+        return 'rgb(239, 68, 68)';
       default:
         return 'rgb(var(--color-text-secondary))';
     }

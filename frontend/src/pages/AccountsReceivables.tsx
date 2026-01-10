@@ -129,7 +129,7 @@ const TableHeaderCell = styled.th`
 
 const TableCell = styled.td`
   padding: 16px 20px;
-  color: #495057;
+  color: rgb(var(--color-text-secondary));
   font-size: 14px;
 `;
 
@@ -143,7 +143,7 @@ const StatusBadge = styled.span<{ $color: string }>`
 `;
 
 const ActionButton = styled.button`
-  background: #28a745;
+  background: rgb(34, 197, 94);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -154,12 +154,12 @@ const ActionButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #218838;
+    background: rgb(34, 197, 94);
   }
 `;
 
 const DeleteButton = styled.button`
-  background: #dc3545;
+  background: rgb(239, 68, 68);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -169,7 +169,7 @@ const DeleteButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #c82333;
+    background: rgb(239, 68, 68);
   }
 `;
 
@@ -249,7 +249,7 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -263,7 +263,7 @@ const Input = styled.input`
 const Select = styled.select`
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -292,7 +292,7 @@ const CancelButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #5a6268;
+    background: rgb(var(--color-text-secondary));
   }
 `;
 
@@ -425,13 +425,13 @@ const AccountsReceivables: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return '#ffc107';
+        return 'rgb(234, 179, 8)';
       case 'paid':
-        return '#28a745';
+        return 'rgb(34, 197, 94)';
       case 'overdue':
-        return '#dc3545';
+        return 'rgb(239, 68, 68)';
       case 'disputed':
-        return '#6f42c1';
+        return 'rgb(111, 66, 193)';
       default:
         return 'rgb(var(--color-text-secondary))';
     }

@@ -60,8 +60,8 @@ const Settings: React.FC = () => {
   } | null>(null);
   
   // Theme color picker state
-  const [primaryColor, setPrimaryColor] = useState<string>('#DC2626');
-  const [secondaryColor, setSecondaryColor] = useState<string>('#F59E0B');
+  const [primaryColor, setPrimaryColor] = useState<string>('rgb(220, 38, 38)');
+  const [secondaryColor, setSecondaryColor] = useState<string>('rgb(245, 158, 11)');
   const [showPrimaryPicker, setShowPrimaryPicker] = useState(false);
   const [showSecondaryPicker, setShowSecondaryPicker] = useState(false);
   const [extractingColors, setExtractingColors] = useState(false);
@@ -741,9 +741,9 @@ const Message = styled.div<{ $type: 'success' | 'error' }>`
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  background: ${(props) => (props.$type === 'success' ? '#f0fdf4' : '#fef2f2')};
-  border: 1px solid ${(props) => (props.$type === 'success' ? '#bbf7d0' : '#fecaca')};
-  color: ${(props) => (props.$type === 'success' ? '#16a34a' : '#dc2626')};
+  background: ${(props) => (props.$type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)')};
+  border: 1px solid ${(props) => (props.$type === 'success' ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)')};
+  color: ${(props) => (props.$type === 'success' ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)')};
 `;
 
 const MessageIcon = styled.span`
@@ -800,7 +800,7 @@ const SettingItem = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: 1px solid rgb(var(--color-border));
 
   &:last-child {
     border-bottom: none;
@@ -830,7 +830,7 @@ const Toggle = styled.button<{ $active: boolean }>`
   border: none;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  background: ${(props) => (props.$active ? '#667eea' : '#e9ecef')};
+  background: ${(props) => (props.$active ? 'rgb(var(--color-primary))' : 'rgb(var(--color-border))')};
   position: relative;
 `;
 
@@ -848,7 +848,7 @@ const ToggleSlider = styled.div<{ $active: boolean }>`
 
 const Select = styled.select`
   padding: 8px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 6px;
   font-size: 14px;
   color: rgb(var(--color-text-primary));
@@ -859,7 +859,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: rgb(var(--color-primary));
   }
 `;
 
@@ -881,7 +881,7 @@ const ResetButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #5a6268;
+    background: rgb(var(--color-text-secondary));
   }
 
   &:disabled {
@@ -891,7 +891,7 @@ const ResetButton = styled.button`
 `;
 
 const SaveButton = styled.button`
-  background: #667eea;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 12px 24px;
@@ -902,7 +902,7 @@ const SaveButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #5a67d8;
+    background: rgb(var(--color-primary));
     transform: translateY(-1px);
   }
 
@@ -922,7 +922,7 @@ const LogoSection = styled.div`
 const LogoPreviewContainer = styled.div`
   width: 100px;
   height: 100px;
-  border: 2px solid #e9ecef;
+  border: 2px solid rgb(var(--color-border));
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -946,7 +946,7 @@ const LogoActions = styled.div`
 `;
 
 const UploadButton = styled.button`
-  background: #667eea;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   padding: 8px 16px;
@@ -957,7 +957,7 @@ const UploadButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #5a67d8;
+    background: rgb(var(--color-primary));
   }
 
   &:disabled {
@@ -967,7 +967,7 @@ const UploadButton = styled.button`
 `;
 
 const SaveLogoButton = styled.button`
-  background: #10b981;
+  background: rgb(34, 197, 94);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -978,7 +978,7 @@ const SaveLogoButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #059669;
+    background: rgb(34, 197, 94);
   }
 
   &:disabled {
@@ -988,7 +988,7 @@ const SaveLogoButton = styled.button`
 `;
 
 const RemoveLogoButton = styled.button`
-  background: #ef4444;
+  background: rgb(239, 68, 68);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -999,7 +999,7 @@ const RemoveLogoButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: #dc2626;
+    background: rgb(239, 68, 68);
   }
 
   &:disabled {
