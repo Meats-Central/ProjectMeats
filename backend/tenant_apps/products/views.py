@@ -5,7 +5,7 @@ Provides CRUD operations for product management with tenant isolation.
 Uses shared-schema multi-tenancy with tenant ForeignKey filtering.
 """
 import logging
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, filters
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product
@@ -16,19 +16,20 @@ logger = logging.getLogger(__name__)
 
 class ProductViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing products.
+    ViewSet for managing products with tenant filtering.
     
     Provides CRUD operations with automatic tenant filtering.
     Uses shared-schema multi-tenancy approach (NOT django-tenants).
     
     Permissions:
     - Authenticated users can view products in their tenant
-    - Only staff can create/update/delete products
+    - Only authenticated users can create/update/delete products
     
     Filters:
-    - Search: product_code, description_of_product_item, supplier_item_number
-    - Filter: type_of_protein, fresh_or_frozen, is_active, supplier
-    - Ordering: product_code, created_on, modified_on
+    - Search: product_code, description_of_product_item, supplier_item_number, namp, usda
+    - Filter: type_of_protein, fresh_or_frozen, package_type, is_active, supplier, tested_product
+    - Ordering: product_code, description_of_product_item, created_on, modified_on, unit_weight
+    - Custom: customer (M2M filter via query param)
     """
     
     queryset = Product.objects.all()
@@ -47,11 +48,12 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     # Filterset fields
     filterset_fields = [
+        'supplier',
         'type_of_protein',
         'fresh_or_frozen',
         'package_type',
+        'edible_or_inedible',
         'is_active',
-        'supplier',
         'tested_product',
     ]
     
@@ -67,10 +69,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Filter products by tenant.
+        Filter products by tenant with support for M2M relationships.
         
         Uses request.tenant set by TenantMiddleware.
         Shared-schema multi-tenancy approach with tenant ForeignKey.
+        
+        Custom filtering:
+        - ?customer={id} - Filter by M2M customer relationship
         """
         queryset = super().get_queryset()
         
@@ -82,6 +87,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             # Fallback: no tenant context (should not happen in production)
             logger.warning("No tenant context in ProductViewSet - returning empty queryset")
             queryset = queryset.none()
+        
+        # Custom filtering for M2M relationships
+        customer_id = self.request.query_params.get('customer', None)
+        if customer_id:
+            queryset = queryset.filter(customers__id=customer_id)
+            logger.debug(f"Filtered products by customer: {customer_id}")
         
         return queryset
     
@@ -97,4 +108,3 @@ class ProductViewSet(viewsets.ModelViewSet):
         else:
             logger.error("Cannot create product without tenant context")
             raise ValueError("Tenant context is required to create products")
-

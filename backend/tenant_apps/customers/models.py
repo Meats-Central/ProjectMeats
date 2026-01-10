@@ -120,6 +120,12 @@ class Customer(TimestampModel):
         blank=True,
         help_text="Multiple contacts associated with this customer",
     )
+    products = models.ManyToManyField(
+        'products.Product',
+        related_name="customers",
+        blank=True,
+        help_text="Products associated with this customer",
+    )
     will_pickup_load = models.BooleanField(
         default=False, help_text="Will customer pickup load?"
     )
