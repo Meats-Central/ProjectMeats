@@ -699,17 +699,13 @@ const PurchaseOrders: React.FC = () => {
                 </FieldHint>
               </FormGroup>
               <FormGroup>
-                <Label>Order Number {!editingPurchaseOrder && '(Optional - Auto-generated)'}</Label>
+                <Label>Order Number (Optional - Auto-generated if left blank)</Label>
                 <Input
                   type="text"
                   name="order_number"
                   value={formData.order_number}
                   onChange={handleInputChange}
-                  placeholder={editingPurchaseOrder ? '' : `Suggested: ${getNextOrderNumber()}`}
-                  readOnly={!editingPurchaseOrder}
-                  style={{ 
-                    cursor: !editingPurchaseOrder ? 'not-allowed' : 'text'
-                  }}
+                  placeholder={`Leave blank for auto-generation (next: ${getNextOrderNumber()})`}
                 />
               </FormGroup>
               <FormGroup>
