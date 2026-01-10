@@ -147,9 +147,9 @@ class Tenant(models.Model):
         - primary_color_dark: Primary color for dark theme
         - name: Tenant display name
         
-        Priority: Settings JSON (user-defined) > Defaults
+        Priority: Settings JSON theme colors (user-defined) > Defaults
         """
-        theme = self.settings.get("theme", {})
+        theme = self.settings.get("theme", {}) if self.settings else {}
 
         # Safely get logo URL
         logo_url = None
@@ -160,11 +160,20 @@ class Tenant(models.Model):
                 # File doesn't exist or error accessing URL
                 pass
 
-        # Prioritize colors from settings JSON, fallback to defaults
+        # Prioritize colors from settings JSON theme, fallback to defaults
+        # Check for explicit theme color keys first, then legacy primary_color
+        primary_color_light = theme.get("primary_color_light")
+        if not primary_color_light:
+            primary_color_light = theme.get("primary_color", "#3498db")
+        
+        primary_color_dark = theme.get("primary_color_dark")
+        if not primary_color_dark:
+            primary_color_dark = theme.get("primary_color", "#5dade2")
+
         return {
             "logo_url": logo_url,
-            "primary_color_light": theme.get("primary_color_light") or theme.get("primary_color", "#3498db"),
-            "primary_color_dark": theme.get("primary_color_dark") or theme.get("primary_color", "#5dade2"),
+            "primary_color_light": primary_color_light,
+            "primary_color_dark": primary_color_dark,
             "name": self.name,
         }
 
@@ -183,6 +192,10 @@ class Tenant(models.Model):
 
         hex_pattern = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
+        # Initialize settings if needed
+        if not self.settings:
+            self.settings = {}
+        
         if "theme" not in self.settings:
             self.settings["theme"] = {}
 
@@ -200,6 +213,8 @@ class Tenant(models.Model):
                 )
             self.settings["theme"]["primary_color_dark"] = dark_color
 
+        # Mark the field as modified for JSON field updates
+        self.settings = dict(self.settings)
         self.save()
 
 

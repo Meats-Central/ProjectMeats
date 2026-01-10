@@ -107,6 +107,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           tenantName: response.data.name,
         };
         
+        // Fix logo URL if it's relative (starts with /)
+        if (branding.logoUrl && branding.logoUrl.startsWith('/')) {
+          const baseUrl = apiBaseUrl.replace('/api/v1', '');
+          branding.logoUrl = `${baseUrl}${branding.logoUrl}`;
+        }
+        
         setTenantBranding(branding);
       } catch (error) {
         console.error('Failed to load tenant branding:', error);
