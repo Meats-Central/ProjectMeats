@@ -51,7 +51,7 @@ export const navigation: NavigationItem[] = [
       {
         label: 'Plants',
         icon: '🏢',
-        path: '/plants',
+        path: '/suppliers/plants',
       },
       {
         label: 'Contacts',
@@ -65,6 +65,11 @@ export const navigation: NavigationItem[] = [
     icon: '👥',
     path: '/customers',
     children: [
+      {
+        label: 'Locations',
+        icon: '📍',
+        path: '/customers/locations',
+      },
       {
         label: 'Contacts',
         icon: '📞',
