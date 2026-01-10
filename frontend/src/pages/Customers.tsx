@@ -335,6 +335,11 @@ const Customers: React.FC = () => {
                     label="Products"
                     placeholder="Select products to associate (hold Ctrl/Cmd for multiple)"
                   />
+                  {formData.preferred_protein_types.length > 0 && (
+                    <HelperText $theme={theme}>
+                      Showing {products.length} product(s) filtered by selected protein types
+                    </HelperText>
+                  )}
                 </FormGroup>
               </FormGrid>
 
@@ -649,6 +654,13 @@ const DeleteButton = styled.button`
   &:hover {
     background: rgb(var(--color-primary));
   }
+`;
+
+const HelperText = styled.div<{ $theme: Theme }>`
+  margin-top: 8px;
+  font-size: 12px;
+  color: ${(props) => props.$theme.colors.textSecondary};
+  font-style: italic;
 `;
 
 export default Customers;
