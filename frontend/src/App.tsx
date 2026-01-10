@@ -22,7 +22,6 @@ import Contacts from './pages/Contacts';
 import Plants from './pages/Plants';
 import Carriers from './pages/Carriers';
 import AIAssistant from './pages/AIAssistant';
-import Cockpit from './pages/Cockpit';
 import CallLog from './pages/Cockpit/CallLog';
 import Claims from './pages/Accounting/Claims';
 import PayablePOs from './pages/Accounting/PayablePOs';
@@ -135,8 +134,7 @@ const App: React.FC = () => {
                 <Route path="carriers" element={<Carriers />} />
                 <Route path="contacts" element={<Contacts />} />
                 <Route path="ai-assistant" element={<AIAssistant />} />
-                <Route path="cockpit" element={<Cockpit />} />
-                <Route path="cockpit/call-log" element={<CallLog />} />
+                <Route path="call-log" element={<CallLog />} />
                 <Route path="processes" element={<Processes />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
