@@ -54,7 +54,13 @@ interface ScheduleCallModalProps {
   initialData?: ScheduledCallData | null;  // For editing
 }
 
-type EntityType = 'supplier' | 'customer' | 'plant' | 'purchase_order' | 'sales_order' | 'carrier' | 'product' | 'invoice' | 'contact';
+// Restrict to only Supplier and Customer per requirements
+type EntityType = 'supplier' | 'customer';
+
+interface EntityOption {
+  id: number;
+  name: string;
+}
 
 // ============================================================================
 // Styled Components (Theme-Compliant)
@@ -252,7 +258,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [entityType, setEntityType] = useState<EntityType>('customer');
+  const [entityType, setEntityType] = useState<EntityType>('supplier');
   const [entityId, setEntityId] = useState('');
   const [scheduledFor, setScheduledFor] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('30');
@@ -261,12 +267,16 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Dynamic entity options
+  const [entityOptions, setEntityOptions] = useState<EntityOption[]>([]);
+  const [loadingEntities, setLoadingEntities] = useState(false);
+
   // Load initial data for editing
   useEffect(() => {
     if (initialData && isOpen) {
       setTitle(initialData.title || '');
       setDescription(initialData.description || '');
-      setEntityType(initialData.entity_type as EntityType || 'customer');
+      setEntityType(initialData.entity_type as EntityType || 'supplier');
       setEntityId(String(initialData.entity_id || ''));
       setScheduledFor(initialData.scheduled_for || '');
       setDurationMinutes(String(initialData.duration_minutes || 30));
@@ -277,16 +287,46 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
     }
   }, [initialData, isOpen]);
 
+  // Fetch entity options when entity type changes
+  useEffect(() => {
+    if (isOpen && entityType) {
+      fetchEntityOptions(entityType);
+    }
+  }, [entityType, isOpen]);
+
+  const fetchEntityOptions = async (type: EntityType) => {
+    setLoadingEntities(true);
+    try {
+      const endpoint = type === 'supplier' ? 'suppliers/' : 'customers/';
+      const response = await apiClient.get(endpoint);
+      const data = response.data.results || response.data;
+      
+      // Map to consistent format
+      const options = data.map((item: any) => ({
+        id: item.id,
+        name: item.name || item.company_name || item.title || `${type} #${item.id}`,
+      }));
+      
+      setEntityOptions(options);
+    } catch (err) {
+      console.error(`Failed to fetch ${type} options:`, err);
+      setEntityOptions([]);
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
+
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setEntityType('customer');
+    setEntityType('supplier');
     setEntityId('');
     setScheduledFor('');
     setDurationMinutes('30');
     setCallPurpose('follow_up');
     setOutcome('');
     setError(null);
+    setEntityOptions([]);
   };
 
   const handleClose = () => {
@@ -388,33 +428,44 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               <Label>Entity Type *</Label>
               <Select
                 value={entityType}
-                onChange={(e) => setEntityType(e.target.value as EntityType)}
+                onChange={(e) => {
+                  setEntityType(e.target.value as EntityType);
+                  setEntityId(''); // Reset entity selection when type changes
+                }}
                 disabled={submitting}
               >
-                <option value="customer">Customer</option>
                 <option value="supplier">Supplier</option>
-                <option value="contact">Contact</option>
-                <option value="sales_order">Sales Order</option>
-                <option value="purchase_order">Purchase Order</option>
-                <option value="invoice">Invoice</option>
-                <option value="plant">Plant</option>
-                <option value="carrier">Carrier</option>
-                <option value="product">Product</option>
+                <option value="customer">Customer</option>
               </Select>
-              <HelpText>Who or what is this call about?</HelpText>
+              <HelpText>Select Supplier or Customer</HelpText>
             </FormGroup>
 
             <FormGroup>
-              <Label>Entity ID *</Label>
-              <Input
-                type="number"
+              <Label>
+                {entityType === 'supplier' ? 'Supplier' : 'Customer'} *
+              </Label>
+              <Select
                 value={entityId}
                 onChange={(e) => setEntityId(e.target.value)}
-                placeholder="e.g., 123"
-                min="1"
-                disabled={submitting}
-              />
-              <HelpText>The database ID of the selected entity</HelpText>
+                disabled={submitting || loadingEntities}
+              >
+                <option value="">
+                  {loadingEntities 
+                    ? 'Loading...' 
+                    : `Select ${entityType === 'supplier' ? 'Supplier' : 'Customer'}`
+                  }
+                </option>
+                {entityOptions.map(option => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </Select>
+              {entityOptions.length === 0 && !loadingEntities && (
+                <HelpText style={{ color: 'rgb(239, 68, 68)' }}>
+                  No {entityType}s found. Please create one first.
+                </HelpText>
+              )}
             </FormGroup>
 
             <FormGroup>

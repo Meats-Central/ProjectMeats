@@ -106,6 +106,7 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
     ViewSet for Scheduled Calls with strict tenant isolation.
     
     Supports filtering by date range and completion status.
+    Automatically creates activity log entries for related entities.
     """
     serializer_class = ScheduledCallSerializer
     permission_classes = [IsAuthenticated]
@@ -125,8 +126,66 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        """Auto-assign tenant and created_by on create."""
-        serializer.save(
+        """Auto-assign tenant and created_by on create, and log activity."""
+        scheduled_call = serializer.save(
             tenant=self.request.tenant,
             created_by=self.request.user
+        )
+        
+        # Auto-create activity log entry for the related entity
+        self._create_activity_log(
+            scheduled_call=scheduled_call,
+            action='scheduled',
+            user=self.request.user
+        )
+    
+    def perform_update(self, serializer):
+        """Log activity when call is updated or completed."""
+        old_instance = self.get_object()
+        was_completed = old_instance.is_completed
+        
+        scheduled_call = serializer.save()
+        
+        # If call was just marked as completed, log it
+        if scheduled_call.is_completed and not was_completed:
+            self._create_activity_log(
+                scheduled_call=scheduled_call,
+                action='completed',
+                user=self.request.user
+            )
+    
+    def _create_activity_log(self, scheduled_call, action, user):
+        """
+        Helper method to create activity log entries for scheduled calls.
+        
+        This ensures the activity appears in the entity's activity feed automatically.
+        """
+        # Determine the content based on action
+        if action == 'scheduled':
+            title = f"Call Scheduled: {scheduled_call.title}"
+            content = (
+                f"Scheduled call for {scheduled_call.scheduled_for.strftime('%Y-%m-%d %H:%M')}.\n"
+                f"Duration: {scheduled_call.duration_minutes} minutes\n"
+                f"Purpose: {scheduled_call.call_purpose}"
+            )
+            if scheduled_call.description:
+                content += f"\n\nNotes: {scheduled_call.description}"
+        elif action == 'completed':
+            title = f"Call Completed: {scheduled_call.title}"
+            content = f"Call was completed."
+            if scheduled_call.outcome:
+                content += f"\n\nOutcome: {scheduled_call.outcome}"
+        else:
+            title = f"Call Updated: {scheduled_call.title}"
+            content = "Call details were updated."
+        
+        # Create activity log tied to the entity
+        ActivityLog.objects.create(
+            tenant=scheduled_call.tenant,
+            entity_type=scheduled_call.entity_type,
+            entity_id=scheduled_call.entity_id,
+            title=title,
+            content=content,
+            created_by=user,
+            tags='call,scheduled-call,auto-generated'
         )
