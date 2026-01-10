@@ -44,6 +44,7 @@ class SupplierSerializer(serializers.ModelSerializer):
             "origin",
             "country_origin",
             "contacts",
+            "products",
             "shipping_offered",
             "how_to_book_pickup",
             "offer_contracts",

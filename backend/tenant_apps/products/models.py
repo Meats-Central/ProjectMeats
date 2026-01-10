@@ -91,8 +91,8 @@ class Product(TimestampModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="products",
-        help_text="Supplier for this product",
+        related_name="supplied_products",
+        help_text="Primary supplier for this product",
     )
     supplier_item_number = models.CharField(
         max_length=100,

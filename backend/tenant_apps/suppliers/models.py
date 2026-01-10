@@ -131,6 +131,12 @@ class Supplier(TimestampModel):
         blank=True,
         help_text="Multiple contacts associated with this supplier",
     )
+    products = models.ManyToManyField(
+        'products.Product',
+        related_name="suppliers",
+        blank=True,
+        help_text="Products available from this supplier",
+    )
     shipping_offered = models.CharField(
         max_length=100,
         choices=ShippingOfferedChoices.choices,
