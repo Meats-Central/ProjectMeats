@@ -3,11 +3,15 @@ Cockpit views for aggregated search across tenant models.
 
 Provides polymorphic search API respecting tenant schema isolation.
 """
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.db.models import Q
+from django.db import IntegrityError
+from django.utils import timezone
+import logging
 
 from .serializers import (
     CustomerSlotSerializer,
@@ -18,6 +22,8 @@ from .serializers import (
 )
 from .models import ActivityLog, ScheduledCall
 from tenant_apps.customers.models import Customer
+
+logger = logging.getLogger(__name__)
 from tenant_apps.suppliers.models import Supplier
 from tenant_apps.purchase_orders.models import PurchaseOrder
 
@@ -106,6 +112,7 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
     ViewSet for Scheduled Calls with strict tenant isolation.
     
     Supports filtering by date range and completion status.
+    Automatically creates activity log entries for related entities.
     """
     serializer_class = ScheduledCallSerializer
     permission_classes = [IsAuthenticated]
@@ -125,8 +132,126 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        """Auto-assign tenant and created_by on create."""
-        serializer.save(
-            tenant=self.request.tenant,
-            created_by=self.request.user
+        """
+        Auto-assign tenant and created_by on create, and log activity.
+        Enhanced error handling to prevent 500 errors.
+        """
+        try:
+            # Validate tenant context exists
+            if not hasattr(self.request, 'tenant') or not self.request.tenant:
+                logger.error(
+                    'Attempted to create scheduled call without tenant context',
+                    extra={
+                        'user': self.request.user.username if self.request.user.is_authenticated else 'Anonymous',
+                        'has_tenant_attr': hasattr(self.request, 'tenant'),
+                    }
+                )
+                raise ValidationError({
+                    'error': 'Tenant context required',
+                    'detail': 'Please refresh and try again.'
+                })
+            
+            scheduled_call = serializer.save(
+                tenant=self.request.tenant,
+                created_by=self.request.user
+            )
+            
+            # Auto-create activity log entry for the related entity
+            self._create_activity_log(
+                scheduled_call=scheduled_call,
+                action='scheduled',
+                user=self.request.user
+            )
+            
+        except IntegrityError as e:
+            logger.error(f'Integrity error creating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Database error',
+                'detail': 'Invalid data or duplicate entry.'
+            })
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f'Error creating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Failed to schedule call',
+                'detail': str(e)
+            })
+    
+    def perform_update(self, serializer):
+        """
+        Log activity when call is updated or completed.
+        Enhanced error handling to prevent 500 errors.
+        """
+        try:
+            # Validate tenant context exists
+            if not hasattr(self.request, 'tenant') or not self.request.tenant:
+                logger.error('Attempted to update scheduled call without tenant context')
+                raise ValidationError({
+                    'error': 'Tenant context required',
+                    'detail': 'Please refresh and try again.'
+                })
+            
+            old_instance = self.get_object()
+            was_completed = old_instance.is_completed
+            
+            scheduled_call = serializer.save()
+            
+            # If call was just marked as completed, log it
+            if scheduled_call.is_completed and not was_completed:
+                self._create_activity_log(
+                    scheduled_call=scheduled_call,
+                    action='completed',
+                    user=self.request.user
+                )
+                
+        except IntegrityError as e:
+            logger.error(f'Integrity error updating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Database error',
+                'detail': 'Invalid data or duplicate entry.'
+            })
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f'Error updating call: {str(e)}', exc_info=True)
+            raise ValidationError({
+                'error': 'Failed to update call',
+                'detail': str(e)
+            })
+    
+    def _create_activity_log(self, scheduled_call, action, user):
+        """
+        Helper method to create activity log entries for scheduled calls.
+        
+        This ensures the activity appears in the entity's activity feed automatically.
+        """
+        # Determine the content based on action
+        if action == 'scheduled':
+            title = f"Call Scheduled: {scheduled_call.title}"
+            content = (
+                f"Scheduled call for {scheduled_call.scheduled_for.strftime('%Y-%m-%d %H:%M')}.\n"
+                f"Duration: {scheduled_call.duration_minutes} minutes\n"
+                f"Purpose: {scheduled_call.call_purpose}"
+            )
+            if scheduled_call.description:
+                content += f"\n\nNotes: {scheduled_call.description}"
+        elif action == 'completed':
+            title = f"Call Completed: {scheduled_call.title}"
+            content = f"Call was completed."
+            if scheduled_call.outcome:
+                content += f"\n\nOutcome: {scheduled_call.outcome}"
+        else:
+            title = f"Call Updated: {scheduled_call.title}"
+            content = "Call details were updated."
+        
+        # Create activity log tied to the entity
+        ActivityLog.objects.create(
+            tenant=scheduled_call.tenant,
+            entity_type=scheduled_call.entity_type,
+            entity_id=scheduled_call.entity_id,
+            title=title,
+            content=content,
+            created_by=user,
+            tags='call,scheduled-call,auto-generated'
         )

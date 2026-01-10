@@ -15,6 +15,9 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     # Nested location serializers (read-only)
     pick_up_location_details = LocationListSerializer(source='pick_up_location', read_only=True)
     delivery_location_details = LocationListSerializer(source='delivery_location', read_only=True)
+    
+    # Allow order_number to be optional (auto-generated if not provided)
+    order_number = serializers.CharField(required=False, allow_blank=True, max_length=50)
 
     class Meta:
         model = PurchaseOrder

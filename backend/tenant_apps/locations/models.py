@@ -35,6 +35,18 @@ class Location(TimestampModel):
         max_length=255,
         help_text="Location name or identifier"
     )
+    code = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Location code or identifier"
+    )
+    location_type = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Type of location (warehouse, store, distribution_center, office)"
+    )
     address = models.TextField(
         blank=True,
         default='',
@@ -46,47 +58,46 @@ class Location(TimestampModel):
         default='',
         help_text="City"
     )
-    state_zip = models.CharField(
+    state = models.CharField(
         max_length=50,
         blank=True,
         default='',
-        help_text="State and ZIP code"
+        help_text="State or province"
+    )
+    zip_code = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        help_text="ZIP or postal code"
+    )
+    country = models.CharField(
+        max_length=100,
+        blank=True,
+        default='USA',
+        help_text="Country"
     )
 
     # Contact information
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        help_text="Location phone number"
+    )
+    email = models.EmailField(
+        blank=True,
+        default='',
+        help_text="Location email address"
+    )
     contact_name = models.CharField(
         max_length=255,
         blank=True,
         default='',
         help_text="Contact person name"
     )
-    contact_phone = models.CharField(
-        max_length=20,
-        blank=True,
-        default='',
-        help_text="Contact phone number"
-    )
-    contact_email = models.EmailField(
-        blank=True,
-        default='',
-        help_text="Contact email address"
-    )
-
-    # Appointment method
-    how_make_appointment = models.CharField(
-        max_length=50,
-        choices=AppointmentMethodChoices.choices,
-        blank=True,
-        default='',
-        help_text="How to make an appointment"
-    )
-
-    # Plant establishment number
-    plant_est_number = models.CharField(
-        max_length=50,
-        blank=True,
-        default='',
-        help_text="Plant establishment number"
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this location is active"
     )
 
     # Relationships to Supplier and Customer
@@ -95,7 +106,7 @@ class Location(TimestampModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='locations',
+        related_name='supplier_locations',
         help_text="Associated supplier"
     )
     customer = models.ForeignKey(
@@ -103,7 +114,7 @@ class Location(TimestampModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='locations',
+        related_name='customer_locations',
         help_text="Associated customer"
     )
 
@@ -115,7 +126,8 @@ class Location(TimestampModel):
             models.Index(fields=['tenant', 'name']),
             models.Index(fields=['tenant', 'supplier']),
             models.Index(fields=['tenant', 'customer']),
+            models.Index(fields=['tenant', 'location_type']),
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.city})"
+        return f"{self.name} ({self.city or 'No city'})"

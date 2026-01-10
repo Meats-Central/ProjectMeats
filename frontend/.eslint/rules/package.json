@@ -1,0 +1,6 @@
+{
+  "name": "eslint-plugin-projectmeats",
+  "version": "1.0.0",
+  "description": "Custom ESLint rules for ProjectMeats UI standards",
+  "main": "index.js"
+}

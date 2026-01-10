@@ -117,6 +117,50 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Conditional disk cleanup
+        run: |
+          echo "============================================"
+          echo "Checking disk usage..."
+          df -h
+          
+          # Get disk usage percentage (remove % symbol)
+          USAGE=$(df -h . | awk 'NR==2{print $5}' | tr -d '%')
+          echo "Current disk usage: ${USAGE}%"
+          
+          if [ "$USAGE" -gt 80 ]; then
+            echo "⚠️  Disk usage above 80%, running cleanup..."
+            
+            # Remove unnecessary files to free up space
+            sudo rm -rf /usr/share/dotnet || true
+            sudo rm -rf /usr/local/lib/android || true
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+            
+            # Clean apt cache
+            sudo apt-get clean || true
+            
+            # Prune Docker (without -a for speed, preserves useful layers)
+            echo "Pruning Docker system..."
+            docker system df
+            docker system prune -f --volumes || true
+            docker system df
+            
+            echo "============================================"
+            echo "Disk usage after cleanup:"
+            df -h
+            echo "============================================"
+          else
+            echo "✓ Disk usage under 80%, skipping cleanup for faster run"
+          fi
+
+      - name: Setup Python cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -143,8 +187,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:cache,mode=max
+            type=gha,mode=max
 
   security-scan-backend:
     name: "Security Scan: Backend"
@@ -198,6 +246,16 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get clean || true
+          docker image prune -af || true
+          echo "Disk after cleanup:"
+          df -h
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -238,6 +296,52 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Conditional disk cleanup
+        run: |
+          echo "============================================"
+          echo "Checking disk usage..."
+          df -h
+          
+          # Get disk usage percentage (remove % symbol)
+          USAGE=$(df -h . | awk 'NR==2{print $5}' | tr -d '%')
+          echo "Current disk usage: ${USAGE}%"
+          
+          if [ "$USAGE" -gt 80 ]; then
+            echo "⚠️  Disk usage above 80%, running cleanup..."
+            
+            # Remove unnecessary files to free up space
+            sudo rm -rf /usr/share/dotnet || true
+            sudo rm -rf /usr/local/lib/android || true
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+            
+            # Clean apt cache
+            sudo apt-get clean || true
+            
+            # Prune Docker (without -a for speed, preserves useful layers)
+            echo "Pruning Docker system..."
+            docker system df
+            docker system prune -f --volumes || true
+            docker system df
+            
+            echo "============================================"
+            echo "Disk usage after cleanup:"
+            df -h
+            echo "============================================"
+          else
+            echo "✓ Disk usage under 80%, skipping cleanup for faster run"
+          fi
+
+      - name: Setup Node.js cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -264,8 +368,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:cache,mode=max
+            type=gha,mode=max
 
   security-scan-frontend:
     name: "Security Scan: Frontend"
@@ -305,6 +413,16 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get clean || true
+          docker image prune -af || true
+          echo "Disk after cleanup:"
+          df -h
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -335,6 +453,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get clean || true
+          docker image prune -af || true
+          echo "Disk after cleanup:"
+          df -h
       
       - name: Login to DigitalOcean Container Registry
         uses: docker/login-action@v3
@@ -364,23 +492,53 @@ jobs:
           echo "Local Port: 5433"
           echo ""
           
-          # Kill any existing tunnel on port 5433 (find specific PIDs)
-          EXISTING_PIDS=$(lsof -ti:5433 2>/dev/null || true)
-          if [ -n "$EXISTING_PIDS" ]; then
-            echo "Cleaning up existing processes on port 5433: $EXISTING_PIDS"
-            for pid in $EXISTING_PIDS; do
-              kill "$pid" 2>/dev/null || true
-            done
-            sleep 2
-          fi
+          # Function to forcefully cleanup port 5433
+          cleanup_port() {
+            EXISTING_PIDS=$(lsof -ti:5433 2>/dev/null || true)
+            if [ -n "$EXISTING_PIDS" ]; then
+              echo "Force-killing processes on port 5433: $EXISTING_PIDS"
+              for pid in $EXISTING_PIDS; do
+                kill -9 "$pid" 2>/dev/null || true
+              done
+              sleep 2
+            fi
+          }
           
-          # Create SSH tunnel in background with keepalive options
-          # Forward local port 5433 -> remote DB host:port
-          echo "Attempting SSH connection..."
-          if ! sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -f -N \
-            -L 5433:$DB_HOST:$DB_PORT \
-            $BASTION_USER@$BASTION_HOST; then
-            echo "✗ SSH tunnel command failed"
+          # Initial cleanup
+          cleanup_port
+          
+          # Retry loop for SSH tunnel creation (3 attempts)
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          TUNNEL_SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Tunnel creation attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+            
+            # Create SSH tunnel in background with keepalive options
+            # Forward local port 5433 -> remote DB host:port
+            if sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -f -N \
+              -L 5433:$DB_HOST:$DB_PORT \
+              $BASTION_USER@$BASTION_HOST; then
+              echo "✓ Tunnel started successfully"
+              TUNNEL_SUCCESS=true
+              break
+            else
+              echo "✗ Tunnel creation failed (attempt $((RETRY_COUNT + 1)))"
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Retrying in 5 seconds..."
+                sleep 5
+                # Cleanup port before retry
+                cleanup_port
+              fi
+            fi
+          done
+          
+          # Check if tunnel creation succeeded
+          if [ "$TUNNEL_SUCCESS" = false ]; then
+            echo "✗ SSH tunnel creation failed after $MAX_RETRIES attempts"
             echo "Checking SSH connectivity..."
             sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
               $BASTION_USER@$BASTION_HOST "echo '✓ SSH connection successful'" || {
@@ -547,17 +705,53 @@ jobs:
           echo ""
           echo "✓ Superuser setup completed"
       
+      - name: Seed Products (All Tenants)
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_SETTINGS_MODULE: ${{ secrets.DJANGO_SETTINGS_MODULE }}
+        run: |
+          echo "================================"
+          echo "Seeding Products"
+          echo "================================"
+          
+          # Construct DATABASE_URL pointing to tunnel
+          DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5433/$DB_NAME"
+          
+          # Use same image as migrations
+          IMAGE_TAG="${{ inputs.environment }}-${{ github.sha }}"
+          FULL_IMAGE="${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}"
+          
+          echo "Using image: $FULL_IMAGE"
+          echo ""
+          echo "Seeding products for all active tenants..."
+          
+          # Run seed_products management command
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e DJANGO_SETTINGS_MODULE="$DJANGO_SETTINGS_MODULE" \
+            -e SECRET_KEY="$DJANGO_SECRET_KEY" \
+            -e DB_ENGINE="django.db.backends.postgresql" \
+            "$FULL_IMAGE" \
+            python manage.py seed_products --all
+          
+          echo ""
+          echo "✓ Product seeding completed"
+      
       - name: Cleanup SSH tunnel
         if: always()
         run: |
           echo "Cleaning up SSH tunnel..."
-          # Find and kill processes using port 5433
+          # Find and force-kill processes using port 5433
           TUNNEL_PIDS=$(lsof -ti:5433 2>/dev/null || true)
           if [ -n "$TUNNEL_PIDS" ]; then
             for pid in $TUNNEL_PIDS; do
-              kill "$pid" 2>/dev/null || true
+              kill -9 "$pid" 2>/dev/null || true
             done
-            echo "✓ Cleaned up tunnel processes: $TUNNEL_PIDS"
+            echo "✓ Force-killed tunnel processes: $TUNNEL_PIDS"
           else
             echo "✓ No tunnel processes found"
           fi
@@ -634,8 +828,9 @@ jobs:
           # Pull new image
           docker pull "$REG/$IMG:$TAG"
           
-          # Stop old container
-          docker rm -f pm-backend projectmeats-backend || true
+          # Stop old containers (both old and new naming conventions)
+          docker stop projectmeats-backend pm-backend 2>/dev/null || true
+          docker rm -f projectmeats-backend pm-backend 2>/dev/null || true
           
           # Start new container with environment file
           docker run -d --name pm-backend \
@@ -654,7 +849,24 @@ jobs:
             -v /root/projectmeats/staticfiles:/app/staticfiles \
             "$REG/$IMG:$TAG"
           
-          # Wait for container to be ready
+          # Wait for container to be running
+          echo "Waiting for container to start..."
+          MAX_WAIT=30
+          ELAPSED=0
+          until docker ps | grep -q pm-backend; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "✗ Container failed to start within ${MAX_WAIT}s"
+              docker ps -a | grep pm-backend || echo "No container found"
+              docker logs pm-backend --tail 50 2>/dev/null || true
+              exit 1
+            fi
+            echo "Waiting... (${ELAPSED}s/${MAX_WAIT}s)"
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+          echo "✓ Container is running"
+          
+          # Wait a bit for Django to initialize
           sleep 5
           
           # Collect static files for admin UI
@@ -665,7 +877,7 @@ jobs:
           echo "✓ Static files collected"
           
           # Health check
-          MAX_ATTEMPTS=5
+          MAX_ATTEMPTS=20
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
@@ -780,9 +992,10 @@ jobs:
           docker pull "$REG/$IMG:$IMAGE_TAG"
           echo "✓ Image pulled successfully"
           
-          # Stop old container
-          echo "Stopping old frontend container..."
-          docker rm -f pm-frontend projectmeats-frontend || true
+          # Stop old containers (both old and new naming conventions)
+          echo "Stopping old frontend containers..."
+          docker stop projectmeats-frontend pm-frontend 2>/dev/null || true
+          docker rm -f projectmeats-frontend pm-frontend 2>/dev/null || true
           
           # Start new container with docker run
           echo "Starting frontend container..."
@@ -796,11 +1009,27 @@ jobs:
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$IMAGE_TAG"
           
-          echo "✓ Container started successfully"
+          # Wait for container to be running
+          echo "Waiting for container to start..."
+          MAX_WAIT=30
+          ELAPSED=0
+          until docker ps | grep -q pm-frontend; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "✗ Container failed to start within ${MAX_WAIT}s"
+              docker ps -a | grep pm-frontend || echo "No container found"
+              docker logs pm-frontend --tail 50 2>/dev/null || true
+              exit 1
+            fi
+            echo "Waiting... (${ELAPSED}s/${MAX_WAIT}s)"
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+          echo "✓ Container is running"
           
-          # Verify container is running
+          # Additional health check
+          sleep 3
           if docker ps | grep 'pm-frontend' > /dev/null; then
-            echo "✓ Frontend container is running"
+            echo "✓ Frontend container verified running"
           else
             echo "✗ Frontend container is not running"
             docker ps -a | grep 'pm-frontend' || echo "No container found"
@@ -809,7 +1038,7 @@ jobs:
           
           # Health check - container serves on port 8080 (mapped from container port 80)
           echo "Checking frontend health on port 8080..."
-          MAX_ATTEMPTS=5
+          MAX_ATTEMPTS=10
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")

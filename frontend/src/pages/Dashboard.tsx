@@ -652,7 +652,7 @@ const ActionButtons = styled.div`
 `;
 
 const ActionButton = styled.button`
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -697,7 +697,7 @@ const ErrorMessage = styled.p<{ $theme: Theme }>`
 `;
 
 const RetryButton = styled.button`
-  background: #3498db;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -708,7 +708,7 @@ const RetryButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: #2980b9;
+    background: rgb(var(--color-primary));
     transform: translateY(-1px);
   }
 `;

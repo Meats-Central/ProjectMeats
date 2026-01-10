@@ -107,6 +107,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           tenantName: response.data.name,
         };
         
+        // Fix logo URL if it's relative (starts with /)
+        if (branding.logoUrl && branding.logoUrl.startsWith('/')) {
+          const baseUrl = apiBaseUrl.replace('/api/v1', '');
+          branding.logoUrl = `${baseUrl}${branding.logoUrl}`;
+        }
+        
         setTenantBranding(branding);
       } catch (error) {
         console.error('Failed to load tenant branding:', error);
@@ -114,7 +120,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
 
     loadTenantBranding();
-  }, []); // Only run once on mount
+
+    // Listen for branding updates from Settings page
+    const handleBrandingUpdate = () => {
+      console.log('🔄 Tenant branding update event received, reloading...');
+      loadTenantBranding();
+    };
+
+    window.addEventListener('tenant-branding-updated', handleBrandingUpdate);
+    
+    return () => {
+      window.removeEventListener('tenant-branding-updated', handleBrandingUpdate);
+    };
+  }, []); // Only run once on mount and setup listener
 
   // NEW: Inject tenant colors into CSS variables when branding or theme changes
   useEffect(() => {

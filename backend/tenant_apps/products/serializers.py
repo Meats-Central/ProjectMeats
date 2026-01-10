@@ -6,7 +6,10 @@ from .models import Product
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    """Serializer for Product model."""
+    """Serializer for Product model with tenant validation."""
+    
+    # Read-only fields for display
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
 
     class Meta:
         model = Product
@@ -22,6 +25,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "edible_or_inedible",
             "tested_product",
             "supplier",
+            "supplier_name",
             "supplier_item_number",
             "plants_available",
             "origin",
@@ -36,4 +40,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_on",
             "modified_on",
         ]
-        read_only_fields = ["id", "created_on", "modified_on"]
+        read_only_fields = ["id", "tenant", "created_on", "modified_on"]
+        extra_kwargs = {
+            'product_code': {'required': True},
+            'description_of_product_item': {'required': True},
+        }

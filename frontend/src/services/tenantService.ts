@@ -114,17 +114,50 @@ export class TenantService {
    * Upload tenant logo
    * @param id - Tenant ID
    * @param logoFile - Logo image file
+   * @throws {Error} With detailed message if upload fails
    */
   async uploadLogo(id: string, logoFile: File): Promise<Tenant> {
-    const formData = new FormData();
-    formData.append('logo', logoFile);
+    try {
+      const formData = new FormData();
+      formData.append('logo', logoFile);
 
-    const response = await apiClient.patch(`/tenants/${id}/`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+      const response = await apiClient.patch(`/tenants/${id}/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error handling with detailed messages
+      if (error.response) {
+        // Server responded with error
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 400) {
+          // Validation error - extract specific message
+          if (data.logo) {
+            throw new Error(`Logo validation failed: ${Array.isArray(data.logo) ? data.logo.join(', ') : data.logo}`);
+          } else if (data.detail) {
+            throw new Error(`Upload failed: ${data.detail}`);
+          } else {
+            throw new Error(`Upload failed: ${JSON.stringify(data)}`);
+          }
+        } else if (status === 413) {
+          throw new Error('Logo file is too large. Please use a file smaller than 5MB.');
+        } else if (status === 500) {
+          throw new Error('Server error while uploading logo. Please check server logs or try again later.');
+        } else {
+          throw new Error(`Upload failed with status ${status}: ${data.detail || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        // Request made but no response
+        throw new Error('Network error: Unable to reach server. Please check your connection.');
+      } else {
+        // Error setting up request
+        throw new Error(`Upload error: ${error.message}`);
+      }
+    }
   }
 
   /**
@@ -139,26 +172,132 @@ export class TenantService {
   }
 
   /**
-   * Update tenant theme colors
+   * Update tenant theme colors via settings PATCH
+   * This is the direct API method that sends colors as settings.theme
+   * 
+   * @param id - Tenant ID
+   * @param colors - Theme colors object
+   * @throws {Error} With detailed message if update fails
+   */
+  async updateTenantSettings(
+    id: string,
+    settings: {
+      theme?: {
+        primary_color?: string;
+        primary_color_light?: string;
+        primary_color_dark?: string;
+      };
+      [key: string]: any;
+    }
+  ): Promise<Tenant> {
+    try {
+      // CRITICAL: Explicitly set Content-Type to application/json
+      // This prevents HTML response issues when updating settings
+      const response = await apiClient.patch(
+        `/tenants/${id}/`,
+        { settings },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error handling
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        // Check if response is HTML instead of JSON (common issue)
+        const contentType = error.response.headers['content-type'];
+        if (contentType && contentType.includes('text/html')) {
+          console.error('Received HTML response instead of JSON:', {
+            status,
+            url: error.config?.url,
+            method: error.config?.method,
+          });
+          throw new Error('Server returned HTML instead of JSON. Check server configuration and CORS settings.');
+        }
+        
+        if (status === 400) {
+          // Validation error - extract specific message
+          if (data.settings) {
+            const settingsErrors = typeof data.settings === 'object' 
+              ? JSON.stringify(data.settings) 
+              : data.settings;
+            throw new Error(`Settings validation failed: ${settingsErrors}`);
+          } else if (data.detail) {
+            throw new Error(`Settings update failed: ${data.detail}`);
+          } else {
+            throw new Error(`Settings update failed: ${JSON.stringify(data)}`);
+          }
+        } else if (status === 403) {
+          throw new Error('Permission denied: Only tenant owners and admins can update settings.');
+        } else if (status === 500) {
+          throw new Error('Server error while updating settings. Please check server logs or try again later.');
+        } else {
+          throw new Error(`Settings update failed with status ${status}: ${data.detail || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        throw new Error('Network error: Unable to reach server. Please check your connection.');
+      } else {
+        throw new Error(`Settings update error: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Update tenant theme colors via settings PATCH
+   * @deprecated Use updateTenantSettings for direct settings update
    * @param id - Tenant ID
    * @param lightColor - Primary color for light theme (hex format)
    * @param darkColor - Primary color for dark theme (hex format)
+   * @throws {Error} With detailed message if update fails
    */
   async updateThemeColors(
     id: string,
     lightColor?: string,
     darkColor?: string
   ): Promise<TenantTheme> {
-    const data: {
-      primary_color_light?: string;
-      primary_color_dark?: string;
-    } = {};
-    
-    if (lightColor) data.primary_color_light = lightColor;
-    if (darkColor) data.primary_color_dark = darkColor;
+    try {
+      const data: {
+        primary_color_light?: string;
+        primary_color_dark?: string;
+      } = {};
+      
+      if (lightColor) data.primary_color_light = lightColor;
+      if (darkColor) data.primary_color_dark = darkColor;
 
-    const response = await apiClient.post(`/tenants/${id}/update_theme/`, data);
-    return response.data;
+      const response = await apiClient.post(`/tenants/${id}/update_theme/`, data);
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error handling
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 400) {
+          // Validation error
+          if (data.error) {
+            throw new Error(`Theme update failed: ${data.error}`);
+          } else {
+            throw new Error(`Theme update failed: ${JSON.stringify(data)}`);
+          }
+        } else if (status === 403) {
+          throw new Error('Permission denied: Only tenant owners and admins can update theme colors.');
+        } else if (status === 500) {
+          throw new Error('Server error while updating theme. Please check server logs or try again later.');
+        } else {
+          throw new Error(`Theme update failed with status ${status}: ${data.detail || data.error || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        throw new Error('Network error: Unable to reach server. Please check your connection.');
+      } else {
+        throw new Error(`Theme update error: ${error.message}`);
+      }
+    }
   }
 }
 
