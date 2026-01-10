@@ -1,8 +1,11 @@
+import logging
+import traceback
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from django.core.cache import cache
 from .models import Tenant, TenantUser
 from .serializers import (
     TenantSerializer,
@@ -10,16 +13,23 @@ from .serializers import (
     TenantUserSerializer,
     UserTenantSerializer,
 )
+from .permissions import IsTenantAdminOrOwner
+
+logger = logging.getLogger(__name__)
 
 
 class TenantViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing tenants.
     Provides CRUD operations for tenant management.
+    
+    Permissions:
+    - Authenticated users can list and view tenants they belong to
+    - Only owners and admins can update/delete tenants
     """
 
     queryset = Tenant.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTenantAdminOrOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["is_active", "is_trial"]
     search_fields = ["name", "slug", "contact_email", "domain"]
@@ -43,6 +53,51 @@ class TenantViewSet(viewsets.ModelViewSet):
             "tenant_id", flat=True
         )
         return Tenant.objects.filter(id__in=tenant_ids)
+    
+    def perform_update(self, serializer):
+        """
+        Override perform_update to add detailed logging and error handling.
+        
+        Logs all PATCH/PUT requests and captures exceptions with full traceback.
+        This helps diagnose 500 errors related to logo uploads or color updates.
+        """
+        logger.info("=" * 60)
+        logger.info(f"🔄 Tenant Update Request - Method: {self.request.method}")
+        logger.info(f"User: {self.request.user.username} (ID: {self.request.user.id})")
+        logger.info(f"Tenant ID: {serializer.instance.id}")
+        logger.info(f"Request Data: {self.request.data}")
+        logger.info(f"Content Type: {self.request.content_type}")
+        
+        # Log file uploads separately
+        if self.request.FILES:
+            logger.info(f"Files Uploaded: {list(self.request.FILES.keys())}")
+            for key, file in self.request.FILES.items():
+                logger.info(f"  - {key}: {file.name} ({file.size} bytes, {file.content_type})")
+        
+        try:
+            # Perform the update
+            instance = serializer.save()
+            
+            # Clear tenant branding cache after successful update
+            cache_key = f'tenant_branding_{instance.id}'
+            cache.delete(cache_key)
+            logger.info(f"✅ Tenant update successful - Cache cleared: {cache_key}")
+            logger.info("=" * 60)
+            
+            return instance
+            
+        except Exception as e:
+            # Log full traceback for debugging
+            logger.error("=" * 60)
+            logger.error(f"❌ Tenant update failed for tenant {serializer.instance.id}")
+            logger.error(f"Error Type: {type(e).__name__}")
+            logger.error(f"Error Message: {str(e)}")
+            logger.error("Full Traceback:")
+            logger.error(traceback.format_exc())
+            logger.error("=" * 60)
+            
+            # Re-raise to let DRF handle the error response
+            raise
 
     @action(detail=True, methods=["get"])
     def users(self, request, pk=None):

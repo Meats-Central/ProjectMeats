@@ -2,13 +2,15 @@
 Signal handlers for tenant models.
 Automatically sends invitation emails when TenantInvitation is created.
 Ensures owners have Django admin access.
+Clears branding cache on tenant updates.
 """
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
+from django.core.cache import cache
 from django.conf import settings
-from .models import TenantInvitation, TenantUser
+from .models import TenantInvitation, TenantUser, Tenant
 
 logger = logging.getLogger(__name__)
 
@@ -89,4 +91,26 @@ def ensure_privileged_roles_have_staff_access(sender, instance, created, **kwarg
         instance.user.is_staff = True
         instance.user.save(update_fields=['is_staff'])
         logger.info(f"✅ Admin access granted to {instance.user.username}")
+
+
+@receiver(post_save, sender=Tenant, dispatch_uid="clear_tenant_branding_cache_on_update")
+def clear_tenant_branding_cache(sender, instance, created, **kwargs):
+    """
+    Clear tenant branding cache when a tenant is updated.
+    
+    This ensures that logo and color changes are immediately reflected
+    in the frontend without requiring manual cache clearing.
+    
+    Note: dispatch_uid prevents duplicate signal connections during Django reload.
+    """
+    if not created:  # Only on updates, not creation
+        cache_key = f'tenant_branding_{instance.id}'
+        cache.delete(cache_key)
+        logger.info(f"🎨 Cleared branding cache for tenant: {instance.slug} (key: {cache_key})")
+        
+        # Also clear any domain-based cache keys
+        if instance.domain:
+            domain_cache_key = f'tenant_by_domain_{instance.domain}'
+            cache.delete(domain_cache_key)
+            logger.info(f"🌐 Cleared domain cache for tenant: {instance.domain}")
 
