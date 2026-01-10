@@ -117,32 +117,49 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Free up runner disk space
+      - name: Conditional disk cleanup
         run: |
           echo "============================================"
-          echo "Disk usage before cleanup:"
+          echo "Checking disk usage..."
           df -h
-          echo "============================================"
           
-          # Remove unnecessary files to free up space
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          # Get disk usage percentage (remove % symbol)
+          USAGE=$(df -h . | awk 'NR==2{print $5}' | tr -d '%')
+          echo "Current disk usage: ${USAGE}%"
           
-          # Clean apt cache
-          sudo apt-get clean || true
-          
-          echo "============================================"
-          echo "Disk usage after cleanup:"
-          df -h
-          echo "============================================"
+          if [ "$USAGE" -gt 80 ]; then
+            echo "⚠️  Disk usage above 80%, running cleanup..."
+            
+            # Remove unnecessary files to free up space
+            sudo rm -rf /usr/share/dotnet || true
+            sudo rm -rf /usr/local/lib/android || true
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+            
+            # Clean apt cache
+            sudo apt-get clean || true
+            
+            # Prune Docker (without -a for speed, preserves useful layers)
+            echo "Pruning Docker system..."
+            docker system df
+            docker system prune -f --volumes || true
+            docker system df
+            
+            echo "============================================"
+            echo "Disk usage after cleanup:"
+            df -h
+            echo "============================================"
+          else
+            echo "✓ Disk usage under 80%, skipping cleanup for faster run"
+          fi
 
-      - name: Remove unused Docker images
-        run: |
-          docker system df
-          docker image prune -af || true
-          docker system df
+      - name: Setup Python cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -170,8 +187,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:cache,mode=max
+            type=gha,mode=max
 
   security-scan-backend:
     name: "Security Scan: Backend"
@@ -275,32 +296,51 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Free up runner disk space
+      - name: Conditional disk cleanup
         run: |
           echo "============================================"
-          echo "Disk usage before cleanup:"
+          echo "Checking disk usage..."
           df -h
-          echo "============================================"
           
-          # Remove unnecessary files to free up space
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          # Get disk usage percentage (remove % symbol)
+          USAGE=$(df -h . | awk 'NR==2{print $5}' | tr -d '%')
+          echo "Current disk usage: ${USAGE}%"
           
-          # Clean apt cache
-          sudo apt-get clean || true
-          
-          echo "============================================"
-          echo "Disk usage after cleanup:"
-          df -h
-          echo "============================================"
+          if [ "$USAGE" -gt 80 ]; then
+            echo "⚠️  Disk usage above 80%, running cleanup..."
+            
+            # Remove unnecessary files to free up space
+            sudo rm -rf /usr/share/dotnet || true
+            sudo rm -rf /usr/local/lib/android || true
+            sudo rm -rf /opt/ghc || true
+            sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+            
+            # Clean apt cache
+            sudo apt-get clean || true
+            
+            # Prune Docker (without -a for speed, preserves useful layers)
+            echo "Pruning Docker system..."
+            docker system df
+            docker system prune -f --volumes || true
+            docker system df
+            
+            echo "============================================"
+            echo "Disk usage after cleanup:"
+            df -h
+            echo "============================================"
+          else
+            echo "✓ Disk usage under 80%, skipping cleanup for faster run"
+          fi
 
-      - name: Remove unused Docker images
-        run: |
-          docker system df
-          docker image prune -af || true
-          docker system df
+      - name: Setup Node.js cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -328,8 +368,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.environment }}-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:cache,mode=max
+            type=gha,mode=max
 
   security-scan-frontend:
     name: "Security Scan: Frontend"
@@ -718,8 +762,9 @@ jobs:
           # Pull new image
           docker pull "$REG/$IMG:$TAG"
           
-          # Stop old container
-          docker rm -f pm-backend projectmeats-backend || true
+          # Stop old containers (both old and new naming conventions)
+          docker stop projectmeats-backend pm-backend 2>/dev/null || true
+          docker rm -f projectmeats-backend pm-backend 2>/dev/null || true
           
           # Start new container with environment file
           docker run -d --name pm-backend \
@@ -738,7 +783,24 @@ jobs:
             -v /root/projectmeats/staticfiles:/app/staticfiles \
             "$REG/$IMG:$TAG"
           
-          # Wait for container to be ready
+          # Wait for container to be running
+          echo "Waiting for container to start..."
+          MAX_WAIT=30
+          ELAPSED=0
+          until docker ps | grep -q pm-backend; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "✗ Container failed to start within ${MAX_WAIT}s"
+              docker ps -a | grep pm-backend || echo "No container found"
+              docker logs pm-backend --tail 50 2>/dev/null || true
+              exit 1
+            fi
+            echo "Waiting... (${ELAPSED}s/${MAX_WAIT}s)"
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+          echo "✓ Container is running"
+          
+          # Wait a bit for Django to initialize
           sleep 5
           
           # Collect static files for admin UI
@@ -864,9 +926,10 @@ jobs:
           docker pull "$REG/$IMG:$IMAGE_TAG"
           echo "✓ Image pulled successfully"
           
-          # Stop old container
-          echo "Stopping old frontend container..."
-          docker rm -f pm-frontend projectmeats-frontend || true
+          # Stop old containers (both old and new naming conventions)
+          echo "Stopping old frontend containers..."
+          docker stop projectmeats-frontend pm-frontend 2>/dev/null || true
+          docker rm -f projectmeats-frontend pm-frontend 2>/dev/null || true
           
           # Start new container with docker run
           echo "Starting frontend container..."
@@ -880,11 +943,27 @@ jobs:
             -v /opt/pm/frontend/env/env-config.js:/usr/share/nginx/html/env-config.js:ro \
             "$REG/$IMG:$IMAGE_TAG"
           
-          echo "✓ Container started successfully"
+          # Wait for container to be running
+          echo "Waiting for container to start..."
+          MAX_WAIT=30
+          ELAPSED=0
+          until docker ps | grep -q pm-frontend; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "✗ Container failed to start within ${MAX_WAIT}s"
+              docker ps -a | grep pm-frontend || echo "No container found"
+              docker logs pm-frontend --tail 50 2>/dev/null || true
+              exit 1
+            fi
+            echo "Waiting... (${ELAPSED}s/${MAX_WAIT}s)"
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+          echo "✓ Container is running"
           
-          # Verify container is running
+          # Additional health check
+          sleep 3
           if docker ps | grep 'pm-frontend' > /dev/null; then
-            echo "✓ Frontend container is running"
+            echo "✓ Frontend container verified running"
           else
             echo "✗ Frontend container is not running"
             docker ps -a | grep 'pm-frontend' || echo "No container found"
