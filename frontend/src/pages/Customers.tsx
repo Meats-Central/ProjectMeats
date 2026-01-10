@@ -35,6 +35,16 @@ const Customers: React.FC = () => {
     fetchProducts();
   }, []);
 
+  // Auto-fetch products when preferred_protein_types changes
+  useEffect(() => {
+    if (formData.preferred_protein_types && formData.preferred_protein_types.length > 0) {
+      fetchFilteredProducts(formData.preferred_protein_types);
+    } else {
+      // Reset to all products if no protein types selected
+      fetchProducts();
+    }
+  }, [formData.preferred_protein_types]);
+
   const fetchCustomers = async () => {
     try {
       setLoading(true);
@@ -60,6 +70,33 @@ const Customers: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchFilteredProducts = async (proteinTypes: string[]) => {
+    try {
+      // Build query string with multiple protein parameters
+      const proteinParams = proteinTypes.map(type => `protein=${encodeURIComponent(type)}`).join('&');
+      const response = await fetch(`/api/v1/products/?${proteinParams}`, {
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+        
+        // Auto-select filtered products
+        const filteredProductIds = data.map((p: any) => p.id);
+        setFormData(prev => ({
+          ...prev,
+          products: [...new Set([...prev.products, ...filteredProductIds])] // Merge and dedupe
+        }));
+        
+        console.log(`✓ Auto-added ${filteredProductIds.length} products matching protein types:`, proteinTypes);
+      }
+    } catch (error) {
+      console.error('Error fetching filtered products:', error);
     }
   };
 
