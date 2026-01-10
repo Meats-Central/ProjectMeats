@@ -14,6 +14,7 @@ const Suppliers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [products, setProducts] = useState<Array<{ id: number; product_code: string; description_of_product_item: string }>>([]);
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -25,10 +26,12 @@ const Suppliers: React.FC = () => {
     zip_code: '',
     country: '',
     departments_array: [] as string[], // Phase 4: ArrayField integration
+    products: [] as number[], // Product IDs for M2M
   });
 
   useEffect(() => {
     fetchSuppliers();
+    fetchProducts();
   }, []);
 
   const fetchSuppliers = async () => {
@@ -40,6 +43,22 @@ const Suppliers: React.FC = () => {
       console.error('Error fetching suppliers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/v1/products/', {
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
     }
   };
 
@@ -86,6 +105,7 @@ const Suppliers: React.FC = () => {
       zip_code: supplier.zip_code || '',
       country: supplier.country || '',
       departments_array: supplier.departments_array || [], // Phase 4: Populate array
+      products: supplier.products || [], // Populate product IDs
     });
     setShowForm(true);
   };
@@ -122,6 +142,7 @@ const Suppliers: React.FC = () => {
       zip_code: '',
       country: '',
       departments_array: [], // Phase 4: Reset array
+      products: [], // Reset products
     });
   };
 
@@ -262,6 +283,16 @@ const Suppliers: React.FC = () => {
                     options={DEPARTMENT_CHOICES}
                     label="Departments"
                     placeholder="Select departments (hold Ctrl/Cmd for multiple)"
+                  />
+                </FormGroup>
+
+                <FormGroup $fullWidth>
+                  <MultiSelect
+                    value={formData.products.map(String)}
+                    onChange={(values) => setFormData({ ...formData, products: values.map(Number) })}
+                    options={products.map(p => ({ value: String(p.id), label: `${p.product_code} - ${p.description_of_product_item}` }))}
+                    label="Products"
+                    placeholder="Select products to associate (hold Ctrl/Cmd for multiple)"
                   />
                 </FormGroup>
               </FormGrid>
