@@ -1,26 +1,27 @@
 /**
- * Schedule Call Modal
- * 
- * Modal for scheduling follow-up calls with customers, suppliers, or other entities.
+ * Enhanced Schedule Call Modal - CRUD Support
  * 
  * Features:
- * - Entity type dropdown (Supplier, Customer, Plant, etc.)
- * - Entity ID input
- * - Call title and description
- * - Date/time picker
- * - Duration in minutes
- * - Submits to cockpit/scheduled-calls/
+ * - Create new calls
+ * - Edit existing calls (via initialData prop)
+ * - Full form validation
+ * - Theme-compliant styling
  * 
  * Usage:
  * ```tsx
- * <ScheduleCallModal
- *   isOpen={showModal}
- *   onClose={() => setShowModal(false)}
- *   onSuccess={() => fetchCalls()}
+ * // Create new
+ * <ScheduleCallModal isOpen={show} onClose={...} onSuccess={...} />
+ * 
+ * // Edit existing
+ * <ScheduleCallModal 
+ *   isOpen={show}
+ *   initialData={call}
+ *   onClose={...}
+ *   onSuccess={...}
  * />
  * ```
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { apiClient } from '../../services/apiService';
 
@@ -28,10 +29,29 @@ import { apiClient } from '../../services/apiService';
 // TypeScript Interfaces
 // ============================================================================
 
+export interface ScheduledCallData {
+  id?: number;
+  tenant?: string;
+  entity_type: string;
+  entity_id: number;
+  title: string;
+  description: string;
+  scheduled_for: string;
+  duration_minutes: number;
+  call_purpose: string;
+  outcome?: string;
+  is_completed?: boolean;
+  created_by?: number | null;
+  created_by_name?: string;
+  created_on?: string;
+  updated_on?: string;
+}
+
 interface ScheduleCallModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: ScheduledCallData | null;  // For editing
 }
 
 type EntityType = 'supplier' | 'customer' | 'plant' | 'purchase_order' | 'sales_order' | 'carrier' | 'product' | 'invoice' | 'contact';
@@ -41,7 +61,7 @@ type EntityType = 'supplier' | 'customer' | 'plant' | 'purchase_order' | 'sales_
 // ============================================================================
 
 const Overlay = styled.div<{ isOpen: boolean }>`
-  display: ${props => props.isOpen ? 'flex' : 'none'};
+  display: \${props => props.isOpen ? 'flex' : 'none'};
   position: fixed;
   top: 0;
   left: 0;
@@ -226,7 +246,10 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  initialData,
 }) => {
+  const isEditMode = !!initialData?.id;
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [entityType, setEntityType] = useState<EntityType>('customer');
@@ -234,8 +257,25 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
   const [scheduledFor, setScheduledFor] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [callPurpose, setCallPurpose] = useState('follow_up');
+  const [outcome, setOutcome] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load initial data for editing
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setEntityType(initialData.entity_type as EntityType || 'customer');
+      setEntityId(String(initialData.entity_id || ''));
+      setScheduledFor(initialData.scheduled_for || '');
+      setDurationMinutes(String(initialData.duration_minutes || 30));
+      setCallPurpose(initialData.call_purpose || 'follow_up');
+      setOutcome(initialData.outcome || '');
+    } else if (isOpen) {
+      resetForm();
+    }
+  }, [initialData, isOpen]);
 
   const resetForm = () => {
     setTitle('');
@@ -245,6 +285,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
     setScheduledFor('');
     setDurationMinutes('30');
     setCallPurpose('follow_up');
+    setOutcome('');
     setError(null);
   };
 
@@ -275,14 +316,6 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       return;
     }
 
-    // Prevent scheduling in the past
-    const scheduledDate = new Date(scheduledFor);
-    const now = new Date();
-    if (scheduledDate < now) {
-      setError('Cannot schedule calls in the past');
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -294,17 +327,24 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
         scheduled_for: scheduledFor,
         duration_minutes: Number(durationMinutes),
         call_purpose: callPurpose,
+        ...(outcome && { outcome: outcome.trim() }),
       };
 
-      await apiClient.post('cockpit/scheduled-calls/', payload);
+      if (isEditMode && initialData?.id) {
+        // Update existing call
+        await apiClient.patch(\`cockpit/scheduled-calls/\${initialData.id}/\`, payload);
+      } else {
+        // Create new call
+        await apiClient.post('cockpit/scheduled-calls/', payload);
+      }
 
       // Success
       resetForm();
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Failed to schedule call:', err);
-      setError(err.response?.data?.detail || err.response?.data?.message || 'Failed to schedule call. Please try again.');
+      console.error(\`Failed to \${isEditMode ? 'update' : 'schedule'} call:\`, err);
+      setError(err.response?.data?.detail || err.response?.data?.message || \`Failed to \${isEditMode ? 'update' : 'schedule'} call. Please try again.\`);
     } finally {
       setSubmitting(false);
     }
@@ -317,7 +357,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
       <Modal onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <ModalHeader>
-            <ModalTitle>Schedule New Call</ModalTitle>
+            <ModalTitle>{isEditMode ? 'Edit Call' : 'Schedule New Call'}</ModalTitle>
             <CloseButton type="button" onClick={handleClose}>&times;</CloseButton>
           </ModalHeader>
 
@@ -416,6 +456,18 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               </Select>
             </FormGroup>
 
+            {isEditMode && initialData?.is_completed && (
+              <FormGroup>
+                <Label>Outcome</Label>
+                <TextArea
+                  value={outcome}
+                  onChange={(e) => setOutcome(e.target.value)}
+                  placeholder="What was the outcome of this call?"
+                  disabled={submitting}
+                />
+              </FormGroup>
+            )}
+
             {error && <ErrorMessage>{error}</ErrorMessage>}
           </ModalBody>
 
@@ -424,7 +476,7 @@ export const ScheduleCallModal: React.FC<ScheduleCallModalProps> = ({
               Cancel
             </CancelButton>
             <SubmitButton type="submit" disabled={submitting}>
-              {submitting ? 'Scheduling...' : 'Schedule Call'}
+              {submitting ? (isEditMode ? 'Updating...' : 'Scheduling...') : (isEditMode ? 'Update Call' : 'Schedule Call')}
             </SubmitButton>
           </ModalFooter>
         </form>
