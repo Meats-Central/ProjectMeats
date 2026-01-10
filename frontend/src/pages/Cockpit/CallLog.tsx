@@ -21,7 +21,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { ActivityFeed } from '../../components/Shared/ActivityFeed';
 import { ScheduleCallModal } from '../../components/Shared/ScheduleCallModal';
 import { apiClient } from '../../services/apiService';
-import { formatToLocal, formatDateLocal } from '../../utils/formatters';
+import { formatToLocal } from '../../utils/formatters';
 
 // ============================================================================
 // TypeScript Interfaces
@@ -138,32 +138,6 @@ const PaneTitle = styled.h2`
   font-weight: 600;
   color: rgb(var(--color-text-primary));
   margin: 0 0 1rem 0;
-`;
-
-const CallsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-
-  /* Custom scrollbar */
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgb(var(--color-surface));
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgb(var(--color-border));
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--color-text-secondary));
-  }
 `;
 
 const CallCard = styled.div<{ isCompleted?: boolean; isSelected?: boolean }>`
