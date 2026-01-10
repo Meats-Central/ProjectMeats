@@ -34,7 +34,13 @@ class TenantSerializer(serializers.ModelSerializer):
             "logo",
             "domains",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "schema_name"]
+        # Enable partial updates (PATCH)
+        extra_kwargs = {
+            'name': {'required': False},
+            'slug': {'required': False},
+            'contact_email': {'required': False},
+        }
 
     def get_user_count(self, obj):
         """Get the number of active users for this tenant."""
@@ -164,9 +170,10 @@ class TenantSerializer(serializers.ModelSerializer):
         Override update to handle partial updates and cache clearing.
         
         Ensures:
-        - Partial updates work correctly
-        - Cache is cleared after updates
-        - Logo uploads are processed
+        - Partial updates work correctly (PATCH support)
+        - Logo file uploads are processed atomically
+        - Settings (colors) are saved atomically
+        - Cache is cleared after successful updates
         
         Args:
             instance: The Tenant instance being updated
@@ -175,15 +182,53 @@ class TenantSerializer(serializers.ModelSerializer):
         Returns:
             The updated Tenant instance
         """
-        # Handle partial update
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"📝 TenantSerializer.update() - Updating tenant {instance.id}")
+        logger.info(f"Validated data keys: {list(validated_data.keys())}")
+        
+        # Handle logo file upload separately if present
+        logo_file = validated_data.pop('logo', None)
+        if logo_file is not None:
+            logger.info(f"📤 Processing logo upload: {logo_file.name}")
+            # Django's FileField handles the file save automatically
+            instance.logo = logo_file
+        
+        # Handle settings atomically
+        settings = validated_data.pop('settings', None)
+        if settings is not None:
+            logger.info(f"🎨 Updating settings (theme colors): {settings}")
+            # Merge with existing settings if partial update
+            if instance.settings:
+                # Deep merge settings
+                existing_settings = instance.settings.copy()
+                for key, value in settings.items():
+                    if isinstance(value, dict) and key in existing_settings:
+                        existing_settings[key].update(value)
+                    else:
+                        existing_settings[key] = value
+                instance.settings = existing_settings
+            else:
+                instance.settings = settings
+        
+        # Handle remaining fields
         for attr, value in validated_data.items():
+            logger.info(f"Setting {attr} = {value}")
             setattr(instance, attr, value)
         
+        # Save all changes atomically
         instance.save()
+        logger.info(f"✅ Tenant {instance.id} saved successfully")
         
         # Clear tenant branding cache
-        cache_key = f'tenant_branding_{instance.id}'
-        cache.delete(cache_key)
+        cache_keys = [
+            f'tenant_branding_{instance.id}',
+            f'tenant_by_domain_{instance.domain}',
+        ]
+        for key in cache_keys:
+            cache.delete(key)
+            logger.info(f"🗑️  Cleared cache: {key}")
         
         return instance
 

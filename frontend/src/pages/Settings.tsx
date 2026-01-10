@@ -365,22 +365,26 @@ const Settings: React.FC = () => {
       // Apply colors to CSS variables for preview using injectTenantColors utility
       injectTenantColors(primaryColor, secondaryColor, themeName);
 
-      // Save colors to backend
-      await tenantService.updateThemeColors(tenantId, primaryColor, secondaryColor);
+      // Save colors to backend using new updateTenantSettings method
+      // This ensures proper Content-Type headers and prevents HTML responses
+      await tenantService.updateTenantSettings(tenantId, {
+        theme: {
+          primary_color_light: primaryColor,
+          primary_color_dark: secondaryColor,
+        }
+      });
       
       setMessage({ 
         type: 'success', 
-        text: 'Theme colors saved successfully! Refreshing page to apply changes...' 
+        text: 'Theme colors saved successfully! Changes applied immediately.' 
       });
       
       // Close pickers
       setShowPrimaryPicker(false);
       setShowSecondaryPicker(false);
 
-      // Reload page after short delay to apply theme globally
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // NO page reload needed - colors are already applied via injectTenantColors
+      // The backend saves the settings for persistence across sessions
       
     } catch (error: any) {
       // Enhanced error display - show the actual error message from the service
@@ -521,7 +525,7 @@ const Settings: React.FC = () => {
                     </ColorPickerWrapper>
                   </ColorPickerRow>
 
-                  <ApplyButton onClick={handleApplyThemeColors}>
+                  <ApplyButton type="button" onClick={handleApplyThemeColors}>
                     Apply Colors
                   </ApplyButton>
                 </ColorPickerSection>
