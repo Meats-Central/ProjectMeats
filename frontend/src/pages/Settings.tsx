@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import { ChromePicker, ColorResult } from 'react-color';
 import { extractBrandColors, rgbToHex, hexToRgb } from '../utils/themeUtils';
 import { injectTenantColors } from '../config/theme';
+import { getRuntimeConfig } from '../config/runtime';
 
 // Renamed to avoid collision with component name (ESLint no-redeclare warning)
 interface UserSettings {
@@ -86,8 +87,15 @@ const Settings: React.FC = () => {
           setCurrentTenant(tenants[0]);
           // Map logo URL from the backend response
           // Backend returns 'logo' field directly or as 'logo_url'
-          const logoUrl = tenants[0].logo || (tenants[0] as any).logo_url;
+          let logoUrl = tenants[0].logo || (tenants[0] as any).logo_url;
           if (logoUrl) {
+            // If logo URL is relative (starts with /), prepend API_BASE_URL
+            if (logoUrl.startsWith('/')) {
+              const apiBaseUrl = getRuntimeConfig('API_BASE_URL', 'http://localhost:8000/api/v1');
+              // Remove /api/v1 from API_BASE_URL and append the logo path
+              const baseUrl = apiBaseUrl.replace('/api/v1', '');
+              logoUrl = `${baseUrl}${logoUrl}`;
+            }
             setLogoPreview(logoUrl);
           }
         }
