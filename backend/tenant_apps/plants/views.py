@@ -70,6 +70,16 @@ class PlantViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Create a new plant with enhanced error handling."""
+        # Log incoming request for debugging
+        logger.info(
+            f'Creating plant with data: {request.data}',
+            extra={
+                'user': request.user.username if request.user and request.user.is_authenticated else 'Anonymous',
+                'tenant': getattr(request, 'tenant', None),
+                'has_tenant_attr': hasattr(request, 'tenant')
+            }
+        )
+        
         try:
             return super().create(request, *args, **kwargs)
         except DRFValidationError as e:
@@ -77,7 +87,7 @@ class PlantViewSet(viewsets.ModelViewSet):
                 f'Validation error creating plant: {str(e.detail)}',
                 extra={
                     'request_data': request.data,
-                    'user': request.user.username if request.user else 'Anonymous',
+                    'user': request.user.username if request.user and request.user.is_authenticated else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
             )
@@ -85,10 +95,10 @@ class PlantViewSet(viewsets.ModelViewSet):
             raise
         except ValidationError as e:
             logger.error(
-                f'Validation error creating plant: {str(e)}',
+                f'Django validation error creating plant: {str(e)}',
                 extra={
                     'request_data': request.data,
-                    'user': request.user.username if request.user else 'Anonymous',
+                    'user': request.user.username if request.user and request.user.is_authenticated else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
             )
@@ -98,15 +108,15 @@ class PlantViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             logger.error(
-                f'Error creating plant: {str(e)}',
+                f'Unexpected error creating plant: {str(e)}',
                 exc_info=True,
                 extra={
                     'request_data': request.data,
-                    'user': request.user.username if request.user else 'Anonymous',
+                    'user': request.user.username if request.user and request.user.is_authenticated else 'Anonymous',
                     'timestamp': timezone.now().isoformat()
                 }
             )
             return Response(
-                {'error': 'Failed to create plant', 'details': 'Internal server error'},
+                {'error': 'Failed to create plant', 'details': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
