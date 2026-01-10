@@ -6,6 +6,9 @@ class PlantSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(
         source="created_by.username", read_only=True
     )
+    supplier_name = serializers.CharField(
+        source="supplier.name", read_only=True
+    )
 
     class Meta:
         model = Plant
@@ -14,6 +17,8 @@ class PlantSerializer(serializers.ModelSerializer):
             "name",
             "code",
             "plant_type",
+            "supplier",
+            "supplier_name",
             "address",
             "city",
             "state",

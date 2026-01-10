@@ -1,8 +1,13 @@
 /**
- * Plants Management Page
+ * Plants Management Page - Phase 4 Complete
  * 
- * Phase 4: Contextual Supplier Selection
- * Demonstrates context-aware parent entity selection
+ * Features:
+ * - Full CRUD operations (Create, Read, Update, Delete)
+ * - Contextual supplier selection (state-based navigation)
+ * - Edit and Delete operations with confirmation
+ * - View plant details
+ * - Theme-compliant styling
+ * - Multi-tenancy support
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
@@ -12,13 +17,20 @@ import { apiClient } from '../services/apiService';
 interface Plant {
   id: number;
   name: string;
-  supplier: number;
+  code: string;
+  supplier: number | null;
   supplier_name?: string;
+  plant_type?: string;
   address?: string;
   city?: string;
   state?: string;
+  zip_code?: string;
   country?: string;
   phone?: string;
+  email?: string;
+  manager?: string;
+  capacity?: number;
+  is_active?: boolean;
 }
 
 interface Supplier {
@@ -32,21 +44,28 @@ const Plants: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
+  const [deletingPlant, setDeletingPlant] = useState<Plant | null>(null);
   const [contextSupplierId, setContextSupplierId] = useState<number | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
+    code: '',
     supplier: '',
+    plant_type: 'processing',
     address: '',
     city: '',
     state: '',
+    zip_code: '',
     country: 'USA',
     phone: '',
+    email: '',
+    manager: '',
+    capacity: '',
   });
 
-  // Detect context from URL or state
+  // Detect context from navigation state (Phase 4 pattern)
   useEffect(() => {
-    // Check if navigated from a supplier detail page
     const state = location.state as any;
     if (state?.supplierId) {
       setContextSupplierId(state.supplierId);
@@ -79,33 +98,87 @@ const Plants: React.FC = () => {
     }
   };
 
+  const handleAddPlant = () => {
+    setEditingPlant(null);
+    setFormData({
+      name: '',
+      code: '',
+      supplier: contextSupplierId ? String(contextSupplierId) : '',
+      plant_type: 'processing',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: 'USA',
+      phone: '',
+      email: '',
+      manager: '',
+      capacity: '',
+    });
+    setShowForm(true);
+  };
+
+  const handleEditPlant = (plant: Plant) => {
+    setEditingPlant(plant);
+    setFormData({
+      name: plant.name,
+      code: plant.code,
+      supplier: plant.supplier ? String(plant.supplier) : '',
+      plant_type: plant.plant_type || 'processing',
+      address: plant.address || '',
+      city: plant.city || '',
+      state: plant.state || '',
+      zip_code: plant.zip_code || '',
+      country: plant.country || 'USA',
+      phone: plant.phone || '',
+      email: plant.email || '',
+      manager: plant.manager || '',
+      capacity: plant.capacity ? String(plant.capacity) : '',
+    });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiClient.post('plants/', formData);
+      const payload = {
+        ...formData,
+        supplier: formData.supplier ? parseInt(formData.supplier) : null,
+        capacity: formData.capacity ? parseInt(formData.capacity) : null,
+      };
+
+      if (editingPlant) {
+        // Update existing plant
+        await apiClient.patch(`plants/${editingPlant.id}/`, payload);
+      } else {
+        // Create new plant
+        await apiClient.post('plants/', payload);
+      }
+      
       await loadPlants();
       setShowForm(false);
-      setFormData({
-        name: '',
-        supplier: '',
-        address: '',
-        city: '',
-        state: '',
-        country: 'USA',
-        phone: '',
-      });
-    } catch (error) {
-      console.error('Error creating plant:', error);
-      alert('Failed to create plant');
+      setEditingPlant(null);
+    } catch (error: any) {
+      console.error('Error saving plant:', error);
+      alert(error.response?.data?.error || 'Failed to save plant');
     }
   };
 
-  const handleAddPlant = () => {
-    // Pre-fill supplier if context exists
-    if (contextSupplierId) {
-      setFormData(prev => ({ ...prev, supplier: String(contextSupplierId) }));
+  const handleDeleteClick = (plant: Plant) => {
+    setDeletingPlant(plant);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingPlant) return;
+
+    try {
+      await apiClient.delete(`plants/${deletingPlant.id}/`);
+      await loadPlants();
+      setDeletingPlant(null);
+    } catch (error) {
+      console.error('Error deleting plant:', error);
+      alert('Failed to delete plant');
     }
-    setShowForm(true);
   };
 
   if (loading) {
@@ -128,7 +201,7 @@ const Plants: React.FC = () => {
 
       {contextSupplierId && (
         <ContextBanner>
-          <span>📍 Context: Adding plant for specific supplier</span>
+          <span>📍 Context: Adding plant for selected supplier</span>
         </ContextBanner>
       )}
 
@@ -142,18 +215,51 @@ const Plants: React.FC = () => {
         <Grid>
           {plants.map(plant => (
             <PlantCard key={plant.id}>
-              <PlantName>{plant.name}</PlantName>
-              <PlantDetail>
-                <strong>Supplier:</strong> {plant.supplier_name || `ID: ${plant.supplier}`}
-              </PlantDetail>
+              <CardHeader>
+                <PlantName>{plant.name}</PlantName>
+                <CardActions>
+                  <ActionButton onClick={() => handleEditPlant(plant)} title="Edit">
+                    ✏️
+                  </ActionButton>
+                  <ActionButton 
+                    onClick={() => handleDeleteClick(plant)} 
+                    title="Delete"
+                    className="delete"
+                  >
+                    🗑️
+                  </ActionButton>
+                </CardActions>
+              </CardHeader>
+              
+              <PlantCode>Code: {plant.code}</PlantCode>
+              
+              {plant.supplier_name && (
+                <PlantDetail>
+                  <strong>Supplier:</strong> {plant.supplier_name}
+                </PlantDetail>
+              )}
+              
+              {plant.plant_type && (
+                <PlantDetail>
+                  <strong>Type:</strong> {plant.plant_type}
+                </PlantDetail>
+              )}
+              
               {plant.city && plant.state && (
                 <PlantDetail>
                   📍 {plant.city}, {plant.state}
                 </PlantDetail>
               )}
+              
               {plant.phone && (
                 <PlantDetail>
                   📞 {plant.phone}
+                </PlantDetail>
+              )}
+              
+              {plant.manager && (
+                <PlantDetail>
+                  👤 Manager: {plant.manager}
                 </PlantDetail>
               )}
             </PlantCard>
@@ -161,34 +267,50 @@ const Plants: React.FC = () => {
         </Grid>
       )}
 
+      {/* Form Modal */}
       {showForm && (
-        <FormOverlay>
-          <FormContainer>
+        <FormOverlay onClick={() => setShowForm(false)}>
+          <FormContainer onClick={(e) => e.stopPropagation()}>
             <FormHeader>
-              <FormTitle>Add New Plant</FormTitle>
+              <FormTitle>{editingPlant ? 'Edit Plant' : 'Add New Plant'}</FormTitle>
               <CloseButton onClick={() => setShowForm(false)}>×</CloseButton>
             </FormHeader>
+            
             <Form onSubmit={handleSubmit}>
-              <FormGroup>
-                <Label>Plant Name *</Label>
-                <Input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Main Processing Facility"
-                  required
-                />
-              </FormGroup>
+              <FormRow>
+                <FormGroup>
+                  <Label>Plant Name *</Label>
+                  <Input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Main Processing Facility"
+                    required
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Plant Code *</Label>
+                  <Input
+                    type="text"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="e.g., PLANT-001"
+                    required
+                  />
+                </FormGroup>
+              </FormRow>
 
               <FormGroup>
-                <Label>Supplier * {contextSupplierId && '(Pre-selected from context)'}</Label>
+                <Label>
+                  Supplier {contextSupplierId && '(Pre-selected from context)'}
+                </Label>
                 <Select
                   value={formData.supplier}
                   onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                  required
                   disabled={!!contextSupplierId}
                 >
-                  <option value="">Select Supplier</option>
+                  <option value="">Select Supplier (Optional)</option>
                   {suppliers.map(supplier => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.name}
@@ -198,6 +320,20 @@ const Plants: React.FC = () => {
                 {contextSupplierId && (
                   <HelpText>Supplier automatically selected based on your navigation context</HelpText>
                 )}
+              </FormGroup>
+
+              <FormGroup>
+                <Label>Plant Type</Label>
+                <Select
+                  value={formData.plant_type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, plant_type: e.target.value }))}
+                >
+                  <option value="processing">Processing Plant</option>
+                  <option value="distribution">Distribution Center</option>
+                  <option value="warehouse">Warehouse</option>
+                  <option value="retail">Retail Location</option>
+                  <option value="other">Other</option>
+                </Select>
               </FormGroup>
 
               <FormGroup>
@@ -230,25 +366,96 @@ const Plants: React.FC = () => {
                 </FormGroup>
               </FormRow>
 
-              <FormGroup>
-                <Label>Phone</Label>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                />
-              </FormGroup>
+              <FormRow>
+                <FormGroup>
+                  <Label>ZIP Code</Label>
+                  <Input
+                    type="text"
+                    value={formData.zip_code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, zip_code: e.target.value }))}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label>Country</Label>
+                  <Input
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                  />
+                </FormGroup>
+              </FormRow>
+
+              <FormRow>
+                <FormGroup>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </FormGroup>
+              </FormRow>
+
+              <FormRow>
+                <FormGroup>
+                  <Label>Manager</Label>
+                  <Input
+                    type="text"
+                    value={formData.manager}
+                    onChange={(e) => setFormData(prev => ({ ...prev, manager: e.target.value }))}
+                    placeholder="Facility manager name"
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label>Capacity</Label>
+                  <Input
+                    type="number"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
+                    placeholder="Units"
+                  />
+                </FormGroup>
+              </FormRow>
 
               <FormActions>
                 <CancelButton type="button" onClick={() => setShowForm(false)}>
                   Cancel
                 </CancelButton>
                 <SubmitButton type="submit">
-                  Create Plant
+                  {editingPlant ? 'Update Plant' : 'Create Plant'}
                 </SubmitButton>
               </FormActions>
             </Form>
           </FormContainer>
+        </FormOverlay>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingPlant && (
+        <FormOverlay onClick={() => setDeletingPlant(null)}>
+          <ConfirmDialog onClick={(e) => e.stopPropagation()}>
+            <ConfirmTitle>Delete Plant?</ConfirmTitle>
+            <ConfirmMessage>
+              Are you sure you want to delete <strong>{deletingPlant.name}</strong>?
+              This action cannot be undone.
+            </ConfirmMessage>
+            <ConfirmActions>
+              <CancelButton onClick={() => setDeletingPlant(null)}>
+                Cancel
+              </CancelButton>
+              <DeleteButton onClick={handleDeleteConfirm}>
+                Delete Plant
+              </DeleteButton>
+            </ConfirmActions>
+          </ConfirmDialog>
         </FormOverlay>
       )}
     </Container>
@@ -258,7 +465,7 @@ const Plants: React.FC = () => {
 // Styled Components
 const Container = styled.div`
   padding: 24px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 `;
 
@@ -340,7 +547,7 @@ const EmptyDescription = styled.p`
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
 `;
 
@@ -357,17 +564,64 @@ const PlantCard = styled.div`
   }
 `;
 
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+`;
+
 const PlantName = styled.h3`
   font-size: 18px;
   font-weight: 600;
   color: rgb(var(--color-text-primary));
-  margin: 0 0 12px 0;
+  margin: 0;
+  flex: 1;
+`;
+
+const CardActions = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ActionButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  &.delete:hover {
+    filter: brightness(1.2);
+  }
+`;
+
+const PlantCode = styled.div`
+  font-size: 12px;
+  color: rgb(var(--color-text-secondary));
+  font-family: monospace;
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  background: rgba(var(--color-border), 0.3);
+  border-radius: 4px;
+  display: inline-block;
 `;
 
 const PlantDetail = styled.div`
   font-size: 14px;
   color: rgb(var(--color-text-secondary));
   margin-bottom: 8px;
+
+  strong {
+    color: rgb(var(--color-text-primary));
+  }
 `;
 
 const FormOverlay = styled.div`
@@ -387,7 +641,7 @@ const FormContainer = styled.div`
   background: rgb(var(--color-surface));
   border-radius: 12px;
   width: 90%;
-  max-width: 600px;
+  max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
 `;
@@ -398,6 +652,10 @@ const FormHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  background: rgb(var(--color-surface));
+  z-index: 1;
 `;
 
 const FormTitle = styled.h2`
@@ -490,6 +748,8 @@ const FormActions = styled.div`
   gap: 12px;
   justify-content: flex-end;
   margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgb(var(--color-border));
 `;
 
 const CancelButton = styled.button`
@@ -509,6 +769,54 @@ const CancelButton = styled.button`
 
 const SubmitButton = styled.button`
   background: rgb(var(--color-primary));
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const ConfirmDialog = styled.div`
+  background: rgb(var(--color-surface));
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 450px;
+`;
+
+const ConfirmTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(var(--color-text-primary));
+  margin: 0 0 16px 0;
+`;
+
+const ConfirmMessage = styled.p`
+  font-size: 14px;
+  color: rgb(var(--color-text-secondary));
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+
+  strong {
+    color: rgb(var(--color-text-primary));
+  }
+`;
+
+const ConfirmActions = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+`;
+
+const DeleteButton = styled.button`
+  background: #dc3545;
   color: white;
   border: none;
   padding: 10px 20px;
