@@ -355,7 +355,7 @@ const Title = styled.h1<{ $theme: Theme }>`
 `;
 
 const AddButton = styled.button`
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -451,7 +451,7 @@ const Input = styled.input<{ $theme: Theme }>`
 
   &:focus {
     outline: none;
-    border-color: #e74c3c;
+    border-color: rgb(var(--color-primary));
   }
 `;
 
@@ -471,12 +471,12 @@ const CancelButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #5a6268;
+    background: rgb(var(--color-text-secondary));
   }
 `;
 
 const SubmitButton = styled.button`
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   border-radius: 6px;
@@ -553,7 +553,7 @@ const CompanyName = styled.div<{ $theme: Theme }>`
 `;
 
 const ActionButton = styled.button`
-  background: #3498db;
+  background: rgb(59, 130, 246);
   color: white;
   border: none;
   border-radius: 4px;
@@ -564,12 +564,12 @@ const ActionButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #2980b9;
+    background: rgb(var(--color-primary));
   }
 `;
 
 const DeleteButton = styled.button`
-  background: #e74c3c;
+  background: rgb(var(--color-primary));
   color: white;
   border: none;
   border-radius: 4px;
@@ -579,7 +579,7 @@ const DeleteButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #c0392b;
+    background: rgb(var(--color-primary));
   }
 `;
 
