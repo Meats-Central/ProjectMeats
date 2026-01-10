@@ -105,6 +105,11 @@ const ContentContainer = styled.div<{ hasSidePanel?: boolean }>`
   transition: grid-template-columns 0.3s ease;
   flex: 1;
   overflow: hidden;
+  
+  /* Stack layout on tablets and mobile */
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const MainContent = styled.div`
@@ -165,9 +170,13 @@ const TableContainer = styled.div`
 `;
 
 const TableWrapper = styled.div`
-  overflow-x: auto;
   overflow-y: auto;
   flex: 1;
+
+  /* Only enable horizontal scroll on small screens when truly needed */
+  @media (max-width: 768px) {
+    overflow-x: auto;
+  }
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -191,7 +200,15 @@ const TableWrapper = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px;
+  
+  /* Reduce minimum width on smaller screens */
+  @media (min-width: 769px) {
+    min-width: 800px;
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 600px;
+  }
 `;
 
 const TableHeader = styled.thead`

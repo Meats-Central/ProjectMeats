@@ -484,7 +484,7 @@ const CustomerLocations: React.FC = () => {
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} locations`,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 'max-content' }}
       />
 
       {/* Form Modal */}
