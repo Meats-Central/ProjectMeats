@@ -40,11 +40,14 @@ COPY shared  ./shared
 # 3) Build inside frontend
 WORKDIR /project/frontend
 ENV CI=true
-RUN npm run build
+RUN npm run build \
+    && rm -rf /project/frontend/node_modules \
+    && rm -rf /root/.npm /root/.cache /tmp/*
 
 # Runtime with nginx and npm installed
 FROM nginx:alpine
-RUN apk add --no-cache nodejs npm bash gettext  # Install npm, nodejs, bash, and gettext (for envsubst)
+RUN apk add --no-cache nodejs npm bash gettext \
+    && rm -rf /var/cache/apk/* /tmp/*  # Clean up apk cache
 
 # Copy configs to 'templates' directory (NOT conf.d) to prevent auto-loading
 # This prevents Nginx from automatically including them
