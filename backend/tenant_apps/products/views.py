@@ -76,6 +76,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         
         Custom filtering:
         - ?customer={id} - Filter by M2M customer relationship
+        - ?protein=Beef&protein=Chicken - Filter by protein types (multiple)
         """
         queryset = super().get_queryset()
         
@@ -93,6 +94,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         if customer_id:
             queryset = queryset.filter(customers__id=customer_id)
             logger.debug(f"Filtered products by customer: {customer_id}")
+        
+        # Protein type filtering (supports multiple values)
+        protein_types = self.request.query_params.getlist('protein', None)
+        if protein_types:
+            queryset = queryset.filter(type_of_protein__in=protein_types)
+            logger.debug(f"Filtered products by protein types: {protein_types}")
         
         return queryset
     
