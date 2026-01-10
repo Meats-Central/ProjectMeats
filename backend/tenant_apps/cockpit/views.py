@@ -127,32 +127,50 @@ class ScheduledCallViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Auto-assign tenant and created_by on create, and log activity."""
-        scheduled_call = serializer.save(
-            tenant=self.request.tenant,
-            created_by=self.request.user
-        )
+        from django.core.exceptions import ValidationError
+        from django.db import IntegrityError
         
-        # Auto-create activity log entry for the related entity
-        self._create_activity_log(
-            scheduled_call=scheduled_call,
-            action='scheduled',
-            user=self.request.user
-        )
+        if not self.request.tenant:
+            raise ValidationError("Tenant is required for creating scheduled calls.")
+        
+        try:
+            scheduled_call = serializer.save(
+                tenant=self.request.tenant,
+                created_by=self.request.user
+            )
+            
+            # Auto-create activity log entry for the related entity
+            self._create_activity_log(
+                scheduled_call=scheduled_call,
+                action='scheduled',
+                user=self.request.user
+            )
+        except (IntegrityError, ValueError) as e:
+            raise ValidationError(f"Failed to create scheduled call: {str(e)}")
     
     def perform_update(self, serializer):
         """Log activity when call is updated or completed."""
+        from django.core.exceptions import ValidationError
+        from django.db import IntegrityError
+        
+        if not self.request.tenant:
+            raise ValidationError("Tenant is required for updating scheduled calls.")
+        
         old_instance = self.get_object()
         was_completed = old_instance.is_completed
         
-        scheduled_call = serializer.save()
-        
-        # If call was just marked as completed, log it
-        if scheduled_call.is_completed and not was_completed:
-            self._create_activity_log(
-                scheduled_call=scheduled_call,
-                action='completed',
-                user=self.request.user
-            )
+        try:
+            scheduled_call = serializer.save()
+            
+            # If call was just marked as completed, log it
+            if scheduled_call.is_completed and not was_completed:
+                self._create_activity_log(
+                    scheduled_call=scheduled_call,
+                    action='completed',
+                    user=self.request.user
+                )
+        except (IntegrityError, ValueError) as e:
+            raise ValidationError(f"Failed to update scheduled call: {str(e)}")
     
     def _create_activity_log(self, scheduled_call, action, user):
         """
