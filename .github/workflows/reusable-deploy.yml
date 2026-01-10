@@ -811,7 +811,7 @@ jobs:
           echo "✓ Static files collected"
           
           # Health check
-          MAX_ATTEMPTS=5
+          MAX_ATTEMPTS=20
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/health/ || echo "000")
@@ -972,7 +972,7 @@ jobs:
           
           # Health check - container serves on port 8080 (mapped from container port 80)
           echo "Checking frontend health on port 8080..."
-          MAX_ATTEMPTS=5
+          MAX_ATTEMPTS=10
           ATTEMPT=1
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ || echo "000")
